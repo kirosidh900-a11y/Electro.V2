@@ -115,15 +115,18 @@ let timeLeft = 50;
 // ================= TIMER FUNCTION =================
 
 function startOtpTimer() {
-  timeLeft = 10;
-  resendBtn.classList.add("hidden");
+  timeLeft = 50;
+
+  resendBtn.disabled = true;
+  resendBtn.classList.add("opacity-50", "cursor-not-allowed");
+
   timerText.classList.remove("hidden");
+  resendBtn.classList.add("hidden");
 
   timerText.textContent = `Resend OTP in ${timeLeft}s`;
 
   countdown = setInterval(() => {
     timeLeft--;
-
     timerText.textContent = `Resend OTP in ${timeLeft}s`;
 
     if (timeLeft <= 0) {
@@ -131,12 +134,23 @@ function startOtpTimer() {
 
       timerText.classList.add("hidden");
       resendBtn.classList.remove("hidden");
+
+      resendBtn.disabled = false; // ✅ enable again
+      resendBtn.classList.remove("opacity-50", "cursor-not-allowed");
     }
   }, 1000);
 }
 
 // ================= RESEND OTP =================
-resendBtn.addEventListener("click", async () => {
+resendBtn.addEventListener("click", async (e) => {
+  e.preventDefault();
+
+  // 🛑 Prevent double click
+  if (resendBtn.disabled) return;
+
+  resendBtn.disabled = true;
+  resendBtn.classList.add("opacity-50", "cursor-not-allowed");
+
   try {
     const response = await fetch("/auth/resend-otp", {
       method: "PATCH",
@@ -150,15 +164,20 @@ resendBtn.addEventListener("click", async () => {
       Swal.fire({
         icon: "success",
         title: "OTP resent!",
-        message: data.message,
+        text: data.message, // ⚠️ use text not message
         timer: 1500,
         showConfirmButton: false,
       });
-      startOtpTimer();
+
+      startOtpTimer(); // timer will re-enable later
     } else {
+      resendBtn.disabled = false;
+      resendBtn.classList.remove("opacity-50", "cursor-not-allowed");
       Swal.fire("Error", data.message, "error");
     }
   } catch (err) {
+    resendBtn.disabled = false;
+    resendBtn.classList.remove("opacity-50", "cursor-not-allowed");
     Swal.fire("Error", err.message, "error");
   }
 });

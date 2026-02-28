@@ -1,6 +1,7 @@
 import AppError from "../utils/AppError.js";
 import User from "../models/userSchema.model.js";
 import Otp from "../models/otp.model.js";
+import {sendEmail} from "../constant/transporter.js";
 import argon2 from "argon2";
 
 //Validate Email
@@ -162,6 +163,8 @@ export const sendOtpToEmail = async ({
     },
     expiresAt: new Date(Date.now() + 1 * 65 * 1000),
   });
+
+  await sendEmail({ email, name, otp });
 
   console.log(`Sending OTP ${otp} to email: ${email}`);
 };

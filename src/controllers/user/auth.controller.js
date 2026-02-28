@@ -3,6 +3,7 @@ import { isValidate, addUser } from "../../services/user/auth.service.js";
 import { sendOtpToEmail, otpExist ,generateOTP } from "../../utils/auth.utils.js";
 import AppError from "../../utils/AppError.js";
 import Otp from "../../models/otp.model.js";
+import { sendEmail } from "../../constant/transporter.js";
 
 
 export const showLoginPage = (req, res) => {
@@ -71,6 +72,8 @@ export const resendOtp = async (req, res, next) => {
     otpDoc.otp = newOtp;
     otpDoc.expiresAt = new Date(Date.now() + 65 * 1000);
     await otpDoc.save();
+
+    await sendEmail({ email, name: otpDoc.tempUserData.name, otp: newOtp });
 
     console.log(`Resent OTP ${newOtp} to ${email}`);
 
