@@ -1,5 +1,5 @@
 import HTTP_STATUS from "../../constant/statusCode.js";
-import { isValidate, addUser } from "../../services/user/auth.service.js";
+import { isValidate, addUser ,isValidateEmailAndPassword } from "../../services/user/auth.service.js";
 import { sendOtpToEmail, otpExist ,generateOTP } from "../../utils/auth.utils.js";
 import AppError from "../../utils/AppError.js";
 import Otp from "../../models/otp.model.js";
@@ -9,6 +9,25 @@ import { sendEmail } from "../../constant/transporter.js";
 export const showLoginPage = (req, res) => {
   res.render("user/auth/login");
 };
+
+export const Login = async (req, res, next) => {
+  try {
+     const { email, password ,rememberMe } = req.body;
+
+    await isValidateEmailAndPassword(email, password);
+
+    
+
+    res.json({
+      success: true,
+      message: "Login successful",
+      redirectUrl:'/'
+    });
+  } catch (err) {
+    next(err);
+  }
+};
+
 
 export const showSignUpPage = (req, res) => {
   res.render("user/auth/signup");

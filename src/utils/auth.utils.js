@@ -1,8 +1,9 @@
 import AppError from "../utils/AppError.js";
 import User from "../models/userSchema.model.js";
 import Otp from "../models/otp.model.js";
-import {sendEmail} from "../constant/transporter.js";
+import { sendEmail } from "../constant/transporter.js";
 import argon2 from "argon2";
+import HTTP_STATUS from "../constant/statusCode.js";
 
 //Validate Email
 export const isValidEmail = (email) => {
@@ -82,7 +83,27 @@ export const isValidPassword = (password) => {
       400,
     );
   }
-  return true;
+};
+
+// verify user for login
+export const isVerifyUser = async (email, password) => {
+  if (!email || !password) {
+    throw new AppError("Email and password are required", HTTP_STATUS.BAD_REQUEST);
+  }
+
+  const user = await User.findOne({ email });
+
+  if (!user) {
+    throw new AppError("Invalid email or password",  HTTP_STATUS.BAD_REQUEST);
+  }
+
+  const isPasswordValid = await argon2.verify(user.password, password);
+
+  if (!isPasswordValid) {
+    throw new AppError("Invalid email or password",  HTTP_STATUS.BAD_REQUEST);
+  }
+
+  return user;
 };
 
 // Check if user already exists

@@ -3,6 +3,7 @@ import authRouter from "./routes/user/auth.route.js";
 import errorMiddleware from "./middlewares/error.middleware.js";
 import path from "path";
 import { fileURLToPath } from "url";
+import userRouter from "./routes/user/user.route.js";
 
 const app = express();
 
@@ -29,6 +30,7 @@ app.set("views", path.join(__dirname, "views"));
 // Routes
 // -------------------
 app.use("/auth", authRouter);
+app.use("/", userRouter)
 
 // -------------------
 // 404 Handler
