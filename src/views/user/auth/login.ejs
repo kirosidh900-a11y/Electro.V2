@@ -5,7 +5,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Electro - Login</title>
-    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="/user/css/output.css" rel="stylesheet">
 
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
 
@@ -55,18 +55,25 @@
                                 Email Address
                             </label>
                             <i class="fas fa-envelope absolute right-0 bottom-3 text-gray-600 text-lg"></i>
+                            <span id="emailError" class="hidden text-red-400 text-xs mt-2 block"></span>
                         </div>
 
                         <div class="relative group">
                             <input type="password" id="password" name="password" required placeholder=" "
-                                class="peer w-full bg-transparent border-b border-gray-700 py-2 focus:outline-none focus:border-red-500 transition-colors text-base">
+                                class="peer w-full bg-transparent border-b border-gray-700 py-2 pr-8 focus:outline-none focus:border-red-500 transition-colors text-base">
+
                             <label for="password" class="absolute left-0 top-2 text-gray-500 text-base transition-all pointer-events-none
-                            peer-focus:-top-4 peer-focus:text-xs peer-focus:text-red-500 
-                            peer-[:not(:placeholder-shown)]:-top-4 peer-[:not(:placeholder-shown)]:text-xs">
+    peer-focus:-top-4 peer-focus:text-xs peer-focus:text-red-500 
+    peer-[:not(:placeholder-shown)]:-top-4 peer-[:not(:placeholder-shown)]:text-xs">
                                 Password
                             </label>
-                            <i
-                                class="fas fa-eye absolute right-0 bottom-3 text-gray-600 text-lg cursor-pointer hover:text-red-500 transition-colors"></i>
+
+                            <!-- 👁 Toggle Icon -->
+                            <i id="togglePassword"
+                                class="fas fa-eye absolute right-1 top-2 text-gray-600 text-lg cursor-pointer hover:text-red-500 transition-colors">
+                            </i>
+
+                            <span id="passwordError" class="hidden text-red-400 text-xs mt-2 block"></span>
                         </div>
                         <!-- email and password input field end hear -->
 
@@ -74,7 +81,7 @@
                         <div class="flex items-center justify-between text-sm">
                             <label class="flex items-center cursor-pointer group">
                                 <div class="relative">
-                                    <input type="checkbox" name="remember" class="sr-only peer">
+                                    <input type="checkbox" name="rememberMe" id="rememberMe" class="sr-only peer">
                                     <div
                                         class="w-9 h-5 bg-gray-700 rounded-full peer-checked:bg-red-500 transition-all duration-300 shadow-inner">
                                     </div>

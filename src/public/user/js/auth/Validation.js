@@ -15,7 +15,8 @@ export const isValidName = () => {
   }
 
   if (!regex.test(name)) {
-    error.textContent = "Only letters and single spaces allowed";
+    error.textContent =
+      "Only letters and single spaces allowed";
     error.classList.remove("hidden");
     return false;
   }
@@ -23,6 +24,7 @@ export const isValidName = () => {
   error.classList.add("hidden");
   return true;
 };
+
 
 // ==========================
 // EMAIL VALIDATION
@@ -50,6 +52,7 @@ export const isValidEmail = () => {
   return true;
 };
 
+
 // ==========================
 // PHONE VALIDATION
 // ==========================
@@ -75,6 +78,7 @@ export const isValidPhone = () => {
   error.classList.add("hidden");
   return true;
 };
+
 
 // ==========================
 // PASSWORD STRENGTH
@@ -105,6 +109,7 @@ export const isValidPassword = () => {
   return true;
 };
 
+
 // ==========================
 // CONFIRM PASSWORD
 // ==========================
@@ -130,6 +135,7 @@ export const isConfirmPasswordValid = () => {
   error.classList.add("hidden");
   return true;
 };
+
 
 // ==========================
 // REFERRAL (OPTIONAL)
