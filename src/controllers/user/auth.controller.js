@@ -43,7 +43,7 @@ export const verifyOtp = async (req, res, next) => {
 
     await addUser({ name, email, phone, password });
 
-    await Otp.deleteMany({ email, purpose: "signup" });
+    await Otp.deleteMany({ email, purpose});
 
     res.json({
       success: true,

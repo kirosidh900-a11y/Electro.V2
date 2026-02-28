@@ -17,6 +17,7 @@ export const isValidEmail = (email) => {
   if (!emailRegex.test(email)) {
     throw new AppError("Invalid email format", 400);
   }
+  return true;
 };
 
 // Validate phone number
@@ -30,6 +31,8 @@ export const isValidPhone = (phone) => {
   if (!phoneRegex.test(phone)) {
     throw new AppError("Invalid phone number format", 400);
   }
+
+  return true;
 };
 
 // Validate name
@@ -48,6 +51,7 @@ export const isValidName = (name) => {
       400,
     );
   }
+  return true;
 };
 
 // Validate password and confirm password
@@ -58,6 +62,7 @@ export const isConformPassword = (password, confirmPassword) => {
   if (password !== confirmPassword) {
     throw new AppError("Passwords do not match", 400);
   }
+  return true;
 };
 
 // Validate password strength
@@ -77,6 +82,7 @@ export const isValidPassword = (password) => {
       400,
     );
   }
+  return true;
 };
 
 // Check if user already exists

@@ -1,212 +1,278 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Electro - Create Account</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Electro - Create Account</title>
+    <script src="https://cdn.tailwindcss.com"></script>
 
-  <script src="https://cdn.tailwindcss.com"></script>
-  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
 
-  <style>
-    @keyframes fadeInUp {
-      from { opacity: 0; transform: translateY(15px); }
-      to { opacity: 1; transform: translateY(0); }
-    }
-    .animate-fadeInUp { animation: fadeInUp 0.6s ease-out forwards; }
+    <style>
+        /* Smooth entry animation */
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(15px);
+            }
 
-    .ripple {
-      position: relative;
-      overflow: hidden;
-    }
-    .ripple:after {
-      content: "";
-      position: absolute;
-      inset: 0;
-      pointer-events: none;
-      background-image: radial-gradient(circle, #fff 10%, transparent 10.01%);
-      background-repeat: no-repeat;
-      background-position: 50%;
-      transform: scale(10);
-      opacity: 0;
-      transition: transform .5s, opacity 1s;
-    }
-    .ripple:active:after {
-      transform: scale(0);
-      opacity: .3;
-      transition: 0s;
-    }
-  </style>
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .animate-fadeInUp {
+            animation: fadeInUp 0.6s ease-out forwards;
+        }
+
+        /* Custom Click Ripple Effect */
+        .ripple {
+            position: relative;
+            overflow: hidden;
+        }
+
+        .ripple:after {
+            content: "";
+            display: block;
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            top: 0;
+            left: 0;
+            pointer-events: none;
+            background-image: radial-gradient(circle, #fff 10%, transparent 10.01%);
+            background-repeat: no-repeat;
+            background-position: 50%;
+            transform: scale(10, 10);
+            opacity: 0;
+            transition: transform .5s, opacity 1s;
+        }
+
+        .ripple:active:after {
+            transform: scale(0, 0);
+            opacity: .3;
+            transition: 0s;
+        }
+
+        .input-error {
+            border-color: #ff4d4d !important;
+            box-shadow: 0 2px 8px rgba(255, 77, 77, 0.25);
+        }
+    </style>
 </head>
 
 <body class="bg-gray-100 flex flex-col min-h-screen font-sans">
 
-  <%- include('../../partials/user/header') %>
+    <%- include('../../partials/user/header') %>
 
-  <main class="flex-grow flex items-center justify-center p-4">
-    <div class="flex flex-col md:flex-row w-full max-w-4xl rounded-xl overflow-hidden shadow-2xl min-h-[650px] animate-fadeInUp">
+        <main class="flex-grow flex items-center justify-center p-4">
+            <div
+                class="flex flex-col md:flex-row w-full max-w-4xl rounded-xl overflow-hidden shadow-2xl min-h-[650px] animate-fadeInUp">
 
-      <!-- LEFT SIDE -->
-      <div class="w-full md:w-1/2 bg-[#121212] p-10 text-white flex flex-col justify-center">
+                <div class="w-full md:w-1/2 bg-[#121212] p-10 text-white flex flex-col justify-center">
 
-        
+                    <div id="signupSection" class="animate-fadeInUp">
+                        <form id="signUpForm" class="space-y-8">
 
-        <!-- ================= SIGNUP FORM ================= -->
-        <form id="signUpForm" class="space-y-8" autocomplete="off">
+                            <header class="mb-10">
+                                <h2 class="text-[#FF4D4D] text-2xl font-bold mb-1">Create Account</h2>
+                                <p class="text-gray-400 text-sm">Enter your details below</p>
+                            </header>
 
-            <!-- HEADER -->
-        <header class="mb-10 text-center md:text-left">
-          <h2 class="text-[#FF4D4D] text-2xl font-bold mb-1">Create Account</h2>
-          <p class="text-gray-400 text-sm">Enter your details below</p>
-        </header>
+                            <!-- NAME -->
+                            <div class="relative group">
+                                <input type="text" id="signupName" required placeholder=" "
+                                    class="peer w-full bg-transparent border-b border-gray-700 py-2 focus:outline-none focus:border-[#FF4D4D] text-white transition-all duration-300">
+                                <label class="absolute left-0 top-2 text-gray-500 text-sm transition-all pointer-events-none
+      peer-focus:-top-4 peer-focus:text-xs peer-focus:text-[#FF4D4D] 
+      peer-[:not(:placeholder-shown)]:-top-4 peer-[:not(:placeholder-shown)]:text-xs">
+                                    Full Name
+                                </label>
+                                <i class="fas fa-user absolute right-0 bottom-3 text-gray-500"></i>
+                                <span id="nameError" class="hidden text-red-400 text-xs mt-2 block"></span>
+                            </div>
 
-          <!-- NAME -->
-          <div class="relative group">
-            <input type="text" id="signupName" name="name" required placeholder=" "
-              class="peer w-full bg-transparent border-b border-gray-700 py-2 focus:outline-none focus:border-[#FF4D4D] text-white">
-            <label for="signupName"
-              class="absolute left-0 top-2 text-gray-500 text-sm transition-all pointer-events-none
-              peer-focus:-top-4 peer-focus:text-xs peer-focus:text-[#FF4D4D]
-              peer-[:not(:placeholder-shown)]:-top-4 peer-[:not(:placeholder-shown)]:text-xs">
-              Full Name
-            </label>
-          </div>
+                            <!-- EMAIL -->
+                            <div class="relative group">
+                                <input type="email" id="signupEmail" required placeholder=" "
+                                    class="peer w-full bg-transparent border-b border-gray-700 py-2 focus:outline-none focus:border-[#FF4D4D] text-white transition-all duration-300">
+                                <label class="absolute left-0 top-2 text-gray-500 text-sm transition-all pointer-events-none
+      peer-focus:-top-4 peer-focus:text-xs peer-focus:text-[#FF4D4D] 
+      peer-[:not(:placeholder-shown)]:-top-4 peer-[:not(:placeholder-shown)]:text-xs">
+                                    Email Address
+                                </label>
+                                <i class="fas fa-envelope absolute right-0 bottom-3 text-gray-500"></i>
+                                <span id="emailError" class="hidden text-red-400 text-xs mt-2 block"></span>
+                            </div>
 
-          <!-- EMAIL -->
-          <div class="relative group">
-            <input type="email" id="signupEmail" name="email" required placeholder=" "
-              class="peer w-full bg-transparent border-b border-gray-700 py-2 focus:outline-none focus:border-[#FF4D4D] text-white">
-            <label for="signupEmail"
-              class="absolute left-0 top-2 text-gray-500 text-sm transition-all pointer-events-none
-              peer-focus:-top-4 peer-focus:text-xs peer-focus:text-[#FF4D4D]
-              peer-[:not(:placeholder-shown)]:-top-4 peer-[:not(:placeholder-shown)]:text-xs">
-              Email Address
-            </label>
-          </div>
+                            <!-- PHONE -->
+                            <div class="relative group">
+                                <input type="tel" id="signupPhone" required placeholder=" "
+                                    class="peer w-full bg-transparent border-b border-gray-700 py-2 focus:outline-none focus:border-[#FF4D4D] text-white transition-all duration-300">
+                                <label class="absolute left-0 top-2 text-gray-500 text-sm transition-all pointer-events-none
+      peer-focus:-top-4 peer-focus:text-xs peer-focus:text-[#FF4D4D] 
+      peer-[:not(:placeholder-shown)]:-top-4 peer-[:not(:placeholder-shown)]:text-xs">
+                                    Phone Number
+                                </label>
+                                <i class="fas fa-phone absolute right-0 bottom-3 text-gray-500"></i>
+                                <span id="phoneError" class="hidden text-red-400 text-xs mt-2 block"></span>
+                            </div>
 
-          <!-- PHONE -->
-          <div class="relative group">
-            <input type="tel" id="signupPhone" name="phone" required placeholder=" "
-              class="peer w-full bg-transparent border-b border-gray-700 py-2 focus:outline-none focus:border-[#FF4D4D] text-white">
-            <label for="signupPhone"
-              class="absolute left-0 top-2 text-gray-500 text-sm transition-all pointer-events-none
-              peer-focus:-top-4 peer-focus:text-xs peer-focus:text-[#FF4D4D]
-              peer-[:not(:placeholder-shown)]:-top-4 peer-[:not(:placeholder-shown)]:text-xs">
-              Phone Number
-            </label>
-          </div>
+                            <!-- PASSWORD -->
+                            <div class="relative group">
+                                <input type="password" id="signupPassword" required placeholder=" "
+                                    class="peer w-full bg-transparent border-b border-gray-700 py-2 focus:outline-none focus:border-[#FF4D4D] text-white transition-all duration-300">
+                                <label class="absolute left-0 top-2 text-gray-500 text-sm transition-all pointer-events-none
+      peer-focus:-top-4 peer-focus:text-xs peer-focus:text-[#FF4D4D] 
+      peer-[:not(:placeholder-shown)]:-top-4 peer-[:not(:placeholder-shown)]:text-xs">
+                                    Password
+                                </label>
+                                <i id="toggleSignupPassword"
+                                    class="fas fa-eye absolute right-0 bottom-3 text-gray-500 cursor-pointer"></i>
+                                <span id="passwordError" class="hidden text-red-400 text-xs mt-2 block"></span>
+                            </div>
 
-          <!-- PASSWORD -->
-          <div class="relative group">
-            <input type="password" id="signupPassword" name="password" required placeholder=" "
-              class="peer w-full bg-transparent border-b border-gray-700 py-2 focus:outline-none focus:border-[#FF4D4D] text-white">
-            <label for="signupPassword"
-              class="absolute left-0 top-2 text-gray-500 text-sm transition-all pointer-events-none
-              peer-focus:-top-4 peer-focus:text-xs peer-focus:text-[#FF4D4D]
-              peer-[:not(:placeholder-shown)]:-top-4 peer-[:not(:placeholder-shown)]:text-xs">
-              Password
-            </label>
-          </div>
+                            <!-- CONFIRM PASSWORD -->
+                            <div class="relative group">
+                                <input type="password" id="confirmPassword" required placeholder=" "
+                                    class="peer w-full bg-transparent border-b border-gray-700 py-2 focus:outline-none focus:border-[#FF4D4D] text-white transition-all duration-300">
+                                <label class="absolute left-0 top-2 text-gray-500 text-sm transition-all pointer-events-none
+      peer-focus:-top-4 peer-focus:text-xs peer-focus:text-[#FF4D4D] 
+      peer-[:not(:placeholder-shown)]:-top-4 peer-[:not(:placeholder-shown)]:text-xs">
+                                    Confirm Password
+                                </label>
+                                <i class="fas fa-lock absolute right-0 bottom-3 text-gray-500"></i>
+                                <span id="confirmPasswordError" class="hidden text-red-400 text-xs mt-2 block"></span>
+                            </div>
 
-          <!-- CONFIRM PASSWORD -->
-          <div class="relative group">
-            <input type="password" id="confirmPassword" name="confirmPassword" required placeholder=" "
-              class="peer w-full bg-transparent border-b border-gray-700 py-2 focus:outline-none focus:border-[#FF4D4D] text-white">
-            <label for="confirmPassword"
-              class="absolute left-0 top-2 text-gray-500 text-sm transition-all pointer-events-none
-              peer-focus:-top-4 peer-focus:text-xs peer-focus:text-[#FF4D4D]
-              peer-[:not(:placeholder-shown)]:-top-4 peer-[:not(:placeholder-shown)]:text-xs">
-              Confirm Password
-            </label>
-          </div>
+                            <!-- REFERRAL TOGGLE -->
+                            <div class="flex items-center gap-3 pt-2">
+                                <label class="relative inline-flex items-center cursor-pointer group">
+                                    <input id="referralToggle" type="checkbox" class="sr-only peer">
+                                    <div class="w-9 h-5 bg-gray-600 rounded-full peer peer-checked:bg-red-500 transition-all
+      after:content-[''] after:absolute after:top-[2px] after:left-[2px]
+      after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all
+      peer-checked:after:translate-x-full">
+                                    </div>
+                                </label>
+                                <span class="text-xs text-gray-400">I have a referral code</span>
+                            </div>
 
-          <!-- REFERRAL TOGGLE -->
-          <div class="flex items-center gap-3">
-            <input id="referralToggle" type="checkbox" class="hidden peer">
-            <label for="referralToggle"
-              class="w-9 h-5 bg-gray-600 rounded-full relative cursor-pointer
-              after:content-[''] after:absolute after:top-[2px] after:left-[2px]
-              after:bg-white after:rounded-full after:h-4 after:w-4
-              peer-checked:bg-red-500 peer-checked:after:translate-x-full transition-all">
-            </label>
-            <span class="text-xs text-gray-400">I have a referral code</span>
-          </div>
+                            <!-- REFERRAL FIELD -->
+                            <div id="referralField" class="relative group hidden mt-4">
+                                <input type="text" id="referralCode" placeholder=" " class="peer w-full bg-transparent border-b border-gray-700 py-2
+    focus:outline-none focus:border-[#FF4D4D] text-white transition-all duration-300">
 
-          <!-- REFERRAL FIELD -->
-          <div id="referralField" class="hidden relative group">
-            <input type="text" id="referralCode" name="referralCode" placeholder=" "
-              class="peer w-full bg-transparent border-b border-gray-700 py-2 focus:outline-none focus:border-[#FF4D4D] text-white">
-            <label
-              class="absolute left-0 top-2 text-gray-500 text-sm transition-all pointer-events-none
-              peer-focus:-top-4 peer-focus:text-xs peer-focus:text-[#FF4D4D]
-              peer-[:not(:placeholder-shown)]:-top-4 peer-[:not(:placeholder-shown)]:text-xs">
-              Enter Referral Code
-            </label>
-          </div>
+                                <label class="absolute left-0 top-2 text-gray-500 text-sm transition-all pointer-events-none
+    peer-focus:-top-4 peer-focus:text-xs peer-focus:text-[#FF4D4D]
+    peer-[:not(:placeholder-shown)]:-top-4 peer-[:not(:placeholder-shown)]:text-xs">
+                                    Enter Referral Code
+                                </label>
 
-          <!-- SUBMIT -->
-          <button type="submit"
-            class="ripple w-full bg-gradient-to-r from-[#FF512F] to-[#DD2476] text-white py-3 rounded-md font-bold">
-            Create Account
-          </button>
+                                <i class="fas fa-gift absolute right-0 bottom-3 text-gray-500"></i>
 
-        </form>
+                                <span id="referralError" class="hidden text-red-400 text-xs mt-2 block"></span>
+                            </div>
 
-        <!-- ================= OTP FORM ================= -->
-        <form id="otpForm" class="space-y-6 hidden" autocomplete="off">
+                            <!-- SUBMIT -->
+                            <button id="signupBtn" type="submit"
+                                class="w-full bg-gradient-to-r from-[#FF512F] to-[#DD2476] text-white py-3 rounded-md font-bold shadow-lg hover:opacity-90 transition-all">
+                                Create Account
+                            </button>
 
-          <!-- HEADER -->
-        <header class="mb-10 text-center md:text-left">
-          <h2 class="text-[#FF4D4D] text-2xl font-bold mb-1">Verify Your Email</h2>
-          <p class="text-gray-400 text-sm"> An OTP has been sent to your email.</p>
-        </header>
+                        </form>
+                    </div>
 
-          <input type="text" id="otpInput" maxlength="6" required
-            class="w-full bg-transparent border-b border-gray-700 py-2 text-center tracking-widest focus:outline-none focus:border-[#FF4D4D] text-white"
-            placeholder="Enter 6-digit OTP">
+                    <!-- OTP FORM -->
+                    <form id="otpForm"
+                        class="space-y-10 hidden bg-[#111] p-8 rounded-2xl shadow-2xl border border-gray-800 max-w-md mx-auto">
 
-          <button type="submit"
-            class="w-full bg-gradient-to-r from-[#FF512F] to-[#DD2476] text-white py-3 rounded-md font-bold">
-            Verify OTP
-          </button>
+                        <!-- Header -->
+                        <header class="text-center space-y-2">
+                            <h2
+                                class="text-3xl font-extrabold bg-gradient-to-r from-[#FF512F] to-[#DD2476] bg-clip-text text-transparent">
+                                Verify Your Email
+                            </h2>
+                            <p class="text-gray-400 text-sm">
+                                An OTP has been sent to your email.
+                            </p>
+                            <p class="text-red-400 text-xs font-medium">
+                                Do not reload the page until verification is complete.
+                            </p>
+                        </header>
 
-          <p id="otpTimer" class="text-sm text-gray-400 text-center">
-            Resend OTP in 50s
-          </p>
+                        <!-- OTP Input -->
+                        <div class="relative group mt-6">
+                            <input type="text" id="otpInput" required placeholder=" " class="peer w-full bg-transparent border-b-2 border-gray-700 py-3 text-lg tracking-widest text-center 
+                   focus:outline-none focus:border-[#FF4D4D] text-white transition-all duration-300">
+                            <label class="absolute left-0 top-3 text-gray-500 text-sm transition-all pointer-events-none
+            peer-focus:-top-4 peer-focus:text-xs peer-focus:text-[#FF4D4D] 
+            peer-[:not(:placeholder-shown)]:-top-4 peer-[:not(:placeholder-shown)]:text-xs">
+                                Enter OTP
+                            </label>
+                        </div>
 
-          <button type="button" id="resendOtpBtn"
-            class="hidden w-full bg-gray-800 text-white py-2 rounded-md hover:bg-gray-700 transition">
-            Resend OTP
-          </button>
+                        <!-- Verify Button -->
+                        <button type="submit" class="w-full bg-gradient-to-r from-[#FF512F] to-[#DD2476] hover:opacity-90 
+               text-white py-3 rounded-xl font-bold text-lg shadow-lg 
+               transition-all duration-300 hover:scale-[1.02] active:scale-[0.98]">
+                            Verify OTP
+                        </button>
 
-        </form>
+                        <!-- Timer -->
+                        <p id="otpTimer" class="text-sm text-gray-400 text-center mt-2 tracking-wide">
+                            Resend OTP in 50s
+                        </p>
 
-      </div>
+                        <!-- Resend Button (Hidden initially) -->
+                        <button type="button" id="resendOtpBtn" class="hidden w-full bg-gray-800 text-white py-2 rounded-xl font-medium 
+               mt-2 hover:bg-gray-700 transition duration-300 border border-gray-700">
+                            Resend OTP
+                        </button>
 
-      <!-- RIGHT SIDE -->
-      <div class="w-full md:w-1/2 bg-gradient-to-br from-[#FF4D4D] via-[#FF4D4D] to-[#F06] p-10 flex flex-col items-center justify-center text-center text-white">
-        <h3 class="text-2xl font-bold mb-2">Welcome to Electro</h3>
-        <p class="text-sm opacity-90 leading-relaxed mb-8 max-w-[280px]">
-          Exclusive deals await you. Join now & get
-          <span class="font-bold underline">10% OFF</span> on your first order.
-        </p>
+                    </form>
+                </div>
 
-        <img src="/user/imgs/banner.jpeg" alt="Sale"
-          class="w-48 rounded-2xl shadow-2xl mb-10 transition-transform duration-500 hover:scale-105">
+                <div
+                    class="w-full md:w-1/2 bg-gradient-to-br from-[#FF4D4D] via-[#FF4D4D] to-[#F06] p-10 flex flex-col items-center justify-center text-center text-white relative">
+                    <h3 class="text-2xl font-bold mb-2">Welcome to Electro</h3>
+                    <p class="text-sm opacity-90 leading-relaxed mb-8 max-w-[280px]">
+                        Exclusive deals await you. Join now & get <span class="font-bold underline">10% OFF</span> on
+                        your first order.
+                    </p>
 
-        <a href="/auth/login"
-          class="bg-white text-[#FF4D4D] px-8 py-3 rounded-md font-bold text-sm shadow-md hover:bg-gray-100 transition">
-          Already have an account? Log In
-        </a>
-      </div>
+                    <div
+                        class="bg-[#3498db] w-48 h-48 rounded-2xl shadow-2xl flex flex-col items-center justify-center p-4 mb-10 relative overflow-hidden group cursor-pointer active:scale-95 transition-transform">
+                        <img src="/user/imgs/banner.jpeg" alt="Sale"
+                            class="mt-2 z-10 group-hover:scale-110 transition-transform duration-500">
+                    </div>
 
-    </div>
-  </main>
+                    <a href="/auth/login"
+                        class="bg-white text-[#FF4D4D] px-8 py-3 rounded-md font-bold text-sm shadow-md hover:bg-gray-100 transition-all active:scale-95">
+                        Already have an account? Log In
+                    </a>
+                </div>
+            </div>
+        </main>
 
-  <%- include('../../partials/user/footer') %>
+        <%- include('../../partials/user/footer') %>
+            <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
-  <script src="/user/js/auth/signUp.js"></script>
+            <script type="module" src="/user/js/auth/signUp.js"></script>
+            <script>
+                // Password Visibility Toggle
+                const togglePassword = document.querySelector('#toggleSignupPassword');
+                const passwordInput = document.querySelector('#signupPassword');
 
+                togglePassword.addEventListener('click', function () {
+                    const type = passwordInput.getAttribute('type') === 'password' ? 'text' : 'password';
+                    passwordInput.setAttribute('type', type);
+                    this.classList.toggle('fa-eye');
+                    this.classList.toggle('fa-eye-slash');
+                });
+            </script>
 </body>
+
 </html>
