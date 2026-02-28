@@ -1,7 +1,17 @@
-import { Router } from "express";       
-import { showLoginPage } from "../../controllers/user/auth.controller.js";
+import { Router } from "express";
+import {
+  showLoginPage,
+  showSignUpPage,
+  signUp,
+  verifyOtp,
+  resendOtp,
+} from "../../controllers/user/auth.controller.js";
 
 const router = Router();
-router.get('/login', showLoginPage);
+
+router.get("/login", showLoginPage);
+router.route("/signup").get(showSignUpPage).post(signUp);
+router.post("/verify-otp", verifyOtp);
+router.patch("/resend-otp", resendOtp);
 
 export default router;

@@ -6,7 +6,7 @@ dotenv.config();
 
 const PORT = process.env.PORT || 3000;
 
-async function boostrap() {
+async function connectServer() {
   //connect to database
   await connectDB();
   //start the server
@@ -15,4 +15,4 @@ async function boostrap() {
   });
 }
 
-boostrap();
+connectServer();
