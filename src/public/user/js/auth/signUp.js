@@ -49,7 +49,6 @@ signUpForm.addEventListener("submit", async (e) => {
 
   if (currentStep !== "signup") return;
 
-  // 🛑 Prevent double click
   if (signupBtn.disabled) return;
 
   const valid =
@@ -99,14 +98,25 @@ signUpForm.addEventListener("submit", async (e) => {
     if (response.ok) {
       registeredEmail = email;
 
-      Swal.fire({
+      await Swal.fire({
         icon: "success",
         title: "OTP sent!",
-        text: data.message, // ⚠ use text not message
+        text: data.message,
         timer: 1500,
         showConfirmButton: false,
       });
 
+      const result = await Swal.fire({
+        icon: "info",
+        title: "Please Note!",
+        text: "Do not refresh page until OTP verification is done.",
+        confirmButtonText: "Got it",
+        cancelButtonText: "Cancel",
+        showCancelButton: true,
+      });
+
+      // Move to OTP step
+      signUpForm.reset();
       currentStep = nextStep();
 
       document.getElementById("signupSection").classList.add("hidden");
@@ -114,20 +124,20 @@ signUpForm.addEventListener("submit", async (e) => {
 
       startOtpTimer();
     } else {
-      signupBtn.disabled = false;
-      signupBtn.classList.remove("opacity-60", "cursor-not-allowed");
-      signupBtn.textContent = "Create Account";
-
+      resetSignupButton();
       Swal.fire("Error", data.message, "error");
     }
   } catch (err) {
-    signupBtn.disabled = false;
-    signupBtn.classList.remove("opacity-60", "cursor-not-allowed");
-    signupBtn.textContent = "Create Account";
-
+    resetSignupButton();
     Swal.fire("Error", err.message, "error");
   }
 });
+
+function resetSignupButton() {
+  signupBtn.disabled = false;
+  signupBtn.classList.remove("opacity-60", "cursor-not-allowed");
+  signupBtn.textContent = "Create Account";
+}
 
 // ================= OTP VERIFY =================
 otpForm.addEventListener("submit", async (e) => {

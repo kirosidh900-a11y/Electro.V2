@@ -6,7 +6,7 @@ const otpSchema = new mongoose.Schema(
     otp: { type: String, required: true },
     purpose: {
       type: String,
-      enum: ["signup", "password_reset"],
+      enum: ["signup", "forgot-password"],
       required: true,
     },
 
@@ -15,6 +15,11 @@ const otpSchema = new mongoose.Schema(
       name: String,
       phone: String,
       password: String,
+    },
+
+    isAdmin: {
+      type: Boolean,
+      default: false,
     },
 
     expiresAt: {

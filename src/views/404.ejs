@@ -1,1 +1,118 @@
-<h1>404 - Page Not Found</h1>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+<!-- Tailwind CDN for preview/development. If using output.css natively, ensure Tailwind CLI has watched this file to compile classes! -->
+<script src="https://cdn.tailwindcss.com"></script>
+<script>
+    tailwind.config = {
+        theme: {
+            extend: {
+                colors: { brand: { red: '#db4444', dark: '#121212' } },
+                animation: {
+                    'float': 'float 6s ease-in-out infinite',
+                    'pulse-slow': 'pulse 4s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+                },
+                keyframes: {
+                    float: {
+                        '0%, 100%': { transform: 'translateY(0)' },
+                        '50%': { transform: 'translateY(-20px)' },
+                    }
+                }
+            }
+        }
+    }
+</script>
+
+<%- include("./partials/user/header") %>
+
+    <main class="w-full min-h-[85vh] flex items-center justify-center bg-[#fafafa] relative overflow-hidden font-sans">
+
+        <!-- Decorative Glowing Blobs for Premium Feel -->
+        <div
+            class="absolute top-[-20%] left-[-10%] w-[35rem] h-[35rem] bg-brand-red/10 rounded-full blur-[100px] pointer-events-none">
+        </div>
+        <div
+            class="absolute bottom-[-20%] right-[-10%] w-[35rem] h-[35rem] bg-orange-400/10 rounded-full blur-[100px] pointer-events-none">
+        </div>
+
+        <div
+            class="max-w-[1400px] mx-auto px-6 lg:px-16 flex flex-col md:flex-row items-center justify-center gap-12 lg:gap-24 relative z-10 py-16">
+
+            <!-- Illustration Side -->
+            <div class="w-full md:w-1/2 flex flex-col justify-center items-center relative">
+                <div class="relative w-full aspect-square max-w-sm lg:max-w-md flex items-center justify-center">
+                    <!-- Huge Background Graphic -> Ensuring it's a solid, visible color and not transparent -->
+                    <div
+                        class="absolute text-[12rem] sm:text-[15rem] md:text-[18rem] font-black text-gray-200/70 leading-none select-none drop-shadow-sm z-0">
+                        404
+                    </div>
+
+                    <!-- Foreground Image / Icon (Floating) -->
+                    <div
+                        class="relative z-10 bg-white rounded-full w-48 h-48 md:w-64 md:h-64 shadow-[0_20px_50px_rgba(219,68,68,0.15)] flex items-center justify-center border-4 border-white animate-float">
+                        <i class="fa-solid fa-robot text-7xl md:text-9xl text-brand-red drop-shadow-md"></i>
+                    </div>
+
+                    <!-- Small decorative floaty elements -->
+                    <div
+                        class="absolute top-[20%] right-[10%] w-6 h-6 bg-orange-400 rounded-full animate-ping opacity-60">
+                    </div>
+                    <div class="absolute bottom-[20%] left-[10%] w-4 h-4 bg-brand-red rounded-full animate-bounce">
+                    </div>
+                    <div class="absolute top-[60%] left-[5%] w-3 h-3 bg-brand-dark rounded-full animate-pulse"></div>
+                </div>
+            </div>
+
+            <!-- Content Side -->
+            <div
+                class="w-full md:w-1/2 flex flex-col items-center md:items-start text-center md:text-left relative z-10">
+                <div
+                    class="inline-flex items-center gap-2 px-4 py-2 bg-red-100/80 text-brand-red font-bold rounded-full text-xs mb-6 uppercase tracking-widest border border-red-200 shadow-sm backdrop-blur-sm">
+                    <i class="fa-solid fa-circle-exclamation"></i> Error 404
+                </div>
+
+                <h1
+                    class="text-4xl md:text-5xl lg:text-7xl font-extrabold text-brand-dark mb-6 leading-tight tracking-tight">
+                    Oops! Looks like <br /> it's <span class="text-brand-red relative inline-block">Broken.
+                        <svg class="absolute w-full h-3 -bottom-1 left-0 text-brand-red opacity-30" viewBox="0 0 100 10"
+                            preserveAspectRatio="none">
+                            <path d="M0 5 Q 50 15 100 5" stroke="currentColor" stroke-width="3" fill="transparent" />
+                        </svg>
+                    </span>
+                </h1>
+
+                <p class="text-gray-500 text-base lg:text-xl mb-10 max-w-lg leading-relaxed font-medium">
+                    The gadget you're seeking seems to have disconnected. Let's rewire you back to the main homepage!
+                </p>
+
+                <div class="flex flex-col sm:flex-row items-center gap-4 w-full md:w-auto">
+                    <a href="/"
+                        class="group flex items-center justify-center gap-3 bg-brand-red text-white text-base lg:text-lg font-bold px-8 py-4 rounded-full transition-all duration-300 hover:bg-brand-dark shadow-[0_8px_20px_rgba(219,68,68,0.4)] hover:shadow-xl hover:-translate-y-1 w-full sm:w-auto">
+                        <i class="fa-solid fa-house group-hover:scale-110 transition-transform"></i> Go to Homepage
+                    </a>
+
+                    <a href="/shop"
+                        class="group flex items-center justify-center gap-3 bg-white text-brand-dark border-2 border-gray-200 text-base lg:text-lg font-bold px-8 py-4 rounded-full transition-all duration-300 hover:border-brand-dark hover:bg-brand-dark hover:text-white hover:-translate-y-1 shadow-sm w-full sm:w-auto">
+                        <i class="fa-solid fa-cart-shopping group-hover:scale-110 transition-transform"></i> Continue
+                        Shopping
+                    </a>
+                </div>
+
+                <!-- Quick Links -->
+                <div class="mt-12 pt-8 border-t border-gray-200 w-full max-w-md">
+                    <p class="text-xs text-gray-400 font-bold mb-4 uppercase tracking-wider">Popular Categories</p>
+                    <div class="flex flex-wrap items-center justify-center md:justify-start gap-3">
+                        <a href="/shop?category=phones"
+                            class="px-5 py-2.5 bg-white border border-gray-200 rounded-xl text-sm font-semibold text-gray-600 hover:text-brand-red hover:border-brand-red hover:shadow-md transition-all">Phones</a>
+                        <a href="/shop?category=laptops"
+                            class="px-5 py-2.5 bg-white border border-gray-200 rounded-xl text-sm font-semibold text-gray-600 hover:text-brand-red hover:border-brand-red hover:shadow-md transition-all">Laptops</a>
+                        <a href="/shop?category=accessories"
+                            class="px-5 py-2.5 bg-white border border-gray-200 rounded-xl text-sm font-semibold text-gray-600 hover:text-brand-red hover:border-brand-red hover:shadow-md transition-all">Accessories</a>
+                    </div>
+                </div>
+
+            </div>
+
+        </div>
+
+    </main>
+
+    <%- include("./partials/user/footer") %>

@@ -4,11 +4,13 @@ import {
   addUser,
   isValidateEmailAndPassword,
 } from "../../services/user/auth.service.js";
+
 import {
   sendOtpToEmail,
   otpExist,
   generateOTP,
 } from "../../utils/auth.utils.js";
+
 import AppError from "../../utils/AppError.js";
 import Otp from "../../models/otp.model.js";
 import jwt from "jsonwebtoken";
@@ -129,6 +131,66 @@ export const resendOtp = async (req, res, next) => {
     res.json({
       success: true,
       message: "OTP resent successfully",
+    });
+  } catch (err) {
+    next(err);
+  }
+};
+
+export const logout = async (req, res, next) => {
+  try {
+    console.log("Logging out user:", req.user);
+
+    res.clearCookie("token", {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+    });
+
+    return res.status(200).json({
+      success: true,
+      message: "Logged out successfully",
+    });
+  } catch (err) {
+    next(err);
+  }
+};
+
+export const showForgotPasswordPage = (req, res) => {
+  res.render("user/auth/forgot");
+};
+
+export const verifyEmail = async (req, res, next) => {
+  try {
+    const { email, purpose, isAdmin } = req.body;
+    const user = await User.findOne({ email, isAdmin });
+    console.log("User found for email:", email, user);
+
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: "Email not found",
+      });
+    }
+
+    const otp = generateOTP();
+
+    const otpDoc = new Otp({
+      email,
+      otp,
+      purpose,
+      isAdmin,
+      expiresAt: new Date(Date.now() +  60 * 1000),
+    });
+
+    await otpDoc.save();
+
+    await sendEmail({ email, name: user.name, otp });
+
+    console.log(`Sent OTP ${otp} to ${email}`);
+
+    res.json({
+      success: true,
+      message: "OTP sent to your email",
     });
   } catch (err) {
     next(err);

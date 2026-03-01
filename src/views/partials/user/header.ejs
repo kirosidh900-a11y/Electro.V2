@@ -31,30 +31,126 @@
 
     <div class="flex items-center gap-3">
 
+      <!-- Premium User Section -->
       <div class="relative inline-block">
-        <button onclick="toggleDropdown()" id="dropdownButton"
-          class="bg-[#212529] text-white flex items-center gap-2 rounded px-4 py-2 hover:bg-black transition-all focus:outline-none"
-          aria-haspopup="true">
-          <i class="fas fa-user-circle text-lg"></i>
-          <span class="text-sm font-bold hidden sm:inline">SignUp</span>
-          <i id="chevronIcon" class="fas fa-chevron-down text-[10px] transition-transform duration-300"></i>
-        </button>
 
-        <ul id="dropdownMenu"
-          class="hidden absolute right-0 bg-white border border-gray-200 shadow-xl mt-2 z-50 w-48 rounded-lg py-1 overflow-hidden">
-          <li>
-            <a href="/auth/signUp"
-              class="flex items-center font-bold text-sm px-4 py-3 hover:bg-gray-50 text-gray-700 no-underline transition-colors border-b border-gray-100">
-              <i class="fas fa-user-plus mr-3 text-gray-400"></i> SignUp
-            </a>
-          </li>
-          <li>
-            <a href="/auth/logIn"
-              class="flex items-center font-bold text-sm px-4 py-3 hover:bg-gray-50 text-gray-700 no-underline transition-colors">
-              <i class="fas fa-sign-in-alt mr-3 text-gray-400"></i> LogIn
-            </a>
-          </li>
-        </ul>
+        <% if (typeof user !=="undefined" && user?.name) { %>
+
+          <!-- User Button -->
+          <button onclick="toggleDropdown()" id="dropdownButton" class="group bg-gradient-to-r from-[#1e1e1e] to-[#2c2c2c] text-white 
+             flex items-center gap-3 rounded-full px-4 py-2 
+             hover:shadow-lg hover:scale-[1.02] transition-all duration-300 
+             border border-gray-700">
+
+            <!-- Profile Image -->
+            <div class="relative">
+              <img src="<%= user.profilePhoto ? '/profile-photo/' + user.profilePhoto : '/user/imgs/user.png' %>"
+                class="w-8 h-8 rounded-full object-cover border border-gray-600 shadow-sm" />
+
+              <!-- Online Dot -->
+              <span
+                class="absolute bottom-0 right-0 w-2.5 h-2.5 bg-green-500 border-2 border-black rounded-full"></span>
+            </div>
+
+            <!-- Name -->
+            <span class="text-sm font-semibold hidden sm:inline tracking-wide">
+              <%= user.name %>
+            </span>
+
+            <i id="chevronIcon"
+              class="fas fa-chevron-down text-xs transition-transform duration-300 group-hover:rotate-180"></i>
+          </button>
+
+          <!-- Dropdown -->
+          <ul id="dropdownMenu" class="hidden absolute right-0 mt-3 w-60 
+             bg-white/90 backdrop-blur-xl 
+             shadow-2xl rounded-2xl overflow-hidden 
+             border border-gray-200 animate-fadeIn z-50">
+
+            <li class="px-5 py-4 border-b bg-gray-50">
+              <p class="font-semibold text-gray-800 text-sm">
+                <%= user.name %>
+              </p>
+              <p class="text-xs text-gray-500 truncate">
+                <%= user.email %>
+              </p>
+            </li>
+
+            <li>
+              <a href="/myProfile" class="flex items-center gap-3 px-5 py-3 hover:bg-gray-100 transition">
+                <i class="fas fa-user text-gray-500"></i> My Profile
+              </a>
+            </li>
+
+            <li>
+              <a href="/orders" class="flex items-center gap-3 px-5 py-3 hover:bg-gray-100 transition">
+                <i class="fas fa-box text-gray-500"></i> Orders
+              </a>
+            </li>
+
+            <li>
+              <a href="/wishlist" class="flex justify-between items-center px-5 py-3 hover:bg-gray-100 transition">
+                <span class="flex items-center gap-3">
+                  <i class="fas fa-heart text-gray-500"></i> Wishlist
+                </span>
+                <span class="text-xs bg-red-500 text-white px-2 py-0.5 rounded-full">
+                  <%= user?.wishlists?.products?.length || 0 %>
+                </span>
+              </a>
+            </li>
+
+            <li>
+              <a href="/cart" class="flex justify-between items-center px-5 py-3 hover:bg-gray-100 transition">
+                <span class="flex items-center gap-3">
+                  <i class="fas fa-shopping-cart text-gray-500"></i> Cart
+                </span>
+                <span class="text-xs bg-black text-white px-2 py-0.5 rounded-full">
+                  <%= user?.cart?.products?.length || 0 %>
+                </span>
+              </a>
+            </li>
+
+            <li class="border-t">
+              <a id="logout"
+                class="flex items-center gap-3 px-5 py-3 text-red-500 hover:bg-red-50 transition cursor-pointer">
+                <i class="fas fa-sign-out-alt"></i> Logout
+              </a>
+            </li>
+
+          </ul>
+
+          <% } else { %>
+
+            <!-- Guest Button -->
+            <button onclick="toggleDropdown()" id="dropdownButton" class="bg-gradient-to-r from-[#1e1e1e] to-[#2c2c2c] text-white 
+             flex items-center gap-2 rounded-full px-5 py-2 
+             hover:shadow-lg hover:scale-[1.02] transition-all duration-300">
+
+              <i class="fas fa-user-circle text-lg"></i>
+              <span class="text-sm font-semibold">Account</span>
+              <i class="fas fa-chevron-down text-xs"></i>
+            </button>
+
+            <ul id="dropdownMenu" class="hidden absolute right-0 mt-3 w-48 
+             bg-white shadow-2xl rounded-xl border 
+             animate-fadeIn z-50">
+
+              <li>
+                <a href="/auth/signUp" class="block px-5 py-3 hover:bg-gray-100 transition font-medium">
+                  Sign Up
+                </a>
+              </li>
+
+              <li>
+                <a href="/auth/logIn" class="block px-5 py-3 hover:bg-gray-100 transition font-medium">
+                  Log In
+                </a>
+              </li>
+
+            </ul>
+
+            <% } %>
+
       </div>
 
       <div class="flex items-center gap-2">
@@ -76,10 +172,9 @@
 </header>
 
 <script>
-   const logout = (req, res) => {
-    res.clearCookie("token");
-    res.json({ message: "Logged out successfully" });
-  };
+  function logout() {
+    Swal.fire()
+  }
 
   function toggleDropdown() {
     const menu = document.getElementById('dropdownMenu');

@@ -1,0 +1,107 @@
+<script src="https://cdn.tailwindcss.com"></script>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+<%- include("../../partials/user/header") %>
+
+<main class="bg-gray-100 flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8 min-h-[calc(100vh-100px)]">
+
+  <div class="max-w-5xl w-full bg-[#111111] rounded-xl shadow-2xl overflow-hidden flex flex-col md:flex-row min-h-[550px]">
+
+    <!-- ================= LEFT PANEL ================= -->
+    <div class="w-full md:w-1/2 p-8 md:p-12 lg:p-16 flex flex-col justify-center relative">
+
+      <!-- STEP 1 -->
+      <div id="step-1" class="w-full absolute inset-0 p-8 flex flex-col justify-center bg-[#111111] z-10 transition-opacity duration-500">
+        <div class="flex items-center gap-3 mb-2">
+          <i class="fas fa-lock text-white text-3xl"></i>
+          <h2 class="text-white text-2xl font-bold">Forgot Password</h2>
+        </div>
+
+        <p class="text-gray-400 mb-8">Enter your email to continue.</p>
+
+        <form id="form-step-1" class="space-y-6" novalidate>
+          <input type="email" id="email" placeholder="Enter your Email"
+            class="w-full bg-[#050505] text-white border border-[#2a2a2a] rounded-lg px-5 py-4 focus:outline-none focus:border-[#fa5252]">
+
+          <button type="submit" id="btn-step-1"
+            class="w-full bg-[#fa5252] text-white font-bold rounded-lg py-4 hover:bg-[#e03131] transition">
+            Next
+          </button>
+        </form>
+      </div>
+
+      <!-- STEP 2 -->
+      <div id="step-2" class="w-full absolute inset-0 p-8 opacity-0 pointer-events-none flex flex-col justify-center bg-[#111111] z-20 transition-opacity duration-500">
+        <h2 class="text-[#fa5252] text-2xl font-bold mb-4 text-center">Verify OTP</h2>
+
+        <form id="form-step-2" class="space-y-6">
+          <input type="text" id="otp" maxlength="6" placeholder="Enter OTP"
+            class="w-full bg-transparent text-gray-300 border-b border-gray-600 py-3 text-center tracking-widest focus:outline-none focus:border-[#fa5252]">
+
+          <button type="submit" id="btn-step-2"
+            class="w-full bg-gradient-to-r from-[#fa5252] to-[#c2255c] text-white font-bold py-4 rounded-xl hover:opacity-90 transition">
+            Verify OTP
+          </button>
+
+          <p id="otp-timer-wrapper" class="text-center text-gray-500 text-sm">
+            Resend OTP in <span id="timer">47s</span>
+          </p>
+        </form>
+      </div>
+
+      <!-- STEP 3 -->
+      <div id="step-3" class="w-full absolute inset-0 p-8 opacity-0 pointer-events-none flex flex-col justify-center bg-[#111111] z-30 transition-opacity duration-500">
+        <h2 class="text-white text-2xl font-bold mb-4">Create New Password</h2>
+
+        <form id="form-step-3" class="space-y-6">
+          <div class="relative">
+            <input type="password" id="new-password" placeholder="New Password"
+              class="w-full bg-[#16191f] text-gray-200 border border-[#2c313a] rounded-lg px-5 py-4 pr-12 focus:outline-none focus:border-[#fa5252]">
+            <button type="button" onclick="togglePassword('new-password', this)"
+              class="absolute right-5 top-4 text-gray-500">
+              <i class="fas fa-eye"></i>
+            </button>
+          </div>
+
+          <div class="relative">
+            <input type="password" id="confirm-password" placeholder="Confirm Password"
+              class="w-full bg-[#16191f] text-gray-200 border border-[#2c313a] rounded-lg px-5 py-4 pr-12 focus:outline-none focus:border-[#fa5252]">
+            <button type="button" onclick="togglePassword('confirm-password', this)"
+              class="absolute right-5 top-4 text-gray-500">
+              <i class="fas fa-eye"></i>
+            </button>
+          </div>
+
+          <button type="submit" id="btn-step-3"
+            class="w-full bg-[#fa5252] text-white font-bold py-4 rounded-lg hover:bg-[#e03131] transition">
+            Update Password
+          </button>
+        </form>
+      </div>
+
+    </div>
+
+    <!-- ================= RIGHT PANEL ================= -->
+    <div id="right-panel"
+      class="w-full md:w-1/2 flex items-center justify-center bg-gradient-to-br from-[#ff4d6d] to-[#fa5252] text-white text-center p-10">
+
+      <div>
+        <h2 id="rp-title" class="text-3xl font-bold mb-4">Reset Your Password!</h2>
+        <p id="rp-desc" class="mb-6">Set a new password to get back into your account.</p>
+
+        <img id="rp-img"
+          src="https://placehold.co/600x750/fcb045/ffffff?text=SUPER+SALE"
+          class="rounded-xl shadow-xl max-w-xs mx-auto">
+      </div>
+
+    </div>
+
+  </div>
+</main>
+
+<!-- SweetAlert -->
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+<!-- Your External JS -->
+<script src="/user/js/auth/forgot.js" defer></script>
+
+<%- include("../../partials/user/footer") %>

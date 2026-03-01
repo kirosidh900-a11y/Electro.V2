@@ -97,7 +97,7 @@ loginForm.addEventListener("submit", async (e) => {
         timer: 1500,
         showConfirmButton: false,
       }).then(() => {
-        window.location.href = data.redirectUrl;
+        window.location.replace(data.redirectUrl);
       });
     } else {
       Swal.fire({
