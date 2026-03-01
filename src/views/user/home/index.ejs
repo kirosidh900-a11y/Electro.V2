@@ -17,6 +17,7 @@
 
         <!-- 🌟 Edge-to-Edge Hero Slider -->
         <section class="relative w-full bg-brand-dark group">
+           
             <!-- Fixed fluid height avoiding vh issues -->
             <div
                 class="relative w-full h-[400px] sm:h-[450px] md:h-[500px] lg:h-[600px] xl:h-[650px] flex items-center overflow-hidden">
@@ -78,6 +79,7 @@
 
         <!-- 🧩 Categories -->
         <section class="py-12 md:py-16 lg:py-20 bg-white border-b border-gray-200">
+            <%- user ? user.name : "Guest" %>
             <div class="max-w-[1400px] mx-auto px-6 sm:px-10 md:px-12 lg:px-16">
                 <div class="flex items-center gap-3 mb-8 md:mb-10">
                     <span class="w-2 h-6 md:w-3 md:h-8 bg-brand-red rounded-sm"></span>

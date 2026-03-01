@@ -5,13 +5,14 @@ import {
   signUp,
   verifyOtp,
   resendOtp,
-  Login
+  Login,
 } from "../../controllers/user/auth.controller.js";
 
-const router = Router();
+import authMiddleware from "../../middlewares/auth.middleware.js";
 
-router.get("/login", showLoginPage).post("/login", Login)
-router.route("/signup").get(showSignUpPage).post(signUp);
+const router = Router();
+router.route('/login').get(authMiddleware, showLoginPage).post(Login);
+router.route("/signup").get( authMiddleware,showSignUpPage).post(signUp);
 router.post("/verify-otp", verifyOtp);
 router.patch("/resend-otp", resendOtp);
 

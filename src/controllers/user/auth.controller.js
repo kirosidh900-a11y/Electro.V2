@@ -1,10 +1,22 @@
 import HTTP_STATUS from "../../constant/statusCode.js";
-import { isValidate, addUser ,isValidateEmailAndPassword } from "../../services/user/auth.service.js";
-import { sendOtpToEmail, otpExist ,generateOTP } from "../../utils/auth.utils.js";
+import {
+  isValidate,
+  addUser,
+  isValidateEmailAndPassword,
+} from "../../services/user/auth.service.js";
+import {
+  sendOtpToEmail,
+  otpExist,
+  generateOTP,
+} from "../../utils/auth.utils.js";
 import AppError from "../../utils/AppError.js";
 import Otp from "../../models/otp.model.js";
+import jwt from "jsonwebtoken";
 import { sendEmail } from "../../constant/transporter.js";
+import User from "../../models/userSchema.model.js";
+import dotenv from "dotenv";
 
+dotenv.config();
 
 export const showLoginPage = (req, res) => {
   res.render("user/auth/login");
@@ -12,22 +24,40 @@ export const showLoginPage = (req, res) => {
 
 export const Login = async (req, res, next) => {
   try {
-     const { email, password ,rememberMe } = req.body;
+    const { email, password, rememberMe } = req.body;
 
     await isValidateEmailAndPassword(email, password);
 
-    
+    const user = await User.findOne({ email });
+    let expiresIn = "1h"; // Default token expiration
+    let maxAge = 1 * 60 * 60 * 1000; // 1 hour in milliseconds
+
+    if (rememberMe) {
+      expiresIn = "1d";
+      maxAge = 24 * 60 * 60 * 1000; // 1 day in milliseconds
+    }
+
+    // ✅ Generate Token
+    const token = jwt.sign({ userId: user._id }, process.env.JWT_SECRET, {
+      expiresIn,
+    });
+
+    // ✅ Send HTTP-only cookie
+    res.cookie("token", token, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      maxAge,
+    });
 
     res.json({
       success: true,
       message: "Login successful",
-      redirectUrl:'/'
+      redirectUrl: "/",
     });
   } catch (err) {
     next(err);
   }
 };
-
 
 export const showSignUpPage = (req, res) => {
   res.render("user/auth/signup");
@@ -62,7 +92,7 @@ export const verifyOtp = async (req, res, next) => {
 
     await addUser({ name, email, phone, password });
 
-    await Otp.deleteMany({ email, purpose});
+    await Otp.deleteMany({ email, purpose });
 
     res.json({
       success: true,
@@ -100,7 +130,6 @@ export const resendOtp = async (req, res, next) => {
       success: true,
       message: "OTP resent successfully",
     });
-
   } catch (err) {
     next(err);
   }

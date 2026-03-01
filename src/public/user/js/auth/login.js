@@ -94,6 +94,8 @@ loginForm.addEventListener("submit", async (e) => {
         icon: "success",
         title: "Login Successful",
         text: data.message,
+        timer: 1500,
+        showConfirmButton: false,
       }).then(() => {
         window.location.href = data.redirectUrl;
       });
