@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Electro Admin | Access Recovery</title>
+    <!-- //<script src="https://cdn.tailwindcss.com"></script> -->
+     <link rel="stylesheet" href="/user/css/output.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;500;800&display=swap');
+        
+        body {
+            font-family: 'JetBrains Mono', monospace;
+            background: #020406;
+            color: #e2e8f0;
+        }
+
+        .terminal-panel {
+            background: rgba(10, 14, 20, 0.9);
+            border: 1px solid #1e293b;
+            box-shadow: 0 0 40px rgba(0, 210, 255, 0.05);
+        }
+
+        .step-hidden { display: none; }
+        .step-active { display: block; animation: fadeIn 0.4s ease-out; }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .input-tech {
+            background: #05070a;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            color: white;
+            transition: all 0.2s;
+        }
+
+        .input-tech:focus {
+            border-color: #00d2ff;
+            background: rgba(0, 210, 255, 0.02);
+            outline: none;
+        }
+    </style>
+</head>
+<body class="min-h-screen flex items-center justify-center p-6 bg-[#020406]">
+
+    <div class="max-w-md w-full terminal-panel rounded-lg border-t-4 border-t-[#00d2ff] p-8 md:p-10">
+        
+        <div class="mb-8 border-b border-white/5 pb-6">
+            <div class="flex justify-between items-center mb-4">
+                <span class="text-[10px] text-gray-500 tracking-[0.3em]">SECURE_RECOVERY</span>
+                <span id="step-indicator" class="text-[10px] text-[#00d2ff]">STEP_01/03</span>
+            </div>
+            <h2 id="main-title" class="text-xl font-800 text-white italic uppercase tracking-tighter">Identity Check</h2>
+        </div>
+
+        <div id="step-1" class="step-active">
+            <p class="text-xs text-gray-500 mb-6 leading-relaxed">Enter the administrator email associated with this node to receive an access token.</p>
+            <div class="space-y-6">
+                <div class="space-y-2">
+                    <label class="text-[10px] text-gray-600 font-bold uppercase tracking-widest">Admin_Email</label>
+                    <input type="email" id="recovery-email" class="input-tech w-full px-4 py-4 rounded text-sm font-mono" placeholder="admin@electro.root">
+                </div>
+                <button onclick="goToStep(2)" class="w-full bg-[#00d2ff] text-[#020406] font-800 py-4 rounded text-xs uppercase tracking-widest hover:bg-white transition-all">
+                    REQUEST_OTP
+                </button>
+            </div>
+        </div>
+
+        <div id="step-2" class="step-hidden">
+            <p class="text-xs text-gray-500 mb-6 leading-relaxed">Token sent to <span class="text-white italic" id="display-email">admin@...</span>. Enter the 6-digit verification code.</p>
+            <div class="space-y-6">
+                <div class="space-y-2 text-center">
+                    <label class="text-[10px] text-gray-600 font-bold uppercase tracking-widest block text-left">Security_Token</label>
+                    <input type="text" maxlength="6" class="input-tech w-full px-4 py-4 rounded text-2xl font-mono tracking-[0.5em] text-center" placeholder="000000">
+                </div>
+                <div class="flex flex-col gap-4">
+                    <button onclick="goToStep(3)" class="w-full bg-[#00d2ff] text-[#020406] font-800 py-4 rounded text-xs uppercase tracking-widest hover:bg-white">
+                        VERIFY_IDENTITY
+                    </button>
+                    <div class="flex justify-between items-center">
+                        <span id="timer-text" class="text-[10px] text-gray-600 font-mono">RE-REPLY: 50s</span>
+                        <button id="resend-btn" class="hidden text-[10px] text-[#00d2ff] uppercase hover:underline">Resend_Token</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div id="step-3" class="step-hidden">
+            <p class="text-xs text-gray-500 mb-6 leading-relaxed">Identity verified. Initialize new security parameters for your account.</p>
+            <div class="space-y-4">
+                <div class="space-y-2">
+                    <label class="text-[10px] text-gray-600 font-bold uppercase tracking-widest">New_Key</label>
+                    <input type="password" class="input-tech w-full px-4 py-4 rounded text-sm font-mono" placeholder="********">
+                </div>
+                <div class="space-y-2">
+                    <label class="text-[10px] text-gray-600 font-bold uppercase tracking-widest">Confirm_Key</label>
+                    <input type="password" class="input-tech w-full px-4 py-4 rounded text-sm font-mono" placeholder="********">
+                </div>
+                <button class="w-full bg-[#00d2ff] text-[#020406] font-800 py-4 rounded text-xs uppercase tracking-widest hover:bg-white mt-4">
+                    FINALIZE_RESET
+                </button>
+            </div>
+        </div>
+
+        <div class="mt-10 pt-6 border-t border-white/5 flex justify-between items-center opacity-40">
+            <span class="text-[8px] uppercase tracking-tighter italic">Status: Secure_Protocol_v1.2</span>
+            <i class="fas fa-microchip text-xs"></i>
+        </div>
+    </div>
+
+    <script>
+        let timerSeconds = 50;
+        let timerInterval;
+
+        function startTimer() {
+            timerSeconds = 50;
+            const timerDisplay = document.getElementById('timer-text');
+            const resendBtn = document.getElementById('resend-btn');
+            
+            resendBtn.classList.add('hidden');
+            timerDisplay.classList.remove('hidden');
+
+            clearInterval(timerInterval);
+            timerInterval = setInterval(() => {
+                timerSeconds--;
+                timerDisplay.innerText = `RE-REPLY: ${timerSeconds}s`;
+                
+                if (timerSeconds <= 0) {
+                    clearInterval(timerInterval);
+                    timerDisplay.classList.add('hidden');
+                    resendBtn.classList.remove('hidden');
+                }
+            }, 1000);
+        }
+
+        function goToStep(stepNumber) {
+            // Hide all steps
+            document.querySelectorAll('[id^="step-"]').forEach(el => {
+                el.classList.remove('step-active');
+                el.classList.add('step-hidden');
+            });
+
+            // Show current step
+            const currentStep = document.getElementById(`step-${stepNumber}`);
+            currentStep.classList.remove('step-hidden');
+            currentStep.classList.add('step-active');
+
+            // Update UI
+            const indicator = document.getElementById('step-indicator');
+            const title = document.getElementById('main-title');
+            indicator.innerText = `STEP_0${stepNumber}/03`;
+
+            if (stepNumber === 1) {
+                title.innerText = "Identity Check";
+            } else if (stepNumber === 2) {
+                title.innerText = "Token Validation";
+                document.getElementById('display-email').innerText = document.getElementById('recovery-email').value;
+                startTimer();
+            } else if (stepNumber === 3) {
+                title.innerText = "Security Override";
+            }
+        }
+
+        document.getElementById('resend-btn').onclick = () => {
+            // Add your Fetch/Axios logic here to resend the email
+            console.log("Resending OTP...");
+            startTimer();
+        };
+    </script>
+</body>
+</html>
