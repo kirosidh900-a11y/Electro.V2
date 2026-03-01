@@ -6,7 +6,6 @@ import { fileURLToPath } from "url";
 import userRouter from "./routes/user/user.route.js";
 import cookieParser from "cookie-parser";
 import attachUser from "./middlewares/attachUser.middleware.js";
-import { getUserData } from "./services/user/user.service.js";
 import nocache from "nocache";
 
 const app = express();
@@ -45,15 +44,10 @@ app.use("/", userRouter);
 // -------------------
 // 404 Handler
 // -------------------
-app.use(async (req, res) => {
-  const user = req.user || null; // Ensure user is defined
-
-  let userData = null;
-  if (user) {
-    userData = await getUserData(req.user.userId);
-  }
-
-  res.status(404).render("404", { user: userData });
+app.use((req, res) => {
+  res.status(404).render("404", {
+    user: req.user || null,
+  });
 });
 
 // -------------------

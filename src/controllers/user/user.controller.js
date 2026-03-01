@@ -1,13 +1,11 @@
-import HTTP_STATUS from "../../constant/statusCode.js";
 import { getUserData ,verifyEmail } from "../../services/user/user.service.js";
-import Otp from "../../models/otp.model.js";
 
 
 export const showHomePage = async (req, res) => {
   let userData = null;
 
   if (req.user) {
-    userData = await getUserData(req.user.userId);
+    userData = req.user;
   }
 
   res.render("user/home/index", {

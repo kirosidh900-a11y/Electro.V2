@@ -1,4 +1,5 @@
 import jwt from "jsonwebtoken";
+import { getUserData } from "../services/user/user.service.js";
 
 const attachUser = async (req, res, next) => {
   const token = req.cookies.token;
@@ -10,7 +11,10 @@ const attachUser = async (req, res, next) => {
 
   try {
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    req.user = decoded; // 👈 IMPORTANT
+
+    // Fetch full user once
+    req.user = await getUserData(decoded.userId);
+
   } catch (err) {
     req.user = null;
   }

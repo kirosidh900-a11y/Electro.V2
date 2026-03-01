@@ -20,6 +20,12 @@ function* authFlow() {
   yield "otp";
 }
 
+const swalDark = {
+  background: "#1a1a1a",
+  color: "#ffffff",
+  confirmButtonColor: "#fa5252",
+};
+
 const name = document.getElementById("signupName");
 const email = document.getElementById("signupEmail");
 const phone = document.getElementById("signupPhone");
@@ -61,6 +67,7 @@ signUpForm.addEventListener("submit", async (e) => {
 
   if (!valid) {
     Swal.fire({
+      ...swalDark,
       icon: "warning",
       title: "Invalid Input",
       text: "Please fix the errors in the form before submitting.",
@@ -99,6 +106,7 @@ signUpForm.addEventListener("submit", async (e) => {
       registeredEmail = email;
 
       await Swal.fire({
+        ...swalDark,
         icon: "success",
         title: "OTP sent!",
         text: data.message,
@@ -107,6 +115,7 @@ signUpForm.addEventListener("submit", async (e) => {
       });
 
       const result = await Swal.fire({
+        ...swalDark,
         icon: "info",
         title: "Please Note!",
         text: "Do not refresh page until OTP verification is done.",
@@ -158,6 +167,7 @@ otpForm.addEventListener("submit", async (e) => {
 
     if (response.ok) {
       Swal.fire({
+        ...swalDark,
         icon: "success",
         title: "Account Verified!",
         message: data.message || "Your account has been created successfully.",
@@ -226,13 +236,14 @@ resendBtn.addEventListener("click", async (e) => {
     const response = await fetch("/auth/resend-otp", {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ email: registeredEmail }),
+      body: JSON.stringify({ email: registeredEmail ,purpose: "signup" }),
     });
 
     const data = await response.json();
 
     if (response.ok) {
       Swal.fire({
+        ...swalDark,
         icon: "success",
         title: "OTP resent!",
         text: data.message, // ⚠️ use text not message

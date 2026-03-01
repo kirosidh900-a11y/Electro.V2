@@ -4,6 +4,12 @@ const passwordInput = document.getElementById("password");
 const rememberMeCheckbox = document.getElementById("rememberMe");
 const submitBtn = document.getElementById("formSub");
 
+const swalDark = {
+  background: "#1a1a1a",
+  color: "#ffffff",
+  confirmButtonColor: "#fa5252",
+};
+
 const isValidEmail = () => {
   const input = document.getElementById("email");
   const error = document.getElementById("emailError");
@@ -63,6 +69,7 @@ loginForm.addEventListener("submit", async (e) => {
 
   if (!valid) {
     Swal.fire({
+      ...swalDark,
       icon: "error",
       title: "Invalid Input",
       text: "Please correct the errors in the form.",
@@ -91,6 +98,7 @@ loginForm.addEventListener("submit", async (e) => {
 
     if (response.ok) {
       Swal.fire({
+        ...swalDark,
         icon: "success",
         title: "Login Successful",
         text: data.message,
@@ -101,6 +109,7 @@ loginForm.addEventListener("submit", async (e) => {
       });
     } else {
       Swal.fire({
+        ...swalDark,
         icon: "error",
         title: "Login Failed",
         text: data.message || "Invalid credentials.",
@@ -109,6 +118,7 @@ loginForm.addEventListener("submit", async (e) => {
   } catch (error) {
     console.error("Error during login:", error);
     Swal.fire({
+      ...swalDark
       icon: "error",
       title: "Login Failed",
       text: error.message || "An error occurred during login.",

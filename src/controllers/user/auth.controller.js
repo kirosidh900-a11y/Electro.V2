@@ -9,6 +9,9 @@ import {
   sendOtpToEmail,
   otpExist,
   generateOTP,
+  isUserExist,
+  isConformPassword,
+  hashedPassword,
 } from "../../utils/auth.utils.js";
 
 import AppError from "../../utils/AppError.js";
@@ -17,6 +20,7 @@ import jwt from "jsonwebtoken";
 import { sendEmail } from "../../constant/transporter.js";
 import User from "../../models/userSchema.model.js";
 import dotenv from "dotenv";
+
 
 dotenv.config();
 
@@ -107,9 +111,9 @@ export const verifyOtp = async (req, res, next) => {
 
 export const resendOtp = async (req, res, next) => {
   try {
-    const { email } = req.body;
+    const { email , purpose } = req.body;
 
-    const otpDoc = await Otp.findOne({ email, purpose: "signup" });
+    const otpDoc = await Otp.findOne({ email, purpose });
 
     if (!otpDoc) {
       return res.status(400).json({
@@ -124,7 +128,7 @@ export const resendOtp = async (req, res, next) => {
     otpDoc.expiresAt = new Date(Date.now() + 65 * 1000);
     await otpDoc.save();
 
-    await sendEmail({ email, name: otpDoc.tempUserData.name, otp: newOtp });
+    await sendEmail({ email, name: otpDoc.tempUserData.name ?? "Unshare name!", otp: newOtp });
 
     console.log(`Resent OTP ${newOtp} to ${email}`);
 
@@ -161,12 +165,14 @@ export const showForgotPasswordPage = (req, res) => {
 
 export const verifyEmail = async (req, res, next) => {
   try {
-    const { email, purpose, isAdmin } = req.body;
-    const user = await User.findOne({ email, isAdmin });
-    console.log("User found for email:", email, user);
+    const { email, purpose } = req.body;
+
+    console.log(req.body)
+
+    const user = await User.findOne({ email });
 
     if (!user) {
-      return res.status(404).json({
+      return res.status(HTTP_STATUS.NOT_FOUND).json({
         success: false,
         message: "Email not found",
       });
@@ -178,8 +184,7 @@ export const verifyEmail = async (req, res, next) => {
       email,
       otp,
       purpose,
-      isAdmin,
-      expiresAt: new Date(Date.now() +  60 * 1000),
+      expiresAt: new Date(Date.now() + 60 * 1000),
     });
 
     await otpDoc.save();
@@ -191,6 +196,35 @@ export const verifyEmail = async (req, res, next) => {
     res.json({
       success: true,
       message: "OTP sent to your email",
+    });
+  } catch (err) {
+    next(err);
+  }
+};
+
+export const savePassword = async (req, res, next) => {
+  try {
+    const { email, password, confirmPassword } = req.body;
+
+    isConformPassword(password, confirmPassword);
+
+    const hashPassword = await hashedPassword(password);
+
+    const user = await User.findOneAndUpdate(
+      { email },
+      { $set: { password: hashPassword } },
+    );
+
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: "Email not found",
+      });
+    }
+
+    res.status(200).json({
+      success: true,
+      message: "Password updated successfully",
     });
   } catch (err) {
     next(err);

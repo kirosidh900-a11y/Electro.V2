@@ -5,6 +5,11 @@ import { sendEmail } from "../constant/transporter.js";
 import argon2 from "argon2";
 import HTTP_STATUS from "../constant/statusCode.js";
 
+//Password hash
+export const hashedPassword = async( password) => {
+  return await argon2.hash(password);
+}
+
 //Validate Email
 export const isValidEmail = (email) => {
   email = email?.trim().toLowerCase();
@@ -172,10 +177,10 @@ export const sendOtpToEmail = async ({
   const otp = generateOTP();
 
   password = password.trim();
-  let hashedPassword = password;
+  let hashPassword = password;
 
   if (!password.startsWith("$argon2")) {
-    hashedPassword = await argon2.hash(password);
+    hashPassword = await hashedPassword(password)
   }
 
   await Otp.create({
@@ -185,7 +190,7 @@ export const sendOtpToEmail = async ({
     tempUserData: {
       name,
       phone,
-      password: hashedPassword,
+      password: hashPassword,
       referral_by,
     },
     expiresAt: new Date(Date.now() + 1 * 65 * 1000),
