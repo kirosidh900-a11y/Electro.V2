@@ -5,7 +5,7 @@ const userSchema = new Schema(
     name: {
       type: String,
       required: true,
-      trim: true
+      trim: true,
     },
 
     email: {
@@ -13,47 +13,47 @@ const userSchema = new Schema(
       required: true,
       unique: true,
       lowercase: true,
-      trim: true
+      trim: true,
     },
 
     phone: {
       type: String,
-      required: true
+      required: true,
     },
 
     googleId: {
       type: String,
       unique: true,
-      sparse: true   // only index if exists
+      sparse: true, // only index if exists
     },
 
     password: {
       type: String,
-      required: true
+      required: true,
     },
 
     referral_by: {
-      type: String
-      
+      type: String,
+      sparse: true,
     },
 
-    referral: {
+    referralCode: {
       type: String,
       required: true,
-      unique: true
+      unique: true,
     },
 
     isBlock: {
       type: Boolean,
-      default: false
+      default: false,
     },
 
     isAdmin: {
       type: Boolean,
-      default: false
+      default: false,
     },
   },
-  { timestamps: true }
+  { timestamps: true },
 );
 
 const User = mongoose.model("User", userSchema);

@@ -9,18 +9,17 @@ import {
   sendOtpToEmail,
   otpExist,
   generateOTP,
-  isUserExist,
   isConformPassword,
   hashedPassword,
 } from "../../utils/auth.utils.js";
 
 import AppError from "../../utils/AppError.js";
 import Otp from "../../models/otp.model.js";
-import jwt from "jsonwebtoken";
 import { sendEmail } from "../../constant/transporter.js";
 import User from "../../models/userSchema.model.js";
 import dotenv from "dotenv";
-
+import { generateJWT } from "../../utils/user/jwt.utils.js";
+import passport from "passport";
 
 dotenv.config();
 
@@ -35,36 +34,50 @@ export const Login = async (req, res, next) => {
     await isValidateEmailAndPassword(email, password);
 
     const user = await User.findOne({ email });
-    let expiresIn = "1h"; // Default token expiration
-    let maxAge = 1 * 60 * 60 * 1000; // 1 hour in milliseconds
 
-    if (rememberMe) {
-      expiresIn = "1d";
-      maxAge = 24 * 60 * 60 * 1000; // 1 day in milliseconds
+    if (!user) {
+      return res.status(401).json({
+        success: false,
+        message: "Invalid email or password",
+      });
     }
 
-    // ✅ Generate Token
-    const token = jwt.sign({ userId: user._id }, process.env.JWT_SECRET, {
-      expiresIn,
-    });
+    // CHECK IF BLOCKED
+    if (user.isBlock) {
+      return res.status(403).json({
+        success: false,
+        message: "Your account has been blocked ❌",
+      });
+    }
 
-    // ✅ Send HTTP-only cookie
+    let maxAge = 1 * 60 * 60 * 1000; // 1 hour
+
+    if (rememberMe) {
+      maxAge = 24 * 60 * 60 * 1000; // 1 day
+    }
+
+    // ✅ Generate JWT
+    const token = await generateJWT(user, rememberMe);
+
+    // ✅ Set cookie
     res.cookie("token", token, {
       httpOnly: true,
       secure: process.env.NODE_ENV === "production",
+      sameSite: "lax",
       maxAge,
+      path: "/",
     });
 
-    res.json({
+    return res.json({
       success: true,
       message: "Login successful",
       redirectUrl: "/",
     });
+
   } catch (err) {
     next(err);
   }
 };
-
 export const showSignUpPage = (req, res) => {
   res.render("user/auth/signup");
 };
@@ -111,7 +124,7 @@ export const verifyOtp = async (req, res, next) => {
 
 export const resendOtp = async (req, res, next) => {
   try {
-    const { email , purpose } = req.body;
+    const { email, purpose } = req.body;
 
     const otpDoc = await Otp.findOne({ email, purpose });
 
@@ -128,7 +141,11 @@ export const resendOtp = async (req, res, next) => {
     otpDoc.expiresAt = new Date(Date.now() + 65 * 1000);
     await otpDoc.save();
 
-    await sendEmail({ email, name: otpDoc.tempUserData.name ?? "Unshare name!", otp: newOtp });
+    await sendEmail({
+      email,
+      name: otpDoc.tempUserData.name ?? "Unshare name!",
+      otp: newOtp,
+    });
 
     console.log(`Resent OTP ${newOtp} to ${email}`);
 
@@ -143,8 +160,6 @@ export const resendOtp = async (req, res, next) => {
 
 export const logout = async (req, res, next) => {
   try {
-    console.log("Logging out user:", req.user);
-
     res.clearCookie("token", {
       httpOnly: true,
       secure: process.env.NODE_ENV === "production",
@@ -167,7 +182,7 @@ export const verifyEmail = async (req, res, next) => {
   try {
     const { email, purpose } = req.body;
 
-    console.log(req.body)
+    console.log(req.body);
 
     const user = await User.findOne({ email });
 
@@ -229,4 +244,17 @@ export const savePassword = async (req, res, next) => {
   } catch (err) {
     next(err);
   }
+};
+
+export const passportRed = (req, res, next) => {
+  return passport.authenticate("google-user", {
+    scope: ["profile", "email"],
+  })(req, res, next);
+};
+
+export const googleUserAuth = (req, res, next) => {
+  passport.authenticate("google-user", {
+    session: false,
+    failureRedirect: "/login",
+  })(req, res, next);
 };

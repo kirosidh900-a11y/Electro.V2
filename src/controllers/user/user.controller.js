@@ -8,6 +8,7 @@ export const showHomePage = async (req, res) => {
     userData = req.user;
   }
 
+ 
   res.render("user/home/index", {
     user: userData,
   });

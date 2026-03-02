@@ -6,9 +6,9 @@ import argon2 from "argon2";
 import HTTP_STATUS from "../constant/statusCode.js";
 
 //Password hash
-export const hashedPassword = async( password) => {
+export const hashedPassword = async (password) => {
   return await argon2.hash(password);
-}
+};
 
 //Validate Email
 export const isValidEmail = (email) => {
@@ -93,19 +93,22 @@ export const isValidPassword = (password) => {
 // verify user for login
 export const isVerifyUser = async (email, password) => {
   if (!email || !password) {
-    throw new AppError("Email and password are required", HTTP_STATUS.BAD_REQUEST);
+    throw new AppError(
+      "Email and password are required",
+      HTTP_STATUS.BAD_REQUEST,
+    );
   }
 
   const user = await User.findOne({ email });
 
   if (!user) {
-    throw new AppError("Invalid email or password",  HTTP_STATUS.BAD_REQUEST);
+    throw new AppError("Invalid email or password", HTTP_STATUS.BAD_REQUEST);
   }
 
   const isPasswordValid = await argon2.verify(user.password, password);
 
   if (!isPasswordValid) {
-    throw new AppError("Invalid email or password",  HTTP_STATUS.BAD_REQUEST);
+    throw new AppError("Invalid email or password", HTTP_STATUS.BAD_REQUEST);
   }
 
   return user;
@@ -180,7 +183,7 @@ export const sendOtpToEmail = async ({
   let hashPassword = password;
 
   if (!password.startsWith("$argon2")) {
-    hashPassword = await hashedPassword(password)
+    hashPassword = await hashedPassword(password);
   }
 
   await Otp.create({
@@ -205,4 +208,19 @@ export const sendOtpToEmail = async ({
 export const otpExist = async (email, otp, purpose) => {
   const existingOtp = await Otp.findOne({ email, otp, purpose });
   return existingOtp;
+};
+
+export const checkIfBlocked = async (userId) => {
+
+  const user = await User.findById(userId);
+
+  if (!user) {
+    throw new AppError("User not found", 404);
+  }
+
+  if (user.isBlocked) {
+    throw new AppError("User is blocked", 403);
+  }
+
+  return user;
 };

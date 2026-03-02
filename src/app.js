@@ -4,11 +4,11 @@ import errorMiddleware from "./middlewares/error.middleware.js";
 import path from "path";
 import { fileURLToPath } from "url";
 import userRouter from "./routes/user/user.route.js";
-import adminRouter from './routes/admin/auth.route.js'
+import adminRouter from "./routes/admin/auth.route.js";
 import cookieParser from "cookie-parser";
 import attachUser from "./middlewares/attachUser.middleware.js";
+import passport from "./config/passport.js";
 import nocache from "nocache";
-
 
 const app = express();
 
@@ -17,6 +17,10 @@ app.use(cookieParser());
 app.use(attachUser);
 // Prevent caching of protected pages
 app.use(nocache());
+
+// Passport
+app.use(passport.initialize());
+
 
 // Fix __dirname for ES Modules
 const __filename = fileURLToPath(import.meta.url);
@@ -41,7 +45,7 @@ app.set("views", path.join(__dirname, "views"));
 // Routes
 // -------------------
 app.use("/auth", authRouter);
-app.use('/admin',adminRouter)
+app.use("/admin", adminRouter);
 app.use("/", userRouter);
 
 // -------------------

@@ -112,6 +112,7 @@ signUpForm.addEventListener("submit", async (e) => {
         text: data.message,
         timer: 1500,
         showConfirmButton: false,
+        showCancelButton:false
       });
 
       const result = await Swal.fire({
@@ -119,9 +120,8 @@ signUpForm.addEventListener("submit", async (e) => {
         icon: "info",
         title: "Please Note!",
         text: "Do not refresh page until OTP verification is done.",
-        confirmButtonText: "Got it",
-        cancelButtonText: "Cancel",
         showCancelButton: true,
+        timer:2500
       });
 
       // Move to OTP step

@@ -3,17 +3,11 @@ import jwt from "jsonwebtoken";
 const authMiddleware = (req, res, next) => {
   const token = req.cookies.token;
 
-  if (!token) {
-    return next(); // public access allowed
+  if (token) {
+    return res.redirect('/'); // no token → just continue
   }
 
-  try {
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    req.user = decoded;
-    res.redirect("/"); // ✅ continue normally
-  } catch (error) {
-    return res.clearCookie("token").redirect("/login");
-  }
+  return next(); // always continue
 };
 
-export default authMiddleware;
+export default authMiddleware; 

@@ -39,13 +39,13 @@ export const isValidateEmailAndPassword = async (email, password) => {
 
 // Create user
 export const addUser = async ({ name, email, phone, password }) => {
-  const referral = await createRef();
+  const referralCode = await createRef();
 
   const newUser = await User.create({
     name,
     email,
     phone,
     password,
-    referral,
+    referralCode,
   });
 };

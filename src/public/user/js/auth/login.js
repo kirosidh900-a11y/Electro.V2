@@ -118,7 +118,7 @@ loginForm.addEventListener("submit", async (e) => {
   } catch (error) {
     console.error("Error during login:", error);
     Swal.fire({
-      ...swalDark
+      ...swalDark,
       icon: "error",
       title: "Login Failed",
       text: error.message || "An error occurred during login.",
@@ -140,3 +140,8 @@ togglePassword.addEventListener("click", () => {
   togglePassword.classList.toggle("fa-eye");
   togglePassword.classList.toggle("fa-eye-slash");
 });
+
+document.getElementById("googleBtn")?.addEventListener("click", () => {
+  window.location.href = "/auth/google-user";
+});
+

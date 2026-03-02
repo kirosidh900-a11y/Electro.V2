@@ -11,11 +11,18 @@ const attachUser = async (req, res, next) => {
 
   try {
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    const user = await getUserData(decoded.id);
 
-    // Fetch full user once
-    req.user = await getUserData(decoded.userId);
+    // 🔥 If user deleted OR blocked → logout
+    if (!user || user.isBlock) {
+      res.clearCookie("token", { path: "/" });
+      req.user = null;
+      return next();
+    }
 
+    req.user = user;
   } catch (err) {
+    res.clearCookie("token", { path: "/" });
     req.user = null;
   }
 
