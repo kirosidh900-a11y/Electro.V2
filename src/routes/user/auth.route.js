@@ -17,15 +17,16 @@ import {
   googleUserAuth,
 } from "../../controllers/user/auth.controller.js";
 
-
+import attachUser from "../../middlewares/attachUser.middleware.js";
 import authMiddleware from "../../middlewares/auth.middleware.js";
-
 import { generateJWT } from "../../utils/user/jwt.utils.js";
 
 const router = Router();
 
-//  AUTH PAGES
+// Prevent caching of protected pages
+router.use(attachUser);
 
+//  AUTH PAGES
 router.route("/login").get(authMiddleware, showLoginPage).post(Login);
 
 router.route("/signup").get(authMiddleware, showSignUpPage).post(signUp);
@@ -33,7 +34,10 @@ router.route("/signup").get(authMiddleware, showSignUpPage).post(signUp);
 router.post("/verify-otp", verifyOtp);
 router.patch("/resend-otp", resendOtp);
 
-router.route("/forgot-password").get(showForgotPasswordPage).post(verifyEmail);
+router
+  .route("/forgot-password")
+  .get(authMiddleware, showForgotPasswordPage)
+  .post(verifyEmail);
 
 router.patch("/reset-password", savePassword);
 
@@ -53,7 +57,6 @@ router.get("/google-user/callback", (req, res, next) => {
     "google-user",
     { session: false },
     (err, user, info) => {
-
       // ❌ LOGIN FAILED
       if (!user) {
         res.clearCookie("token", { path: "/" });
@@ -64,9 +67,9 @@ router.get("/google-user/callback", (req, res, next) => {
             JSON.stringify({
               success: false,
               message: info?.message || "Login failed",
-            })
+            }),
           ),
-          { maxAge: 5000, path: "/" }
+          { maxAge: 5000, path: "/" },
         );
 
         return res.redirect("/auth/login");
@@ -89,13 +92,13 @@ router.get("/google-user/callback", (req, res, next) => {
           JSON.stringify({
             success: true,
             message: "Login successful 🎉",
-          })
+          }),
         ),
-        { maxAge: 5000, path: "/" }
+        { maxAge: 5000, path: "/" },
       );
 
       return res.redirect("/");
-    }
+    },
   )(req, res, next);
 });
 

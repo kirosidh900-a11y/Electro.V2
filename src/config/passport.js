@@ -32,23 +32,31 @@ passport.use(
           });
         }
 
-        let user = await userSchema.findOne({
-          $or: [{ googleId: profile.id }, { email }],
-        });
+        let user = await userSchema.findOne({ email });
 
-        // ✅ BLOCK CHECK HERE
+        // BLOCK CHECK
         if (user && user.isBlock) {
           return done(null, false, {
             message: "Your account has been blocked ❌",
           });
         }
 
+        // CREATE NEW USER IF NOT EXISTS
         if (!user) {
+          const referralCode = await generateUniqueReferralCode();
+
           user = await userSchema.create({
             name: profile.displayName || "User",
             email,
             googleId: profile.id,
+            referralCode,
           });
+        }
+
+        // If user exists but googleId not saved
+        if (user && !user.googleId) {
+          user.googleId = profile.id;
+          await user.save();
         }
 
         return done(null, user);

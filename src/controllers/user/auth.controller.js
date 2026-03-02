@@ -20,6 +20,7 @@ import User from "../../models/userSchema.model.js";
 import dotenv from "dotenv";
 import { generateJWT } from "../../utils/user/jwt.utils.js";
 import passport from "passport";
+import { setAuthCookie } from "../../utils/user/setAuthCookie.js";
 
 dotenv.config();
 
@@ -60,13 +61,7 @@ export const Login = async (req, res, next) => {
     const token = await generateJWT(user, rememberMe);
 
     // ✅ Set cookie
-    res.cookie("token", token, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
-      sameSite: "lax",
-      maxAge,
-      path: "/",
-    });
+    setAuthCookie(res,token)
 
     return res.json({
       success: true,

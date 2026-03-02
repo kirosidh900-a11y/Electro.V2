@@ -1,9 +1,19 @@
 import { Router } from "express";
-import { showLoginPage,showForgotPage } from "../../controllers/admin/auth.controller.js";
+import {
+  showLoginPage,
+  showForgotPage,
+  Login,
+} from "../../controllers/admin/auth.controller.js";
+
+import adminAuth from "../../middlewares/attachAdmin.middleware.js";
 
 const router = Router();
 
-router.get('/', showLoginPage);
-router.get('/forgot',showForgotPage)
+// Prevent caching of protected pages
+router.use(adminAuth);
+
+router.route("/login").get(showLoginPage).post(Login);
+
+router.get("/forgot", showForgotPage);
 
 export default router;

@@ -4,7 +4,7 @@ const userSchema = new Schema(
   {
     name: {
       type: String,
-      required: true,
+      required:true,
       trim: true,
     },
 
@@ -18,7 +18,7 @@ const userSchema = new Schema(
 
     phone: {
       type: String,
-      required: true,
+      sparse: true,
     },
 
     googleId: {
@@ -29,7 +29,8 @@ const userSchema = new Schema(
 
     password: {
       type: String,
-      required: true,
+      default: null,
+      required: false,
     },
 
     referral_by: {
