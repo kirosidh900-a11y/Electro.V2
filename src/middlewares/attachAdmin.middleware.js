@@ -1,7 +1,8 @@
 import jwt from "jsonwebtoken";
 import User from "../models/userSchema.model.js";
+import { adminMenu } from "../config/adminMenu.js";
 
- const adminAuth = async (req, res, next) => {
+const adminAuth = async (req, res, next) => {
   const token = req.cookies.adminToken;
 
   if (!token) {
@@ -10,14 +11,20 @@ import User from "../models/userSchema.model.js";
 
   try {
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    const admin = await User.findById(decoded.id);
+    const admin = await User.findById(decoded.id).select("-password -googleId");
 
     if (!admin || !admin.isAdmin || admin.isBlock) {
       res.clearCookie("adminToken", { path: "/admin" });
-      return next()
+      return next();
     }
 
     req.admin = admin;
+
+    // 🔥 GLOBAL DATA FOR ALL EJS FILES
+    res.locals.admin = admin;
+    res.locals.menu = adminMenu;
+    res.locals.currentPath = req.originalUrl;
+
     next();
   } catch (err) {
     res.clearCookie("adminToken", { path: "/admin" });
@@ -25,4 +32,4 @@ import User from "../models/userSchema.model.js";
   }
 };
 
-export default adminAuth
+export default adminAuth;

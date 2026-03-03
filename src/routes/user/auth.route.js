@@ -1,5 +1,6 @@
 import { Router } from "express";
-import { setAuthCookie } from "../../utils/user/setAuthCookie.js";
+import { setAuthCookie } from "../../utils/partials/setAuthCookie.js";
+
 import passport from "../../config/passport.js";
 
 import {

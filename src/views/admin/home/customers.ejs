@@ -1,0 +1,171 @@
+
+
+
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head> <%- include('../../partials/head') %> </head>
+<body class="min-h-screen flex">
+    <%- include('../../partials/admin/sidebar') %>
+
+    <div id="mainContent" class="flex-1 flex flex-col min-w-0 transition-all duration-300">
+        <%- include('../../partials/admin/header') %>
+
+<main class="flex-1 p-4 sm:p-6 lg:p-8 w-full">
+
+    <!-- ===== Header ===== -->
+    <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6 mb-8 w-full">
+
+        <h1 class="text-xl sm:text-2xl font-bold text-white">
+            Customer Management
+        </h1>
+
+        <div class="flex flex-col sm:flex-row gap-3 w-full lg:w-auto">
+
+            <!-- Search -->
+            <form method="GET" action="/admin/customers"
+                  class="flex w-full sm:w-auto">
+                <input 
+                    type="text"
+                    name="search"
+                    placeholder="Search customers..."
+                    class="w-full sm:w-64 bg-[#0f172a] border border-white/10 
+                           px-4 py-2 rounded-l-xl text-sm 
+                           focus:outline-none focus:ring-2 focus:ring-cyan-500"
+                />
+                <button class="bg-cyan-600 hover:bg-cyan-700 px-4 rounded-r-xl">
+                    <i class="fas fa-search text-white"></i>
+                </button>
+            </form>
+
+            <!-- Filter -->
+            <select 
+                onchange="location = this.value"
+                class="w-full sm:w-40 bg-[#0f172a] border border-white/10 
+                       px-4 py-2 rounded-xl text-sm 
+                       focus:outline-none focus:ring-2 focus:ring-cyan-500"
+            >
+                <option value="/admin/customers">All</option>
+                <option value="/admin/customers?status=Active">Active</option>
+                <option value="/admin/customers?status=Blocked">Blocked</option>
+            </select>
+
+        </div>
+    </div>
+
+
+    <!-- ===== Table Card ===== -->
+    <div class="w-full bg-[#0b1220] border border-white/5 rounded-3xl shadow-xl">
+
+        <div class="overflow-x-auto w-full">
+            <table class="w-full text-sm text-left">
+
+                <!-- Table Head -->
+                <thead class="bg-white/5 text-gray-400 uppercase text-xs tracking-widest">
+                    <tr>
+                        <th class="px-6 py-4">#</th>
+                        <th class="px-6 py-4">Name</th>
+                        <th class="px-6 py-4 hidden sm:table-cell">Email</th>
+                        <th class="px-6 py-4 hidden md:table-cell">Phone</th>
+                        <th class="px-6 py-4">Status</th>
+                        <th class="px-6 py-4 text-right">Actions</th>
+                    </tr>
+                </thead>
+
+                <!-- Table Body -->
+                <tbody class="text-gray-300">
+                    <% customers.forEach((customer, index) => { %>
+                    <tr class="border-b border-white/5 hover:bg-white/5 transition duration-200">
+
+                        <td class="px-6 py-4 font-mono text-gray-500">
+                            <%= (currentPage - 1) * 8 + index + 1 %>
+                        </td>
+
+                        <td class="px-6 py-4 font-semibold text-white">
+                            <%= customer.name %>
+                        </td>
+
+                        <td class="px-6 py-4 hidden sm:table-cell">
+                            <%= customer.email %>
+                        </td>
+
+                        <td class="px-6 py-4 hidden md:table-cell">
+                            <%= customer.phone || "N/A" %>
+                        </td>
+
+                        <!-- Status -->
+<td class="px-6 py-4">
+    <span class="px-3 py-1 text-xs rounded-full font-semibold
+        <%= customer.isBlock
+            ? 'bg-red-500/20 text-red-400'
+            : 'bg-emerald-500/20 text-emerald-400' %>">
+        <%= customer.isBlock ? "Blocked" : "Active" %>
+    </span>
+</td>
+
+<!-- Actions -->
+<td class="px-6 py-4 text-right">
+    <% if (!customer.isBlock) { %>
+        <a href="/admin/block-customer/<%= customer._id %>?page=<%= currentPage %>"
+           class="px-4 py-2 text-xs rounded-lg bg-red-600 hover:bg-red-700 text-white transition">
+            <i class="fas fa-ban mr-1"></i> Block
+        </a>
+    <% } else { %>
+        <a href="/admin/unblock-customer/<%= customer._id %>?page=<%= currentPage %>"
+           class="px-4 py-2 text-xs rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white transition">
+            <i class="fas fa-unlock mr-1"></i> Unblock
+        </a>
+    <% } %>
+</td>
+
+                    </tr>
+                    <% }) %>
+
+                    <% if (customers.length === 0) { %>
+                        <tr>
+                            <td colspan="6" class="text-center py-12 text-gray-500">
+                                No customers found.
+                            </td>
+                        </tr>
+                    <% } %>
+                </tbody>
+
+            </table>
+        </div>
+    </div>
+
+
+    <!-- ===== Pagination ===== -->
+    <div class="flex flex-wrap justify-center items-center gap-2 mt-8">
+
+        <!-- Prev -->
+        <a href="?page=<%= currentPage > 1 ? currentPage - 1 : 1 %>"
+           class="px-4 py-2 rounded-lg bg-white/5 hover:bg-white/10 text-sm">
+           Prev
+        </a>
+
+        <!-- Page Numbers -->
+        <% for(let i = 1; i <= totalPages; i++) { %>
+            <a href="?page=<%= i %>"
+               class="px-4 py-2 rounded-lg text-sm
+               <%= currentPage === i
+                   ? 'bg-cyan-600 text-white'
+                   : 'bg-white/5 hover:bg-white/10 text-gray-300' %>">
+               <%= i %>
+            </a>
+        <% } %>
+
+        <!-- Next -->
+        <a href="?page=<%= currentPage < totalPages ? currentPage + 1 : totalPages %>"
+           class="px-4 py-2 rounded-lg bg-white/5 hover:bg-white/10 text-sm">
+           Next
+        </a>
+
+    </div>
+
+</main>
+ 
+    </div>
+
+   
+</body>
+</html>

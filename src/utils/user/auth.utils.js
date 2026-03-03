@@ -2,6 +2,7 @@ import AppError from "../partials/AppError.js";
 import HTTP_STATUS from "../../constant/statusCode.js";
 
 export const checkIfBlocked = (user) => {
+  console.log(user)
   if (!user) {
     throw new AppError("User not found", HTTP_STATUS.NOT_FOUND);
   }
@@ -11,4 +12,13 @@ export const checkIfBlocked = (user) => {
   }
 
   return user;
+};
+
+export const checkIfAdmin = (admin) => {
+  if (!admin) {
+    throw new AppError("User not found", HTTP_STATUS.NOT_FOUND);
+  }else if(!admin?.isAdmin){
+    throw new AppError("Unauthorized Access",HTTP_STATUS.UNAUTHORIZED)
+  }
+  return admin;
 };

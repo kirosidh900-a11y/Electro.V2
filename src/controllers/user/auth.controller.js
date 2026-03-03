@@ -1,29 +1,48 @@
+import dotenv from "dotenv";
+dotenv.config();
+
+/* ===============================
+   📦 Imports
+================================= */
+
+// Constants
 import HTTP_STATUS from "../../constant/statusCode.js";
-import { isValidate, addUser } from "../../services/user/auth.service.js";
 
-import { checkIfBlocked } from "../../utils/user/auth.utils.js";
+// Models
+import User from "../../models/userSchema.model.js";
+import Otp from "../../models/otp.model.js";
 
-import generateOTP from "../../utils/partials/otpGenerater.js";
-import hashedPassword from "../../utils/partials/hashHelper.utils.js";
+// Services
+import {
+  isValidate,
+  addUser,
+  isVerifyUser,
+} from "../../services/user/auth.service.js";
+
 import {
   sendOtpToEmail,
   otpExist,
 } from "../../services/partials/otp.service.js";
 
-import { isVerifyUser } from "../../services/user/auth.service.js";
-import sendEmail from "../../constant/transporter.js";
-
-import AppError from "../../utils/partials/AppError.js";
-import Otp from "../../models/otp.model.js";
-import User from "../../models/userSchema.model.js";
-import dotenv from "dotenv";
+// Utils
+import { checkIfBlocked } from "../../utils/user/auth.utils.js";
+import generateOTP from "../../utils/partials/otpGenerater.js";
+import { hashedPassword } from "../../utils/partials/hashHelper.utils.js";
 import generateJWT from "../../utils/partials/jwt.utils.js";
+import { setAuthCookie } from "../../utils/partials/setAuthCookie.js";
+import { isConformPassword } from "../../utils/partials/validation.utils.js";
+import AppError from "../../utils/partials/AppError.js";
+
+// External
 import passport from "passport";
-import { setAuthCookie } from "../../utils/user/setAuthCookie.js";
+import sendEmail from "../../constant/transporter.js";
+import clearAuthCookie from "../../utils/partials/clearCookie.js";
 
-import {isConformPassword} from '../../utils/partials/validation.utils.js'
+/* ===============================
+   🔐 AUTH CONTROLLERS
+================================= */
 
-dotenv.config();
+// ================= LOGIN =================
 
 export const showLoginPage = (req, res) => {
   res.render("user/auth/login");
@@ -31,15 +50,13 @@ export const showLoginPage = (req, res) => {
 
 export const Login = async (req, res, next) => {
   try {
-    const { email, password } = req.body;
+    const { email, password, rememberMe } = req.body;
 
     const user = await isVerifyUser(email, password);
-
     await checkIfBlocked(user);
 
-    // Generate token
-    const token = generateJWT(user, "1h");
-    setAuthCookie(res, token);
+    const token = generateJWT(user, rememberMe);
+    setAuthCookie(res, token, "user");
 
     return res.status(200).json({
       success: true,
@@ -51,6 +68,8 @@ export const Login = async (req, res, next) => {
   }
 };
 
+// ================= SIGNUP =================
+
 export const showSignUpPage = (req, res) => {
   res.render("user/auth/signup");
 };
@@ -58,7 +77,6 @@ export const showSignUpPage = (req, res) => {
 export const signUp = async (req, res, next) => {
   try {
     await isValidate(req.body);
-
     await sendOtpToEmail(req.body);
 
     res.status(HTTP_STATUS.CREATED).json({
@@ -81,10 +99,11 @@ export const verifyOtp = async (req, res, next) => {
     }
 
     if (!existingOtp?.tempUserData) {
-      throw new AppError("OTP data corrupted or expired",HTTP_STATUS.BAD_REQUEST);
+      throw new AppError(
+        "OTP data corrupted or expired",
+        HTTP_STATUS.BAD_REQUEST,
+      );
     }
-
-    console.log("Data",existingOtp.tempUserData);
 
     await addUser({ email, ...existingOtp.tempUserData });
 
@@ -116,15 +135,14 @@ export const resendOtp = async (req, res, next) => {
 
     otpDoc.otp = newOtp;
     otpDoc.expiresAt = new Date(Date.now() + 65 * 1000);
+
     await otpDoc.save();
 
     await sendEmail({
       email,
-      name: otpDoc.tempUserData.name ?? "Unshare name!",
+      name: otpDoc.tempUserData?.name ?? "User",
       otp: newOtp,
     });
-
-    console.log(`Resent OTP ${newOtp} to ${email}`);
 
     res.json({
       success: true,
@@ -135,14 +153,13 @@ export const resendOtp = async (req, res, next) => {
   }
 };
 
+// ================= LOGOUT =================
+
 export const logout = async (req, res, next) => {
   try {
-    res.clearCookie("token", {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
-    });
+    clearAuthCookie(res, "token");
 
-    return res.status(200).json({
+    return res.status(HTTP_STATUS.OK).json({
       success: true,
       message: "Logged out successfully",
     });
@@ -151,6 +168,8 @@ export const logout = async (req, res, next) => {
   }
 };
 
+// ================= FORGOT PASSWORD =================
+
 export const showForgotPasswordPage = (req, res) => {
   res.render("user/auth/forgot");
 };
@@ -158,8 +177,6 @@ export const showForgotPasswordPage = (req, res) => {
 export const verifyEmail = async (req, res, next) => {
   try {
     const { email, purpose } = req.body;
-
-    console.log(req.body);
 
     const user = await User.findOne({ email });
 
@@ -182,8 +199,6 @@ export const verifyEmail = async (req, res, next) => {
     await otpDoc.save();
 
     await sendEmail({ email, name: user.name, otp });
-
-    console.log(`Sent OTP ${otp} to ${email}`);
 
     res.json({
       success: true,
@@ -222,6 +237,8 @@ export const savePassword = async (req, res, next) => {
     next(err);
   }
 };
+
+// ================= GOOGLE AUTH =================
 
 export const passportRed = (req, res, next) => {
   return passport.authenticate("google-user", {

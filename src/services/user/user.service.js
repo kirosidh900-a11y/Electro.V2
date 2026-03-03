@@ -4,7 +4,7 @@ import AppError from "../../utils/partials/AppError.js";
 import HTTP_STATUS from "../../constant/statusCode.js";
 
 export const getUserData = async (userId) => {
-  const user = await User.findById(userId).select("-password -otp -__v");
+  const user = await User.findById(userId).select("-password -otp -__v -googleId");
   return user;
 };
 

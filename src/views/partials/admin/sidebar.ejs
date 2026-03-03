@@ -3,30 +3,88 @@
 <aside id="sidebar" class="fixed inset-y-0 left-0 z-50 bg-[#05070a] border-r border-white/5 flex flex-col">
     <div class="p-6 flex items-center justify-between border-b border-white/5">
         <div class="flex items-center gap-3">
-            <div class="w-9 h-9 bg-cyan-500 rounded-xl flex items-center justify-center text-white shadow-lg shadow-cyan-500/20">
+            <div
+                class="w-9 h-9 bg-cyan-500 rounded-xl flex items-center justify-center text-white shadow-lg shadow-cyan-500/20">
                 <i class="fas fa-bolt"></i>
             </div>
             <span class="text-xl font-black tracking-tighter uppercase text-white">Electro</span>
         </div>
-        <button onclick="toggleSidebar()" class="lg:hidden text-gray-500 hover:text-white"><i class="fas fa-times"></i></button>
+        <button onclick="toggleSidebar()" class="lg:hidden text-gray-500 hover:text-white"><i
+                class="fas fa-times"></i></button>
     </div>
 
     <nav class="flex-1 px-4 py-8 space-y-1 overflow-y-auto">
-        <p class="text-[10px] text-gray-500 font-bold uppercase tracking-widest px-4 mb-4">Main Menu</p>
-        <a href="#" class="flex items-center gap-4 px-4 py-3 rounded-xl bg-cyan-600 text-white font-bold shadow-lg shadow-cyan-900/20">
-            <i class="fas fa-th-large w-5"></i> Dashboard
-        </a>
-        <a href="#" class="flex items-center gap-4 px-4 py-3 rounded-xl text-gray-400 hover:bg-white/5 transition-all">
-            <i class="fas fa-box w-5"></i> Inventory
-        </a>
-        <a href="#" class="flex items-center gap-4 px-4 py-3 rounded-xl text-gray-400 hover:bg-white/5 transition-all">
-            <i class="fas fa-users w-5"></i> Customers
-        </a>
+        <p class="text-[10px] text-gray-500 font-bold uppercase tracking-widest px-4 mb-4">
+            Main Menu
+        </p>
+
+        <% menu.forEach(item=> { %>
+            <a href="<%= item.path %>" class="flex items-center gap-4 px-4 py-3 rounded-xl transition-all
+      <%= currentPath === item.path
+          ? 'bg-cyan-600 text-white font-bold shadow-lg shadow-cyan-900/20'
+          : 'text-gray-400 hover:bg-white/5' %>">
+
+                <i class="<%= item.icon %> w-5"></i>
+                <%= item.name %>
+            </a>
+            <% }) %>
     </nav>
 
     <div class="p-6 border-t border-white/5">
-        <button class="flex items-center gap-3 text-red-500 font-bold hover:bg-red-500/10 w-full p-3 rounded-xl transition-all">
+        <button id="logout"
+            class="flex items-center gap-3 text-red-500 font-bold hover:bg-red-500/10 w-full p-3 rounded-xl transition-all">
             <i class="fas fa-power-off"></i> Logout
         </button>
     </div>
 </aside>
+
+<script>
+    const logoutBtn = document.getElementById("logout");
+
+    logoutBtn?.addEventListener("click", async (e) => {
+        e.preventDefault();
+
+        const result = await Swal.fire({
+            title: "Are you sure you want to logout?",
+            icon: "warning",
+            background: "#1a1a1a",
+            color: "#ffffff",
+            confirmButtonColor: "#fa5252",
+            showCancelButton: true,
+            confirmButtonText: "Yes, logout",
+            cancelButtonText: "No, stay logged in",
+            cancelButtonColor: "#3085d6",
+            confirmButtonColor: "#d33",
+        });
+
+        if (!result.isConfirmed) return;
+
+        try {
+            const response = await fetch("/admin/logout", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+            });
+
+            if (!response.ok) throw new Error("Logout failed");
+
+            window.location.href = "/admin";
+        } catch (error) {
+            Swal.fire({
+                icon: "error",
+                title: "Logout error",
+                text: error.message,
+            });
+        }
+    });
+
+    function toggleSidebar() {
+        const body = document.body;
+        const overlay = document.getElementById('sidebarOverlay');
+        if (window.innerWidth >= 1024) {
+            body.classList.toggle('sidebar-closed'); // Laptop Logic
+        } else {
+            body.classList.toggle('mobile-open'); // Phone Logic
+            overlay.classList.toggle('hidden');
+        }
+    }
+</script>

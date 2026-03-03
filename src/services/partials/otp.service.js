@@ -1,7 +1,7 @@
 import Otp from "../../models/otp.model.js";
 import generateOTP from "../../utils/partials/otpGenerater.js";
 import sendEmail from "../../constant/transporter.js";
-import hashedPassword from "../../utils/partials/hashHelper.utils.js";
+import {hashedPassword} from "../../utils/partials/hashHelper.utils.js";
 
 // Send OTP Thought Clinet
 export const sendOtpToEmail = async ({
