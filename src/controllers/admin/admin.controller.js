@@ -1,3 +1,4 @@
+import HTTP_STATUS from "../../constant/statusCode.js";
 import User from "../../models/userSchema.model.js";
 
 export const dashboard = (req, res) => {
@@ -37,5 +38,34 @@ export const customers = async (req, res, next) => {
     });
   } catch (error) {
     next(error);
+  }
+};
+
+export const toggleBlockCustomer = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const user = await User.findById(id);
+
+    if (!user) {
+      return res.status(HTTP_STATUS.NOT_FOUND).json({
+        success: false,
+        message: "User not found"
+      });
+    }
+
+    user.isBlock = !user.isBlock;
+    await user.save();
+
+    res.json({
+      success: true,
+      isBlock: user.isBlock
+    });
+
+  } catch (error) {
+    res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).json({
+      success: false,
+      message: "Something went wrong"
+    });
   }
 };

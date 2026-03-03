@@ -187,6 +187,8 @@ export const verifyEmail = async (req, res, next) => {
       });
     }
 
+    checkIfBlocked(user);
+
     const otp = generateOTP();
 
     const otpDoc = new Otp({

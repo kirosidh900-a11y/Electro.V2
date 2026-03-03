@@ -92,29 +92,35 @@
                             <%= customer.phone || "N/A" %>
                         </td>
 
-                        <!-- Status -->
+    <!-- Status -->
 <td class="px-6 py-4">
-    <span class="px-3 py-1 text-xs rounded-full font-semibold
+    <span 
+        id="status-<%= customer._id %>"
+        class="px-3 py-1 text-xs rounded-full font-semibold
         <%= customer.isBlock
             ? 'bg-red-500/20 text-red-400'
             : 'bg-emerald-500/20 text-emerald-400' %>">
+
         <%= customer.isBlock ? "Blocked" : "Active" %>
+
     </span>
 </td>
 
 <!-- Actions -->
 <td class="px-6 py-4 text-right">
-    <% if (!customer.isBlock) { %>
-        <a href="/admin/block-customer/<%= customer._id %>?page=<%= currentPage %>"
-           class="px-4 py-2 text-xs rounded-lg bg-red-600 hover:bg-red-700 text-white transition">
-            <i class="fas fa-ban mr-1"></i> Block
-        </a>
-    <% } else { %>
-        <a href="/admin/unblock-customer/<%= customer._id %>?page=<%= currentPage %>"
-           class="px-4 py-2 text-xs rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white transition">
-            <i class="fas fa-unlock mr-1"></i> Unblock
-        </a>
-    <% } %>
+
+    <button
+        onclick="toggleBlock('<%= customer._id %>', this)"
+        class="px-4 py-2 text-xs rounded-lg text-white transition
+        <%= customer.isBlock
+            ? 'bg-emerald-600 hover:bg-emerald-700'
+            : 'bg-red-600 hover:bg-red-700' %>">
+
+        <i class="fas <%= customer.isBlock ? 'fa-unlock' : 'fa-ban' %> mr-1"></i>
+        <%= customer.isBlock ? "Unblock" : "Block" %>
+
+    </button>
+
 </td>
 
                     </tr>
@@ -165,6 +171,76 @@
 </main>
  
     </div>
+
+
+    <script>
+async function toggleBlock(userId, button) {
+
+    const isCurrentlyBlocked =
+        button.textContent.trim().includes("Unblock");
+
+    const actionText = isCurrentlyBlocked ? "unblock" : "block";
+
+    const result = await Swal.fire({
+        title: `Are you sure?`,
+        text: `Do you want to ${actionText} this customer?`,
+        icon: "warning",
+        background: "#0b1220",
+        color: "#e5e7eb",
+        backdrop: "rgba(0,0,0,0.8)",
+        showCancelButton: true,
+        confirmButtonColor: isCurrentlyBlocked ? "#10b981" : "#ef4444",
+        cancelButtonColor: "#6b7280",
+        confirmButtonText: `Yes, ${actionText}!`
+    });
+
+    if (!result.isConfirmed) return;
+
+    try {
+        const res = await fetch(`/admin/toggle-block/${userId}`, {
+            method: "PATCH"
+        });
+
+        const data = await res.json();
+        if (!data.success) return;
+
+        const badge = document.getElementById(`status-${userId}`);
+
+        if (data.isBlock) {
+            // Now Blocked
+            badge.textContent = "Blocked";
+            badge.className =
+                "px-3 py-1 text-xs rounded-full font-semibold bg-red-500/20 text-red-400";
+
+            button.innerHTML = '<i class="fas fa-unlock mr-1"></i> Unblock';
+            button.className =
+                "px-4 py-2 text-xs rounded-lg text-white transition bg-emerald-600 hover:bg-emerald-700";
+
+        } else {
+            // Now Active
+            badge.textContent = "Active";
+            badge.className =
+                "px-3 py-1 text-xs rounded-full font-semibold bg-emerald-500/20 text-emerald-400";
+
+            button.innerHTML = '<i class="fas fa-ban mr-1"></i> Block';
+            button.className =
+                "px-4 py-2 text-xs rounded-lg text-white transition bg-red-600 hover:bg-red-700";
+        }
+
+        Swal.fire({
+            toast: true,
+            position: "top-end",
+            icon: "success",
+            title: `Customer ${actionText}ed successfully`,
+            showConfirmButton: false,
+            timer: 2000
+        });
+
+    } catch (error) {
+        console.error(error);
+    }
+}
+    </script>
 
    
 </body>

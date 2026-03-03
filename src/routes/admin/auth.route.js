@@ -7,10 +7,11 @@ import {
 } from "../../controllers/admin/auth.controller.js";
 import {
   dashboard,
-  customers
+  customers,
+  toggleBlockCustomer
 } from '../../controllers/admin/admin.controller.js'
 
-import adminAuth from "../../middlewares/attachAdmin.middleware.js";
+import adminAuth from "../../middlewares/admin/attachAdmin.middleware.js";
 import {authAdmin ,isAuth} from "../../middlewares/admin/authAdmin.middleware.js";
 
 const router = Router();
@@ -26,5 +27,6 @@ router.post('/logout',isAuth , logout)
 
 router.get("/dashboard", isAuth, dashboard);
 router.get("/customers", isAuth, customers);
+router.patch("/toggle-block/:id", toggleBlockCustomer);
 
 export default router;

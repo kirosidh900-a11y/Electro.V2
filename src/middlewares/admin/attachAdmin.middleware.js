@@ -1,6 +1,7 @@
 import jwt from "jsonwebtoken";
-import User from "../models/userSchema.model.js";
-import { adminMenu } from "../config/adminMenu.js";
+import User from "../../models/userSchema.model.js";
+import { adminMenu } from "../../config/adminMenu.js";
+import clearAuthCookie from "../../utils/partials/clearCookie.js";
 
 const adminAuth = async (req, res, next) => {
   const token = req.cookies.adminToken;
@@ -14,20 +15,26 @@ const adminAuth = async (req, res, next) => {
     const admin = await User.findById(decoded.id).select("-password -googleId");
 
     if (!admin || !admin.isAdmin || admin.isBlock) {
-      res.clearCookie("adminToken", { path: "/admin" });
-      return next();
+       clearAuthCookie(res,"adminToken");
+
+      return res.redirect("/admin"); // better than next()
     }
 
     req.admin = admin;
 
-    // 🔥 GLOBAL DATA FOR ALL EJS FILES
     res.locals.admin = admin;
     res.locals.menu = adminMenu;
     res.locals.currentPath = req.originalUrl;
 
     next();
   } catch (err) {
-    res.clearCookie("adminToken", { path: "/admin" });
+    res.clearCookie("adminToken", {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "lax",
+      path: "/",
+    });
+
     return res.redirect("/admin");
   }
 };

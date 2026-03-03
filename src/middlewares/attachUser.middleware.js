@@ -1,5 +1,6 @@
 import jwt from "jsonwebtoken";
 import { getUserData } from "../services/user/user.service.js";
+import clearAuthCookie from "../utils/partials/clearCookie.js";
 
 const attachUser = async (req, res, next) => {
   const token = req.cookies.token;
@@ -15,7 +16,7 @@ const attachUser = async (req, res, next) => {
 
     // 🔥 If user deleted OR blocked → logout
     if (!user || user.isBlock) {
-      res.clearCookie("token", { path: "/" });
+      clearAuthCookie(res,'token')
       req.user = null;
       return next();
     }
