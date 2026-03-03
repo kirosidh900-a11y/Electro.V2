@@ -2,7 +2,6 @@ import HTTP_STATUS from "../../constant/statusCode.js";
 import {
   isValidate,
   addUser,
-  isValidateEmailAndPassword,
 } from "../../services/user/auth.service.js";
 
 import {
@@ -11,6 +10,8 @@ import {
   generateOTP,
   isConformPassword,
   hashedPassword,
+  checkIfBlocked,
+  isVerifyUser
 } from "../../utils/auth.utils.js";
 
 import AppError from "../../utils/AppError.js";
@@ -30,49 +31,26 @@ export const showLoginPage = (req, res) => {
 
 export const Login = async (req, res, next) => {
   try {
-    const { email, password, rememberMe } = req.body;
+    const { email, password } = req.body;
 
-    await isValidateEmailAndPassword(email, password);
+    const user = await isVerifyUser(email, password);
 
-    const user = await User.findOne({ email });
+    await checkIfBlocked(user);
 
-    if (!user) {
-      return res.status(401).json({
-        success: false,
-        message: "Invalid email or password",
-      });
-    }
+    // Generate token
+    const token = generateJWT(user, "1h");
+    setAuthCookie(res, token);
 
-    // CHECK IF BLOCKED
-    if (user.isBlock) {
-      return res.status(403).json({
-        success: false,
-        message: "Your account has been blocked ❌",
-      });
-    }
-
-    let maxAge = 1 * 60 * 60 * 1000; // 1 hour
-
-    if (rememberMe) {
-      maxAge = 24 * 60 * 60 * 1000; // 1 day
-    }
-
-    // ✅ Generate JWT
-    const token = await generateJWT(user, rememberMe);
-
-    // ✅ Set cookie
-    setAuthCookie(res,token)
-
-    return res.json({
+    return res.status(200).json({
       success: true,
       message: "Login successful",
-      redirectUrl: "/",
+      redirectUrl:'/'
     });
-
   } catch (err) {
     next(err);
   }
 };
+
 export const showSignUpPage = (req, res) => {
   res.render("user/auth/signup");
 };

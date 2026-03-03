@@ -105,6 +105,13 @@ export const isVerifyUser = async (email, password) => {
     throw new AppError("Invalid email or password", HTTP_STATUS.BAD_REQUEST);
   }
 
+  if (!user.password && user.googleId) {
+    throw new AppError(
+      "This account uses Google Sign-In. Please login using Google.",
+      HTTP_STATUS.BAD_REQUEST,
+    );
+  }
+
   const isPasswordValid = await argon2.verify(user.password, password);
 
   if (!isPasswordValid) {
@@ -210,16 +217,13 @@ export const otpExist = async (email, otp, purpose) => {
   return existingOtp;
 };
 
-export const checkIfBlocked = async (userId) => {
-
-  const user = await User.findById(userId);
-
+export const checkIfBlocked = (user) => {
   if (!user) {
-    throw new AppError("User not found", 404);
+    throw new AppError("User not found", HTTP_STATUS.NOT_FOUND);
   }
 
-  if (user.isBlocked) {
-    throw new AppError("User is blocked", 403);
+  if (user.isBlock) {
+    throw new AppError("User is blocked", HTTP_STATUS.FORBIDDEN);
   }
 
   return user;

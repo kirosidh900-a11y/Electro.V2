@@ -95,7 +95,7 @@ loginForm.addEventListener("submit", async (e) => {
     });
 
     const data = await response.json();
-
+   console.log(data);
     if (response.ok) {
       Swal.fire({
         ...swalDark,
@@ -116,13 +116,13 @@ loginForm.addEventListener("submit", async (e) => {
       });
     }
   } catch (error) {
-    console.error("Error during login:", error);
     Swal.fire({
       ...swalDark,
       icon: "error",
       title: "Login Failed",
       text: error.message || "An error occurred during login.",
     });
+    console.error("Error during login:", error);
   } finally {
     submitBtn.disabled = false;
     submitBtn.textContent = "Log In";

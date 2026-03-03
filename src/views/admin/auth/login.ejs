@@ -128,6 +128,7 @@
                             class="w-full bg-[#05070a] border border-white/10 rounded px-4 py-4 focus:outline-none transition-all text-sm font-mono text-white"
                             placeholder="admin@electro.root">
                     </div>
+                    <span id="emailError" class="hidden text-red-400 text-xs mt-2 block"></span>
                 </div>
 
                 <div class="space-y-2">
@@ -139,8 +140,15 @@
                     </div>
                     <div class="relative">
                         <input id="password" type="password" name="password" required
-                            class="w-full bg-[#05070a] border border-white/10 rounded px-4 py-4 focus:outline-none transition-all text-sm font-mono text-white"
+                            class="w-full bg-[#05070a] border border-white/10 rounded px-4 py-4 pr-12 focus:outline-none transition-all text-sm font-mono text-white"
                             placeholder="****************">
+
+                        <!-- Toggle Icon -->
+                        <button type="button" id="togglePassword"
+                            class="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-[#00d2ff] transition-all">
+                            <i id="toggleIcon" class="fas fa-eye"></i>
+                        </button>
+                        <span id="passwordError" class="hidden text-red-400 text-xs mt-2 block"></span>
                     </div>
                 </div>
 

@@ -13,15 +13,15 @@ import User from "../models/userSchema.model.js";
     const admin = await User.findById(decoded.id);
 
     if (!admin || !admin.isAdmin || admin.isBlock) {
-      res.clearCookie("adminToken", { path: "/" });
+      res.clearCookie("adminToken", { path: "/admin" });
       return next()
     }
 
     req.admin = admin;
     next();
   } catch (err) {
-    res.clearCookie("adminToken", { path: "/" });
-    return res.redirect("/admin/login");
+    res.clearCookie("adminToken", { path: "/admin" });
+    return res.redirect("/admin");
   }
 };
 

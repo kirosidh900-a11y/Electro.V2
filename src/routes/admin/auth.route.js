@@ -12,7 +12,7 @@ const router = Router();
 // Prevent caching of protected pages
 router.use(adminAuth);
 
-router.route("/login").get(showLoginPage).post(Login);
+router.route("/").get(showLoginPage).post(Login);
 
 router.get("/forgot", showForgotPage);
 

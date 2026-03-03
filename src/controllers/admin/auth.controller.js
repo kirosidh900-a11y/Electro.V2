@@ -2,6 +2,7 @@ import User from "../../models/userSchema.model.js";
 import { generateJWT } from "../../utils/user/jwt.utils.js";
 import argon2 from "argon2";
 import { setAuthCookie } from "../../utils/admin/setAuthCookie.js";
+import HTTP_STATUS from "../../constant/statusCode.js";
 
 // 🔹 Show Login Page
 export const showLoginPage = (req, res) => {
@@ -42,6 +43,14 @@ export const Login = async (req, res) => {
       return res.status(403).json({
         success: false,
         message: "Admin account is blocked ❌",
+      });
+    }
+
+    if (!admin.password && admin.googleId) {
+      return res.status(400).json({
+        success: false,
+        type: "GOOGLE_ACCOUNT",
+        message: "This admin account is registered with Google.",
       });
     }
 

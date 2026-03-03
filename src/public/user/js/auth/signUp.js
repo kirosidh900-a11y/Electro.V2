@@ -112,7 +112,7 @@ signUpForm.addEventListener("submit", async (e) => {
         text: data.message,
         timer: 1500,
         showConfirmButton: false,
-        showCancelButton:false
+        showCancelButton: false,
       });
 
       const result = await Swal.fire({
@@ -121,7 +121,7 @@ signUpForm.addEventListener("submit", async (e) => {
         title: "Please Note!",
         text: "Do not refresh page until OTP verification is done.",
         showCancelButton: true,
-        timer:2500
+        timer: 2000,
       });
 
       // Move to OTP step
@@ -134,11 +134,23 @@ signUpForm.addEventListener("submit", async (e) => {
       startOtpTimer();
     } else {
       resetSignupButton();
-      Swal.fire("Error", data.message, "error");
+      Swal.fire({
+        ...swalDark,
+        icon: "error",
+        title: "Error!",
+        text: data.message,
+        showCancelButton: true,
+      });
     }
   } catch (err) {
     resetSignupButton();
-    Swal.fire("Error", err.message, "error");
+    Swal.fire({
+      ...swalDark,
+      icon: "error",
+      title: "Error!",
+      text: err.message,
+      showCancelButton: true,
+    });
   }
 });
 
@@ -236,7 +248,7 @@ resendBtn.addEventListener("click", async (e) => {
     const response = await fetch("/auth/resend-otp", {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ email: registeredEmail ,purpose: "signup" }),
+      body: JSON.stringify({ email: registeredEmail, purpose: "signup" }),
     });
 
     const data = await response.json();
