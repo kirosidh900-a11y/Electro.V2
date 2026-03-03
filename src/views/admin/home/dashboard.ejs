@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head> <%- include('../../partials/head') %> </head>
+<body class="min-h-screen flex">
+    <%- include('../../partials/admin/sidebar') %>
+
+    <div id="mainContent" class="flex-1 flex flex-col min-w-0 transition-all duration-300">
+        <%- include('../../partials/admin/header') %>
+
+        <main class="p-4 sm:p-6 lg:p-10 max-w-[1920px] w-full mx-auto">
+            <div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-6 mb-10">
+                <% const stats = [
+                    { label: 'Total Categories', val: '10', icon: 'fa-layer-group', color: 'text-blue-500' },
+                    { label: 'Total Products', val: '20', icon: 'fa-box', color: 'text-emerald-500' },
+                    { label: 'Total Customers', val: '38', icon: 'fa-users', color: 'text-orange-500' },
+                    { label: 'Total Orders', val: '38', icon: 'fa-shopping-cart', color: 'text-red-500' }
+                ] %>
+                <% stats.forEach(s => { %>
+                <div class="glass-card p-6 rounded-3xl hover:border-cyan-500/50 transition-all">
+                    <div class="p-3 bg-white/5 rounded-xl w-fit mb-4 <%= s.color %>"><i class="fas <%= s.icon %> text-lg"></i></div>
+                    <p class="text-[10px] text-gray-500 uppercase font-bold tracking-widest"><%= s.label %></p>
+                    <h3 class="text-3xl font-black mt-1 text-white"><%= s.val %></h3>
+                </div>
+                <% }) %>
+            </div>
+
+            <div class="glass-card p-8 rounded-[2.5rem] mb-10">
+                <h3 class="font-black uppercase text-xs tracking-widest text-cyan-500 mb-8">Earnings Overview</h3>
+                <div class="h-80 w-full flex items-center justify-center border-2 border-dashed border-white/5 rounded-3xl bg-black/20">
+                    <p class="text-gray-600 font-mono text-xs uppercase tracking-[0.3em]">Streaming Live Data...</p>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-10">
+                <div class="glass-card p-8 rounded-[2.5rem]">
+                    <h3 class="font-black uppercase text-xs tracking-widest mb-10">Revenue Sources</h3>
+                    <div class="h-64 flex items-center justify-center">
+                        <div class="w-44 h-44 rounded-full border-[12px] border-white/5 border-t-cyan-500 animate-spin-slow"></div>
+                    </div>
+                </div>
+
+                <div class="glass-card p-8 rounded-[2.5rem]">
+                    <h3 class="font-black uppercase text-xs tracking-widest mb-10 text-gray-400">Outlook (Trending)</h3>
+                    <div class="space-y-6">
+                        <% [['Laptop', 75], ['Phone', 45], ['Lights', 92]].forEach(item => { %>
+                        <div class="group">
+                            <div class="flex justify-between text-[10px] font-bold mb-2 uppercase tracking-tighter text-gray-500">
+                                <span><%= item[0] %></span><span><%= item[1] %>%</span>
+                            </div>
+                            <div class="w-full bg-white/5 h-1.5 rounded-full overflow-hidden">
+                                <div class="bg-cyan-500 h-full shadow-[0_0_8px_#06b6d4]" style="width: <%= item[1] %>%"></div>
+                            </div>
+                        </div>
+                        <% }) %>
+                    </div>
+                </div>
+            </div>
+
+            <div class="glass-card p-8 rounded-[2.5rem] overflow-hidden">
+                <h3 class="font-black uppercase text-xs tracking-widest mb-8 text-white">Top Selling Statistics</h3>
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left text-sm">
+                        <thead class="text-[10px] text-gray-500 uppercase tracking-widest border-b border-white/5">
+                            <tr><th class="pb-4">Rank</th><th class="pb-4">Product Name</th><th class="pb-4">Quantity</th><th class="pb-4 text-right">Revenue</th></tr>
+                        </thead>
+                        <tbody class="text-gray-400 font-mono">
+                            <tr><td colspan="4" class="py-12 text-center italic tracking-widest">Awaiting Local Stream Data...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script>
+        function toggleSidebar() {
+            const body = document.body;
+            const overlay = document.getElementById('sidebarOverlay');
+            if (window.innerWidth >= 1024) {
+                body.classList.toggle('sidebar-closed'); // Laptop Logic
+            } else {
+                body.classList.toggle('mobile-open'); // Phone Logic
+                overlay.classList.toggle('hidden');
+            }
+        }
+    </script>
+</body>
+</html>

@@ -15,11 +15,7 @@ const otpSchema = new mongoose.Schema(
       name: String,
       phone: String,
       password: String,
-    },
-
-    isAdmin: {
-      type: Boolean,
-      default: false,
+      referral_by: String
     },
 
     expiresAt: {

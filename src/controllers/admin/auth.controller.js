@@ -1,5 +1,5 @@
 import User from "../../models/userSchema.model.js";
-import { generateJWT } from "../../utils/user/jwt.utils.js";
+import  generateJWT  from "../../utils/partials/jwt.utils.js";
 import argon2 from "argon2";
 import { setAuthCookie } from "../../utils/admin/setAuthCookie.js";
 import HTTP_STATUS from "../../constant/statusCode.js";

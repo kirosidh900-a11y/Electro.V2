@@ -19,7 +19,7 @@ import {
 
 import attachUser from "../../middlewares/attachUser.middleware.js";
 import authMiddleware from "../../middlewares/auth.middleware.js";
-import { generateJWT } from "../../utils/user/jwt.utils.js";
+import generateJWT  from "../../utils/partials/jwt.utils.js";
 
 const router = Router();
 

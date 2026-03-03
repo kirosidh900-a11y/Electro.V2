@@ -1,6 +1,6 @@
 import jwt from "jsonwebtoken";
 
-export const generateJWT = (user, rememberMe = false) => {
+const generateJWT = (user, rememberMe = false) => {
   const expiry = rememberMe ? "1d" : "1h";
 
   return jwt.sign(
@@ -11,6 +11,8 @@ export const generateJWT = (user, rememberMe = false) => {
     process.env.JWT_SECRET,
     {
       expiresIn: expiry,
-    }
+    },
   );
 };
+
+export default generateJWT;

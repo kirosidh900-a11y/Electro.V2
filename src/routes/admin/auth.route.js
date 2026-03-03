@@ -15,5 +15,8 @@ router.use(adminAuth);
 router.route("/").get(showLoginPage).post(Login);
 
 router.get("/forgot", showForgotPage);
+router.get("/dashboard", (req, res) => {
+  res.render("admin/home/dashboard");
+});
 
 export default router;

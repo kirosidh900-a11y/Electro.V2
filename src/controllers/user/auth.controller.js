@@ -1,27 +1,27 @@
 import HTTP_STATUS from "../../constant/statusCode.js";
-import {
-  isValidate,
-  addUser,
-} from "../../services/user/auth.service.js";
+import { isValidate, addUser } from "../../services/user/auth.service.js";
 
+import { checkIfBlocked } from "../../utils/user/auth.utils.js";
+
+import generateOTP from "../../utils/partials/otpGenerater.js";
+import hashedPassword from "../../utils/partials/hashHelper.utils.js";
 import {
   sendOtpToEmail,
   otpExist,
-  generateOTP,
-  isConformPassword,
-  hashedPassword,
-  checkIfBlocked,
-  isVerifyUser
-} from "../../utils/auth.utils.js";
+} from "../../services/partials/otp.service.js";
 
-import AppError from "../../utils/AppError.js";
+import { isVerifyUser } from "../../services/user/auth.service.js";
+import sendEmail from "../../constant/transporter.js";
+
+import AppError from "../../utils/partials/AppError.js";
 import Otp from "../../models/otp.model.js";
-import { sendEmail } from "../../constant/transporter.js";
 import User from "../../models/userSchema.model.js";
 import dotenv from "dotenv";
-import { generateJWT } from "../../utils/user/jwt.utils.js";
+import generateJWT from "../../utils/partials/jwt.utils.js";
 import passport from "passport";
 import { setAuthCookie } from "../../utils/user/setAuthCookie.js";
+
+import {isConformPassword} from '../../utils/partials/validation.utils.js'
 
 dotenv.config();
 
@@ -44,7 +44,7 @@ export const Login = async (req, res, next) => {
     return res.status(200).json({
       success: true,
       message: "Login successful",
-      redirectUrl:'/'
+      redirectUrl: "/",
     });
   } catch (err) {
     next(err);
@@ -77,12 +77,16 @@ export const verifyOtp = async (req, res, next) => {
     const existingOtp = await otpExist(email, otp, purpose);
 
     if (!existingOtp) {
-      throw new AppError("Invalid or expired OTP", 400);
+      throw new AppError("Invalid or expired OTP", HTTP_STATUS.BAD_REQUEST);
     }
 
-    const { name, phone, password } = existingOtp.tempUserData;
+    if (!existingOtp?.tempUserData) {
+      throw new AppError("OTP data corrupted or expired",HTTP_STATUS.BAD_REQUEST);
+    }
 
-    await addUser({ name, email, phone, password });
+    console.log("Data",existingOtp.tempUserData);
+
+    await addUser({ email, ...existingOtp.tempUserData });
 
     await Otp.deleteMany({ email, purpose });
 

@@ -2,8 +2,8 @@ import passport from "passport";
 import { Strategy as GoogleStrategy } from "passport-google-oauth20";
 import userSchema from "../models/userSchema.model.js";
 import dotenv from "dotenv";
-import { createRef } from "../utils/auth.utils.js";
-import AppError from "../utils/AppError.js";
+import { createRef } from "../services/user/referral.service.js";
+import AppError from "../utils/partials/AppError.js";
 
 dotenv.config();
 

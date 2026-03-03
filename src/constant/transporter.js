@@ -1,6 +1,6 @@
 import { transporter } from "../config/mailer.js";
 
-export const sendEmail = async ({ email, name, otp }) => {
+const sendEmail = async ({ email, name, otp }) => {
   const mailOptions = {
     from: `"Electro Support" <${process.env.EMAIL_USER}>`,
     to: email,
@@ -18,3 +18,5 @@ export const sendEmail = async ({ email, name, otp }) => {
   const info = await transporter.sendMail(mailOptions);
   console.log("Email sent: " + info.response);
 };
+
+export default sendEmail;
