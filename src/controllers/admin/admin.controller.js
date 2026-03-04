@@ -1,5 +1,6 @@
 import HTTP_STATUS from "../../constant/statusCode.js";
 import User from "../../models/userSchema.model.js";
+import renderView from "../../utils/admin/renderView.util.js";
 
 export const dashboard = (req, res) => {
   let adminData = null;
@@ -13,31 +14,58 @@ export const dashboard = (req, res) => {
   });
 };
 
-export const customers = async (req, res, next) => {
+export const customers = async (req, res) => {
   try {
-    const adminData = req.admin || null;
+    const page = Number(req.query.page) || 1;
+    const limit = 6;
 
-    const page = parseInt(req.query.page) || 1;
-    const limit = 8;
-    const skip = (page - 1) * limit;
+    const search = req.query.search || "";
+    const status = req.query.status || "All";
 
-    const totalCustomers = await User.countDocuments({ isAdmin: false });
+    const query = {isAdmin:false};
 
-    const customers = await User.find({ isAdmin: false })
-      .skip(skip)
-      .limit(limit)
-      .sort({ createdAt: -1 });
+    if (search) {
+      query.name = { $regex: search, $options: "i" };
+    }
+
+    if (status === "Active") query.isBlock = false;
+    if (status === "Blocked") query.isBlock = true;
+
+    const totalCustomers = await User.countDocuments(query);
 
     const totalPages = Math.ceil(totalCustomers / limit);
 
+    const customers = await User.find(query)
+      .skip((page - 1) * limit)
+      .limit(limit);
+
+    const currentPage = page;
+
+    // AJAX request
+    if (req.xhr) {
+      const rows = await renderView(res, "admin/home/partials/customerRows", {
+        customers,
+        currentPage,
+      });
+
+      const pagination = await renderView(
+        res,
+        "admin/home/partials/pagination",
+        { currentPage, totalPages },
+      );
+
+      return res.json({ rows, pagination });
+    }
+
+    // normal page load
     res.render("admin/home/customers", {
-      admin: adminData,
       customers,
-      currentPage: page,
+      currentPage,
       totalPages,
+      title:'Customer Management'
     });
   } catch (error) {
-    next(error);
+    res.json({ success: false, message: error.message });
   }
 };
 
@@ -50,7 +78,7 @@ export const toggleBlockCustomer = async (req, res) => {
     if (!user) {
       return res.status(HTTP_STATUS.NOT_FOUND).json({
         success: false,
-        message: "User not found"
+        message: "User not found",
       });
     }
 
@@ -59,13 +87,12 @@ export const toggleBlockCustomer = async (req, res) => {
 
     res.json({
       success: true,
-      isBlock: user.isBlock
+      isBlock: user.isBlock,
     });
-
   } catch (error) {
     res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).json({
       success: false,
-      message: "Something went wrong"
+      message: "Something went wrong",
     });
   }
 };

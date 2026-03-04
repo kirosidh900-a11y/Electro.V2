@@ -1,0 +1,82 @@
+<div class="flex flex-wrap justify-center items-center gap-2 mt-8">
+
+        <a href="?page=<%= currentPage > 1 ? currentPage - 1 : 1 %>"
+                data-page="<%= currentPage > 1 ? currentPage - 1 : 1 %>"
+                class="pagination-link px-4 py-2 rounded-lg bg-white/5 hover:bg-white/10 text-sm">
+                Prev
+        </a>
+
+        <% for(let i=1; i <=totalPages; i++) { %>
+
+                <a href="?page=<%= i %>" data-page="<%= i %>" class="pagination-link pagination-number px-4 py-2 rounded-lg text-sm
+<%= currentPage === i
+? 'bg-cyan-600 text-white'
+: 'bg-white/5 hover:bg-white/10 text-gray-300' %>">
+
+                        <%= i %>
+
+                </a>
+
+                <% } %>
+
+                        <a href="?page=<%= currentPage < totalPages ? currentPage + 1 : totalPages %>"
+                                data-page="<%= currentPage < totalPages ? currentPage + 1 : totalPages %>"
+                                class="pagination-link px-4 py-2 rounded-lg bg-white/5 hover:bg-white/10 text-sm">
+                                Next
+                        </a>
+
+</div>
+
+<script>
+        const paginationContainer = document.getElementById("pagination");
+
+        let currentPage = 1;
+
+        paginationContainer.addEventListener("click", async (e) => {
+
+                const link = e.target.closest(".pagination-link");
+                if (!link) return;
+
+                e.preventDefault();
+
+                currentPage = Number(link.dataset.page);
+
+                const search = searchInput.value.trim();
+                const filterValue = filter.value;
+
+                try {
+
+                        const res = await fetch(
+                                `/admin/customers?page=${currentPage}&search=${encodeURIComponent(search)}&status=${encodeURIComponent(filterValue)}`,
+                                {
+                                        headers: {
+                                                "X-Requested-With": "XMLHttpRequest"
+                                        }
+                                }
+                        );
+
+                        const data = await res.json();
+
+                        document.getElementById("customerTableBody").innerHTML = data.rows;
+                        document.getElementById("pagination").innerHTML = data.pagination;
+
+                        // highlight active page
+                        document.querySelectorAll(".pagination-number").forEach(btn => {
+
+                                if (Number(btn.dataset.page) === currentPage) {
+                                        btn.classList.remove("bg-white/5", "text-gray-300");
+                                        btn.classList.add("bg-cyan-600", "text-white");
+                                } else {
+                                        btn.classList.remove("bg-cyan-600", "text-white");
+                                        btn.classList.add("bg-white/5", "text-gray-300");
+                                }
+
+                        });
+
+                } catch (err) {
+                        console.error("Pagination error:", err);
+                }
+
+        });
+
+</script>

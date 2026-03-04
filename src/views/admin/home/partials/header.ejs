@@ -1,0 +1,30 @@
+<!-- ===== Header ===== -->
+<div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6 mb-8 w-full">
+
+        <h1 class="text-xl sm:text-2xl font-bold text-white">
+                <%= title %>
+        </h1>
+
+        <div class="flex flex-col sm:flex-row gap-3 w-full lg:w-auto">
+
+                <!-- Search -->
+                <form id="searchForm" class="flex w-full sm:w-auto">
+                        <input id="searchInput" type="text" name="search" placeholder="Search customers..." class="w-full sm:w-64 bg-[#0f172a] border border-white/10 
+                           px-4 py-2 rounded-l-xl text-sm 
+                           focus:outline-none focus:ring-2 focus:ring-cyan-500" />
+                        <button class="bg-cyan-600 hover:bg-cyan-700 px-4 rounded-r-xl">
+                                <i class="fas fa-search text-white"></i>
+                        </button>
+                </form>
+
+                <!-- Filter -->
+                <select id="filter" class="w-full sm:w-40 bg-[#0f172a] border border-white/10 
+                       px-4 py-2 rounded-xl text-sm 
+                       focus:outline-none focus:ring-2 focus:ring-cyan-500">
+                        <option value="All">All</option>
+                        <option value="Active">Active</option>
+                        <option value="Blocked">Blocked</option>
+                </select>
+
+        </div>
+</div>
