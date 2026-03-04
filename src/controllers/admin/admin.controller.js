@@ -28,7 +28,10 @@ export const customers = async (req, res) => {
     const query = { isAdmin: false };
 
     if (search) {
-      query.name = { $regex: search, $options: "i" };
+      query.$or = [
+        { name: { $regex: search, $options: "i" } },
+        { email: { $regex: search, $options: "i" } },
+      ];
     }
 
     if (status === "Active") query.isBlock = false;
@@ -181,6 +184,86 @@ export const createCategory = async (req, res) => {
     }
 
     res.json({
+      success: false,
+      message: error.message,
+    });
+  }
+};
+
+export const editCategory = async (req, res) => {
+  try {
+    const { title } = req.body;
+    const id = req.params.id;
+
+    const category = await Category.findByIdAndUpdate(id, { $set: { title } });
+
+    res.json({
+      success: true,
+      category,
+    });
+  } catch (error) {
+    if (error.code === 11000) {
+      return res.json({
+        success: false,
+        message: "Category already exists",
+      });
+    }
+
+    res.json({
+      success: false,
+      message: error.message,
+    });
+  }
+};
+
+export const deleteCategory = async (req, res) => {
+  try {
+    const id = req.params.id;
+
+    await Category.findByIdAndUpdate(id, {
+      isDeleted: true,
+    });
+
+    res.json({
+      success: true,
+    });
+  } catch (error) {
+    res.json({
+      success: false,
+      message: error.message,
+    });
+  }
+};
+
+export const toggleCategoryStatus = async (req, res) => {
+  try {
+    const id = req.params.id;
+
+    if (!id) {
+      return res
+        .status(400)
+        .json({ success: false, message: "Category ID not found!" });
+    }
+
+    const category = await Category.findById(id);
+
+    if (!category) {
+      return res
+        .status(HTTP_STATUS.NOT_FOUND)
+        .json({ success: false, message: "Category not found!" });
+    }
+
+    // toggle status
+    category.status = category.status === "listed" ? "unlisted" : "listed";
+
+    await category.save();
+
+    res.status(HTTP_STATUS.OK).json({
+      success: true,
+      status: category.status,
+    });
+  } catch (error) {
+    res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).json({
       success: false,
       message: error.message,
     });

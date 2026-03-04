@@ -1,241 +1,288 @@
 <!DOCTYPE html>
 <html lang="en" class="dark">
 
-<head> <%- include('../../partials/head') %> </head>
+<head>
+  <%- include('../../partials/head') %>
+</head>
 
 <body class="min-h-screen flex">
-    <%- include('../../partials/admin/sidebar') %>
 
-        <div id="mainContent" class="flex-1 flex flex-col min-w-0 transition-all duration-300">
-            <%- include('../../partials/admin/header') %>
+  <%- include('../../partials/admin/sidebar') %>
 
-                <main class="flex-1 p-4 sm:p-6 lg:p-8 w-full">
+  <div id="mainContent" class="flex-1 flex flex-col min-w-0 transition-all duration-300">
 
-                    <%- include("./partials/header",{ title }) %>
+    <%- include('../../partials/admin/header') %>
 
-                        <!-- ===== Table Card ===== -->
-                        <div class="w-full bg-[#0b1220] border border-white/5 rounded-3xl shadow-xl">
+    <main class="flex-1 p-4 sm:p-6 lg:p-8 w-full">
 
-                            <div class="overflow-x-auto w-full">
-                                <table class="w-full text-sm text-left">
+      <%- include("./partials/header",{ title }) %>
 
-                                    <!-- Table Head -->
-                                    <thead class="bg-white/5 text-gray-400 uppercase text-xs tracking-widest">
-                                        <tr>
-                                            <th class="px-6 py-4">#</th>
-                                            <th class="px-6 py-4">Name</th>
-                                            <th class="px-6 py-4 hidden sm:table-cell">Email</th>
-                                            <th class="px-6 py-4 hidden md:table-cell">Phone</th>
-                                            <th class="px-6 py-4">Status</th>
-                                            <th class="px-6 py-4 text-right">Actions</th>
-                                        </tr>
-                                    </thead>
+      <!-- ===== Table Card ===== -->
+      <div class="w-full bg-[#0b1220] border border-white/5 rounded-3xl shadow-xl">
 
-                                    <!-- Table Body -->
-                                    <tbody id="customerTableBody" class="text-gray-300"><%-
-                                            include("./partials/customerRows", { customers, currentPage }) %>
-                                    </tbody>
+        <div class="overflow-x-auto w-full">
 
-                                </table>
-                            </div>
-                        </div>
+          <table class="w-full text-sm text-left">
 
+            <!-- Table Head -->
+            <thead class="bg-white/5 text-gray-400 uppercase text-xs tracking-widest">
+              <tr>
+                <th class="px-6 py-4">#</th>
+                <th class="px-6 py-4">Name</th>
+                <th class="px-6 py-4 hidden sm:table-cell">Email</th>
+                <th class="px-6 py-4 hidden md:table-cell">Phone</th>
+                <th class="px-6 py-4">Status</th>
+                <th class="px-6 py-4 text-right">Actions</th>
+              </tr>
+            </thead>
 
-                        <!-- ===== Pagination ===== -->
-                        <div id="pagination" class="flex flex-wrap justify-center items-center gap-2 mt-8"> <%-
-                                include("./partials/pagination", { currentPage, totalPages }) %>
-                        </div>
+            <!-- Table Body -->
+            <tbody id="customerTableBody" class="text-gray-300">
+              <%- include("./partials/customerRows", { customers, currentPage }) %>
+            </tbody>
 
-                </main>
+          </table>
 
         </div>
 
+      </div>
 
-        <script>
-            const swalDark = {
-                background: "#1a1a1a",
-                color: "#ffffff",
-                confirmButtonColor: "#fa5252",
-            };
-            async function toggleBlock(userId, button) {
+      <!-- ===== Pagination ===== -->
+      <div id="pagination" class="flex flex-wrap justify-center items-center gap-2 mt-8">
+        <%- include("./partials/pagination", { currentPage, totalPages }) %>
+      </div>
 
-                const isCurrentlyBlocked =
-                    button.textContent.trim().includes("Unblock");
+    </main>
 
-                const actionText = isCurrentlyBlocked ? "unblock" : "block";
+  </div>
 
-                const result = await Swal.fire({
-                    title: `Are you sure?`,
-                    text: `Do you want to ${actionText} this customer?`,
-                    icon: "warning",
-                    background: "#0b1220",
-                    color: "#e5e7eb",
-                    backdrop: "rgba(0,0,0,0.8)",
-                    showCancelButton: true,
-                    confirmButtonColor: isCurrentlyBlocked ? "#10b981" : "#ef4444",
-                    cancelButtonColor: "#6b7280",
-                    confirmButtonText: `Yes, ${actionText}!`
-                });
 
-                if (!result.isConfirmed) return;
+  <script>
 
-                try {
-                    const res = await fetch(`/admin/toggle-block/${userId}`, {
-                        method: "PATCH"
-                    });
+    const swalDark = {
+      background: "#1a1a1a",
+      color: "#ffffff",
+      confirmButtonColor: "#fa5252",
+    };
 
-                    const data = await res.json();
-                    if (!data.success) return;
+    async function toggleBlock(userId, button) {
 
-                    const badge = document.getElementById(`status-${userId}`);
+      const isCurrentlyBlocked =
+        button.textContent.trim().includes("Unblock");
 
-                    if (!badge) {
-                        console.error("Badge not found for user:", userId);
-                        return;
-                    }
+      const actionText =
+        isCurrentlyBlocked ? "unblock" : "block";
 
-                    if (data.isBlock) {
-                        // Now Blocked
-                        badge.textContent = "Blocked";
-                        badge.className =
-                            "px-3 py-1 text-xs rounded-full font-semibold bg-red-500/20 text-red-400";
+      const result = await Swal.fire({
 
-                        button.innerHTML = '<i class="fas fa-unlock mr-1"></i> Unblock';
-                        button.className =
-                            "px-4 py-2 text-xs rounded-lg text-white transition bg-emerald-600 hover:bg-emerald-700";
+        title: `Are you sure?`,
+        text: `Do you want to ${actionText} this customer?`,
+        icon: "warning",
+        background: "#0b1220",
+        color: "#e5e7eb",
+        backdrop: "rgba(0,0,0,0.8)",
+        showCancelButton: true,
+        confirmButtonColor: isCurrentlyBlocked ? "#10b981" : "#ef4444",
+        cancelButtonColor: "#6b7280",
+        confirmButtonText: `Yes, ${actionText}!`
 
-                    } else {
-                        // Now Active
-                        badge.textContent = "Active";
-                        badge.className =
-                            "px-3 py-1 text-xs rounded-full font-semibold bg-emerald-500/20 text-emerald-400";
+      });
 
-                        button.innerHTML = '<i class="fas fa-ban mr-1"></i> Block';
-                        button.className =
-                            "px-4 py-2 text-xs rounded-lg text-white transition bg-red-600 hover:bg-red-700";
-                    }
+      if (!result.isConfirmed) return;
 
-                    Swal.fire({
-                        toast: true,
-                        position: "top-end",
-                        icon: "success",
-                        ...swalDark,
-                        title: `Customer ${actionText}ed successfully`,
-                        showConfirmButton: false,
-                        timer: 2000
-                    });
+      try {
 
-                } catch (error) {
-                    console.error(error);
-                }
+        const res = await fetch(`/admin/toggle-block/${userId}`, {
+          method: "PATCH"
+        });
+
+        const data = await res.json();
+        if (!data.success) return;
+
+        const badge =
+          document.getElementById(`status-${userId}`);
+
+        if (!badge) {
+
+          console.error("Badge not found for user:", userId);
+          return;
+
+        }
+
+        if (data.isBlock) {
+
+          badge.textContent = "Blocked";
+
+          badge.className =
+            "px-3 py-1 text-xs rounded-full font-semibold bg-red-500/20 text-red-400";
+
+          button.innerHTML =
+            '<i class="fas fa-unlock mr-1"></i> Unblock';
+
+          button.className =
+            "px-4 py-2 text-xs rounded-lg text-white transition bg-emerald-600 hover:bg-emerald-700";
+
+        } else {
+
+          badge.textContent = "Active";
+
+          badge.className =
+            "px-3 py-1 text-xs rounded-full font-semibold bg-emerald-500/20 text-emerald-400";
+
+          button.innerHTML =
+            '<i class="fas fa-ban mr-1"></i> Block';
+
+          button.className =
+            "px-4 py-2 text-xs rounded-lg text-white transition bg-red-600 hover:bg-red-700";
+
+        }
+
+        Swal.fire({
+          toast: true,
+          position: "top-end",
+          icon: "success",
+          ...swalDark,
+          title: `Customer ${actionText}ed successfully`,
+          showConfirmButton: false,
+          timer: 2000
+        });
+
+      } catch (error) {
+
+        console.error(error);
+
+      }
+
+    }
+
+
+    function debounce(func, delay) {
+
+      let timer;
+
+      return function (...args) {
+
+        clearTimeout(timer);
+
+        timer = setTimeout(() => {
+          func.apply(this, args);
+        }, delay);
+
+      };
+
+    }
+
+
+    const searchInput =
+      document.getElementById("searchInput");
+
+    const filter =
+      document.getElementById('filter');
+
+
+    async function searchCustomers() {
+
+      const value =
+        searchInput.value.trim();
+
+      const filterValue =
+        filter.value.trim();
+
+      console.log(filterValue);
+
+      const res = await fetch(
+        `/admin/customers?search=${encodeURIComponent(value)}&status=${encodeURIComponent(filterValue)}`,
+        {
+          headers: {
+            "X-Requested-With": "XMLHttpRequest",
+          }
+        }
+      );
+
+      const data = await res.json();
+
+      document.getElementById("customerTableBody").innerHTML = data.rows;
+      document.getElementById("pagination").innerHTML = data.pagination;
+
+    }
+
+
+    const debouncedSearch =
+      debounce(searchCustomers, 400);
+
+    searchInput.addEventListener("input", debouncedSearch);
+    filter.addEventListener("change", debouncedSearch);
+
+  </script>
+
+
+
+  <script>
+
+    const paginationContainer =
+      document.getElementById("pagination");
+
+    let currentPage = 1;
+
+    paginationContainer.addEventListener("click", async (e) => {
+
+      const link =
+        e.target.closest(".pagination-link");
+
+      if (!link) return;
+
+      e.preventDefault();
+
+      currentPage =
+        Number(link.dataset.page);
+
+      const search =
+        searchInput.value.trim();
+
+      const filterValue =
+        filter.value;
+
+      try {
+
+        const res = await fetch(
+          `/admin/customers?page=${currentPage}&search=${encodeURIComponent(search)}&status=${encodeURIComponent(filterValue)}`,
+          {
+            headers: {
+              "X-Requested-With": "XMLHttpRequest"
             }
+          }
+        );
 
-            function debounce(func, delay) {
+        const data = await res.json();
 
-                let timer;
+        document.getElementById("customerTableBody").innerHTML = data.rows;
+        document.getElementById("pagination").innerHTML = data.pagination;
 
-                return function (...args) {
-                    clearTimeout(timer);
+        document.querySelectorAll(".pagination-number").forEach(btn => {
 
-                    timer = setTimeout(() => {
-                        func.apply(this, args);
-                    }, delay);
+          if (Number(btn.dataset.page) === currentPage) {
 
-                };
-            }
+            btn.classList.remove("bg-white/5", "text-gray-300");
+            btn.classList.add("bg-cyan-600", "text-white");
 
+          } else {
 
+            btn.classList.remove("bg-cyan-600", "text-white");
+            btn.classList.add("bg-white/5", "text-gray-300");
 
-            const searchInput = document.getElementById("searchInput");
-            const filter = document.getElementById('filter')
+          }
 
-            async function searchCustomers() {
+        });
 
-                const value = searchInput.value.trim();
-                const filterValue = filter.value.trim();
+      } catch (err) {
 
-                console.log(filterValue)
+        console.error("Pagination error:", err);
 
-                const res = await fetch(
-                    `/admin/customers?search=${encodeURIComponent(value)}&status=${encodeURIComponent(filterValue)}`,
-                    {
-                        headers: {
-                            "X-Requested-With": "XMLHttpRequest",
-                        }
-                    }
-                );
+      }
 
-                const data = await res.json();
+    });
 
-                document.getElementById("customerTableBody").innerHTML = data.rows;
-                document.getElementById("pagination").innerHTML = data.pagination;
-            }
-
-            const debouncedSearch = debounce(searchCustomers, 400);
-
-            searchInput.addEventListener("input", debouncedSearch);
-
-            filter.addEventListener('change', debouncedSearch)
-
-        </script>
-
-
-
-        <script>
-            const paginationContainer = document.getElementById("pagination");
-
-            let currentPage = 1;
-
-            paginationContainer.addEventListener("click", async (e) => {
-
-                const link = e.target.closest(".pagination-link");
-                if (!link) return;
-
-                e.preventDefault();
-
-                currentPage = Number(link.dataset.page);
-
-                const search = searchInput.value.trim();
-                const filterValue = filter.value;
-
-                try {
-
-                    const res = await fetch(
-                        `/admin/customers?page=${currentPage}&search=${encodeURIComponent(search)}&status=${encodeURIComponent(filterValue)}`,
-                        {
-                            headers: {
-                                "X-Requested-With": "XMLHttpRequest"
-                            }
-                        }
-                    );
-
-                    const data = await res.json();
-
-                    document.getElementById("customerTableBody").innerHTML = data.rows;
-                    document.getElementById("pagination").innerHTML = data.pagination;
-
-                    // highlight active page
-                    document.querySelectorAll(".pagination-number").forEach(btn => {
-
-                        if (Number(btn.dataset.page) === currentPage) {
-                            btn.classList.remove("bg-white/5", "text-gray-300");
-                            btn.classList.add("bg-cyan-600", "text-white");
-                        } else {
-                            btn.classList.remove("bg-cyan-600", "text-white");
-                            btn.classList.add("bg-white/5", "text-gray-300");
-                        }
-
-                    });
-
-                } catch (err) {
-                    console.error("Pagination error:", err);
-                }
-
-            });
-
-        </script>
-
+  </script>
 
 </body>
-
 </html>

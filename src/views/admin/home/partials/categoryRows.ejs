@@ -11,13 +11,13 @@
 
 <% categories.forEach((category, index) => { %>
 
-<tr class="border-b border-white/5 hover:bg-white/5">
+<tr id="row-<%= category._id %>"  class="border-b border-white/5 hover:bg-white/5">
 
 <td class="px-6 py-4">
 <%= (currentPage - 1) * 6 + index + 1 %>
 </td>
 
-<td class="px-6 py-4 font-semibold text-white">
+<td id="title-<%= category._id %>" class="px-6 py-4 font-semibold text-white">
 <%= category.title %>
 </td>
 
@@ -61,7 +61,7 @@ onclick="addAttribute('<%= category._id %>')">
 
 <td class="px-6 py-4">
 
-<span class="px-3 py-1 rounded-full text-xs
+<span id="badge-<%= category._id %>" class="px-3 py-1 rounded-full text-xs
 <%= category.status === 'listed'
 ? 'bg-emerald-500/20 text-emerald-400'
 : 'bg-red-500/20 text-red-400' %>">
@@ -75,7 +75,8 @@ onclick="addAttribute('<%= category._id %>')">
 <td class="px-6 py-4 text-right flex justify-end items-center gap-3">
 
 <!-- List / Unlist -->
-<button
+<button 
+id="status-<%= category._id %>"
 onclick="toggleCategoryStatus('<%= category._id %>','<%= category.status %>')"
 class="px-3 py-1 text-xs rounded-md font-semibold
 <%= category.status === 'listed'
