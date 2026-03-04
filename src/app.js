@@ -9,7 +9,7 @@ import morgan from "morgan";
 
 import authRouter from "./routes/user/auth.route.js";
 import userRouter from "./routes/user/user.route.js";
-import adminRouter from "./routes/admin/auth.route.js";
+import adminRouter from "./routes/admin/admin.route.js";
 import errorMiddleware from "./middlewares/error.middleware.js";
 
 const app = express();

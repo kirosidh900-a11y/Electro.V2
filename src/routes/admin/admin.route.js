@@ -8,11 +8,16 @@ import {
 import {
   dashboard,
   customers,
-  toggleBlockCustomer
-} from '../../controllers/admin/admin.controller.js'
+  toggleBlockCustomer,
+  category,
+  createCategory,
+} from "../../controllers/admin/admin.controller.js";
 
 import adminAuth from "../../middlewares/admin/attachAdmin.middleware.js";
-import {authAdmin ,isAuth} from "../../middlewares/admin/authAdmin.middleware.js";
+import {
+  authAdmin,
+  isAuth,
+} from "../../middlewares/admin/authAdmin.middleware.js";
 
 const router = Router();
 
@@ -23,10 +28,17 @@ router.route("/").get(authAdmin, showLoginPage).post(Login);
 
 router.get("/forgot", authAdmin, showForgotPage);
 
-router.post('/logout',isAuth , logout)
+router.post("/logout", isAuth, logout);
+
+
+//Dashboard Routes
 
 router.get("/dashboard", isAuth, dashboard);
+//Customers
 router.get("/customers", isAuth, customers);
-router.patch("/toggle-block/:id", toggleBlockCustomer);
+router.patch("/toggle-block/:id", isAuth, toggleBlockCustomer);
+//category 
+router.get('/category',category)
+router.post("/category", createCategory);
 
 export default router;

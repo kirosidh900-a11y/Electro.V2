@@ -1,7 +1,9 @@
 import HTTP_STATUS from "../../constant/statusCode.js";
 import User from "../../models/userSchema.model.js";
 import renderView from "../../utils/admin/renderView.util.js";
+import Category from "../../models/CategorySchema.model.js";
 
+//Dashboard
 export const dashboard = (req, res) => {
   let adminData = null;
 
@@ -14,6 +16,7 @@ export const dashboard = (req, res) => {
   });
 };
 
+//Customers
 export const customers = async (req, res) => {
   try {
     const page = Number(req.query.page) || 1;
@@ -22,7 +25,7 @@ export const customers = async (req, res) => {
     const search = req.query.search || "";
     const status = req.query.status || "All";
 
-    const query = {isAdmin:false};
+    const query = { isAdmin: false };
 
     if (search) {
       query.name = { $regex: search, $options: "i" };
@@ -62,7 +65,7 @@ export const customers = async (req, res) => {
       customers,
       currentPage,
       totalPages,
-      title:'Customer Management'
+      title: "Customer Management",
     });
   } catch (error) {
     res.json({ success: false, message: error.message });
@@ -93,6 +96,93 @@ export const toggleBlockCustomer = async (req, res) => {
     res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).json({
       success: false,
       message: "Something went wrong",
+    });
+  }
+};
+
+//Category
+export const category = async (req, res) => {
+  try {
+    const page = Number(req.query.page) || 1;
+    const limit = 6;
+
+    const search = req.query.search || "";
+    const status = req.query.status || "All";
+
+    const query = { isDeleted: false };
+
+    // 🔎 Search
+    if (search) {
+      query.title = { $regex: search, $options: "i" };
+    }
+
+    // 📌 Status filter
+    if (status === "listed") query.status = "listed";
+    if (status === "unlisted") query.status = "unlisted";
+
+    const totalCategories = await Category.countDocuments(query);
+
+    const totalPages = Math.ceil(totalCategories / limit);
+
+    const categories = await Category.find(query)
+      .skip((page - 1) * limit)
+      .limit(limit)
+      .sort({ createdAt: -1 });
+
+    const currentPage = page;
+
+    // AJAX request
+    if (req.xhr) {
+      const rows = await renderView(res, "admin/home/partials/categoryRows", {
+        categories,
+        currentPage,
+      });
+
+      const pagination = await renderView(
+        res,
+        "admin/home/partials/pagination",
+        { currentPage, totalPages },
+      );
+
+      return res.json({ rows, pagination });
+    }
+
+    // Normal page load
+    res.render("admin/home/category", {
+      categories,
+      currentPage,
+      totalPages,
+      title: "Category Management",
+    });
+  } catch (error) {
+    res.json({ success: false, message: error.message });
+  }
+};
+
+export const createCategory = async (req, res) => {
+  try {
+    const { title, status } = req.body;
+
+    const category = await Category.create({
+      title,
+      status,
+    });
+
+    res.json({
+      success: true,
+      category,
+    });
+  } catch (error) {
+    if (error.code === 11000) {
+      return res.json({
+        success: false,
+        message: "Category already exists",
+      });
+    }
+
+    res.json({
+      success: false,
+      message: error.message,
     });
   }
 };

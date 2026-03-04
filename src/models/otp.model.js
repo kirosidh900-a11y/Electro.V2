@@ -6,7 +6,7 @@ const otpSchema = new mongoose.Schema(
     otp: { type: String, required: true },
     purpose: {
       type: String,
-      enum: ["signup", "forgot-password"],
+      enum: ["signup", "forgot-password" ,'admin-forgot'],
       required: true,
     },
 
@@ -25,7 +25,6 @@ const otpSchema = new mongoose.Schema(
   },
   { timestamps: true },
 );
-
 otpSchema.index({ expiresAt: 1 }, { expireAfterSeconds: 0 });
 
 export default mongoose.model("Otp", otpSchema);

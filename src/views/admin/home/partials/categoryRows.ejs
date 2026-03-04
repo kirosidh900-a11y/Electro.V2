@@ -1,0 +1,113 @@
+<% if (categories.length === 0) { %>
+
+<tr>
+<td colspan="5" class="text-center py-12 text-gray-500">
+<i class="fas fa-folder-open text-2xl mb-2 block"></i>
+<p class="mt-2">No categories found.</p>
+</td>
+</tr>
+
+<% } else { %>
+
+<% categories.forEach((category, index) => { %>
+
+<tr class="border-b border-white/5 hover:bg-white/5">
+
+<td class="px-6 py-4">
+<%= (currentPage - 1) * 6 + index + 1 %>
+</td>
+
+<td class="px-6 py-4 font-semibold text-white">
+<%= category.title %>
+</td>
+
+<td class="px-6 py-4">
+
+<div class="flex flex-wrap gap-2">
+
+<% if(category.attributes && category.attributes.length > 0){ %>
+
+<% category.attributes.forEach(attr => { %>
+
+<span class="flex items-center gap-1 px-2 py-1 text-xs bg-white/10 rounded-md">
+
+<%= attr %>
+
+<button 
+class="text-red-400 hover:text-red-300"
+onclick="removeAttribute('<%= category._id %>','<%= attr %>')">
+
+<i class="fas fa-times"></i>
+
+</button>
+
+</span>
+
+<% }) %>
+
+<% } %>
+
+</div>
+
+<button
+class="text-cyan-400 text-xs mt-2 hover:text-cyan-300"
+onclick="addAttribute('<%= category._id %>')">
+
++ Add Attribute
+
+</button>
+
+</td>
+
+<td class="px-6 py-4">
+
+<span class="px-3 py-1 rounded-full text-xs
+<%= category.status === 'listed'
+? 'bg-emerald-500/20 text-emerald-400'
+: 'bg-red-500/20 text-red-400' %>">
+
+<%= category.status %>
+
+</span>
+
+</td>
+
+<td class="px-6 py-4 text-right flex justify-end items-center gap-3">
+
+<!-- List / Unlist -->
+<button
+onclick="toggleCategoryStatus('<%= category._id %>','<%= category.status %>')"
+class="px-3 py-1 text-xs rounded-md font-semibold
+<%= category.status === 'listed'
+? 'bg-yellow-500/20 text-yellow-400 hover:bg-yellow-500/30'
+: 'bg-emerald-500/20 text-emerald-400 hover:bg-emerald-500/30' %>">
+
+<%= category.status === 'listed' ? 'Unlist' : 'List' %>
+
+</button>
+
+<!-- Edit -->
+<button
+onclick="editCategory('<%= category._id %>')"
+class="text-cyan-400 hover:text-cyan-300">
+
+<i class="fas fa-edit"></i>
+
+</button>
+
+<!-- Delete -->
+<button
+onclick="deleteCategory('<%= category._id %>')"
+class="text-red-400 hover:text-red-300">
+
+<i class="fas fa-trash"></i>
+
+</button>
+
+</td>
+
+</tr>
+
+<% }) %>
+
+<% } %>

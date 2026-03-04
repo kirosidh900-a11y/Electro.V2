@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+
+<head> <%- include('../../partials/head') %> </head>
+
+<body class="min-h-screen flex">
+        <%- include('../../partials/admin/sidebar') %>
+
+                <div id="mainContent" class="flex-1 flex flex-col min-w-0 transition-all duration-300">
+
+                        <%- include('../../partials/admin/header') %>
+
+                                <main class="flex-1 p-4 sm:p-6 lg:p-8 w-full">
+
+                                        <%- include("./partials/header",{ title }) %>
+
+                                                <!-- ===== Table Card ===== -->
+                                                <div
+                                                        class="w-full bg-[#0b1220] border border-white/5 rounded-3xl shadow-xl">
+
+                                                        <div class="overflow-x-auto w-full">
+                                                                <table class="w-full text-sm text-left">
+
+                                                                        <!-- Table Head -->
+                                                                        <thead
+                                                                                class="bg-white/5 text-gray-400 uppercase text-xs tracking-widest">
+                                                                                <tr>
+                                                                                        <th class="px-6 py-4">#</th>
+                                                                                        <th class="px-6 py-4">Category
+                                                                                        </th>
+                                                                                        <th class="px-6 py-4">Attributes
+                                                                                        </th>
+                                                                                        <th class="px-6 py-4">Status
+                                                                                        </th>
+                                                                                        <th
+                                                                                                class="px-6 py-4 text-right">
+                                                                                                Actions
+                                                                                        </th>
+                                                                                </tr>
+                                                                        </thead>
+
+                                                                        <!-- Table Body -->
+                                                                        <tbody id="categoryTableBody"
+                                                                                class="text-gray-300">
+
+                                                                                <%- include("./partials/categoryRows", {
+                                                                                        categories, currentPage }) %>
+
+                                                                        </tbody>
+
+                                                                </table>
+                                                        </div>
+
+                                                </div>
+
+                                                <!-- ===== Pagination ===== -->
+                                                <div id="pagination"
+                                                        class="flex flex-wrap justify-center items-center gap-2 mt-8">
+
+                                                        <%- include("./partials/pagination", { currentPage, totalPages
+                                                                }) %>
+
+                                                </div>
+
+                                </main>
+
+                </div>
+
+                <script>
+                        const swalDark = {
+                                background: "#1a1a1a",
+                                color: "#ffffff",
+                                confirmButtonColor: "#fa5252",
+                        };
+
+                        const addCategoryBtn = document.getElementById("add-category");
+
+                        if (addCategoryBtn) {
+
+                                addCategoryBtn.addEventListener("click", async (e) => {
+
+                                        e.preventDefault();
+
+                                        const { value: formValues } = await Swal.fire({
+                                                title: "Add Category",
+                                                background: "#0b1220",
+                                                color: "#e5e7eb",
+                                                showCancelButton: true,
+                                                confirmButtonText: "Create Category",
+                                                cancelButtonText: "Cancel",
+                                                focusConfirm: false,
+
+                                                buttonsStyling: false,
+
+                                                customClass: {
+                                                        confirmButton: "px-4 py-2 bg-cyan-600 hover:bg-cyan-700 text-white rounded-lg text-sm",
+                                                        cancelButton: "px-4 py-2 bg-gray-600 hover:bg-gray-700 text-white rounded-lg text-sm"
+                                                },
+
+                                                html: `
+<div class="flex flex-col gap-4 text-left mt-4">
+
+<label class="text-sm text-gray-400">Category Name</label>
+
+<input id="category-title"
+type="text"
+placeholder="Enter category name"
+class="w-full bg-[#0f172a] border border-white/10 
+px-3 py-2 rounded-lg text-sm focus:outline-none 
+focus:ring-2 focus:ring-cyan-500">
+
+<label class="text-sm text-gray-400">Status</label>
+
+<select id="category-status"
+class="w-full bg-[#0f172a] border border-white/10 
+px-3 py-2 rounded-lg text-sm focus:outline-none 
+focus:ring-2 focus:ring-cyan-500">
+
+<option value="unlisted" selected>Unlisted</option>
+<option value="listed">Listed</option>
+
+</select>
+
+</div>
+`,
+
+                                                preConfirm: () => {
+
+                                                        const title = document.getElementById("category-title").value.trim();
+                                                        const status = document.getElementById("category-status").value;
+
+                                                        if (!title) {
+                                                                Swal.showValidationMessage("Category name is required");
+                                                                return false;
+                                                        }
+
+                                                        return { title, status };
+
+                                                }
+                                        });
+
+                                        if (!formValues) return;
+
+                                        if (!formValues) return;
+
+                                        try {
+
+                                                const res = await fetch("/admin/category", {
+                                                        method: "POST",
+                                                        headers: {
+                                                                "Content-Type": "application/json"
+                                                        },
+                                                        body: JSON.stringify(formValues)
+                                                });
+
+                                                const data = await res.json();
+
+                                                if (data.success) {
+
+                                                        Swal.fire({
+                                                                icon: "success",
+                                                                title: "Category created",
+                                                                toast: true,
+                                                                position: "top-end",
+                                                                showConfirmButton: false,
+                                                                timer: 2000
+                                                        });
+
+                                                        location.reload(); // refresh table
+
+                                                } else {
+
+                                                        Swal.fire({
+                                                                ...swalDark,
+                                                                icon: "error",
+                                                                text: data.message
+                                                        });
+
+                                                }
+
+                                        } catch (error) {
+
+                                                console.error(error);
+
+                                                Swal.fire({
+                                                        icon: "error",
+                                                        text: "Something went wrong"
+                                                });
+
+                                        }
+
+                                });
+                        }
+
+
+                </script>
+
+                
+                <script>
+
+                        const paginationContainer = document.getElementById("pagination");
+
+                        let currentPage = 1;
+
+                        // detect module from page title
+                        const pageTitle = document.querySelector("h1")?.textContent || "";
+                        const moduleName = pageTitle.replace("Management", "").trim().toLowerCase();
+
+                        paginationContainer.addEventListener("click", async (e) => {
+
+                                const link = e.target.closest(".pagination-link");
+                                if (!link) return;
+
+                                e.preventDefault();
+
+                                currentPage = Number(link.dataset.page);
+
+                                const search = searchInput?.value.trim() || "";
+                                const filterValue = filter?.value || "";
+
+                                try {
+
+                                        const res = await fetch(
+                                                `/admin/${moduleName}?page=${currentPage}&search=${encodeURIComponent(search)}&status=${encodeURIComponent(filterValue)}`,
+                                                {
+                                                        headers: {
+                                                                "X-Requested-With": "XMLHttpRequest"
+                                                        }
+                                                }
+                                        );
+
+                                        const data = await res.json();
+
+                                        document.getElementById(`${moduleName}TableBody`).innerHTML = data.rows;
+                                        document.getElementById("pagination").innerHTML = data.pagination;
+
+                                } catch (err) {
+                                        console.error("Pagination error:", err);
+                                }
+
+                        });
+
+                </script>
+
+
+</body>
+
+</html>
