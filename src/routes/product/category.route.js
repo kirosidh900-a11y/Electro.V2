@@ -7,14 +7,12 @@ import {
   addCategoryAttribute,
   toggleCategoryStatus,
   deleteAttribute,
-} from "../../controllers/admin/admin.controller.js";
+} from "../../controllers/admin/category.controller.js";
 
-import adminAuth from "../../middlewares/admin/attachAdmin.middleware.js";
 import { isAuth } from "../../middlewares/admin/authAdmin.middleware.js";
 
 const router = Router();
 
-router.use(adminAuth);
 
 //Get Category page , add category hear
 router.route("/").get(isAuth, category).post(isAuth, createCategory);
