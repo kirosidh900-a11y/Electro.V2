@@ -1,65 +1,89 @@
 <!-- ===== Header ===== -->
 <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6 mb-8 w-full">
 
-    <h1 class="text-xl sm:text-2xl font-bold text-white">
-        <%= title %>
-    </h1>
+        <h1 class="text-xl sm:text-2xl font-bold text-white">
+                <%= title %>
+        </h1>
 
-    <div class="flex flex-col sm:flex-row gap-3 w-full lg:w-auto">
+        <div class="flex flex-col sm:flex-row gap-3 w-full lg:w-auto">
 
-        <!-- Search -->
-        <form id="searchForm" class="flex w-full sm:w-auto">
-            <input
-                id="searchInput"
-                type="text"
-                name="search"
-                placeholder="Search..."
-                class="w-full sm:w-64 bg-[#0f172a] border border-white/10 
-                px-4 py-2 rounded-l-xl text-sm 
-                focus:outline-none focus:ring-2 focus:ring-cyan-500"
-            />
-            <button type="submit"
-                class="bg-cyan-600 hover:bg-cyan-700 px-4 rounded-r-xl">
-                <i class="fas fa-search text-white"></i>
-            </button>
-        </form>
-        <% const pageName = title.replace('Management','').trim(); %>
+                <!-- Search -->
+                <div class="relative w-full sm:w-64">
 
-        <!-- Filter -->
-<select id="filter"
-class="w-full sm:w-40 bg-[#0f172a] border border-white/10 
+                        <input id="searchInput" type="text" placeholder="Search..." class="w-full bg-[#0f172a] border border-white/10 
+pl-10 pr-10 py-2 rounded-xl text-sm
+focus:outline-none focus:ring-2 focus:ring-cyan-500" />
+
+                        <i class="fas fa-search absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm">
+                        </i>
+
+                        <button id="clearBtn" type="button"
+                                class="hidden absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-white">
+
+                                <i class="fas fa-times"></i>
+
+                        </button>
+
+                </div>
+                <% const pageName=title.replace('Management','').trim(); %>
+
+                        <!-- Filter -->
+                        <select id="filter" class="w-full sm:w-40 bg-[#0f172a] border border-white/10 
 px-4 py-2 rounded-xl text-sm 
 focus:outline-none focus:ring-2 focus:ring-cyan-500">
 
-<option value="All">All</option>
+                                <option value="All">All</option>
 
-<% if(pageName === "Customer"){ %>
+                                <% if(pageName==="Customer" ){ %>
 
-<option value="Active">Active</option>
-<option value="Blocked">Blocked</option>
+                                        <option value="Active">Active</option>
+                                        <option value="Blocked">Blocked</option>
 
-<% } else { %>
+                                        <% } else { %>
 
-<option value="listed">Listed</option>
-<option value="unlisted">Unlisted</option>
+                                                <option value="listed">Listed</option>
+                                                <option value="unlisted">Unlisted</option>
 
-<% } %>
+                                                <% } %>
 
-</select>
+                        </select>
 
 
-        <!-- Dynamic Add Button -->
-        <% if(pageName!=='Customer'){ %>
-                <button
-            id="add-<%= pageName.toLowerCase() %>"
-            class="flex items-center gap-2 px-4 py-2 bg-cyan-600 hover:bg-cyan-700 
+                        <!-- Dynamic Add Button -->
+                        <% if(pageName!=='Customer' ){ %>
+                                <button id="add-<%= pageName.toLowerCase() %>" class="flex items-center gap-2 px-4 py-2 bg-cyan-600 hover:bg-cyan-700 
             text-white text-sm font-semibold rounded-lg transition duration-200 shadow-md">
 
-            <i class="fas fa-plus"></i>
-            Add <%= pageName %>
+                                        <i class="fas fa-plus"></i>
+                                        Add <%= pageName %>
 
-        </button>
-        <% } %>
+                                </button>
+                                <% } %>
 
-    </div>
+        </div>
 </div>
+
+<script>
+        const searchInput = document.getElementById("searchInput");
+        const clearBtn = document.getElementById("clearBtn");
+
+        searchInput.addEventListener("input", () => {
+
+                if (searchInput.value.trim().length > 0) {
+                        clearBtn.classList.remove("hidden");
+                } else {
+                        clearBtn.classList.add("hidden");
+                }
+
+        });
+
+        clearBtn.addEventListener("click", () => {
+
+                searchInput.value = "";
+                clearBtn.classList.add("hidden");
+
+                // trigger search refresh if needed
+                searchInput.dispatchEvent(new Event("input"));
+
+        });
+</script>

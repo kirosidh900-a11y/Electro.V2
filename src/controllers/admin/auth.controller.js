@@ -72,7 +72,7 @@ export const Login = async (req, res, next) => {
     next(error);
   }
 };
-
+ 
 export const logout = async (req, res, next) => {
   try {
     clearAuthCookie(res, "adminToken");

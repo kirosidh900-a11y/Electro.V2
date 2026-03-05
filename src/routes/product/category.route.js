@@ -4,7 +4,9 @@ import {
   createCategory,
   editCategory,
   deleteCategory,
+  addCategoryAttribute,
   toggleCategoryStatus,
+  deleteAttribute,
 } from "../../controllers/admin/admin.controller.js";
 
 import adminAuth from "../../middlewares/admin/attachAdmin.middleware.js";
@@ -14,9 +16,18 @@ const router = Router();
 
 router.use(adminAuth);
 
+//Get Category page , add category hear
 router.route("/").get(isAuth, category).post(isAuth, createCategory);
 
+//Status Update hear
 router.patch("/:id/status", isAuth, toggleCategoryStatus);
-router.route("/:id").patch(isAuth, editCategory).delete(isAuth, deleteCategory);
 
+//edit, delete Category  and add category Attribute hear
+router
+  .route("/:id")
+  .patch(isAuth, editCategory)
+  .delete(isAuth, deleteCategory)
+  .post(isAuth, addCategoryAttribute);
+
+router.delete('/:id/attribute/:key' ,isAuth , deleteAttribute);
 export default router;

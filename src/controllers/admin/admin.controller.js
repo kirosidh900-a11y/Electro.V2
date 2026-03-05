@@ -235,6 +235,7 @@ export const deleteCategory = async (req, res) => {
   }
 };
 
+// Category Status Updating
 export const toggleCategoryStatus = async (req, res) => {
   try {
     const id = req.params.id;
@@ -267,5 +268,93 @@ export const toggleCategoryStatus = async (req, res) => {
       success: false,
       message: error.message,
     });
+  }
+};
+
+// Category Attribute
+export const addCategoryAttribute = async (req, res, next) => {
+  try {
+    const categoryId = req.params.id;
+    const attribute = req.body;
+
+    const category = await Category.findById(categoryId);
+
+    if (!category) {
+      return res.json({
+        success: false,
+        message: "Category not found",
+      });
+    }
+
+    // prevent duplicate key
+    const key = attribute.key.trim().toLowerCase();
+    const label = attribute.label.trim().toLowerCase();
+
+    const exists = category.attributes.some(
+      (attr) =>
+        attr.key.toLowerCase() === key || attr.label.toLowerCase() === label,
+    );
+
+    if (exists) {
+      return res.json({
+        success: false,
+        message: "Attribute key or label already exists",
+      });
+    }
+
+    category.attributes.push(attribute);
+
+    await category.save();
+
+    res.json({
+      success: true,
+      message: "Attribute added successfully",
+    });
+  } catch (error) {
+    res.json({
+      success: false,
+      message: error.message,
+    });
+    console.log("Attribut adding Error:", error);
+    next(error);
+  }
+};
+
+export const deleteAttribute = async (req, res, next) => {
+  try {
+    const _id = req.params.id;
+    const key = decodeURIComponent(req.params.key);
+
+    const category = await Category.updateOne({_id},{$pull:{attributes:{key}}});
+
+    // const exists = category.attributes.some(
+    //   (attr) => attr.key.toLowerCase() === key,
+    // );
+
+    // if (!exists) {
+    //   return res.json({
+    //     success: false,
+    //     message: "This category attribute is exists",
+    //   });
+    // }
+
+    // category.attributes = category.attributes.filter((attr) => attr.key != key);
+    // await category.save();
+    if(category)
+    res.json({
+      success: true,
+      message: "Attribute added successfully",
+    });
+    else return res.json({
+      success:false,
+      message:"Attribute is not Trichable"
+    })
+  } catch (error) {
+    res.json({
+      success: false,
+      message: error.message,
+    });
+    console.log("Attribut adding Error:", error);
+    next(error);
   }
 };
