@@ -1,5 +1,6 @@
 import renderView from "../../utils/admin/renderView.util.js";
 import BrandSchema from "../../models/brandSchema.model.js";
+import fs from "fs";
 
 export const brandPage = async (req, res, next) => {
   try {
@@ -37,11 +38,81 @@ export const brandPage = async (req, res, next) => {
       totalPages,
       title: "Brand Management",
     });
-
   } catch (error) {
     res.json({ success: false, message: error.message });
   }
 };
+
+export const createBrand = async (req, res) => {
+  try {
+    const { title, status } = req.body;
+
+    // check title
+    if (!title || !title.trim()) {
+      if (req.file) {
+        fs.unlink(req.file.path, () => {});
+      }
+
+      return res.json({
+        success: false,
+        message: "Brand title required",
+      });
+    }
+
+    const titlePattern = /^[A-Za-z]+(?: [A-Za-z]+)*$/;
+
+    if (!titlePattern.test(title)) {
+      return res.json({
+        success: false,
+        message: "Brand name must contain only letters and single spaces",
+      });
+    }
+    // check logo
+    if (!req.file) {
+      return res.json({
+        success: false,
+        message: "Logo required",
+      });
+    }
+
+    const logo = `/uploads/brands/${req.file.filename}`;
+
+    await BrandSchema.create({
+      title,
+      status,
+      logo,
+    });
+
+    return res.json({
+      success: true,
+      message: "Brand created successfully",
+    });
+  } catch (error) {
+    // Mongo duplicate key
+    if (error.code === 11000) {
+      if (req.file) {
+        fs.unlink(req.file.path, () => {});
+      }
+
+      return res.json({
+        success: false,
+        message: "Brand already exists",
+      });
+    }
+
+    console.error(error);
+
+    if (req.file) {
+      fs.unlink(req.file.path, () => {});
+    }
+
+    res.json({
+      success: false,
+      message: "Failed to create brand",
+    });
+  }
+};
+
 
 // //Category CRUD Start Hear
 // export const category = async (req, res) => {
@@ -101,4 +172,3 @@ export const brandPage = async (req, res, next) => {
 //     res.json({ success: false, message: error.message });
 //   }
 // };
- 

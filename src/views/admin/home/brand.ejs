@@ -102,9 +102,9 @@
                                         <div>
                                                 <label class="text-sm text-gray-400">Brand Logo</label>
 
-                                                <input type="file" name="logo" id="brand-logo" accept="image/*"
+                                                <input type="file" name="logo" id="brand-logo"
+                                                        accept="image/png,image/jpeg,image/webp,image/svg+xml"
                                                         class="w-full mt-1 bg-[#0f172a] border border-white/10 px-3 py-2 rounded-lg text-sm">
-
                                                 <!-- Preview -->
                                                 <img id="brand-logo-preview"
                                                         class="mt-3 w-20 h-20 object-contain rounded-lg bg-white p-1 hidden">
@@ -215,8 +215,146 @@
 
                         });
 
+                        const brandForm = document.getElementById("brandForm");
 
+                        brandForm.addEventListener("submit", async (e) => {
 
+                                e.preventDefault();
+
+                                const brandId = document.getElementById("brand-id").value;
+                                const titleInput = document.getElementById("brand-title");
+                                const statusInput = document.getElementById("brand-status");
+                                const logoInput = document.getElementById("brand-logo");
+
+                                const title = titleInput.value.trim();
+                                const status = statusInput.value;
+                                const logoFile = logoInput.files[0];
+
+                                const titlePattern = /^[A-Za-z]+(?: [A-Za-z]+)*$/;
+
+                                /* -------------------------
+                                   VALIDATIONS
+                                ------------------------- */
+
+                                if (!title) {
+                                        return Swal.fire({
+                                                ...swalDark,
+                                                icon: "warning",
+                                                text: "Brand name is required"
+                                        });
+                                }
+
+                                if (!titlePattern.test(title)) {
+                                        return Swal.fire({
+                                                 ...swalDark,
+                                                icon: "warning",
+                                                text: "Brand name can contain only letters and single spaces"
+                                        });
+                                }
+
+                                // logo required when creating brand
+                                if (!brandId && !logoFile) {
+                                        return Swal.fire({
+                                                 ...swalDark,
+                                                icon: "warning",
+                                                text: "Brand logo is required"
+                                        });
+                                }
+
+                                // validate file type
+                                if (logoFile) {
+
+                                        const allowedTypes = [
+                                                "image/png",
+                                                "image/jpeg",
+                                                "image/webp",
+                                                "image/svg+xml"
+                                        ];
+
+                                        if (!allowedTypes.includes(logoFile.type)) {
+                                                return Swal.fire({
+                                                         ...swalDark,
+                                                        icon: "warning",
+                                                        text: "Only PNG, JPG, WEBP or SVG images allowed"
+                                                });
+                                        }
+
+                                        // size validation (2MB)
+                                        const maxSize = 2 * 1024 * 1024;
+
+                                        if (logoFile.size > maxSize) {
+                                                return Swal.fire({
+                                                         ...swalDark,
+                                                        icon: "warning",
+                                                        text: "Logo size must be less than 2MB"
+                                                });
+                                        }
+                                }
+
+                                /* -------------------------
+                                   SUBMIT
+                                ------------------------- */
+
+                                const formData = new FormData();
+                                formData.append("title", title);
+                                formData.append("status", status);
+
+                                if (logoFile) {
+                                        formData.append("logo", logoFile);
+                                }
+
+                                try {
+
+                                        let url = "/admin/brand";
+                                        let method = "POST";
+
+                                        if (brandId) {
+                                                url = `/admin/brand/${brandId}`;
+                                                method = "PATCH";
+                                        }
+
+                                        const res = await fetch(url, {
+                                                method,
+                                                body: formData
+                                        });
+
+                                        const data = await res.json();
+
+                                        if (!data.success) {
+                                                return Swal.fire({
+                                                         ...swalDark,
+                                                        icon: "error",
+                                                        text: data.message
+                                                });
+                                        }
+
+                                        Swal.fire({
+                                                 ...swalDark,
+                                                toast: true,
+                                                position: "top-end",
+                                                icon: "success",
+                                                title: brandId ? "Brand updated" : "Brand created",
+                                                showConfirmButton: false,
+                                                timer: 2000
+                                        });
+
+                                        closeModal();
+                                        location.reload();
+
+                                } catch (error) {
+
+                                        console.error(error);
+
+                                        Swal.fire({
+                                                 ...swalDark,
+                                                icon: "error",
+                                                text: "Something went wrong"
+                                                
+                                        });
+
+                                }
+
+                        });
 
                 </script>
 
