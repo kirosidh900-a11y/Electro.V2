@@ -1,4 +1,4 @@
-const errorMiddleware = (err, req, res, next) => {
+const errorMiddleware = (err, req, res) => {
   console.error("Global Error:", err);
 
   return res.status(err.statusCode || 500).json({

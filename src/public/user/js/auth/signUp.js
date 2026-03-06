@@ -115,7 +115,7 @@ signUpForm.addEventListener("submit", async (e) => {
         showCancelButton: false,
       });
 
-      const result = await Swal.fire({
+       Swal.fire({
         ...swalDark,
         icon: "info",
         title: "Please Note!",

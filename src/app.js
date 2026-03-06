@@ -45,7 +45,7 @@ app.use("/admin", adminRouter);
 app.use("/", userRouter);
 
 // ❌ 404 Handler (Smart – API + EJS Compatible)
-app.use((req, res, next) => {
+app.use((req, res,) => {
   // If request is API-based
   if (
     req.originalUrl.startsWith("/admin") ||
