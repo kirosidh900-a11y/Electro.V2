@@ -1,4 +1,5 @@
 import User  from '../../models/userSchema.model.js'
+import renderView from '../../utils/admin/renderView.util.js'
 
 //Customers
 export const customers = async (req, res) => {

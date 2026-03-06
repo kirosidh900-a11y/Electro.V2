@@ -1,4 +1,5 @@
 import Category from "../../models/CategorySchema.model.js";
+import renderView from '../../utils/admin/renderView.util.js'
 
 //Category CRUD Start Hear
 export const category = async (req, res) => {
