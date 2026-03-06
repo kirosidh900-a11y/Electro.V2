@@ -1,5 +1,5 @@
 import User from "../../models/userSchema.model.js";
-import Otp from "../../models/otp.model.js";
+import Otp from "../../models/otpSchema.model.js";
 import AppError from "../../utils/partials/AppError.js";
 import HTTP_STATUS from "../../constant/statusCode.js";
 

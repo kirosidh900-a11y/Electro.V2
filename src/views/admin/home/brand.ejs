@@ -19,8 +19,38 @@
 
                                                 <!-- ===== Table Card ===== -->
                                                 <div
-                                                        class="w-full bg-[#0b1220] border border-white/5 rounded-3xl shadow-xl">
+                                                        class="w-full bg-[#0b1220] border border-white/5 rounded-3xl shadow-xl overflow-x-auto">
 
+                                                        <table class="w-full text-sm text-left text-gray-300">
+
+                                                                <thead
+                                                                        class="border-b border-white/10 text-gray-400 uppercase text-xs">
+
+                                                                        <tr>
+
+                                                                                <th class="px-6 py-4">#</th>
+
+                                                                                <th class="px-6 py-4">Logo</th>
+
+                                                                                <th class="px-6 py-4">Brand Name</th>
+
+                                                                                <th class="px-6 py-4">Status</th>
+
+                                                                                <th class="px-6 py-4 text-right">Actions
+                                                                                </th>
+
+                                                                        </tr>
+
+                                                                </thead>
+
+                                                                <tbody id="brandTableBody">
+
+                                                                        <%- include("./partials/brandRows", { brands,
+                                                                                currentPage }) %>
+
+                                                                </tbody>
+
+                                                        </table>
 
                                                 </div>
 
@@ -192,107 +222,22 @@ after:transition-all peer-checked:after:translate-x-full">
                                 confirmButtonColor: "#fa5252",
                         };
 
-                        document.addEventListener("click", (e) => {
 
-                                const btn = e.target.closest(".remove-attr");
-                                if (!btn) return;
+                        const addBrandBtn = document.getElementById("add-brand");
 
-                                const categoryId = btn.dataset.category;
-                                const key = btn.dataset.key;
+                        if (addBrandBtn) {
 
-                                removeAttribute(categoryId, key);
-
-                        });
-
-
-                        async function removeAttribute(category_Id, attribute_key) {
-
-                                console.log("Category:", category_Id);
-                                console.log("Attribute:", attribute_key);
-
-                                const confirm = await Swal.fire({
-                                        ...swalDark,
-                                        icon: "warning",
-                                        title: "Confirmation",
-                                        text: "Do you want to delete this attribute?",
-                                        showCancelButton: true,
-                                        confirmButtonText: "Yes, Delete",
-                                        cancelButtonText: "Cancel"
-                                });
-
-                                if (!confirm.isConfirmed) return;
-
-                                try {
-
-                                        const res = await fetch(
-                                                `/admin/category/${category_Id}/attribute/${encodeURIComponent(attribute_key)}`,
-                                                {
-                                                        method: "DELETE"
-                                                }
-                                        );
-
-                                        const result = await res.json();
-
-                                        if (result.success) {
-
-                                                Swal.fire({
-                                                        toast: true,
-                                                        position: "top-end",
-                                                        icon: "success",
-                                                        title: "Attribute removed successfully",
-                                                        background: "#0b1220",
-                                                        color: "#e5e7eb",
-                                                        showConfirmButton: false,
-                                                        timer: 2000
-                                                });
-
-                                                const chip = document.getElementById(
-                                                        `attr-${category_Id}-${attribute_key}`
-                                                );
-
-                                                if (chip) chip.remove();
-
-                                        } else {
-
-                                                Swal.fire({
-                                                        ...swalDark,
-                                                        icon: "error",
-                                                        title: "Error",
-                                                        text: result.message
-                                                });
-
-                                        }
-                                } catch (error) {
-
-                                        console.error(error);
-
-                                        Swal.fire({
-                                                ...swalDark,
-                                                icon: "error",
-                                                title: "Server Error",
-                                                text: "Something went wrong"
-                                        });
-
-                                }
-                        }
-
-
-
-                        const addCategoryBtn = document.getElementById("add-category");
-
-                        if (addCategoryBtn) {
-
-                                addCategoryBtn.addEventListener("click", async (e) => {
+                                addBrandBtn.addEventListener("click", async (e) => {
 
                                         e.preventDefault();
 
                                         const { value: formValues } = await Swal.fire({
 
-                                                title: "Add Category",
+                                                title: "Add Brand",
                                                 background: "#0b1220",
                                                 color: "#e5e7eb",
                                                 showCancelButton: true,
-                                                confirmButtonText: "Create Category",
+                                                confirmButtonText: "Create Brand",
                                                 cancelButtonText: "Cancel",
                                                 focusConfirm: false,
                                                 buttonsStyling: false,
@@ -307,18 +252,18 @@ after:transition-all peer-checked:after:translate-x-full">
                                                 html: `
 <div class="flex flex-col gap-4 text-left mt-4">
 
-<label class="text-sm text-gray-400">Category Name</label>
+<label class="text-sm text-gray-400">Brand Name</label>
 
-<input id="category-title"
+<input id="brand-title"
 type="text"
-placeholder="Enter category name"
+placeholder="Enter brand name"
 class="w-full bg-[#0f172a] border border-white/10 
 px-3 py-2 rounded-lg text-sm focus:outline-none 
 focus:ring-2 focus:ring-cyan-500">
 
 <label class="text-sm text-gray-400">Status</label>
 
-<select id="category-status"
+<select id="brand-status"
 class="w-full bg-[#0f172a] border border-white/10 
 px-3 py-2 rounded-lg text-sm focus:outline-none 
 focus:ring-2 focus:ring-cyan-500">
@@ -334,17 +279,17 @@ focus:ring-2 focus:ring-cyan-500">
                                                 preConfirm: () => {
 
                                                         const title = document
-                                                                .getElementById("category-title")
+                                                                .getElementById("brand-title")
                                                                 .value
                                                                 .trim();
 
                                                         const status = document
-                                                                .getElementById("category-status")
+                                                                .getElementById("brand-status")
                                                                 .value;
 
                                                         if (!title) {
 
-                                                                Swal.showValidationMessage("Category name is required");
+                                                                Swal.showValidationMessage("Brand name is required");
                                                                 return false;
 
                                                         }
@@ -356,11 +301,10 @@ focus:ring-2 focus:ring-cyan-500">
                                         });
 
                                         if (!formValues) return;
-                                        if (!formValues) return;
 
                                         try {
 
-                                                const res = await fetch("/admin/category", {
+                                                const res = await fetch("/admin/brand", {
 
                                                         method: "POST",
 
@@ -378,7 +322,7 @@ focus:ring-2 focus:ring-cyan-500">
 
                                                         Swal.fire({
                                                                 icon: "success",
-                                                                title: "Category created",
+                                                                title: "Brand created",
                                                                 toast: true,
                                                                 position: "top-end",
                                                                 showConfirmButton: false,
@@ -409,7 +353,6 @@ focus:ring-2 focus:ring-cyan-500">
                                         }
 
                                 });
-
                         }
 
                 </script>

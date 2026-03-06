@@ -1,0 +1,74 @@
+<% if (brands.length===0) { %>
+
+        <tr>
+                <td colspan="5" class="text-center py-12 text-gray-500">
+                        <i class="fas fa-tag text-2xl mb-2 block"></i>
+                        <p class="mt-2">No brands found.</p>
+                </td>
+        </tr>
+
+        <% } else { %>
+
+                <% brands.forEach((brand, index)=> { %>
+
+                        <tr id="row-<%= brand._id %>" class="border-b border-white/5 hover:bg-white/5">
+
+                                <td class="px-6 py-4">
+                                        <%= (currentPage - 1) * 6 + index + 1 %>
+                                </td>
+
+                                <td class="px-6 py-4">
+                                        <img src="<%= brand.logo %>"
+                                                class="w-10 h-10 object-contain rounded-md bg-white p-1">
+                                </td>
+
+                                <td id="title-<%= brand._id %>" class="px-6 py-4 font-semibold text-white">
+                                        <%= brand.title %>
+                                </td>
+
+                                <td class="px-6 py-4">
+
+                                        <span id="badge-<%= brand._id %>" class="px-3 py-1 rounded-full text-xs
+<%= brand.status === 'listed'
+? 'bg-emerald-500/20 text-emerald-400'
+: 'bg-red-500/20 text-red-400' %>">
+
+                                                <%= brand.status %>
+
+                                        </span>
+
+                                </td>
+
+                                <td class="px-6 py-4 text-right flex justify-end items-center gap-3">
+
+                                        <!-- Edit -->
+                                        <button onclick="editBrand('<%= brand._id %>')"
+                                                class="text-cyan-400 hover:text-cyan-300">
+                                                <i class="fas fa-edit"></i>
+                                        </button>
+
+                                        <!-- List / Unlist -->
+                                        <button id="status-<%= brand._id %>"
+                                                onclick="toggleBrandStatus('<%= brand._id %>','<%= brand.status %>')"
+                                                class="px-3 py-1 text-xs rounded-md font-semibold
+<%= brand.status === 'listed'
+? 'bg-yellow-500/20 text-yellow-400 hover:bg-yellow-500/30'
+: 'bg-emerald-500/20 text-emerald-400 hover:bg-emerald-500/30' %>">
+
+                                                <%= brand.status==='listed' ? 'Unlist' : 'List' %>
+
+                                        </button>
+
+                                        <!-- Delete -->
+                                        <button onclick="deleteBrand('<%= brand._id %>')"
+                                                class="text-red-400 hover:text-red-300">
+                                                <i class="fas fa-trash"></i>
+                                        </button>
+
+                                </td>
+
+                        </tr>
+
+                        <% }) %>
+
+                                <% } %>
