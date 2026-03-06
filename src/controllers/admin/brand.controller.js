@@ -1,6 +1,7 @@
 import renderView from "../../utils/admin/renderView.util.js";
 import BrandSchema from "../../models/brandSchema.model.js";
 import fs from "fs";
+import Brand from "../../models/brandSchema.model.js";
 
 export const brandPage = async (req, res, next) => {
   try {
@@ -210,6 +211,43 @@ export const deleteBrand = async (req, res) => {
   }
 };
 
+export const toggleBrandStatus = async (req, res) => {
+
+  try {
+
+    const { id } = req.params;
+
+    const brand = await BrandSchema.findById(id);
+
+    if (!brand) {
+      return res.json({
+        success: false,
+        message: "Brand not found"
+      });
+    }
+
+    // toggle status
+    brand.status = brand.status === "listed" ? "unlisted" : "listed";
+
+    await brand.save();
+
+    res.json({
+      success: true,
+      status: brand.status
+    });
+
+  } catch (error) {
+
+    console.error(error);
+
+    res.json({
+      success: false,
+      message: "Failed to update brand status"
+    });
+
+  }
+
+};
 
 
 // //Category CRUD Start Hear

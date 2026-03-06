@@ -417,7 +417,8 @@
 
                                         // remove row from table
                                         const row = document.getElementById(`row-${brand_id}`);
-                                        if (row) row.remove();
+                                        row.classList.add("opacity-0");
+                                        setTimeout(() => row.remove(), 300);
 
                                 } catch (error) {
 
@@ -432,9 +433,90 @@
                                 }
 
                         }
-              
-              
-              </script>
+
+                        async function toggleBrandStatus(brand_id, status) {
+
+                                const action = status === "listed" ? "unlist" : "list";
+
+                                const result = await Swal.fire({
+                                        title: "Are you sure?",
+                                        text: `Do you want to ${action} this brand?`,
+                                        icon: "warning",
+                                        ...swalDark,
+                                        showCancelButton: true,
+                                        confirmButtonText: `Yes, ${action}!`,
+                                        cancelButtonText: "Cancel"
+                                });
+
+                                if (!result.isConfirmed) return;
+
+                                try {
+
+                                        const res = await fetch(`/admin/brand/status/${brand_id}`, {
+                                                method: "PATCH"
+                                        });
+
+                                        const data = await res.json();
+
+                                        if (!data.success) {
+                                                return Swal.fire({
+                                                        icon: "error",
+                                                        ...swalDark,
+                                                        text: data.message
+                                                });
+                                        }
+
+                                        const btn = document.getElementById(`status-${brand_id}`);
+                                        const badge = document.getElementById(`badge-${brand_id}`);
+
+                                        const newStatus = data.status;
+
+                                        // update badge
+                                        badge.textContent = newStatus;
+
+                                        if (newStatus === "listed") {
+                                                badge.className = "px-3 py-1 rounded-full text-xs bg-emerald-500/20 text-emerald-400";
+                                        } else {
+                                                badge.className = "px-3 py-1 rounded-full text-xs bg-red-500/20 text-red-400";
+                                        }
+
+                                        // update button text
+                                        btn.textContent = newStatus === "listed" ? "Unlist" : "List";
+
+                                        btn.className =
+                                                `px-3 py-1 text-xs rounded-md font-semibold ${newStatus === "listed"
+                                                        ? "bg-yellow-500/20 text-yellow-400 hover:bg-yellow-500/30"
+                                                        : "bg-emerald-500/20 text-emerald-400 hover:bg-emerald-500/30"
+                                                }`;
+
+                                        btn.setAttribute(
+                                                "onclick",
+                                                `toggleBrandStatus('${brand_id}','${newStatus}')`
+                                        );
+
+                                        Swal.fire({
+                                                toast: true,
+                                                position: "top-end",
+                                                icon: "success",
+                                                title: `Brand ${action}ed successfully`,
+                                                showConfirmButton: false,
+                                                timer: 2000
+                                        });
+
+                                } catch (error) {
+
+                                        console.error(error);
+
+                                        Swal.fire({
+                                                icon: "error",
+                                                ...swalDark,
+                                                text: "Something went wrong"
+                                        });
+
+                                }
+
+                        }
+                </script>
 
 
                 <script>
