@@ -10,7 +10,7 @@ import HTTP_STATUS from "../../constant/statusCode.js";
 
 // Models
 import User from "../../models/userSchema.model.js";
-import Otp from "../../models/otp.model.js";
+import Otp from "../../models/otpSchema.model.js";
 
 // Services
 import {

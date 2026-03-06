@@ -1,4 +1,4 @@
-import Otp from "../../models/otp.model.js";
+import Otp from "../../models/otpSchema.model.js";
 import generateOTP from "../../utils/partials/otpGenerater.js";
 import sendEmail from "../../constant/transporter.js";
 import {hashedPassword} from "../../utils/partials/hashHelper.utils.js";
