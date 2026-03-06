@@ -374,7 +374,67 @@
 
                         });
 
-                </script>
+
+                        async function deleteBrand(brand_id) {
+
+                                const result = await Swal.fire({
+                                        title: "Delete Brand?",
+                                        text: "This action cannot be undone!",
+                                        icon: "warning",
+                                        ...swalDark,
+                                        showCancelButton: true,
+                                        confirmButtonText: "Yes, delete it!",
+                                        cancelButtonText: "Cancel"
+                                });
+
+                                if (!result.isConfirmed) return;
+
+                                try {
+
+                                        const res = await fetch(`/admin/brand/${brand_id}`, {
+                                                method: "DELETE"
+                                        });
+
+                                        const data = await res.json();
+
+                                        if (!data.success) {
+                                                return Swal.fire({
+                                                        icon: "error",
+                                                        ...swalDark,
+                                                        text: data.message
+                                                });
+                                        }
+
+                                        Swal.fire({
+                                                toast: true,
+                                                position: "top-end",
+                                                icon: "success",
+                                                title: "Brand deleted successfully",
+                                                ...swalDark,
+                                                showConfirmButton: false,
+                                                timer: 2000
+                                        });
+
+                                        // remove row from table
+                                        const row = document.getElementById(`row-${brand_id}`);
+                                        if (row) row.remove();
+
+                                } catch (error) {
+
+                                        console.error(error);
+
+                                        Swal.fire({
+                                                icon: "error",
+                                                ...swalDark,
+                                                text: "Something went wrong"
+                                        });
+
+                                }
+
+                        }
+              
+              
+              </script>
 
 
                 <script>
