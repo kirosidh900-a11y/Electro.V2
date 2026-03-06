@@ -1,3 +1,5 @@
+import AppError from "../../utils/partials/AppError.js";
+
 //Validate Email
 export const isValidEmail = (email) => {
   email = email?.trim().toLowerCase();

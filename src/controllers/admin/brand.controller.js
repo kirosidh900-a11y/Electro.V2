@@ -1,9 +1,9 @@
 import renderView from "../../utils/admin/renderView.util.js";
 import BrandSchema from "../../models/brandSchema.model.js";
 import fs from "fs";
-import Brand from "../../models/brandSchema.model.js";
 
-export const brandPage = async (req, res, next) => {
+
+export const brandPage = async (req, res) => {
   try {
     const page = Number(req.query.page) || 1;
     const limit = 6;

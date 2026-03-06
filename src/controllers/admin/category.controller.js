@@ -1,5 +1,6 @@
 import Category from "../../models/CategorySchema.model.js";
-import renderView from '../../utils/admin/renderView.util.js'
+import renderView from "../../utils/admin/renderView.util.js";
+import HTTP_STATUS from "../../constant/statusCode.js";
 
 //Category CRUD Start Hear
 export const category = async (req, res) => {
@@ -223,7 +224,10 @@ export const deleteAttribute = async (req, res, next) => {
     const _id = req.params.id;
     const key = decodeURIComponent(req.params.key);
 
-    const category = await Category.updateOne({_id},{$pull:{attributes:{key}}});
+    const category = await Category.updateOne(
+      { _id },
+      { $pull: { attributes: { key } } },
+    );
 
     // const exists = category.attributes.some(
     //   (attr) => attr.key.toLowerCase() === key,
@@ -238,15 +242,16 @@ export const deleteAttribute = async (req, res, next) => {
 
     // category.attributes = category.attributes.filter((attr) => attr.key != key);
     // await category.save();
-    if(category)
-    res.json({
-      success: true,
-      message: "Attribute added successfully",
-    });
-    else return res.json({
-      success:false,
-      message:"Attribute is not Trichable"
-    })
+    if (category)
+      res.json({
+        success: true,
+        message: "Attribute added successfully",
+      });
+    else
+      return res.json({
+        success: false,
+        message: "Attribute is not Trichable",
+      });
   } catch (error) {
     res.json({
       success: false,

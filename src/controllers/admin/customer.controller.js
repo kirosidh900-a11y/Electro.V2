@@ -1,6 +1,6 @@
 import User  from '../../models/userSchema.model.js'
 import renderView from '../../utils/admin/renderView.util.js'
-
+import HTTP_STATUS from '../../constant/statusCode.js';
 //Customers
 export const customers = async (req, res) => {
   try {
@@ -83,7 +83,7 @@ export const toggleBlockCustomer = async (req, res) => {
   } catch (error) {
     res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).json({
       success: false,
-      message: "Something went wrong",
+      message:error.message,
     });
   }
 };

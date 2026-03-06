@@ -56,6 +56,7 @@ export const addUser = async ({ name, email, phone, password ,referral_by }) => 
     referralCode,
     referral_by,
   });
+  return newUser;
 };
 
 // Validate data

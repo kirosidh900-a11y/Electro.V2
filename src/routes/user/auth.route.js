@@ -1,6 +1,4 @@
 import { Router } from "express";
-import { setAuthCookie } from "../../utils/partials/setAuthCookie.js";
-
 import passport from "../../config/passport.js";
 
 import {
@@ -15,7 +13,6 @@ import {
   verifyEmail,
   savePassword,
   passportRed,
-  googleUserAuth,
 } from "../../controllers/user/auth.controller.js";
 
 import attachUser from "../../middlewares/attachUser.middleware.js";

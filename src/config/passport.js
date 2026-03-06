@@ -3,7 +3,6 @@ import { Strategy as GoogleStrategy } from "passport-google-oauth20";
 import userSchema from "../models/userSchema.model.js";
 import dotenv from "dotenv";
 import { createRef } from "../services/user/referral.service.js";
-import AppError from "../utils/partials/AppError.js";
 
 dotenv.config();
 
@@ -61,6 +60,7 @@ passport.use(
 
         return done(null, user);
       } catch (err) {
+        console.log("Passport Error:", err);
         return done(null, false, {
           message: "Authentication failed",
         });

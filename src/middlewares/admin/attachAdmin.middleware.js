@@ -28,6 +28,7 @@ const adminAuth = async (req, res, next) => {
 
     next();
   } catch (err) {
+    console.log("AdminAuth Error:",err)
     res.clearCookie("adminToken", {
       httpOnly: true,
       secure: process.env.NODE_ENV === "production",

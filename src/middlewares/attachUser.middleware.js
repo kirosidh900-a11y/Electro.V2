@@ -23,6 +23,7 @@ const attachUser = async (req, res, next) => {
 
     req.user = user;
   } catch (err) {
+    console.log(err)
     res.clearCookie("token", { path: "/" });
     req.user = null;
   }

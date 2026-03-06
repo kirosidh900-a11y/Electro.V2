@@ -110,6 +110,7 @@ loginForm.addEventListener("submit", async (e) => {
       });
     }
   } catch (error) {
+    console.log("loginForm Error:", error);
     Swal.fire({
       ...swalDark,
       icon: "error",
@@ -119,7 +120,6 @@ loginForm.addEventListener("submit", async (e) => {
     });
   }
 });
-
 
 document.addEventListener("DOMContentLoaded", () => {
   const passwordInput = document.getElementById("password");
