@@ -32,6 +32,22 @@ export const brandPage = async (req, res, next) => {
 
     const currentPage = page;
 
+    // AJAX request
+    if (req.xhr) {
+      const rows = await renderView(res, "admin/home/partials/brandRows", {
+        brands,
+        currentPage,
+      });
+
+      const pagination = await renderView(
+        res,
+        "admin/home/partials/pagination",
+        { currentPage, totalPages },
+      );
+
+      return res.json({ rows, pagination });
+    }
+
     // Normal page load
     res.render("admin/home/brand", {
       brands,
@@ -212,9 +228,7 @@ export const deleteBrand = async (req, res) => {
 };
 
 export const toggleBrandStatus = async (req, res) => {
-
   try {
-
     const { id } = req.params;
 
     const brand = await BrandSchema.findById(id);
@@ -222,7 +236,7 @@ export const toggleBrandStatus = async (req, res) => {
     if (!brand) {
       return res.json({
         success: false,
-        message: "Brand not found"
+        message: "Brand not found",
       });
     }
 
@@ -233,22 +247,17 @@ export const toggleBrandStatus = async (req, res) => {
 
     res.json({
       success: true,
-      status: brand.status
+      status: brand.status,
     });
-
   } catch (error) {
-
     console.error(error);
 
     res.json({
       success: false,
-      message: "Failed to update brand status"
+      message: "Failed to update brand status",
     });
-
   }
-
 };
-
 
 // //Category CRUD Start Hear
 // export const category = async (req, res) => {
