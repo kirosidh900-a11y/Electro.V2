@@ -270,7 +270,6 @@
                                         });
                                 }
 
-                                // logo required when creating brand
                                 if (!brandId && !logoFile) {
                                         return Swal.fire({
                                                 ...swalDark,
@@ -279,7 +278,6 @@
                                         });
                                 }
 
-                                // validate file type
                                 if (logoFile) {
 
                                         const allowedTypes = [
@@ -297,7 +295,6 @@
                                                 });
                                         }
 
-                                        // size validation (2MB)
                                         const maxSize = 2 * 1024 * 1024;
 
                                         if (logoFile.size > maxSize) {
@@ -357,7 +354,47 @@
                                         });
 
                                         closeModal();
-                                        location.reload();
+
+                                        /* -------------------------
+                                           UPDATE TABLE (EDIT MODE)
+                                        ------------------------- */
+
+                                        if (brandId) {
+
+                                                const titleCell = document.getElementById(`title-${brandId}`);
+                                                const badge = document.getElementById(`badge-${brandId}`);
+                                                const row = document.getElementById(`row-${brandId}`);
+
+                                                if (titleCell) {
+                                                        titleCell.textContent = title.toUpperCase();
+                                                }
+
+                                                if (badge) {
+
+                                                        badge.textContent = status;
+
+                                                        badge.className =
+                                                                status === "listed"
+                                                                        ? "px-3 py-1 rounded-full text-xs bg-emerald-500/20 text-emerald-400"
+                                                                        : "px-3 py-1 rounded-full text-xs bg-red-500/20 text-red-400";
+                                                }
+
+                                                if (logoFile && row) {
+
+                                                        const img = row.querySelector("img");
+
+                                                        if (img) {
+                                                                img.src = URL.createObjectURL(logoFile);
+                                                        }
+
+                                                }
+
+                                        } else {
+
+                                                // if creating new brand just reload
+                                                location.reload();
+
+                                        }
 
                                 } catch (error) {
 
@@ -367,13 +404,11 @@
                                                 ...swalDark,
                                                 icon: "error",
                                                 text: "Something went wrong"
-
                                         });
 
                                 }
 
                         });
-
 
                         async function deleteBrand(brand_id) {
 
