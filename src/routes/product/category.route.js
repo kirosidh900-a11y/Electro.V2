@@ -13,7 +13,6 @@ import { isAuth } from "../../middlewares/admin/authAdmin.middleware.js";
 
 const router = Router();
 
-
 //Get Category page , add category hear
 router.route("/").get(isAuth, category).post(isAuth, createCategory);
 
@@ -27,5 +26,6 @@ router
   .delete(isAuth, deleteCategory)
   .post(isAuth, addCategoryAttribute);
 
-router.delete('/:id/attribute/:key' ,isAuth , deleteAttribute);
+router.delete("/:id/attribute/:key", isAuth, deleteAttribute);
+
 export default router;

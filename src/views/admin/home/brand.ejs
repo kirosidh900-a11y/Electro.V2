@@ -169,6 +169,24 @@
                                 });
                         }
 
+                        function editBrand(id, title, status, logo) {
+
+                                document.getElementById("brand-id").value = id;
+                                document.getElementById("brand-title").value = title;
+                                document.getElementById("brand-status").value = status;
+
+                                const preview = document.getElementById("brand-logo-preview");
+
+                                if (logo) {
+                                        preview.src = logo;
+                                        preview.classList.remove("hidden");
+                                }
+
+                                document.getElementById("brand-submit-btn").textContent = "Update Brand";
+
+                                document.getElementById("brandModal").classList.remove("hidden");
+                        }
+
                         function openAddModal() {
 
                                 document.getElementById("brand-id").value = "";
@@ -246,7 +264,7 @@
 
                                 if (!titlePattern.test(title)) {
                                         return Swal.fire({
-                                                 ...swalDark,
+                                                ...swalDark,
                                                 icon: "warning",
                                                 text: "Brand name can contain only letters and single spaces"
                                         });
@@ -255,7 +273,7 @@
                                 // logo required when creating brand
                                 if (!brandId && !logoFile) {
                                         return Swal.fire({
-                                                 ...swalDark,
+                                                ...swalDark,
                                                 icon: "warning",
                                                 text: "Brand logo is required"
                                         });
@@ -273,7 +291,7 @@
 
                                         if (!allowedTypes.includes(logoFile.type)) {
                                                 return Swal.fire({
-                                                         ...swalDark,
+                                                        ...swalDark,
                                                         icon: "warning",
                                                         text: "Only PNG, JPG, WEBP or SVG images allowed"
                                                 });
@@ -284,7 +302,7 @@
 
                                         if (logoFile.size > maxSize) {
                                                 return Swal.fire({
-                                                         ...swalDark,
+                                                        ...swalDark,
                                                         icon: "warning",
                                                         text: "Logo size must be less than 2MB"
                                                 });
@@ -322,14 +340,14 @@
 
                                         if (!data.success) {
                                                 return Swal.fire({
-                                                         ...swalDark,
+                                                        ...swalDark,
                                                         icon: "error",
                                                         text: data.message
                                                 });
                                         }
 
                                         Swal.fire({
-                                                 ...swalDark,
+                                                ...swalDark,
                                                 toast: true,
                                                 position: "top-end",
                                                 icon: "success",
@@ -346,10 +364,10 @@
                                         console.error(error);
 
                                         Swal.fire({
-                                                 ...swalDark,
+                                                ...swalDark,
                                                 icon: "error",
                                                 text: "Something went wrong"
-                                                
+
                                         });
 
                                 }

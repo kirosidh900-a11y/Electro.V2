@@ -113,6 +113,102 @@ export const createBrand = async (req, res) => {
   }
 };
 
+export const updateBrand = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { title, status } = req.body;
+
+    const brand = await BrandSchema.findById(id);
+
+    if (!brand) {
+      if (req.file) fs.unlink(req.file.path, () => {});
+      return res.json({
+        success: false,
+        message: "Brand not found",
+      });
+    }
+
+    // update title
+    if (title) {
+      brand.title = title.trim().toUpperCase();
+    }
+
+    // update status
+    if (status) {
+      brand.status = status;
+    }
+
+    // update logo
+    if (req.file) {
+      // delete old logo
+      if (brand.logo) {
+        const oldPath = `public${brand.logo}`;
+        if (fs.existsSync(oldPath)) {
+          fs.unlinkSync(oldPath);
+        }
+      }
+
+      brand.logo = `/uploads/brands/${req.file.filename}`;
+    }
+
+    await brand.save();
+
+    res.json({
+      success: true,
+      message: "Brand updated successfully",
+    });
+  } catch (error) {
+    console.error(error);
+
+    if (req.file) fs.unlink(req.file.path, () => {});
+
+    res.json({
+      success: false,
+      message: "Failed to update brand",
+    });
+  }
+};
+
+export const deleteBrand = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const brand = await BrandSchema.findById(id);
+
+    if (!brand) {
+      return res.json({
+        success: false,
+        message: "Brand not found",
+      });
+    }
+
+    // delete logo from disk
+    if (brand.logo) {
+      const path = `public${brand.logo}`;
+
+      if (fs.existsSync(path)) {
+        fs.unlinkSync(path);
+      }
+    }
+
+    // soft delete
+    brand.isDeleted = true;
+
+    await brand.save();
+
+    res.json({
+      success: true,
+      message: "Brand deleted successfully",
+    });
+  } catch (error) {
+    console.error(error);
+
+    res.json({
+      success: false,
+      message: "Failed to delete brand",
+    });
+  }
+};
 
 // //Category CRUD Start Hear
 // export const category = async (req, res) => {
