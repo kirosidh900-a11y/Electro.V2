@@ -1,6 +1,7 @@
 import Products from "../../models/productSchema.model.js";
 import Category from "../../models/CategorySchema.model.js";
 import Brand from "../../models/brandSchema.model.js";
+import renderView from "../../utils/admin/renderView.util.js";
 
 export const productsPage = async (req, res, next) => {
   try {
@@ -12,24 +13,16 @@ export const productsPage = async (req, res, next) => {
 
     const query = { isDeleted: false };
 
-    /* ---------- SEARCH ---------- */
-
     if (search) {
       query.name = { $regex: search, $options: "i" };
     }
 
-    /* ---------- STATUS FILTER ---------- */
-
     if (status === "listed") query.status = "listed";
     if (status === "unlisted") query.status = "unlisted";
-
-    /* ---------- COUNT ---------- */
 
     const totalProducts = await Products.countDocuments(query);
 
     const totalPages = Math.ceil(totalProducts / limit);
-
-    /* ---------- GET PRODUCTS ---------- */
 
     const products = await Products.find(query)
       .populate("category", "title")
@@ -38,35 +31,29 @@ export const productsPage = async (req, res, next) => {
       .limit(limit)
       .sort({ createdAt: -1 });
 
-    /* ---------- DROPDOWNS ---------- */
-
     const categories = await Category.find({ isDeleted: false });
 
     const brands = await Brand.find({ isDeleted: false });
 
     const currentPage = page;
 
-    /* ---------- AJAX (search/pagination) ---------- */
+    // AJAX RESPONSE
+    if (req.headers.accept && req.headers.accept.includes("application/json")) {
+      const rows = await renderView(res, "admin/home/partials/productRows", {
+        products,
+        currentPage,
+      });
 
-    //     if (req.xhr) {
+      const pagination = await renderView(
+        res,
+        "admin/home/partials/pagination",
+        { currentPage, totalPages },
+      );
 
-    //       const rows = await renderView(
-    //         res,
-    //         "admin/home/partials/productRows",
-    //         { products, currentPage }
-    //       );
+      return res.json({ rows, pagination });
+    }
 
-    //       const pagination = await renderView(
-    //         res,
-    //         "admin/home/partials/pagination",
-    //         { currentPage, totalPages }
-    //       );
-
-    //       return res.json({ rows, pagination });
-    //     }
-
-    /* ---------- NORMAL LOAD ---------- */
-
+    // NORMAL PAGE LOAD
     res.render("admin/home/products", {
       products,
       categories,
