@@ -9,8 +9,7 @@
 
         <% } else { %>
 
-                <% products.forEach((product,index)=>
-                        { %>
+                <% products.forEach((product,index)=>{ %>
 
                         <tr id="row-<%= product._id %>" class="border-b border-white/5 hover:bg-white/5">
 
@@ -22,11 +21,11 @@
                                         <%= product.name %>
                                 </td>
 
-                                <td class="px-6 py-4">
+                                <td id="category-<%= product._id %>" class="px-6 py-4">
                                         <%= product.category?.title || "-" %>
                                 </td>
 
-                                <td class="px-6 py-4">
+                                <td id="brand-<%= product._id %>" class="px-6 py-4">
                                         <%= product.brand?.title || "-" %>
                                 </td>
 
@@ -43,31 +42,41 @@
 
                                 </td>
 
-                                <td class="px-6 py-4 text-right flex justify-end gap-3">
+                                <td class="px-6 py-4 text-right">
 
-                                        <button onclick="editProduct('<%= product._id %>','<%= product.name %>','<%= product.category?._id %>','<%= product.brand?._id %>','<%= product.status %>')"
-                                                class="text-cyan-400 hover:text-cyan-300">
+                                        <div class="flex justify-end gap-3">
 
-                                                <i class="fas fa-edit"></i>
+                                                <button onclick='editProduct(
+"<%= product._id %>",
+<%- JSON.stringify(product.name) %>,
+"<%= product.category?._id || '' %>",
+"<%= product.brand?._id || '' %>",
+"<%= product.status %>",
+<%- JSON.stringify(product.attributes || {}) %>
+)' class="text-cyan-400 hover:text-cyan-300">
 
-                                        </button>
+                                                        <i class="fas fa-edit"></i>
 
-                                        <button onclick="toggleProductStatus('<%= product._id %>','<%= product.status %>')"
-                                                id="status-<%= product._id %>" class="px-3 py-1 text-xs rounded-md font-semibold
+                                                </button>
+
+                                                <button onclick="toggleProductStatus('<%= product._id %>','<%= product.status %>')"
+                                                        id="status-<%= product._id %>" class="px-3 py-1 text-xs rounded-md font-semibold
 <%= product.status==='listed'
 ? 'bg-yellow-500/20 text-yellow-400'
 : 'bg-emerald-500/20 text-emerald-400' %>">
 
-                                                <%= product.status==='listed' ? "Unlist" : "List" %>
+                                                        <%= product.status==='listed' ? "Unlist" : "List" %>
 
-                                        </button>
+                                                </button>
 
-                                        <button onclick="deleteProduct('<%= product._id %>')"
-                                                class="text-red-400 hover:text-red-300">
+                                                <button onclick="deleteProduct('<%= product._id %>')"
+                                                        class="text-red-400 hover:text-red-300">
 
-                                                <i class="fas fa-trash"></i>
+                                                        <i class="fas fa-trash"></i>
 
-                                        </button>
+                                                </button>
+
+                                        </div>
 
                                 </td>
 

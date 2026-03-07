@@ -250,3 +250,94 @@ export const updateProduct = async (req, res) => {
     });
   }
 };
+
+export const deleteProduct = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const product = await Products.findById(id);
+
+    if (!product) {
+      return res.json({
+        success: false,
+        message: "Product not found",
+      });
+    }
+
+    // soft delete
+    product.isDeleted = true;
+
+    await product.save();
+
+    res.json({
+      success: true,
+      message: "Product deleted successfully",
+    });
+  } catch (error) {
+    console.error(error);
+
+    res.json({
+      success: false,
+      message: "Failed to delete brand",
+    });
+  }
+};
+
+export const toggleProductStatus = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const product = await Products.findById(id);
+
+    if (!product) {
+      return res.json({
+        success: false,
+        message: "product not found",
+      });
+    }
+
+    // toggle status
+    product.status = product.status === "listed" ? "unlisted" : "listed";
+
+    await product.save();
+
+    res.json({
+      success: true,
+      status: product.status,
+    });
+  } catch (error) {
+    console.error(error);
+
+    res.json({
+      success: false,
+      message: "Failed to update brand status",
+    });
+  }
+};
+
+export const getAttributes = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const product = await Products.findById(id);
+
+    if (!product) {
+      return res.json({
+        success: false,
+        message: "Product not found",
+      });
+    }
+
+    const productAttributes = product.attributes || {};
+
+    res.json({
+      success: true,
+      productAttributes,
+    });
+  } catch (error) {
+    res.json({
+      success: false,
+      message: error.message,
+    });
+  }
+};
