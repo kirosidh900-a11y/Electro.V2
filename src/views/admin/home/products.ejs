@@ -1,0 +1,323 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+
+<head>
+        <%- include('../../partials/head') %>
+</head>
+
+<body class="min-h-screen flex">
+
+        <%- include('../../partials/admin/sidebar') %>
+
+                <div id="mainContent" class="flex-1 flex flex-col min-w-0 transition-all duration-300">
+
+                        <%- include('../../partials/admin/header') %>
+
+                                <main class="flex-1 p-4 sm:p-6 lg:p-8 w-full">
+
+                                        <%- include("./partials/header",{ title }) %>
+
+                                                <!-- ================= TABLE ================= -->
+
+                                                <div
+                                                        class="w-full bg-[#0b1220] border border-white/5 rounded-3xl shadow-xl overflow-x-auto">
+
+                                                        <table class="w-full text-sm text-left text-gray-300">
+
+                                                                <thead
+                                                                        class="border-b border-white/10 text-gray-400 uppercase text-xs">
+
+                                                                        <tr>
+
+                                                                                <th class="px-6 py-4">#</th>
+                                                                                <th class="px-6 py-4">Product</th>
+                                                                                <th class="px-6 py-4">Category</th>
+                                                                                <th class="px-6 py-4">Brand</th>
+                                                                                <th class="px-6 py-4">Status</th>
+                                                                                <th class="px-6 py-4 text-right">Actions
+                                                                                </th>
+
+                                                                        </tr>
+
+                                                                </thead>
+
+                                                                <tbody id="productTableBody">
+                                                                      <%- include("./partials/productRows", { products, currentPage
+                                                                }) %>
+                                                                </tbody>
+
+                                                        </table>
+
+                                                </div>
+
+                                                <!-- ================= PAGINATION ================= -->
+
+                                                <div id="pagination" class="flex flex-wrap justify-center gap-2 mt-8">
+
+                                                        <%- include("./partials/pagination",{ currentPage,totalPages })
+                                                                %>
+
+                                                </div>
+
+                                </main>
+
+                </div>
+
+                <!-- ================= PRODUCT MODAL ================= -->
+
+                <div id="productModal" class="fixed inset-0 bg-black/60 hidden z-50 flex items-center justify-center">
+
+                        <div class="bg-[#0b1220] w-[550px] rounded-xl border border-white/10 p-6">
+
+                                <div class="flex justify-between items-center mb-4">
+
+                                        <h2 class="text-lg font-semibold text-white">
+
+                                                Add Product
+
+                                        </h2>
+
+                                        <button onclick="closeModal()" class="text-gray-400 hover:text-white">
+
+                                                <i class="fas fa-times"></i>
+
+                                        </button>
+
+                                </div>
+
+                                <form id="productForm" class="flex flex-col gap-4">
+
+                                        <input type="hidden" id="product-id">
+
+                                        <!-- Product Name -->
+
+                                        <div>
+
+                                                <label class="text-sm text-gray-400">Product Name</label>
+
+                                                <input type="text" id="product-name"
+                                                        class="w-full mt-1 bg-[#0f172a] border border-white/10 px-3 py-2 rounded-lg text-sm">
+
+                                        </div>
+
+                                        <!-- Category -->
+
+                                        <div>
+
+                                                <label class="text-sm text-gray-400">Category</label>
+
+                                                <select id="product-category"
+                                                        class="w-full mt-1 bg-[#0f172a] border border-white/10 px-3 py-2 rounded-lg text-sm">
+
+                                                        <option value="">Select category</option>
+
+                                                        <% categories.forEach(c=>{ %>
+
+                                                                <option value="<%= c._id %>">
+
+                                                                        <%= c.title %>
+
+                                                                </option>
+
+                                                                <% }) %>
+
+                                                </select>
+
+                                        </div>
+
+                                        <!-- Brand -->
+
+                                        <div>
+
+                                                <label class="text-sm text-gray-400">Brand</label>
+
+                                                <select id="product-brand"
+                                                        class="w-full mt-1 bg-[#0f172a] border border-white/10 px-3 py-2 rounded-lg text-sm">
+
+                                                        <option value="">Select brand</option>
+
+                                                        <% brands.forEach(b=>{ %>
+
+                                                                <option value="<%= b._id %>">
+
+                                                                        <%= b.title %>
+
+                                                                </option>
+
+                                                                <% }) %>
+
+                                                </select>
+
+                                        </div>
+
+                                        <!-- Attributes -->
+
+                                        <div>
+
+                                                <label class="text-sm text-gray-400">Attributes</label>
+
+                                                <div id="productAttributes" class="flex flex-col gap-2"></div>
+
+                                        </div>
+
+                                        <!-- Status -->
+
+                                        <div>
+
+                                                <label class="text-sm text-gray-400">Status</label>
+
+                                                <select id="product-status"
+                                                        class="w-full mt-1 bg-[#0f172a] border border-white/10 px-3 py-2 rounded-lg text-sm">
+
+                                                        <option value="unlisted">Unlisted</option>
+                                                        <option value="listed">Listed</option>
+
+                                                </select>
+
+                                        </div>
+
+                                        <!-- Buttons -->
+
+                                        <div class="flex justify-center gap-3 mt-4">
+
+                                                <button type="button" onclick="closeModal()"
+                                                        class="px-4 py-2 bg-gray-600 hover:bg-gray-700 text-white rounded-lg text-sm">
+
+                                                        Cancel
+
+                                                </button>
+
+                                                <button type="submit" id="product-submit-btn"
+                                                        class="px-4 py-2 bg-cyan-600 hover:bg-cyan-700 text-white rounded-lg text-sm">
+
+                                                        Create Product
+
+                                                </button>
+
+                                        </div>
+
+                                </form>
+
+                        </div>
+
+                </div>
+
+                <!-- ================= SCRIPTS ================= -->
+
+                <script>
+
+                        function openAddModal() {
+
+                                document.getElementById("product-id").value = "";
+                                document.getElementById("product-name").value = "";
+                                document.getElementById("product-status").value = "unlisted";
+
+                                document.getElementById("productModal").classList.remove("hidden");
+
+                        }
+
+                        function closeModal() {
+
+                                document.getElementById("productModal").classList.add("hidden");
+
+                        }
+
+                        async function editProduct(id, name, category, brand, status) {
+
+                                document.getElementById("product-id").value = id;
+                                document.getElementById("product-name").value = name;
+                                document.getElementById("product-category").value = category;
+                                document.getElementById("product-brand").value = brand;
+                                document.getElementById("product-status").value = status;
+
+                                document.getElementById("product-submit-btn").textContent = "Update Product";
+
+                                document.getElementById("productModal").classList.remove("hidden");
+
+                        }
+
+                        const categorySelect = document.getElementById("product-category");
+
+                        categorySelect?.addEventListener("change", async function () {
+
+                                const categoryId = this.value;
+
+                                if (!categoryId) return;
+
+                                const res = await fetch(`/admin/category/${categoryId}/attributes`);
+
+                                const data = await res.json();
+
+                                const container = document.getElementById("productAttributes");
+
+                                container.innerHTML = "";
+
+                                data.productAttributes.forEach(attr => {
+
+                                        const input = document.createElement("input");
+
+                                        input.placeholder = attr.label;
+                                        input.name = attr.key;
+
+                                        input.className = "bg-[#0f172a] border border-white/10 px-3 py-2 rounded-lg text-sm";
+
+                                        container.appendChild(input);
+
+                                });
+
+                        });
+
+                        const productForm = document.getElementById("productForm");
+
+                        productForm.addEventListener("submit", async (e) => {
+
+                                e.preventDefault();
+
+                                const id = document.getElementById("product-id").value;
+                                const name = document.getElementById("product-name").value;
+                                const category = document.getElementById("product-category").value;
+                                const brand = document.getElementById("product-brand").value;
+                                const status = document.getElementById("product-status").value;
+
+                                const attributes = {};
+
+                                document.querySelectorAll("#productAttributes input").forEach(input => {
+                                        attributes[input.name] = input.value;
+                                });
+
+                                let url = "/admin/product";
+                                let method = "POST";
+
+                                if (id) {
+                                        url = `/admin/product/${id}`;
+                                        method = "PATCH";
+                                }
+
+                                const res = await fetch(url, {
+                                        method,
+                                        headers: { "Content-Type": "application/json" },
+                                        body: JSON.stringify({
+                                                name,
+                                                category,
+                                                brand,
+                                                status,
+                                                attributes
+                                        })
+                                });
+
+                                const data = await res.json();
+
+                                if (!data.success) {
+                                        alert(data.message);
+                                        return;
+                                }
+
+                                location.reload();
+
+                        });
+
+                </script>
+
+</body>
+
+</html>

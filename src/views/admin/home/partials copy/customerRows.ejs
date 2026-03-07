@@ -1,0 +1,65 @@
+<% customers.forEach((customer, index)=> { %>
+
+        <tr class="border-b border-white/5 hover:bg-white/5 transition duration-200">
+
+                <td class="px-6 py-4 font-mono text-gray-500">
+                        <%= (currentPage - 1) * 8 + index + 1 %>
+                </td>
+
+                <td class="px-6 py-4 font-semibold text-white">
+                        <%= customer.name %>
+                </td>
+
+                <td class="px-6 py-4 hidden sm:table-cell">
+                        <%= customer.email %>
+                </td>
+
+                <td class="px-6 py-4 hidden md:table-cell">
+                        <%= customer.phone || "N/A" %>
+                </td>
+
+                <td class="px-6 py-4">
+                        <span id="status-<%= customer._id %>" class="px-3 py-1 text-xs rounded-full font-semibold
+<%= customer.isBlock
+? 'bg-red-500/20 text-red-400'
+: 'bg-emerald-500/20 text-emerald-400' %>">
+
+                                <%= customer.isBlock ? "Blocked" : "Active" %>
+
+                        </span>
+                </td>
+
+                <td class="px-6 py-4 text-right">
+
+                        <button onclick="toggleBlock('<%= customer._id %>', this)" class="px-4 py-2 text-xs rounded-lg text-white transition
+<%= customer.isBlock
+? 'bg-emerald-600 hover:bg-emerald-700'
+: 'bg-red-600 hover:bg-red-700' %>">
+
+                                <% if(customer.isBlock){ %>
+                                        <i class="fas fa-unlock mr-1"></i> Unblock
+                                        <% } else { %>
+                                                <i class="fas fa-lock mr-1"></i> Block
+                                                <% } %>
+
+                        </button>
+
+                </td>
+
+        </tr>
+
+        <% }) %>
+
+                <% if(customers.length===0){ %>
+
+                        <tr>
+                                <td colspan="6" class="text-center py-12 text-gray-500">
+
+                                        <i class="fas fa-user-slash text-2xl mb-2 block"></i>
+
+                                        No customers found.
+
+                                </td>
+                        </tr>
+
+                        <% } %>
