@@ -42,8 +42,8 @@
                                                                 </thead>
 
                                                                 <tbody id="productTableBody">
-                                                                      <%- include("./partials/productRows", { products, currentPage
-                                                                }) %>
+                                                                        <%- include("./partials/productRows", {
+                                                                                products, currentPage }) %>
                                                                 </tbody>
 
                                                         </table>
@@ -131,17 +131,15 @@
 
                                                 <label class="text-sm text-gray-400">Brand</label>
 
-                                                <select id="product-brand"
+                                                <select id="product-brand" name="brand"
                                                         class="w-full mt-1 bg-[#0f172a] border border-white/10 px-3 py-2 rounded-lg text-sm">
 
                                                         <option value="">Select brand</option>
 
-                                                        <% brands.forEach(b=>{ %>
+                                                        <% brands.forEach(b=> { %>
 
                                                                 <option value="<%= b._id %>">
-
                                                                         <%= b.title %>
-
                                                                 </option>
 
                                                                 <% }) %>
@@ -203,25 +201,57 @@
                 </div>
 
                 <!-- ================= SCRIPTS ================= -->
+                <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
                 <script>
 
+                        const swalDark = {
+                                background: "#1a1a1a",
+                                color: "#ffffff",
+                                confirmButtonColor: "#fa5252"
+                        };
+
+                        // OPEN MODAL
                         function openAddModal() {
 
                                 document.getElementById("product-id").value = "";
                                 document.getElementById("product-name").value = "";
+                                document.getElementById("product-category").value = "";
+                                document.getElementById("product-brand").value = "";
                                 document.getElementById("product-status").value = "unlisted";
+
+                                document.getElementById("productAttributes").innerHTML = "";
+
+                                document.getElementById("product-submit-btn").textContent = "Create Product";
 
                                 document.getElementById("productModal").classList.remove("hidden");
 
                         }
 
+                        // CLOSE MODAL
                         function closeModal() {
-
                                 document.getElementById("productModal").classList.add("hidden");
-
                         }
 
+                        // AUTO ADD BUTTON
+                        const pageTitle =
+                                document.querySelector("h1")?.textContent || "";
+
+                        const moduleName =
+                                pageTitle.replace("Management", "")
+                                        .trim()
+                                        .toLowerCase();
+
+                        const addBtn = document.getElementById(`add-${moduleName}`);
+
+                        if (addBtn) {
+                                addBtn.addEventListener("click", () => {
+                                        openAddModal();
+                                });
+                        }
+
+
+                        // EDIT PRODUCT
                         async function editProduct(id, name, category, brand, status) {
 
                                 document.getElementById("product-id").value = id;
@@ -236,83 +266,213 @@
 
                         }
 
+
+                        // LOAD CATEGORY ATTRIBUTES
                         const categorySelect = document.getElementById("product-category");
 
                         categorySelect?.addEventListener("change", async function () {
 
                                 const categoryId = this.value;
 
-                                if (!categoryId) return;
-
-                                const res = await fetch(`/admin/category/${categoryId}/attributes`);
-
-                                const data = await res.json();
-
                                 const container = document.getElementById("productAttributes");
 
                                 container.innerHTML = "";
 
-                                data.productAttributes.forEach(attr => {
+                                if (!categoryId) return;
 
-                                        const input = document.createElement("input");
+                                try {
 
-                                        input.placeholder = attr.label;
-                                        input.name = attr.key;
+                                        const res = await fetch(`/admin/category/${categoryId}/attributes`);
 
-                                        input.className = "bg-[#0f172a] border border-white/10 px-3 py-2 rounded-lg text-sm";
+                                        const data = await res.json();
 
-                                        container.appendChild(input);
+                                        data.productAttributes.forEach(attr => {
 
-                                });
+                                                const input = document.createElement("input");
+
+                                                input.placeholder = attr.label;
+                                                input.name = attr.key;
+
+                                                input.className =
+                                                        "bg-[#0f172a] border border-white/10 px-3 py-2 rounded-lg text-sm";
+
+                                                container.appendChild(input);
+
+                                        });
+
+                                } catch (error) {
+
+                                        Swal.fire({
+                                                ...swalDark,
+                                                icon: "error",
+                                                title: "Error",
+                                                text: "Failed to load attributes"
+                                        });
+
+                                }
 
                         });
 
+
+                        // FORM SUBMIT
                         const productForm = document.getElementById("productForm");
 
-                        productForm.addEventListener("submit", async (e) => {
+                        productForm?.addEventListener("submit", async (e) => {
 
                                 e.preventDefault();
 
                                 const id = document.getElementById("product-id").value;
-                                const name = document.getElementById("product-name").value;
+                                const name = document.getElementById("product-name").value.trim();
                                 const category = document.getElementById("product-category").value;
                                 const brand = document.getElementById("product-brand").value;
                                 const status = document.getElementById("product-status").value;
 
-                                const attributes = {};
+                                // NAME REGEX
+                                const productNamePattern = /^[A-Za-z0-9]+(?:[ _-][A-Za-z0-9]+)*$/;
 
-                                document.querySelectorAll("#productAttributes input").forEach(input => {
-                                        attributes[input.name] = input.value;
-                                });
+                                if (!name) {
 
-                                let url = "/admin/product";
-                                let method = "POST";
+                                        Swal.fire({
+                                                ...swalDark,
+                                                icon: "warning",
+                                                title: "Validation Error",
+                                                text: "Product name is required"
+                                        });
 
-                                if (id) {
-                                        url = `/admin/product/${id}`;
-                                        method = "PATCH";
-                                }
-
-                                const res = await fetch(url, {
-                                        method,
-                                        headers: { "Content-Type": "application/json" },
-                                        body: JSON.stringify({
-                                                name,
-                                                category,
-                                                brand,
-                                                status,
-                                                attributes
-                                        })
-                                });
-
-                                const data = await res.json();
-
-                                if (!data.success) {
-                                        alert(data.message);
                                         return;
                                 }
 
-                                location.reload();
+                                if (!productNamePattern.test(name)) {
+
+                                        Swal.fire({
+                                                ...swalDark,
+                                                icon: "warning",
+                                                title: "Invalid Product Name",
+                                                text: "Only letters, numbers, space, - and _ allowed"
+                                        });
+
+                                        return;
+                                }
+
+                                if (!category) {
+
+                                        Swal.fire({
+                                                ...swalDark,
+                                                icon: "warning",
+                                                title: "Validation Error",
+                                                text: "Please select a category"
+                                        });
+
+                                        return;
+                                }
+
+                                if (!brand) {
+
+                                        Swal.fire({
+                                                ...swalDark,
+                                                icon: "warning",
+                                                title: "Validation Error",
+                                                text: "Please select a brand"
+                                        });
+
+                                        return;
+                                }
+
+                                // ATTRIBUTE VALIDATION
+                                const attributes = {};
+                                let attributeError = null;
+
+                                document.querySelectorAll("#productAttributes input").forEach(input => {
+
+                                        const key = input.name;
+                                        const value = input.value.trim();
+
+                                        if (!value) {
+                                                attributeError = `${key} is required`;
+                                                return;
+                                        }
+
+                                        if (value.length > 50) {
+                                                attributeError = `${key} value is too long`;
+                                                return;
+                                        }
+
+                                        attributes[key] = value;
+
+                                });
+
+                                if (attributeError) {
+
+                                        Swal.fire({
+                                                ...swalDark,
+                                                icon: "warning",
+                                                title: "Attribute Error",
+                                                text: attributeError
+                                        });
+
+                                        return;
+
+                                }
+
+                                let url = "/admin/products";
+                                let method = "POST";
+
+                                if (id) {
+                                        url = `/admin/products/${id}`;
+                                        method = "PATCH";
+                                }
+
+                                try {
+
+                                        const res = await fetch(url, {
+                                                method,
+                                                headers: { "Content-Type": "application/json" },
+                                                body: JSON.stringify({
+                                                        name,
+                                                        category,
+                                                        brand,
+                                                        status,
+                                                        attributes
+                                                })
+                                        });
+
+                                        const data = await res.json();
+
+                                        if (!data.success) {
+
+                                                Swal.fire({
+                                                        ...swalDark,
+                                                        icon: "error",
+                                                        title: "Error",
+                                                        text: data.message
+                                                });
+
+                                                return;
+                                        }
+
+                                        Swal.fire({
+                                                ...swalDark,
+                                                icon: "success",
+                                                title: "Success",
+                                                text: data.message,
+                                                timer: 1500,
+                                                showConfirmButton: false
+                                        });
+
+                                        setTimeout(() => {
+                                                location.reload();
+                                        }, 1500);
+
+                                } catch (error) {
+
+                                        Swal.fire({
+                                                ...swalDark,
+                                                icon: "error",
+                                                title: "Server Error",
+                                                text: "Something went wrong"
+                                        });
+
+                                }
 
                         });
 

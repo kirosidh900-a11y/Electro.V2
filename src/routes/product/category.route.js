@@ -7,6 +7,7 @@ import {
   addCategoryAttribute,
   toggleCategoryStatus,
   deleteAttribute,
+  getAttributes,
 } from "../../controllers/admin/category.controller.js";
 
 import { isAuth } from "../../middlewares/admin/authAdmin.middleware.js";
@@ -27,5 +28,8 @@ router
   .post(isAuth, addCategoryAttribute);
 
 router.delete("/:id/attribute/:key", isAuth, deleteAttribute);
+
+//Products Page atributes geting route
+router.get('/:id/attributes', isAuth , getAttributes)
 
 export default router;

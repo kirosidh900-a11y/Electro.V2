@@ -261,3 +261,37 @@ export const deleteAttribute = async (req, res, next) => {
     next(error);
   }
 };
+
+export const getAttributes = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const category = await Category.findById(id);
+
+    if (!category) {
+      return res.json({
+        success: false,
+        message: "Category not found",
+      });
+    }
+
+    const productAttributes = category.attributes.filter(
+      (attr) => !attr.is_variant_level,
+    );
+
+    const variantAttributes = category.attributes.filter(
+      (attr) => attr.is_variant_level,
+    );
+
+    res.json({
+      success: true,
+      productAttributes,
+      variantAttributes,
+    });
+  } catch (error) {
+    res.json({
+      success: false,
+      message: error.message,
+    });
+  }
+};

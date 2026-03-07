@@ -1,5 +1,5 @@
 import Products from "../../models/productSchema.model.js";
-import  Category from "../../models/CategorySchema.model.js";
+import Category from "../../models/CategorySchema.model.js";
 import Brand from "../../models/brandSchema.model.js";
 
 export const productsPage = async (req, res, next) => {
@@ -48,22 +48,22 @@ export const productsPage = async (req, res, next) => {
 
     /* ---------- AJAX (search/pagination) ---------- */
 
-//     if (req.xhr) {
+    //     if (req.xhr) {
 
-//       const rows = await renderView(
-//         res,
-//         "admin/home/partials/productRows",
-//         { products, currentPage }
-//       );
+    //       const rows = await renderView(
+    //         res,
+    //         "admin/home/partials/productRows",
+    //         { products, currentPage }
+    //       );
 
-//       const pagination = await renderView(
-//         res,
-//         "admin/home/partials/pagination",
-//         { currentPage, totalPages }
-//       );
+    //       const pagination = await renderView(
+    //         res,
+    //         "admin/home/partials/pagination",
+    //         { currentPage, totalPages }
+    //       );
 
-//       return res.json({ rows, pagination });
-//     }
+    //       return res.json({ rows, pagination });
+    //     }
 
     /* ---------- NORMAL LOAD ---------- */
 
@@ -75,9 +75,178 @@ export const productsPage = async (req, res, next) => {
       totalPages,
       title: "Products Management",
     });
-
   } catch (error) {
     console.log(error);
     next(error);
+  }
+};
+
+export const createProduct = async (req, res) => {
+  try {
+    let { name, category, brand, status, attributes } = req.body;
+
+    name = name?.trim();
+
+    if (!name) {
+      return res.json({
+        success: false,
+        message: "Product name is required",
+      });
+    }
+
+    const productNamePattern = /^[A-Za-z0-9]+(?:[ _-][A-Za-z0-9]+)*$/;
+
+    if (!productNamePattern.test(name)) {
+      return res.json({
+        success: false,
+        message: "Invalid product name",
+      });
+    }
+
+    if (!category) {
+      return res.json({
+        success: false,
+        message: "Category is required",
+      });
+    }
+
+    if (!brand) {
+      return res.json({
+        success: false,
+        message: "Brand is required",
+      });
+    }
+
+    // Validate status
+    const validStatus = ["listed", "unlisted"];
+
+    if (status && !validStatus.includes(status)) {
+      return res.json({
+        success: false,
+        message: "Invalid product status",
+      });
+    }
+
+    // Check duplicate product
+    const existingProduct = await Products.findOne({
+      name: { $regex: `^${name}$`, $options: "i" },
+    });
+
+    if (existingProduct) {
+      return res.json({
+        success: false,
+        message: "Product with this name already exists",
+      });
+    }
+
+    // Create product
+    const product = await Products.create({
+      name,
+      category,
+      brand,
+      status,
+      attributes: attributes || [],
+    });
+
+    return res.json({
+      success: true,
+      message: "Product created successfully",
+      product,
+    });
+  } catch (error) {
+    console.log("Create product error:", error);
+
+    res.json({
+      success: false,
+      message: "Something went wrong while creating the product",
+    });
+  }
+};
+
+export const updateProduct = async (req, res) => {
+  try {
+    const { id } = req.params;
+    let { name, category, brand, status, attributes } = req.body;
+
+    name = name?.trim();
+
+    if (!name) {
+      return res.json({
+        success: false,
+        message: "Product name is required",
+      });
+    }
+
+    const productNamePattern = /^[A-Za-z0-9]+(?:[ _-][A-Za-z0-9]+)*$/;
+
+    if (!productNamePattern.test(name)) {
+      return res.json({
+        success: false,
+        message: "Invalid product name",
+      });
+    }
+
+    if (!category) {
+      return res.json({
+        success: false,
+        message: "Category is required",
+      });
+    }
+
+    if (!brand) {
+      return res.json({
+        success: false,
+        message: "Brand is required",
+      });
+    }
+
+    // Validate status
+    const validStatus = ["listed", "unlisted"];
+
+    if (status && !validStatus.includes(status)) {
+      return res.json({
+        success: false,
+        message: "Invalid product status",
+      });
+    }
+
+    // Check duplicate product (exclude current product)
+    const existingProduct = await Products.findOne({
+      _id: { $ne: id },
+      name: { $regex: `^${name}$`, $options: "i" },
+    });
+
+    if (existingProduct) {
+      return res.json({
+        success: false,
+        message: "Product with this name already exists",
+      });
+    }
+
+    // Update product
+    const updatedProduct = await Products.findByIdAndUpdate(
+      id,
+      {
+        name,
+        category,
+        brand,
+        status,
+        attributes: attributes || [],
+      },
+      { new: true },
+    );
+
+    return res.json({
+      success: true,
+      message: "Product updated successfully",
+      product: updatedProduct,
+    });
+  } catch (error) {
+    console.log("Update product error:", error);
+
+    res.json({
+      success: false,
+      message: "Something went wrong while updating the product",
+    });
   }
 };
