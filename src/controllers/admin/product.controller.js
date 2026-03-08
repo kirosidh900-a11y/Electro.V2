@@ -3,6 +3,8 @@ import Category from "../../models/CategorySchema.model.js";
 import Brand from "../../models/brandSchema.model.js";
 import renderView from "../../utils/admin/renderView.util.js";
 import mongoose from "mongoose";
+import fs from "fs";
+import path from "path";
 
 export const productsPage = async (req, res, next) => {
   try {
@@ -364,8 +366,6 @@ export const getProductDetails = async (req, res, next) => {
       totalStock = variants.reduce((sum, v) => sum + (v.stock || 0), 0);
     }
 
-    console.log(variants);
-
     res.render("admin/home/productDetails", {
       title: "Product Details",
       product,
@@ -439,7 +439,7 @@ export const deleteVariant = async (req, res) => {
 
     res.json({ success: true });
   } catch (err) {
-    console.log("Delete Variant Error:",err)
+    console.log("Delete Variant Error:", err);
     res.json({ success: false });
   }
 };
@@ -460,7 +460,7 @@ export const addVariantImage = async (req, res) => {
       return res.json({ success: false, message: "Variant not found" });
     }
 
-    const imagePath = `/uploads/${req.file.filename}`;
+    const imagePath = `/uploads/products/${req.file.filename}`;
 
     if (!variant.product_image) {
       variant.product_image = [];
@@ -468,17 +468,72 @@ export const addVariantImage = async (req, res) => {
 
     variant.product_image.push(imagePath);
 
+    console.log(variant);
+
+    // 🔴 IMPORTANT
+    product.markModified("variants");
+
     await product.save();
 
     res.json({
       success: true,
       message: "Image uploaded successfully",
     });
-  } catch (err) {
-    console.log("Variant img uploading Eroor:",err)
+  } catch (error) {
+    console.log(error);
+
     res.json({
       success: false,
       message: "Upload failed",
     });
+  }
+};
+
+export const deleteVariantImage = async (req, res) => {
+  try {
+
+    const { productId, variantId } = req.params;
+    const { imagePath } = req.body;
+
+    const product = await Products.findById(productId);
+
+    if (!product) {
+      return res.json({ success: false, message: "Product not found" });
+    }
+
+    const variant = product.variants.id(variantId);
+
+    if (!variant) {
+      return res.json({ success: false, message: "Variant not found" });
+    }
+
+    // remove from DB
+    variant.product_image = variant.product_image.filter(
+      img => img !== imagePath
+    );
+
+    // convert URL path → real path
+    const filePath = path.join("public", imagePath);
+
+    if (fs.existsSync(filePath)) {
+      fs.unlinkSync(filePath);
+    }
+
+    await product.save();
+
+    res.json({
+      success: true,
+      message: "Image deleted successfully"
+    });
+
+  } catch (error) {
+
+    console.log(error);
+
+    res.json({
+      success: false,
+      message: "Delete failed"
+    });
+
   }
 };

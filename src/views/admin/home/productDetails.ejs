@@ -245,9 +245,7 @@
 
                                                                                                                 <% }) %>
 
-                                                                                                                        <td>$<%= v.price
-                                                                                                                                        %>
-                                                                                                                        </td>
+                                                                                                                        <td>₹<%= v.price %></td>
                                                                                                                         <td>
                                                                                                                                 <%= v.stock
                                                                                                                                         %>
@@ -437,8 +435,16 @@
                         </div>
 
                 </div>
+                <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
                 <script>
+
+                        const swalDark = {
+                                background: "#1a1a1a",
+                                color: "#ffffff",
+                                confirmButtonColor: "#fa5252",
+                                cancelButtonColor: "#6b7280"
+                        }
 
                         let editingVariantAttributes = {}
 
@@ -467,7 +473,6 @@
                         async function loadVariantAttributes(existingAttributes = {}) {
 
                                 const categoryId = "<%= product.category._id %>"
-
                                 const container = document.getElementById("variantAttributes")
 
                                 container.innerHTML = ""
@@ -475,7 +480,6 @@
                                 try {
 
                                         const res = await fetch(`/admin/category/${categoryId}/attributes`)
-
                                         const data = await res.json()
 
                                         data.variantAttributes.forEach(attr => {
@@ -486,8 +490,7 @@
                                                 input.name = attr.key
                                                 input.value = existingAttributes[attr.key] || ""
 
-                                                input.className =
-                                                        "bg-[#0f172a] border border-white/10 px-3 py-2 rounded-lg text-sm"
+                                                input.className = "bg-[#0f172a] border border-white/10 px-3 py-2 rounded-lg text-sm"
 
                                                 container.appendChild(input)
 
@@ -495,7 +498,12 @@
 
                                 } catch (err) {
 
-                                        alert("Failed to load variant attributes")
+                                        Swal.fire({
+                                                ...swalDark,
+                                                icon: "error",
+                                                title: "Failed",
+                                                text: "Failed to load attributes"
+                                        })
 
                                 }
 
@@ -528,51 +536,70 @@
 
                                 e.preventDefault()
 
-                                const variantId = document.getElementById("variant-id").value
+                                try {
 
-                                const sku = document.getElementById("variant-sku").value.trim()
-                                const price = document.getElementById("variant-price").value
-                                const stock = document.getElementById("variant-stock").value
+                                        const variantId = document.getElementById("variant-id").value
 
-                                const attributes = {}
+                                        const sku = document.getElementById("variant-sku").value.trim()
+                                        const price = document.getElementById("variant-price").value
+                                        const stock = document.getElementById("variant-stock").value
 
-                                document.querySelectorAll("#variantAttributes input")
-                                        .forEach(input => {
-                                                attributes[input.name] = input.value.trim()
+                                        const attributes = {}
+
+                                        document.querySelectorAll("#variantAttributes input")
+                                                .forEach(input => {
+                                                        attributes[input.name] = input.value.trim()
+                                                })
+
+                                        let url = `/admin/products/<%= product._id %>/variants`
+                                        let method = "POST"
+
+                                        if (variantId) {
+
+                                                url = `/admin/products/<%= product._id %>/variants/${variantId}`
+                                                method = "PATCH"
+
+                                        }
+
+                                        const res = await fetch(url, {
+                                                method,
+                                                headers: {
+                                                        "Content-Type": "application/json"
+                                                },
+                                                body: JSON.stringify({ sku, price, stock, attributes })
                                         })
 
+                                        const data = await res.json()
 
-                                let url = `/admin/products/<%= product._id %>/variants`
-                                let method = "POST"
+                                        if (!data.success) {
 
-                                if (variantId) {
+                                                Swal.fire({
+                                                        ...swalDark,
+                                                        icon: "error",
+                                                        title: "Error",
+                                                        text: data.message
+                                                })
 
-                                        url = `/admin/products/<%= product._id %>/variants/${variantId}`
-                                        method = "PATCH"
+                                                return
+                                        }
 
-                                }
+                                        Swal.fire({
+                                                ...swalDark,
+                                                icon: "success",
+                                                title: "Success",
+                                                text: data.message
+                                        }).then(() => location.reload())
 
-                                const res = await fetch(url, {
-                                        method,
-                                        headers: {
-                                                "Content-Type": "application/json"
-                                        },
-                                        body: JSON.stringify({
-                                                sku,
-                                                price,
-                                                stock,
-                                                attributes
+                                } catch (err) {
+
+                                        Swal.fire({
+                                                ...swalDark,
+                                                icon: "error",
+                                                title: "Error",
+                                                text: "Something went wrong"
                                         })
-                                })
 
-                                const data = await res.json()
-
-                                if (!data.success) {
-                                        alert(data.message)
-                                        return
                                 }
-
-                                location.reload()
 
                         })
 
@@ -580,15 +607,57 @@
 
                         async function deleteVariant(id) {
 
-                                if (!confirm("Delete variant?")) return
-
-                                await fetch(`/admin/products/<%= product._id %>/variants/${id}`, {
-                                        method: "DELETE"
+                                const result = await Swal.fire({
+                                        ...swalDark,
+                                        title: "Delete Variant?",
+                                        text: "This action cannot be undone",
+                                        icon: "warning",
+                                        showCancelButton: true,
+                                        confirmButtonText: "Delete"
                                 })
 
-                                location.reload()
+                                if (!result.isConfirmed) return
+
+                                try {
+
+                                        const res = await fetch(`/admin/products/<%= product._id %>/variants/${id}`, {
+                                                method: "DELETE"
+                                        })
+
+                                        const data = await res.json()
+
+                                        if (!data.success) {
+
+                                                Swal.fire({
+                                                        ...swalDark,
+                                                        icon: "error",
+                                                        title: "Error",
+                                                        text: data.message
+                                                })
+
+                                                return
+                                        }
+
+                                        Swal.fire({
+                                                ...swalDark,
+                                                icon: "success",
+                                                title: "Deleted",
+                                                text: data.message
+                                        }).then(() => location.reload())
+
+                                } catch (err) {
+
+                                        Swal.fire({
+                                                ...swalDark,
+                                                icon: "error",
+                                                title: "Error",
+                                                text: "Delete failed"
+                                        })
+
+                                }
 
                         }
+
 
 
                         let currentVariantId = null
@@ -601,52 +670,120 @@
 
                         }
 
-                        document.getElementById("variantImageInput").addEventListener("change", async function () {
 
-                                const file = this.files[0]
+                        document.getElementById("variantImageInput")
+                                .addEventListener("change", async function () {
 
-                                if (!file) return
+                                        try {
 
-                                const formData = new FormData()
+                                                const file = this.files[0]
 
-                                formData.append("image", file)
+                                                if (!file) return
 
-                                const res = await fetch(
-                                        `/admin/products/<%= product._id %>/variants/${currentVariantId}/image`,
-                                        {
-                                                method: "POST",
-                                                body: formData
+                                                const formData = new FormData()
+
+                                                formData.append("image", file)
+
+                                                const res = await fetch(
+                                                        `/admin/products/<%= product._id %>/variants/${currentVariantId}/image`,
+                                                        {
+                                                                method: "POST",
+                                                                body: formData
+                                                        }
+                                                )
+
+                                                const data = await res.json()
+
+                                                if (!data.success) {
+
+                                                        Swal.fire({
+                                                                ...swalDark,
+                                                                icon: "error",
+                                                                title: "Upload Failed",
+                                                                text: data.message
+                                                        })
+
+                                                        return
+                                                }
+
+                                                Swal.fire({
+                                                        ...swalDark,
+                                                        icon: "success",
+                                                        title: "Uploaded",
+                                                        text: "Image uploaded successfully"
+                                                }).then(() => location.reload())
+
+                                        } catch (err) {
+
+                                                Swal.fire({
+                                                        ...swalDark,
+                                                        icon: "error",
+                                                        title: "Error",
+                                                        text: "Image upload failed"
+                                                })
+
                                         }
-                                )
 
-                                const data = await res.json()
+                                })
 
-                                if (!data.success) {
-                                        alert(data.message)
-                                        return
+
+
+                        async function deleteVariantImage(variantId, imagePath) {
+
+                                const result = await Swal.fire({
+                                        ...swalDark,
+                                        title: "Delete Image?",
+                                        icon: "warning",
+                                        showCancelButton: true,
+                                        confirmButtonText: "Delete"
+                                })
+
+                                if (!result.isConfirmed) return
+
+                                try {
+
+                                        const res = await fetch(
+                                                `/admin/products/<%= product._id %>/variants/${variantId}/image`,
+                                                {
+                                                        method: "DELETE",
+                                                        headers: {
+                                                                "Content-Type": "application/json"
+                                                        },
+                                                        body: JSON.stringify({ imagePath })
+                                                }
+                                        )
+
+                                        const data = await res.json()
+
+                                        if (!data.success) {
+
+                                                Swal.fire({
+                                                        ...swalDark,
+                                                        icon: "error",
+                                                        title: "Error",
+                                                        text: data.message
+                                                })
+
+                                                return
+                                        }
+
+                                        Swal.fire({
+                                                ...swalDark,
+                                                icon: "success",
+                                                title: "Deleted",
+                                                text: "Image removed"
+                                        }).then(() => location.reload())
+
+                                } catch (err) {
+
+                                        Swal.fire({
+                                                ...swalDark,
+                                                icon: "error",
+                                                title: "Error",
+                                                text: "Delete failed"
+                                        })
+
                                 }
-
-                                location.reload()
-
-                        })
-
-
-                        async function deleteVariantImage(variantId, image) {
-
-                                if (!confirm("Delete image?")) return
-
-                                await fetch(
-                                        `/admin/products/<%= product._id %>/variants/${variantId}/image`,
-                                        {
-                                                method: "DELETE",
-                                                headers: {
-                                                        "Content-Type": "application/json"
-                                                },
-                                                body: JSON.stringify({ image })
-                                        }
-                                )
-
-                                location.reload()
 
                         }
 
