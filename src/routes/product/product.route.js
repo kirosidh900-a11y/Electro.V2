@@ -1,5 +1,7 @@
 import { Router } from "express";
 import { isAuth } from "../../middlewares/admin/authAdmin.middleware.js";
+import pImgUpload from '../../config/multer/productUpload.js'
+
 import {
   productsPage,
   createProduct,
@@ -8,6 +10,9 @@ import {
   getAttributes,
   toggleProductStatus,
   getProductDetails,
+  addVariant,
+  deleteVariant,
+  addVariantImage
 } from "../../controllers/admin/product.controller.js";
 
 const router = Router();
@@ -27,5 +32,16 @@ router.get("/:id/attributes", isAuth, getAttributes);
 
 // Update Status
 router.patch("/:id/status", isAuth, toggleProductStatus);
+
+// Add , delete and Edit Variant Hear
+router.post("/:id/variants", addVariant);
+router.delete("/variants/:variantId", deleteVariant);
+
+// Img add and delete
+router.post(
+  "/:productId/variants/:variantId/image",
+  pImgUpload.single("image"),
+  addVariantImage
+)
 
 export default router;

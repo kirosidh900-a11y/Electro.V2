@@ -4,8 +4,6 @@ const variantSchema = new mongoose.Schema({
   sku: {
     type: String,
     required: true,
-    unique: true,
-    sparse: true
   },
 
   price: {
@@ -22,6 +20,10 @@ const variantSchema = new mongoose.Schema({
     type: Map,
     of: String,
   },
+  isDeleted:{
+    type:Boolean,
+    default:false,
+  }
 });
 
 const productSchema = new mongoose.Schema(

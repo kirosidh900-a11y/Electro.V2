@@ -1,7 +1,6 @@
 import Products from "../../models/productSchema.model.js";
 import Category from "../../models/CategorySchema.model.js";
 import Brand from "../../models/brandSchema.model.js";
-import ProductVariant from "../../models/productSchema.model.js";
 import renderView from "../../utils/admin/renderView.util.js";
 import mongoose from "mongoose";
 
@@ -339,7 +338,6 @@ export const getProductDetails = async (req, res, next) => {
       return res.redirect("/admin/products");
     }
 
-    // get product
     const product = await Products.findOne({
       _id: id,
       isDeleted: false,
@@ -351,24 +349,22 @@ export const getProductDetails = async (req, res, next) => {
       return res.redirect("/admin/products");
     }
 
-    // get variants
-    const variants = await ProductVariant.find({
-      product_id: id,
-      isDeleted: false,
-    }).sort({ createdAt: -1 });
+    // variants from embedded array
+    const variants = product.variants.filter((v) => !v.isDeleted);
 
     // metrics
-    let totalVariants = variants.length;
+    const totalVariants = variants.length;
+
     let minPrice = 0;
     let totalStock = 0;
 
     if (variants.length > 0) {
       minPrice = Math.min(...variants.map((v) => v.price));
 
-      totalStock = variants.reduce((sum, v) => {
-        return sum + (v.stock || 0);
-      }, 0);
+      totalStock = variants.reduce((sum, v) => sum + (v.stock || 0), 0);
     }
+
+    console.log(variants);
 
     res.render("admin/home/productDetails", {
       title: "Product Details",
@@ -380,6 +376,109 @@ export const getProductDetails = async (req, res, next) => {
     });
   } catch (error) {
     console.log("Product details error:", error);
+
     next(error);
+  }
+};
+
+// Veriants Start Hear
+export const addVariant = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { sku, price, stock, attributes } = req.body;
+
+    const product = await Products.findById(id);
+
+    if (!product) {
+      return res.json({
+        success: false,
+        message: "Product not found",
+      });
+    }
+
+    const skuExists = product.variants.some((v) => v.sku === sku);
+
+    if (skuExists) {
+      return res.json({
+        success: false,
+        message: "SKU already exists",
+      });
+    }
+
+    product.variants.push({
+      sku,
+      price,
+      stock,
+      attributes: new Map(Object.entries(attributes || {})),
+    });
+
+    await product.save();
+
+    res.json({
+      success: true,
+      message: "Variant added successfully",
+    });
+  } catch (error) {
+    console.log(error);
+
+    res.json({
+      success: false,
+      message: "Failed to add variant",
+    });
+  }
+};
+
+export const deleteVariant = async (req, res) => {
+  try {
+    const { variantId } = req.params;
+
+    await Products.updateOne(
+      { "variants._id": variantId },
+      { $pull: { variants: { _id: variantId } } },
+    );
+
+    res.json({ success: true });
+  } catch (err) {
+    console.log("Delete Variant Error:",err)
+    res.json({ success: false });
+  }
+};
+
+export const addVariantImage = async (req, res) => {
+  try {
+    const { productId, variantId } = req.params;
+
+    const product = await Products.findById(productId);
+
+    if (!product) {
+      return res.json({ success: false, message: "Product not found" });
+    }
+
+    const variant = product.variants.id(variantId);
+
+    if (!variant) {
+      return res.json({ success: false, message: "Variant not found" });
+    }
+
+    const imagePath = `/uploads/${req.file.filename}`;
+
+    if (!variant.product_image) {
+      variant.product_image = [];
+    }
+
+    variant.product_image.push(imagePath);
+
+    await product.save();
+
+    res.json({
+      success: true,
+      message: "Image uploaded successfully",
+    });
+  } catch (err) {
+    console.log("Variant img uploading Eroor:",err)
+    res.json({
+      success: false,
+      message: "Upload failed",
+    });
   }
 };
