@@ -12,7 +12,8 @@
                 <% products.forEach((product,index)=>
                         { %>
 
-                        <tr id="row-<%= product._id %>" class="border-b border-white/5 hover:bg-white/5">
+                        <tr id="row-<%= product._id %>" onclick="location.href='/admin/products/<%= product._id %>'"
+                                class="border-b border-white/5 hover:bg-white/5">
 
                                 <td class="px-6 py-4">
                                         <%= (currentPage-1)*10 + index +1 %>
@@ -22,11 +23,11 @@
                                         <%= product.name %>
                                 </td>
 
-                                <td class="px-6 py-4">
+                                <td id="category-<%= product._id %>" class="px-6 py-4">
                                         <%= product.category?.title || "-" %>
                                 </td>
 
-                                <td class="px-6 py-4">
+                                <td id="brand-<%= product._id %>" class="px-6 py-4">
                                         <%= product.brand?.title || "-" %>
                                 </td>
 
@@ -43,16 +44,24 @@
 
                                 </td>
 
+
                                 <td class="px-6 py-4 text-right flex justify-end gap-3">
 
-                                        <button onclick="editProduct('<%= product._id %>','<%= product.name %>','<%= product.category?._id %>','<%= product.brand?._id %>','<%= product.status %>')"
-                                                class="text-cyan-400 hover:text-cyan-300">
+
+                                        <button onclick='event.stopPropagation();editProduct(
+"<%= product._id %>",
+<%- JSON.stringify(product.name) %>,
+"<%= product.category?._id || "" %>",
+"<%= product.brand?._id || "" %>",
+"<%= product.status %>",
+<%- JSON.stringify(product.attributes || {}) %>
+)' class="text-cyan-400 hover:text-cyan-300">
 
                                                 <i class="fas fa-edit"></i>
 
                                         </button>
 
-                                        <button onclick="toggleProductStatus('<%= product._id %>','<%= product.status %>')"
+                                        <button onclick="event.stopPropagation(); toggleProductStatus('<%= product._id %>','<%= product.status %>')"
                                                 id="status-<%= product._id %>" class="px-3 py-1 text-xs rounded-md font-semibold
 <%= product.status==='listed'
 ? 'bg-yellow-500/20 text-yellow-400'
@@ -62,7 +71,7 @@
 
                                         </button>
 
-                                        <button onclick="deleteProduct('<%= product._id %>')"
+                                        <button onclick="event.stopPropagation(); deleteProduct('<%= product._id %>')"
                                                 class="text-red-400 hover:text-red-300">
 
                                                 <i class="fas fa-trash"></i>

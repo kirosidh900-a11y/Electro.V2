@@ -1,7 +1,9 @@
 import Products from "../../models/productSchema.model.js";
 import Category from "../../models/CategorySchema.model.js";
 import Brand from "../../models/brandSchema.model.js";
+import ProductVariant from "../../models/productSchema.model.js";
 import renderView from "../../utils/admin/renderView.util.js";
+import mongoose from "mongoose";
 
 export const productsPage = async (req, res, next) => {
   try {
@@ -326,5 +328,58 @@ export const getAttributes = async (req, res) => {
       success: false,
       message: error.message,
     });
+  }
+};
+
+export const getProductDetails = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return res.redirect("/admin/products");
+    }
+
+    // get product
+    const product = await Products.findOne({
+      _id: id,
+      isDeleted: false,
+    })
+      .populate("category", "title")
+      .populate("brand", "title");
+
+    if (!product) {
+      return res.redirect("/admin/products");
+    }
+
+    // get variants
+    const variants = await ProductVariant.find({
+      product_id: id,
+      isDeleted: false,
+    }).sort({ createdAt: -1 });
+
+    // metrics
+    let totalVariants = variants.length;
+    let minPrice = 0;
+    let totalStock = 0;
+
+    if (variants.length > 0) {
+      minPrice = Math.min(...variants.map((v) => v.price));
+
+      totalStock = variants.reduce((sum, v) => {
+        return sum + (v.stock || 0);
+      }, 0);
+    }
+
+    res.render("admin/home/productDetails", {
+      title: "Product Details",
+      product,
+      variants,
+      totalVariants,
+      minPrice,
+      totalStock,
+    });
+  } catch (error) {
+    console.log("Product details error:", error);
+    next(error);
   }
 };

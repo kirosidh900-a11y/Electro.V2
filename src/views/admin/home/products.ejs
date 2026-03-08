@@ -295,6 +295,48 @@
 
                         }
 
+                        async function loadProductAttributes(productId, existingAttributes = {}) {
+
+                                const container = document.getElementById("productAttributes");
+                                container.innerHTML = "";
+
+                                if (!productId) return;
+
+                                try {
+
+                                        const res = await fetch(`/admin/products/${productId}/attributes`);
+
+                                        const data = await res.json();
+
+                                        if (!data.success) return;
+
+                                        const attributes = data.productAttributes || {};
+
+                                        Object.keys(attributes).forEach(key => {
+
+                                                const input = document.createElement("input");
+
+                                                input.name = key;
+                                                input.placeholder = key;
+                                                input.value = existingAttributes[key] || attributes[key] || "";
+
+                                                input.className =
+                                                        "bg-[#0f172a] border border-white/10 px-3 py-2 rounded-lg text-sm";
+
+                                                container.appendChild(input);
+
+                                        });
+
+                                } catch (err) {
+
+                                        Swal.fire({
+                                                icon: "error",
+                                                text: "Failed to load attributes"
+                                        });
+
+                                }
+
+                        }
 
                         // CATEGORY CHANGE
                         const categorySelect = document.getElementById("product-category");
@@ -324,7 +366,7 @@
                                 const title = document.getElementById("productModalTitle");
                                 if (title) title.textContent = "Edit Product";
 
-                                loadCategoryAttributes(category, editingAttributes);
+                                loadProductAttributes(id, editingAttributes);
 
                                 document.getElementById("productModal").classList.remove("hidden");
                         }
