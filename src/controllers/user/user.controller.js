@@ -1,15 +1,43 @@
+import HTTP_STATUS from "../../constant/statusCode.js";
 import { verifyEmail } from "../../services/user/user.service.js";
+import Products from '../../models/productSchema.model.js';
 
 export const showHomePage = async (req, res) => {
-  let userData = null;
+  try {
+    let userData = req.user || null;
 
-  if (req.user) {
-    userData = req.user;
+    const products = await Products.find({
+      status: "listed",
+      isDeleted: false,
+    })
+      .populate("brand", "title")
+      .populate("category", "title")
+      .lean();
+
+    const formattedProducts = products.map((product) => {
+      const variant = product.variants?.find((v) => !v.isDeleted);
+
+      return {
+        _id: product._id,
+        name: product.name,
+        brand: product.brand?.title,
+        category: product.category?.title,
+        price: variant?.price || 0,
+        stock: variant?.stock || 0,
+        image: variant?.product_image?.[0] || null,
+      };
+    });
+
+    console.log(products);
+
+    res.render("user/home/index", {
+      user: userData,
+      products: formattedProducts,
+    });
+  } catch (error) {
+    console.log(error);
+    res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).send("Failed to load homepage");
   }
-
-  res.render("user/home/index", {
-    user: userData,
-  });
 };
 
 export const verifyOTP = async (req, res, next) => {

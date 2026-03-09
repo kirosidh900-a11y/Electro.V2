@@ -14,6 +14,7 @@ import {
   deleteVariant,
   addVariantImage,
   deleteVariantImage,
+  editVariant,
 } from "../../controllers/admin/product.controller.js";
 
 const router = Router();
@@ -36,15 +37,15 @@ router.patch("/:id/status", isAuth, toggleProductStatus);
 
 // Add , delete and Edit Variant Hear
 router.post("/:id/variants", addVariant);
-router.delete("/:productId/variants/:variantId", deleteVariant);
-
+router
+  .route("/:productId/variants/:variantId")
+  .patch(isAuth, editVariant)
+  .delete(isAuth, deleteVariant);
 
 // Img add and delete
 router
   .route("/:productId/variants/:variantId/image")
   .post(isAuth, pImgUpload.single("image"), addVariantImage)
   .delete(isAuth, deleteVariantImage);
-
-
 
 export default router;

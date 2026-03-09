@@ -28,6 +28,54 @@
                                                         Product Details
                                                 </h1>
 
+                                                <!-- ACTION DROPDOWN -->
+                                                <div class="relative">
+
+                                                        <button onclick="toggleActionMenu()"
+                                                                class="bg-gray-700 hover:bg-gray-600 text-white text-sm px-4 py-2 rounded-lg flex items-center gap-2">
+
+                                                                Action
+                                                                <i class="fas fa-chevron-down text-xs"></i>
+
+                                                        </button>
+
+                                                        <!-- DROPDOWN -->
+                                                        <div id="actionDropdown"
+                                                                class="absolute right-0 mt-2 w-44 bg-[#0f172a] border border-white/10 rounded-lg shadow-lg hidden">
+
+                                                                <!-- EDIT PRODUCT -->
+                                                                <a href="/admin/products/edit/<%= product._id %>"
+                                                                        class="block px-4 py-2 text-sm text-gray-300 hover:bg-white/10">
+                                                                        Edit Product
+                                                                </a>
+
+                                                                <!-- LIST / UNLIST -->
+                                                                <% if(product.status==="listed" ){ %>
+
+                                                                        <button onclick="toggleProductStatus('<%= product._id %>','unlist')"
+                                                                                class="w-full text-left px-4 py-2 text-sm text-yellow-400 hover:bg-white/10">
+                                                                                Unlist Product
+                                                                        </button>
+
+                                                                        <% } else { %>
+
+                                                                                <button onclick="toggleProductStatus('<%= product._id %>','list')"
+                                                                                        class="w-full text-left px-4 py-2 text-sm text-green-400 hover:bg-white/10">
+                                                                                        List Product
+                                                                                </button>
+
+                                                                                <% } %>
+
+                                                                                        <!-- DELETE PRODUCT -->
+                                                                                        <button onclick="deleteProduct('<%= product._id %>')"
+                                                                                                class="w-full text-left px-4 py-2 text-sm text-red-400 hover:bg-white/10">
+                                                                                                Delete Product
+                                                                                        </button>
+
+                                                        </div>
+
+                                                </div>
+
                                         </div>
 
 
@@ -64,7 +112,9 @@
                                                                         <span class="text-gray-400">Status:</span>
 
                                                                         <span class="px-2 py-1 rounded-full text-xs
-<%= product.status === " listed" ? "bg-emerald-500/20 text-emerald-400" : "bg-red-500/20 text-red-400" %>">
+                                                              <%= product.status === " listed"
+                                                                                ? "bg-emerald-500/20 text-emerald-400"
+                                                                                : "bg-red-500/20 text-red-400" %>">
 
                                                                                 <%= product.status==="listed" ? "Listed"
                                                                                         : "Unlisted" %>
@@ -108,7 +158,7 @@
                                                                 <div class="bg-[#0f172a] p-4 rounded-lg text-center">
                                                                         <p class="text-gray-400 text-sm">Minimum Price
                                                                         </p>
-                                                                        <p class="text-xl text-white font-semibold">$<%=
+                                                                        <p class="text-xl text-white font-semibold">₹<%=
                                                                                         minPrice %>
                                                                         </p>
                                                                 </div>
@@ -245,7 +295,9 @@
 
                                                                                                                 <% }) %>
 
-                                                                                                                        <td>₹<%= v.price %></td>
+                                                                                                                        <td>₹<%= v.price
+                                                                                                                                        %>
+                                                                                                                        </td>
                                                                                                                         <td>
                                                                                                                                 <%= v.stock
                                                                                                                                         %>
@@ -310,10 +362,34 @@
                                                                                                                         <td
                                                                                                                                 class="text-right">
 
-                                                                                                                                <button onclick="deleteVariant('<%= v._id %>')"
-                                                                                                                                        class="text-red-400 text-xs hover:text-red-300">
-                                                                                                                                        Delete
-                                                                                                                                </button>
+                                                                                                                                <div
+                                                                                                                                        class="flex justify-end gap-3">
+
+                                                                                                                                        <!-- EDIT -->
+
+                                                                                                                                        <button onclick='editVariant(
+                        "<%= v._id %>",
+                        "<%= v.sku %>",
+                        "<%= v.price %>",
+                        "<%= v.stock %>",
+                        <%- JSON.stringify(v.attributes instanceof Map ? Object.fromEntries(v.attributes) : v.attributes) %>
+                )' class="text-blue-400 text-xs hover:text-blue-300">
+
+                                                                                                                                                Edit
+
+                                                                                                                                        </button>
+
+
+                                                                                                                                        <!-- DELETE -->
+
+                                                                                                                                        <button onclick="deleteVariant('<%= v._id %>')"
+                                                                                                                                                class="text-red-400 text-xs hover:text-red-300">
+
+                                                                                                                                                Delete
+
+                                                                                                                                        </button>
+
+                                                                                                                                </div>
 
                                                                                                                         </td>
                                                                                                                         <input type="file"
@@ -439,6 +515,27 @@
 
                 <script>
 
+                        function toggleActionMenu() {
+
+                                const menu = document.getElementById("actionDropdown")
+
+                                menu.classList.toggle("hidden")
+
+                        }
+
+                        // close dropdown when clicking outside
+                        document.addEventListener("click", function (e) {
+
+                                const menu = document.getElementById("actionDropdown")
+
+                                if (!e.target.closest(".relative")) {
+
+                                        menu.classList.add("hidden")
+
+                                }
+
+                        })
+
                         const swalDark = {
                                 background: "#1a1a1a",
                                 color: "#ffffff",
@@ -447,6 +544,8 @@
                         }
 
                         let editingVariantAttributes = {}
+                        let currentVariantId = null
+
 
                         function openVariantModal() {
 
@@ -464,6 +563,7 @@
                                 document.getElementById("variantModal").classList.remove("hidden")
 
                         }
+
 
                         function closeVariantModal() {
                                 document.getElementById("variantModal").classList.add("hidden")
@@ -510,7 +610,6 @@
                         }
 
 
-
                         function editVariant(id, sku, price, stock, attributes = {}) {
 
                                 document.getElementById("variant-id").value = id
@@ -539,10 +638,54 @@
                                 try {
 
                                         const variantId = document.getElementById("variant-id").value
-
                                         const sku = document.getElementById("variant-sku").value.trim()
-                                        const price = document.getElementById("variant-price").value
-                                        const stock = document.getElementById("variant-stock").value
+                                        const price = parseFloat(document.getElementById("variant-price").value)
+                                        const stock = parseInt(document.getElementById("variant-stock").value)
+
+                                        if (!sku) {
+
+                                                Swal.fire({
+                                                        ...swalDark,
+                                                        icon: "warning",
+                                                        title: "Validation Error",
+                                                        text: "SKU is required"
+                                                })
+                                                return
+                                        }
+
+                                        if (sku.length < 3) {
+
+                                                Swal.fire({
+                                                        ...swalDark,
+                                                        icon: "warning",
+                                                        title: "Validation Error",
+                                                        text: "SKU must be at least 3 characters"
+                                                })
+                                                return
+                                        }
+
+                                        if (!price || price <= 0) {
+
+                                                Swal.fire({
+                                                        ...swalDark,
+                                                        icon: "warning",
+                                                        title: "Validation Error",
+                                                        text: "Price must be greater than 0"
+                                                })
+                                                return
+                                        }
+
+                                        if (stock < 0) {
+
+                                                Swal.fire({
+                                                        ...swalDark,
+                                                        icon: "warning",
+                                                        title: "Validation Error",
+                                                        text: "Stock cannot be negative"
+                                                })
+                                                return
+                                        }
+
 
                                         const attributes = {}
 
@@ -551,14 +694,29 @@
                                                         attributes[input.name] = input.value.trim()
                                                 })
 
+                                        for (const key in attributes) {
+
+                                                if (!attributes[key]) {
+
+                                                        Swal.fire({
+                                                                ...swalDark,
+                                                                icon: "warning",
+                                                                title: "Validation Error",
+                                                                text: `${key} cannot be empty`
+                                                        })
+                                                        return
+
+                                                }
+
+                                        }
+
+
                                         let url = `/admin/products/<%= product._id %>/variants`
                                         let method = "POST"
 
                                         if (variantId) {
-
                                                 url = `/admin/products/<%= product._id %>/variants/${variantId}`
                                                 method = "PATCH"
-
                                         }
 
                                         const res = await fetch(url, {
@@ -579,7 +737,6 @@
                                                         title: "Error",
                                                         text: data.message
                                                 })
-
                                                 return
                                         }
 
@@ -634,7 +791,6 @@
                                                         title: "Error",
                                                         text: data.message
                                                 })
-
                                                 return
                                         }
 
@@ -660,15 +816,13 @@
 
 
 
-                        let currentVariantId = null
-
                         function openImageUpload(variantId) {
 
                                 currentVariantId = variantId
-
                                 document.getElementById("variantImageInput").click()
 
                         }
+
 
 
                         document.getElementById("variantImageInput")
@@ -680,8 +834,29 @@
 
                                                 if (!file) return
 
-                                                const formData = new FormData()
+                                                if (!file.type.startsWith("image/")) {
 
+                                                        Swal.fire({
+                                                                ...swalDark,
+                                                                icon: "warning",
+                                                                title: "Invalid File",
+                                                                text: "Only image files are allowed"
+                                                        })
+                                                        return
+                                                }
+
+                                                if (file.size > 5 * 1024 * 1024) {
+
+                                                        Swal.fire({
+                                                                ...swalDark,
+                                                                icon: "warning",
+                                                                title: "File Too Large",
+                                                                text: "Image must be less than 5MB"
+                                                        })
+                                                        return
+                                                }
+
+                                                const formData = new FormData()
                                                 formData.append("image", file)
 
                                                 const res = await fetch(
@@ -702,7 +877,6 @@
                                                                 title: "Upload Failed",
                                                                 text: data.message
                                                         })
-
                                                         return
                                                 }
 
@@ -763,7 +937,6 @@
                                                         title: "Error",
                                                         text: data.message
                                                 })
-
                                                 return
                                         }
 
