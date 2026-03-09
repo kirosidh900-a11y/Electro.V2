@@ -1,7 +1,7 @@
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
 <!-- Tailwind CDN -->
 <script src="https://cdn.tailwindcss.com"></script>
- <!-- <link rel="stylesheet" href="/user/css/output.css"> -->
+<!-- <link rel="stylesheet" href="/user/css/output.css"> -->
 <script>
     tailwind.config = {
         theme: {
@@ -156,150 +156,64 @@
                 <!-- Product Grid -->
                 <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6 lg:gap-8">
 
-                    <!-- Product 1 -->
-                    <div
-                        class="flex flex-col group relative bg-white rounded-xl overflow-hidden shadow-sm hover:shadow-2xl transition-all duration-300 border border-gray-100">
+                    <% products.forEach(product=> {
+                        const variant = product;
+                        const image = product?.image || "https://placehold.co/400x400";
+
+                        %>
+
                         <div
-                            class="relative w-full aspect-[4/5] sm:aspect-square flex items-center justify-center overflow-hidden cursor-pointer p-4 md:p-8 bg-[#f8f9fa] group-hover:bg-white transition-colors">
-                            <img src="https://placehold.co/400x400/blue/white?text=Product+1" alt="Product"
-                                class="w-full h-full object-contain group-hover:scale-110 transition-transform duration-500 ease-in-out mix-blend-multiply">
+                            class="flex flex-col group relative bg-white rounded-xl overflow-hidden shadow-sm hover:shadow-2xl transition-all duration-300 border border-gray-100">
 
+                            <!-- IMAGE -->
                             <div
-                                class="absolute top-3 left-3 bg-brand-red text-white px-2 py-1 md:px-3 md:py-1 text-[10px] md:text-xs font-bold rounded shadow-sm z-20">
-                                -10%
+                                class="relative w-full aspect-[4/5] sm:aspect-square flex items-center justify-center overflow-hidden cursor-pointer p-4 md:p-8 bg-[#f8f9fa] group-hover:bg-white transition-colors">
+
+                                <img src="<%= image %>"
+                                    class="w-full h-full object-contain group-hover:scale-110 transition-transform duration-500 mix-blend-multiply">
+
+                                <!-- Hover Buttons -->
+                                <div
+                                    class="absolute top-3 right-3 flex flex-col gap-2 opacity-100 lg:opacity-0 lg:translate-x-4 lg:group-hover:translate-x-0 lg:group-hover:opacity-100 transition-all duration-300">
+
+                                    <button
+                                        class="w-8 h-8 md:w-10 md:h-10 bg-white text-gray-600 rounded-full shadow-md flex items-center justify-center hover:bg-brand-red hover:text-white transition-all">
+                                        <i class="far fa-heart text-xs md:text-sm"></i>
+                                    </button>
+
+                                    <button
+                                        class="w-8 h-8 md:w-10 md:h-10 bg-gray-900 text-white rounded-full shadow-md flex items-center justify-center hover:bg-brand-red hover:text-white transition-all">
+                                        <i class="fa fa-shopping-cart text-xs md:text-sm"></i>
+                                    </button>
+
+                                </div>
                             </div>
 
-                            <!-- Hover Action Buttons -->
-                            <div
-                                class="absolute top-3 right-3 flex flex-col gap-2 opacity-100 lg:opacity-0 lg:translate-x-4 lg:group-hover:translate-x-0 lg:group-hover:opacity-100 transition-all duration-300 z-10">
-                                <button
-                                    class="w-8 h-8 md:w-10 md:h-10 bg-white text-gray-600 rounded-full shadow-md flex items-center justify-center hover:bg-brand-red hover:text-white transition-all transform hover:scale-110">
-                                    <i class="far fa-heart text-xs md:text-sm"></i>
-                                </button>
-                                <button
-                                    class="w-8 h-8 md:w-10 md:h-10 bg-gray-900 text-white rounded-full shadow-md flex items-center justify-center hover:bg-brand-red hover:text-white transition-all transform hover:scale-110">
-                                    <i class="fa fa-shopping-cart text-xs md:text-sm"></i>
-                                </button>
+                            <!-- PRODUCT INFO -->
+                            <div class="p-4 md:p-6 flex-1 flex flex-col bg-white">
+
+                                <h6
+                                    class="text-gray-900 text-sm md:text-base font-bold mb-1 truncate group-hover:text-brand-red">
+                                    <%= product.name %>
+                                </h6>
+
+                                <span class="text-[10px] md:text-xs text-green-500 font-semibold mb-3 block">
+                                    <i class="fa-solid fa-truck-fast mr-1"></i> FREE Delivery
+                                </span>
+
+                                <div class="flex items-center flex-wrap gap-2 mt-auto">
+
+                                    <span class="text-brand-red text-lg md:text-xl font-bold">
+                                        ₹<%= variant?.price || 0 %>
+                                    </span>
+
+                                </div>
+
                             </div>
+
                         </div>
 
-                        <div class="p-4 md:p-6 flex-1 flex flex-col cursor-pointer bg-white">
-                            <h6
-                                class="text-gray-900 text-sm md:text-base font-bold mb-1 truncate group-hover:text-brand-red transition-colors">
-                                Pique Biker Jacket</h6>
-                            <span class="text-[10px] md:text-xs text-green-500 font-semibold mb-3 block"><i
-                                    class="fa-solid fa-truck-fast mr-1"></i> FREE Delivery</span>
-                            <div class="flex items-center flex-wrap gap-2 mt-auto">
-                                <span class="text-brand-red text-lg md:text-xl font-bold">₹67,000</span>
-                                <span class="text-gray-400 text-xs md:text-sm line-through font-medium">₹75,000</span>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Product 2 -->
-                    <div
-                        class="flex flex-col group relative bg-white rounded-xl overflow-hidden shadow-sm hover:shadow-2xl transition-all duration-300 border border-gray-100">
-                        <div
-                            class="relative w-full aspect-[4/5] sm:aspect-square flex items-center justify-center overflow-hidden cursor-pointer p-4 md:p-8 bg-[#f8f9fa] group-hover:bg-white transition-colors">
-                            <img src="https://placehold.co/400x400/indigo/white?text=Product+2" alt="Product"
-                                class="w-full h-full object-contain group-hover:scale-110 transition-transform duration-500 ease-in-out mix-blend-multiply">
-
-                            <div
-                                class="absolute top-3 right-3 flex flex-col gap-2 opacity-100 lg:opacity-0 lg:translate-x-4 lg:group-hover:translate-x-0 lg:group-hover:opacity-100 transition-all duration-300 z-10">
-                                <button
-                                    class="w-8 h-8 md:w-10 md:h-10 bg-white text-gray-600 rounded-full shadow-md flex items-center justify-center hover:bg-brand-red hover:text-white transition-all transform hover:scale-110">
-                                    <i class="far fa-heart text-xs md:text-sm"></i>
-                                </button>
-                                <button
-                                    class="w-8 h-8 md:w-10 md:h-10 bg-gray-900 text-white rounded-full shadow-md flex items-center justify-center hover:bg-brand-red hover:text-white transition-all transform hover:scale-110">
-                                    <i class="fa fa-shopping-cart text-xs md:text-sm"></i>
-                                </button>
-                            </div>
-                        </div>
-
-                        <div class="p-4 md:p-6 flex-1 flex flex-col cursor-pointer bg-white">
-                            <h6
-                                class="text-gray-900 text-sm md:text-base font-bold mb-1 truncate group-hover:text-brand-red transition-colors">
-                                Diagonal Textured Cap</h6>
-                            <span class="text-[10px] md:text-xs text-green-500 font-semibold mb-3 block"><i
-                                    class="fa-solid fa-truck-fast mr-1"></i> FREE Delivery</span>
-                            <div class="flex items-center flex-wrap gap-2 mt-auto">
-                                <span class="text-brand-red text-lg md:text-xl font-bold">₹608</span>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Product 3 -->
-                    <div
-                        class="flex flex-col group relative bg-white rounded-xl overflow-hidden shadow-sm hover:shadow-2xl transition-all duration-300 border border-gray-100">
-                        <div
-                            class="relative w-full aspect-[4/5] sm:aspect-square flex items-center justify-center overflow-hidden cursor-pointer p-4 md:p-8 bg-[#f8f9fa] group-hover:bg-white transition-colors">
-                            <img src="https://placehold.co/400x400/orange/white?text=Product+3" alt="Product"
-                                class="w-full h-full object-contain group-hover:scale-110 transition-transform duration-500 ease-in-out mix-blend-multiply">
-
-                            <div
-                                class="absolute top-3 left-3 bg-brand-red text-white px-2 py-1 md:px-3 md:py-1 text-[10px] md:text-xs font-bold rounded shadow-sm z-20">
-                                -₹500
-                            </div>
-
-                            <div
-                                class="absolute top-3 right-3 flex flex-col gap-2 opacity-100 lg:opacity-0 lg:translate-x-4 lg:group-hover:translate-x-0 lg:group-hover:opacity-100 transition-all duration-300 z-10">
-                                <button
-                                    class="w-8 h-8 md:w-10 md:h-10 bg-white text-gray-600 rounded-full shadow-md flex items-center justify-center hover:bg-brand-red hover:text-white transition-all transform hover:scale-110">
-                                    <i class="far fa-heart text-xs md:text-sm"></i>
-                                </button>
-                                <button
-                                    class="w-8 h-8 md:w-10 md:h-10 bg-gray-900 text-white rounded-full shadow-md flex items-center justify-center hover:bg-brand-red hover:text-white transition-all transform hover:scale-110">
-                                    <i class="fa fa-shopping-cart text-xs md:text-sm"></i>
-                                </button>
-                            </div>
-                        </div>
-
-                        <div class="p-4 md:p-6 flex-1 flex flex-col cursor-pointer bg-white">
-                            <h6
-                                class="text-gray-900 text-sm md:text-base font-bold mb-1 truncate group-hover:text-brand-red transition-colors">
-                                Multi-pocket Chest Bag</h6>
-                            <span class="text-[10px] md:text-xs text-green-500 font-semibold mb-3 block"><i
-                                    class="fa-solid fa-truck-fast mr-1"></i> FREE Delivery</span>
-                            <div class="flex items-center flex-wrap gap-2 mt-auto">
-                                <span class="text-brand-red text-lg md:text-xl font-bold">₹4,343</span>
-                                <span class="text-gray-400 text-xs md:text-sm line-through font-medium">₹4,843</span>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Product 4 -->
-                    <div
-                        class="flex flex-col group relative bg-white rounded-xl overflow-hidden shadow-sm hover:shadow-2xl transition-all duration-300 border border-gray-100">
-                        <div
-                            class="relative w-full aspect-[4/5] sm:aspect-square flex items-center justify-center overflow-hidden cursor-pointer p-4 md:p-8 bg-[#f8f9fa] group-hover:bg-white transition-colors">
-                            <img src="https://placehold.co/400x400/gray/black?text=Product+4" alt="Product"
-                                class="w-full h-full object-contain group-hover:scale-110 transition-transform duration-500 ease-in-out mix-blend-multiply">
-
-                            <div
-                                class="absolute top-3 right-3 flex flex-col gap-2 opacity-100 lg:opacity-0 lg:translate-x-4 lg:group-hover:translate-x-0 lg:group-hover:opacity-100 transition-all duration-300 z-10">
-                                <button
-                                    class="w-8 h-8 md:w-10 md:h-10 bg-white text-gray-600 rounded-full shadow-md flex items-center justify-center hover:bg-brand-red hover:text-white transition-all transform hover:scale-110">
-                                    <i class="far fa-heart text-xs md:text-sm"></i>
-                                </button>
-                                <button
-                                    class="w-8 h-8 md:w-10 md:h-10 bg-gray-900 text-white rounded-full shadow-md flex items-center justify-center hover:bg-brand-red hover:text-white transition-all transform hover:scale-110">
-                                    <i class="fa fa-shopping-cart text-xs md:text-sm"></i>
-                                </button>
-                            </div>
-                        </div>
-
-                        <div class="p-4 md:p-6 flex-1 flex flex-col cursor-pointer bg-white">
-                            <h6
-                                class="text-gray-900 text-sm md:text-base font-bold mb-1 truncate group-hover:text-brand-red transition-colors">
-                                Ankle Boots</h6>
-                            <span class="text-[10px] md:text-xs text-green-500 font-semibold mb-3 block"><i
-                                    class="fa-solid fa-truck-fast mr-1"></i> FREE Delivery</span>
-                            <div class="flex items-center flex-wrap gap-2 mt-auto">
-                                <span class="text-brand-red text-lg md:text-xl font-bold">₹9,849</span>
-                            </div>
-                        </div>
-                    </div>
+                        <% }) %>
 
                 </div>
             </div>

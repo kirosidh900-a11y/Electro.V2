@@ -13,13 +13,15 @@ import {
 
 import { isValidReferral, createRef } from "./referral.service.js";
 
+
 // Check if user already exists
 export const isUserExist = async (email) => {
   const existingUser = await User.findOne({
     email: email.trim().toLowerCase(),
   });
   if (existingUser) {
-    throw new AppError("Email already exists", HTTP_STATUS.BAD_REQUEST);
+    // throw new AppError("Email already exists", HTTP_STATUS.BAD_REQUEST);
+    
   }
   return false;
 };

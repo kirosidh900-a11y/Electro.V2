@@ -28,7 +28,7 @@ export const showHomePage = async (req, res) => {
       };
     });
 
-    console.log(products);
+    console.log(formattedProducts);
 
     res.render("user/home/index", {
       user: userData,

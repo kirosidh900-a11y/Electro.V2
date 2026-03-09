@@ -4,4 +4,5 @@ export const adminMenu = [
   { name: "Category", icon: "fas fa-box", path: "/admin/category" },
   { name: "Brand", icon: "fas fa-tag", path: "/admin/brand" },
   { name: "Products", icon: "fas fa-shopping-bag", path: "/admin/products" },
+  
 ];
