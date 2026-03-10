@@ -15,7 +15,10 @@ const adminAuth = async (req, res, next) => {
     const admin = await User.findById(decoded.id).select("-password -googleId");
 
     if (!admin || !admin.isAdmin || admin.isBlock) {
-       clearAuthCookie(res,"adminToken");
+      res.locals.admin = null;
+      res.locals.menu = null;
+      res.locals.currentPath = null;
+      clearAuthCookie(res, "adminToken");
 
       return res.redirect("/admin"); // better than next()
     }
@@ -28,14 +31,11 @@ const adminAuth = async (req, res, next) => {
 
     next();
   } catch (err) {
-    console.log("AdminAuth Error:",err)
-    res.clearCookie("adminToken", {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
-      sameSite: "lax",
-      path: "/",
-    });
-
+    console.log("AdminAuth Error:", err);
+    clearAuthCookie(res, "adminToken");
+    res.locals.admin = null;
+    res.locals.menu = null;
+    res.locals.currentPath = null;
     return res.redirect("/admin");
   }
 };

@@ -8,7 +8,8 @@ export const getUserData = async (userId) => {
   return user;
 };
 
-export const verifyEmail = async (email, otp, purpose) => {
+//Forgot Password 
+export const verifyForgotOTP = async (email, otp, purpose) => {
   const otpRecord = await Otp.findOne({ email, otp, purpose });
 
   if (!otpRecord) {

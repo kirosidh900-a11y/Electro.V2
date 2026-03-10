@@ -16,16 +16,18 @@ const attachUser = async (req, res, next) => {
 
     // 🔥 If user deleted OR blocked → logout
     if (!user || user.isBlock) {
-      clearAuthCookie(res,'token')
+      clearAuthCookie(res, "token");
       req.user = null;
       return next();
     }
 
     req.user = user;
+    res.locals.user = user;
   } catch (err) {
-    console.log(err)
+    console.log(err);
     res.clearCookie("token", { path: "/" });
     req.user = null;
+    res.locals.user = null;
   }
 
   next();

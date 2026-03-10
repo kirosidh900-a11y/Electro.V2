@@ -3,7 +3,7 @@ const errorMiddleware = (err, req, res) => {
 
   const statusCode = err.statusCode || 500;
 
-  // API routes return JSON
+  // API routes
   if (
     req.originalUrl.startsWith("/auth") ||
     req.originalUrl.startsWith("/admin")
@@ -14,9 +14,9 @@ const errorMiddleware = (err, req, res) => {
     });
   }
 
-  // Normal pages render EJS
+  // Normal page errors
   return res.status(statusCode).render("error", {
-    message: err.message,
+    message: err.message || "Something went wrong",
   });
 };
 

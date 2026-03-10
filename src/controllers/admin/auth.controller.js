@@ -6,7 +6,12 @@ import {
   isValidPassword,
 } from "../../utils/partials/validation.utils.js";
 
-import { checkIfAdmin, checkIfBlocked } from "../../utils/user/auth.utils.js";
+import {
+  checkIfAdmin,
+  checkIfBlocked,
+  checkGoogleAuth,
+} from "../../utils/partials/auth/auth.util.js";
+
 import { verifyPassword } from "../../utils/partials/hashHelper.utils.js";
 import HTTP_STATUS from "../../constant/statusCode.js";
 import clearAuthCookie from "../../utils/partials/clearCookie.js";
@@ -30,7 +35,7 @@ export const Login = async (req, res, next) => {
     isValidPassword(password);
 
     // Find Admin User
-    const admin = await User.findOne({ email });
+    const admin = await User.findOne({ email }).lean();
 
     // If blocked
     checkIfBlocked(admin);
@@ -38,13 +43,7 @@ export const Login = async (req, res, next) => {
     // If not found or not admin
     checkIfAdmin(admin);
 
-    if (!admin.password && admin.googleId) {
-      return res.status(400).json({
-        success: false,
-        type: "GOOGLE_ACCOUNT",
-        message: "This admin account is registered with Google.",
-      });
-    }
+    checkGoogleAuth(admin);
 
     // Verify Password
     const isMatch = await verifyPassword(admin?.password, password);
@@ -60,7 +59,7 @@ export const Login = async (req, res, next) => {
     const token = generateJWT(admin, "1h");
 
     // Set Cookie
-    setAuthCookie(res, token ,'admin');
+    setAuthCookie(res, token, "admin");
 
     // Success Response
     return res.status(200).json({
@@ -73,7 +72,7 @@ export const Login = async (req, res, next) => {
     next(error);
   }
 };
- 
+
 export const logout = async (req, res, next) => {
   try {
     clearAuthCookie(res, "adminToken");

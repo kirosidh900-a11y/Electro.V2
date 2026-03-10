@@ -13,6 +13,6 @@ export const isAuth = (req, res, next) => {
   if (!token) {
     return res.redirect("/admin");
   }
-  
-   return next();
+
+  return next();
 };

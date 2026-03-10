@@ -1,11 +1,8 @@
 import HTTP_STATUS from "../../constant/statusCode.js";
-import { verifyEmail } from "../../services/user/user.service.js";
-import Products from '../../models/productSchema.model.js';
+import Products from "../../models/productSchema.model.js";
 
 export const showHomePage = async (req, res) => {
   try {
-    let userData = req.user || null;
-
     const products = await Products.find({
       status: "listed",
       isDeleted: false,
@@ -31,26 +28,13 @@ export const showHomePage = async (req, res) => {
     console.log(formattedProducts);
 
     res.render("user/home/index", {
-      user: userData,
       products: formattedProducts,
     });
   } catch (error) {
     console.log(error);
-    res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).send("Failed to load homepage");
+    res
+      .status(HTTP_STATUS.INTERNAL_SERVER_ERROR)
+      .send("Failed to load homepage");
   }
 };
 
-export const verifyOTP = async (req, res, next) => {
-  try {
-    const { email, otp, purpose } = req.body;
-    // Verify OTP for forgot password
-    await verifyEmail(email, otp, purpose);
-
-    res.json({
-      success: true,
-      message: "OTP verified successfully",
-    });
-  } catch (err) {
-    next(err);
-  }
-};
