@@ -1,12 +1,8 @@
+import { showToast } from "../../partials/errorMsg.utils.js";
+
 const loginForm = document.getElementById("loginForm");
 const emailInput = document.getElementById("email");
 const passwordInput = document.getElementById("password");
-
-const swalDark = {
-  background: "#1a1a1a",
-  color: "#ffffff",
-  confirmButtonColor: "#fa5252",
-};
 
 const isValidEmail = () => {
   const input = document.getElementById("email");
@@ -69,12 +65,7 @@ loginForm.addEventListener("submit", async (e) => {
   const valid = isValidEmail() && isValidPassword();
 
   if (!valid) {
-    Swal.fire({
-      ...swalDark,
-      icon: "error",
-      title: "Invalid Input",
-      text: "Please correct the errors in the form.",
-    });
+    showToast("Please correct the errors in the form.", "warning");
     return;
   }
 
@@ -90,34 +81,19 @@ loginForm.addEventListener("submit", async (e) => {
     const data = await response.json();
 
     if (data.success) {
-      await Swal.fire({
-        ...swalDark,
-        icon: "success",
-        title: "Login Successful",
-        text: data.message || "Welcome Admin!",
-        timer: 1500,
-        showConfirmButton: false,
-      });
+      showToast(data?.message || "Welcome Admin!", "success");
 
-      window.location.href = "/admin/dashboard";
+      setTimeout(() => {
+        window.location.href = "/admin/dashboard";
+      }, 1000);
     } else {
-      Swal.fire({
-        ...swalDark,
-        icon: "error",
-        title: "Login Failed",
-        text: data.message || "Invalid credentials",
-        confirmButtonColor: "#d33",
-      });
+      showToast(data?.message || "Invalid credentials", "error");
+      return;
     }
   } catch (error) {
     console.log("loginForm Error:", error);
-    Swal.fire({
-      ...swalDark,
-      icon: "error",
-      title: "Server Error",
-      text: "Something went wrong. Please try again.",
-      confirmButtonColor: "#d33",
-    });
+    showToast("Something went wrong. Please try again.",'error');
+    return;
   }
 });
 

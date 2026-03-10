@@ -13,6 +13,7 @@ import {
   verifyEmail,
   savePassword,
   passportRed,
+  verifyOTP
 } from "../../controllers/user/auth.controller.js";
 
 import attachUser from "../../middlewares/attachUser.middleware.js";
@@ -29,6 +30,7 @@ router.route("/login").get(authMiddleware, showLoginPage).post(Login);
 
 router.route("/signup").get(authMiddleware, showSignUpPage).post(signUp);
 
+//SignUp Verify
 router.post("/verify-otp", verifyOtp);
 router.patch("/resend-otp", resendOtp);
 
@@ -37,12 +39,12 @@ router
   .route("/forgot-password")
   .get(authMiddleware, showForgotPasswordPage)
   .post(verifyEmail);
+// Forgot Verify otp
+router.post('/verifyFog-otp', verifyOTP);
 
 router.patch("/reset-password", savePassword);
 
-/* =====================================================
-   LOGOUT
-===================================================== */
+//  LOGOUT
 router.post("/logout", logout);
 
 //  GOOGLE LOGIN

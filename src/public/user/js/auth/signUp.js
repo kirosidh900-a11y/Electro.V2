@@ -7,6 +7,8 @@ import {
   isValidReferral,
 } from "./Validation.js";
 
+import { showToast } from "../../../partials/errorMsg.utils.js";
+
 const signUpForm = document.getElementById("signUpForm");
 const otpForm = document.getElementById("otpForm");
 const resendBtn = document.getElementById("resendOtpBtn");
@@ -19,12 +21,6 @@ function* authFlow() {
   yield "signup";
   yield "otp";
 }
-
-const swalDark = {
-  background: "#1a1a1a",
-  color: "#ffffff",
-  confirmButtonColor: "#fa5252",
-};
 
 const name = document.getElementById("signupName");
 const email = document.getElementById("signupEmail");
@@ -66,12 +62,7 @@ signUpForm.addEventListener("submit", async (e) => {
     isValidReferral();
 
   if (!valid) {
-    Swal.fire({
-      ...swalDark,
-      icon: "warning",
-      title: "Invalid Input",
-      text: "Please fix the errors in the form before submitting.",
-    });
+    showToast("Please fix the errors in the form before submitting.", "error");
     return;
   }
 
@@ -105,24 +96,12 @@ signUpForm.addEventListener("submit", async (e) => {
     if (response.ok) {
       registeredEmail = email;
 
-      await Swal.fire({
-        ...swalDark,
-        icon: "success",
-        title: "OTP sent!",
-        text: data.message,
-        timer: 1500,
-        showConfirmButton: false,
-        showCancelButton: false,
-      });
+      showToast("OTP Sented!", "info");
 
-       Swal.fire({
-        ...swalDark,
-        icon: "info",
-        title: "Please Note!",
-        text: "Do not refresh page until OTP verification is done.",
-        showCancelButton: true,
-        timer: 2000,
-      });
+      showToast(
+        "Do not refresh page until OTP verification is done.",
+        "warning",
+      );
 
       // Move to OTP step
       signUpForm.reset();
@@ -134,23 +113,11 @@ signUpForm.addEventListener("submit", async (e) => {
       startOtpTimer();
     } else {
       resetSignupButton();
-      Swal.fire({
-        ...swalDark,
-        icon: "error",
-        title: "Error!",
-        text: data.message,
-        showCancelButton: true,
-      });
+      showToast(data.message, "error");
     }
   } catch (err) {
     resetSignupButton();
-    Swal.fire({
-      ...swalDark,
-      icon: "error",
-      title: "Error!",
-      text: err.message,
-      showCancelButton: true,
-    });
+    showToast(err.message, "error");
   }
 });
 
@@ -178,21 +145,16 @@ otpForm.addEventListener("submit", async (e) => {
     const data = await response.json();
 
     if (response.ok) {
-      Swal.fire({
-        ...swalDark,
-        icon: "success",
-        title: "Account Verified!",
-        message: data.message || "Your account has been created successfully.",
-        timer: 2000,
-        showConfirmButton: false,
-      }).then(() => {
+      showToast(data.message);
+
+      setTimeout(() => {
         window.location.href = "/auth/login";
-      });
+      }, 2000);
     } else {
-      Swal.fire("Error", data.message, "error");
+      showToast(data.message, "error");
     }
   } catch (err) {
-    Swal.fire("Error", err.message, "error");
+    showToast(err.message, "error");
   }
 });
 
@@ -202,7 +164,7 @@ let countdown;
 let timeLeft = 50;
 
 function startOtpTimer() {
-  // 🔥 Clear previous interval if exists
+  // Clear previous interval if exists
   if (countdown) {
     clearInterval(countdown);
   }
@@ -254,25 +216,18 @@ resendBtn.addEventListener("click", async (e) => {
     const data = await response.json();
 
     if (response.ok) {
-      Swal.fire({
-        ...swalDark,
-        icon: "success",
-        title: "OTP resent!",
-        text: data.message, // ⚠️ use text not message
-        timer: 1500,
-        showConfirmButton: false,
-      });
+      showToast(data.message);
 
-      startOtpTimer(); // timer will re-enable later
+      startOtpTimer();
     } else {
       resendBtn.disabled = false;
       resendBtn.classList.remove("opacity-50", "cursor-not-allowed");
-      Swal.fire("Error", data.message, "error");
+      showToast(data.message, "error");
     }
   } catch (err) {
     resendBtn.disabled = false;
     resendBtn.classList.remove("opacity-50", "cursor-not-allowed");
-    Swal.fire("Error", err.message, "error");
+    showToast(err.message, "error");
   }
 });
 

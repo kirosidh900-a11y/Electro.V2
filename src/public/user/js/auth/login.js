@@ -1,14 +1,10 @@
+import { showToast } from "../../../partials/errorMsg.utils.js";
+
 const loginForm = document.getElementById("loginForm");
 const emailInput = document.getElementById("email");
 const passwordInput = document.getElementById("password");
 const rememberMeCheckbox = document.getElementById("rememberMe");
 const submitBtn = document.getElementById("formSub");
-
-const swalDark = {
-  background: "#1a1a1a",
-  color: "#ffffff",
-  confirmButtonColor: "#fa5252",
-};
 
 const isValidEmail = () => {
   const input = document.getElementById("email");
@@ -68,12 +64,7 @@ loginForm.addEventListener("submit", async (e) => {
   const valid = isValidEmail() && isValidPassword();
 
   if (!valid) {
-    Swal.fire({
-      ...swalDark,
-      icon: "error",
-      title: "Invalid Input",
-      text: "Please correct the errors in the form.",
-    });
+    showToast("Please correct the errors in the form.", "error");
     return;
   }
 
@@ -95,40 +86,23 @@ loginForm.addEventListener("submit", async (e) => {
     });
 
     const data = await response.json();
-   console.log(data);
+
     if (response.ok) {
-      Swal.fire({
-        ...swalDark,
-        icon: "success",
-        title: "Login Successful",
-        text: data.message,
-        timer: 1500,
-        showConfirmButton: false,
-      }).then(() => {
+      showToast(data.message, "success");
+      setTimeout(() => {
         window.location.replace(data.redirectUrl);
-      });
+      }, 500);
     } else {
-      Swal.fire({
-        ...swalDark,
-        icon: "error",
-        title: "Login Failed",
-        text: data.message || "Invalid credentials.",
-      });
+      showToast(data.message, "error");
     }
   } catch (error) {
-    Swal.fire({
-      ...swalDark,
-      icon: "error",
-      title: "Login Failed",
-      text: error.message || "An error occurred during login.",
-    });
+    showToast(error.message, "error");
     console.error("Error during login:", error);
   } finally {
     submitBtn.disabled = false;
     submitBtn.textContent = "Log In";
   }
 });
-
 
 const togglePassword = document.getElementById("togglePassword");
 
@@ -144,4 +118,3 @@ togglePassword.addEventListener("click", () => {
 document.getElementById("googleBtn")?.addEventListener("click", () => {
   window.location.href = "/auth/google-user";
 });
-

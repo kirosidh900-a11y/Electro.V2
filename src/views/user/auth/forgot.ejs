@@ -1,5 +1,9 @@
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
 <script src="https://cdn.tailwindcss.com"></script>
+
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/toastify-js/src/toastify.min.css">
+<script defer src="https://cdn.jsdelivr.net/npm/toastify-js"></script>
+
 <%- include("../../partials/user/header") %>
 
     <main class="bg-gray-100 flex items-center justify-center py-6 px-4 sm:px-6 lg:px-8 min-h-screen">
@@ -74,13 +78,13 @@
                             <span id="passwordError" class="hidden text-red-400 text-xs mt-2 block"></span>
                         </div>
                         <div class="relative">
-                                <input type="password" id="cPassword" placeholder="Confirm Password"
+                            <input type="password" id="cPassword" placeholder="Confirm Password"
                                 class="w-full bg-[#16191f] text-gray-200 border border-[#2c313a] rounded-lg px-5 py-4 pr-12 focus:outline-none focus:border-[#fa5252]">
-                                <button type="button" class="absolute right-5 top-4 text-gray-500"
+                            <button type="button" class="absolute right-5 top-4 text-gray-500"
                                 onclick="togglePassword('cPassword', this)">
                                 <i class="fas fa-eye"></i>
-                        </button>
-                          <span id="cPasswordError" class="hidden text-red-400 text-xs mt-2 block"></span>
+                            </button>
+                            <span id="cPasswordError" class="hidden text-red-400 text-xs mt-2 block"></span>
                         </div>
                         <button type="submit" id="btn-step-3"
                             class="w-full bg-[#fa5252] text-white font-bold py-4 rounded-lg hover:bg-[#e03131] transition">
@@ -125,6 +129,6 @@
     </script>
 
     <!-- Main forgot-password logic -->
-    <script src="/user/js/auth/forgot.js" defer></script>
+    <script type="module" src="/user/js/auth/forgot.js" defer></script>
 
     <%- include("../../partials/user/footer") %>

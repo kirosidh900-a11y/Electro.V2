@@ -17,6 +17,7 @@ import {
   isValidate,
   addUser,
   isVerifyUser,
+  verifyForgOTP,
 } from "../../services/user/auth.service.js";
 
 import {
@@ -25,7 +26,7 @@ import {
 } from "../../services/partials/otp.service.js";
 
 // Utils
-import { checkIfBlocked } from "../../utils/user/auth.utils.js";
+import { checkIfBlocked } from "../../utils/partials/auth/auth.util.js";
 import generateOTP from "../../utils/partials/otpGenerater.js";
 import { hashedPassword } from "../../utils/partials/hashHelper.utils.js";
 import generateJWT from "../../utils/partials/jwt.utils.js";
@@ -38,10 +39,7 @@ import passport from "passport";
 import sendEmail from "../../constant/transporter.js";
 import clearAuthCookie from "../../utils/partials/clearCookie.js";
 
-/* ===============================
-   🔐 AUTH CONTROLLERS
-================================= */
-
+  //  🔐 AUTH CONTROLLERS
 // ================= LOGIN =================
 
 export const showLoginPage = (req, res) => {
@@ -147,6 +145,21 @@ export const resendOtp = async (req, res, next) => {
     res.json({
       success: true,
       message: "OTP resent successfully",
+    });
+  } catch (err) {
+    next(err);
+  }
+};
+
+export const verifyOTP = async (req, res, next) => {
+  try {
+    const { email, otp, purpose } = req.body;
+
+    await verifyForgOTP(email, otp, purpose);
+
+    res.json({
+      success: true,
+      message: "OTP verified successfully",
     });
   } catch (err) {
     next(err);

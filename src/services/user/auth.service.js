@@ -1,6 +1,7 @@
 import User from "../../models/userSchema.model.js";
 import AppError from "../../utils/partials/AppError.js";
 import HTTP_STATUS from "../../constant/statusCode.js";
+import Otp from "../../models/otpSchema.model.js";
 import argon2 from "argon2";
 
 import {
@@ -12,7 +13,7 @@ import {
 } from "../../utils/partials/validation.utils.js";
 
 import { isValidReferral, createRef } from "./referral.service.js";
-
+import { checkGoogleAuth } from "../../utils/partials/auth/auth.util.js";
 
 // Check if user already exists
 export const isUserExist = async (email) => {
@@ -20,27 +21,24 @@ export const isUserExist = async (email) => {
     email: email.trim().toLowerCase(),
   });
   if (existingUser) {
-     throw new AppError("Email already exists", HTTP_STATUS.BAD_REQUEST);
-    
+    throw new AppError("Email already exists", HTTP_STATUS.BAD_REQUEST);
   }
   return false;
 };
 
 // Verify user for login
 export const isVerifyUser = async (email, password) => {
-
   const user = await User.findOne({ email: email.trim().toLowerCase() });
-  
+
   if (!user) {
     throw new AppError("Invalid email or password", HTTP_STATUS.BAD_REQUEST);
   }
 
   // Handle Google Sign-In edge case
-  if (!user.password && user.googleId) {
-    throw new AppError("Please login using Google.", HTTP_STATUS.BAD_REQUEST);
-  }
+  checkGoogleAuth(user);
 
   const isPasswordValid = await argon2.verify(user.password, password);
+  
   if (!isPasswordValid) {
     throw new AppError("Invalid email or password", HTTP_STATUS.BAD_REQUEST);
   }
@@ -49,7 +47,13 @@ export const isVerifyUser = async (email, password) => {
 };
 
 // Create user
-export const addUser = async ({ name, email, phone, password ,referral_by }) => {
+export const addUser = async ({
+  name,
+  email,
+  phone,
+  password,
+  referral_by,
+}) => {
   const referralCode = await createRef();
 
   const newUser = await User.create({
@@ -77,4 +81,22 @@ export const isValidate = async (data) => {
   //Database validation
   await isUserExist(email);
   await isValidReferral(referral_by, email);
+};
+
+export const verifyForgOTP = async (email, otp, purpose) => {
+  const otpRecord = await Otp.findOne({ email, otp, purpose });
+
+  if (!otpRecord) {
+    throw new AppError(
+      "Invalid OTP or Session Expired",
+      HTTP_STATUS.BAD_REQUEST,
+    );
+  }
+
+  if (otpRecord.expiresAt < new Date()) {
+    throw new AppError("OTP expired", HTTP_STATUS.BAD_REQUEST);
+  }
+
+  await Otp.deleteMany({ email, purpose });
+  return true;
 };

@@ -1,7 +1,9 @@
 import Otp from "../../models/otpSchema.model.js";
 import generateOTP from "../../utils/partials/otpGenerater.js";
 import sendEmail from "../../constant/transporter.js";
-import {hashedPassword} from "../../utils/partials/hashHelper.utils.js";
+import { hashedPassword } from "../../utils/partials/hashHelper.utils.js";
+import AppError from "../../utils/partials/AppError.js";
+import HTTP_STATUS from "../../constant/statusCode.js";
 
 // Send OTP Thought Clinet
 export const sendOtpToEmail = async ({
@@ -11,9 +13,11 @@ export const sendOtpToEmail = async ({
   password,
   referral_by,
 }) => {
-
   if (!email || !password) {
-    throw new Error("Email and password are required");
+    throw new AppError(
+      "Email and password are required",
+      HTTP_STATUS.NOT_FOUND,
+    );
   }
 
   const otp = generateOTP();
@@ -21,8 +25,6 @@ export const sendOtpToEmail = async ({
   const finalPassword = password.startsWith("$argon2")
     ? password
     : await hashedPassword(password);
-
-    console.log(typeof referral_by , referral_by)
 
   await Otp.create({
     email,
