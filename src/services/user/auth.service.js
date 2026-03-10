@@ -20,7 +20,7 @@ export const isUserExist = async (email) => {
     email: email.trim().toLowerCase(),
   });
   if (existingUser) {
-    // throw new AppError("Email already exists", HTTP_STATUS.BAD_REQUEST);
+     throw new AppError("Email already exists", HTTP_STATUS.BAD_REQUEST);
     
   }
   return false;
@@ -28,7 +28,9 @@ export const isUserExist = async (email) => {
 
 // Verify user for login
 export const isVerifyUser = async (email, password) => {
+
   const user = await User.findOne({ email: email.trim().toLowerCase() });
+  
   if (!user) {
     throw new AppError("Invalid email or password", HTTP_STATUS.BAD_REQUEST);
   }

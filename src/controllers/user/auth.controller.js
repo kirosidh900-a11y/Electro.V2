@@ -154,7 +154,6 @@ export const resendOtp = async (req, res, next) => {
 };
 
 // ================= LOGOUT =================
-
 export const logout = async (req, res, next) => {
   try {
     clearAuthCookie(res, "token");
@@ -187,7 +186,7 @@ export const verifyEmail = async (req, res, next) => {
       });
     }
 
-    checkIfBlocked(user);
+    // checkIfBlocked(user);
 
     const otp = generateOTP();
 

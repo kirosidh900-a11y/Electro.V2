@@ -1,9 +1,22 @@
 const errorMiddleware = (err, req, res) => {
-  console.error("Global Error:", err);
+  console.error(err);
 
-  return res.status(err.statusCode || 500).json({
-    success: false,
-    message: err.message || "Something went wrong",
+  const statusCode = err.statusCode || 500;
+
+  // API routes return JSON
+  if (
+    req.originalUrl.startsWith("/auth") ||
+    req.originalUrl.startsWith("/admin")
+  ) {
+    return res.status(statusCode).json({
+      success: false,
+      message: err.message || "Internal Server Error",
+    });
+  }
+
+  // Normal pages render EJS
+  return res.status(statusCode).render("error", {
+    message: err.message,
   });
 };
 

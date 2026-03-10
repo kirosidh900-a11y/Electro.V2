@@ -32,6 +32,7 @@ router.route("/signup").get(authMiddleware, showSignUpPage).post(signUp);
 router.post("/verify-otp", verifyOtp);
 router.patch("/resend-otp", resendOtp);
 
+//Forgot-password
 router
   .route("/forgot-password")
   .get(authMiddleware, showForgotPasswordPage)

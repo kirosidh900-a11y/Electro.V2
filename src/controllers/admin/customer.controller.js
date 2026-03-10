@@ -66,6 +66,8 @@ export const toggleBlockCustomer = async (req, res) => {
 
     const user = await User.findById(id);
 
+    console.log(user, id)
+
     if (!user) {
       return res.status(HTTP_STATUS.NOT_FOUND).json({
         success: false,

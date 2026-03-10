@@ -11,6 +11,7 @@ import authRouter from "./routes/user/auth.route.js";
 import userRouter from "./routes/user/user.route.js";
 import adminRouter from "./routes/admin/admin.route.js";
 import errorMiddleware from "./middlewares/error.middleware.js";
+import AppError from "./utils/partials/AppError.js";
 
 const app = express();
 
@@ -44,20 +45,20 @@ app.use("/auth", authRouter);
 app.use("/admin", adminRouter);
 app.use("/", userRouter);
 
-// ❌ 404 Handler (Smart – API + EJS Compatible)
-app.use((req, res,) => {
-  // If request is API-based
+// ❌ 404 Handler
+app.use((req, res) => {
+  const err = new AppError("Route not found", 404);
+
   if (
     req.originalUrl.startsWith("/admin") ||
     req.originalUrl.startsWith("/auth")
   ) {
     return res.status(404).json({
       success: false,
-      message: "Route not found",
+      message: err.message,
     });
   }
 
-  // Otherwise render EJS 404 page
   return res.status(404).render("404", {
     user: req.user || null,
   });
