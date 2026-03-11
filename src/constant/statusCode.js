@@ -11,6 +11,7 @@ const HTTP_STATUS = Object.freeze({
   FORBIDDEN: 403, // ❌ Authenticated but not allowed
   NOT_FOUND: 404, // ❌ Resource not found
   CONFLICT: 409, // ❌ Conflict with current resource state
+  GONE:410,
   UNPROCESSABLE_ENTITY: 422, // ❌ Validation failed / semantic error
   TOO_MANY_REQUESTS: 429, // ❌ Rate limiting (too many requests)
 

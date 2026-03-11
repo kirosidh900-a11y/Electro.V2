@@ -1,6 +1,10 @@
-import User  from '../../models/userSchema.model.js'
-import renderView from '../../utils/admin/renderView.util.js'
-import HTTP_STATUS from '../../constant/statusCode.js';
+import renderView from "../../utils/admin/renderView.util.js";
+
+import {
+  getCustomersService,
+  toggleBlockCustomerService,
+} from "../../services/admin/customer.service.js";
+
 //Customers
 export const customers = async (req, res) => {
   try {
@@ -10,27 +14,12 @@ export const customers = async (req, res) => {
     const search = req.query.search || "";
     const status = req.query.status || "All";
 
-    const query = { isAdmin: false };
-
-    if (search) {
-      query.$or = [
-        { name: { $regex: search, $options: "i" } },
-        { email: { $regex: search, $options: "i" } },
-      ];
-    }
-
-    if (status === "Active") query.isBlock = false;
-    if (status === "Blocked") query.isBlock = true;
-
-    const totalCustomers = await User.countDocuments(query);
-
-    const totalPages = Math.ceil(totalCustomers / limit);
-
-    const customers = await User.find(query)
-      .skip((page - 1) * limit)
-      .limit(limit);
-
-    const currentPage = page;
+    const { customers, totalPages, currentPage } = await getCustomersService({
+      page,
+      limit,
+      search,
+      status,
+    });
 
     // AJAX request
     if (req.xhr) {
@@ -48,44 +37,31 @@ export const customers = async (req, res) => {
       return res.json({ rows, pagination });
     }
 
+    res.locals.title = "Customer Management";
+
     // normal page load
     res.render("admin/home/customers", {
       customers,
       currentPage,
       totalPages,
-      title: "Customer Management",
     });
   } catch (error) {
     res.json({ success: false, message: error.message });
   }
 };
 
-export const toggleBlockCustomer = async (req, res) => {
+export const toggleBlockCustomer = async (req, res, next) => {
   try {
     const { id } = req.params;
 
-    const user = await User.findById(id);
-
-    console.log(user, id)
-
-    if (!user) {
-      return res.status(HTTP_STATUS.NOT_FOUND).json({
-        success: false,
-        message: "User not found",
-      });
-    }
-
-    user.isBlock = !user.isBlock;
-    await user.save();
+    const isBlock = await toggleBlockCustomerService(id);
 
     res.json({
       success: true,
-      isBlock: user.isBlock,
+      isBlock,
     });
   } catch (error) {
-    res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).json({
-      success: false,
-      message:error.message,
-    });
+    console.log("toggleBlockCustomerError:", error);
+    next(error);
   }
 };

@@ -8,7 +8,7 @@ import {
   toggleCategoryStatus,
   deleteAttribute,
   getAttributes,
-} from "../../controllers/admin/category.controller.js";
+} from "../../controllers/product/category.controller.js";
 
 import { isAuth } from "../../middlewares/admin/authAdmin.middleware.js";
 

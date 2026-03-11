@@ -1,7 +1,7 @@
 import multer from "multer";
 import path from "path";
 import fs from "fs";
-import AppError from "../../utils/partials/AppError.js";
+import AppError from "../../utils/partials/AppError.utils.js";
 import HTTP_STATUS from "../../constant/statusCode.js";
 
 const storage = multer.diskStorage({

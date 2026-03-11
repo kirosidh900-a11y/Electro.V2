@@ -1,5 +1,5 @@
 import User from "../../models/userSchema.model.js";
-import AppError from "../../utils/partials/AppError.js";
+import AppError from "../../utils/partials/AppError.utils.js";
 import HTTP_STATUS from "../../constant/statusCode.js";
 import Otp from "../../models/otpSchema.model.js";
 import argon2 from "argon2";
@@ -9,7 +9,7 @@ import {
   isValidName,
   isValidPhone,
   isValidPassword,
-  isConformPassword,
+  isConfirmPassword ,
 } from "../../utils/partials/validation.utils.js";
 
 import { isValidReferral, createRef } from "./referral.service.js";
@@ -73,7 +73,7 @@ export const isValidate = async (data) => {
 
   //Basic validation
   isValidEmail(email);
-  isConformPassword(password, confirmPassword);
+  isConfirmPassword(password, confirmPassword);
   isValidName(name);
   isValidPhone(phone);
   isValidPassword(password);
@@ -83,7 +83,7 @@ export const isValidate = async (data) => {
   await isValidReferral(referral_by, email);
 };
 
-export const verifyForgOTP = async (email, otp, purpose) => {
+export const verifyForgotOTP = async (email, otp, purpose) => {
   const otpRecord = await Otp.findOne({ email, otp, purpose });
 
   if (!otpRecord) {
@@ -99,4 +99,8 @@ export const verifyForgOTP = async (email, otp, purpose) => {
 
   await Otp.deleteMany({ email, purpose });
   return true;
+};
+
+export const findUserByEmail = async (email) => {
+  return await User.findOne({ email });
 };

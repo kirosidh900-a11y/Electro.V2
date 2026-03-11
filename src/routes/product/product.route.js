@@ -15,7 +15,7 @@ import {
   addVariantImage,
   deleteVariantImage,
   editVariant,
-} from "../../controllers/admin/product.controller.js";
+} from "../../controllers/product/product.controller.js";
 
 const router = Router();
 

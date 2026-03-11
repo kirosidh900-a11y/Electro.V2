@@ -11,7 +11,7 @@ import authRouter from "./routes/user/auth.route.js";
 import userRouter from "./routes/user/user.route.js";
 import adminRouter from "./routes/admin/admin.route.js";
 import errorMiddleware from "./middlewares/error.middleware.js";
-import AppError from "./utils/partials/AppError.js";
+import AppError from "./utils/partials/AppError.utils.js";
 
 const app = express();
 

@@ -85,15 +85,15 @@ loginForm.addEventListener("submit", async (e) => {
       }),
     });
 
-    const data = await response.json();
+    const result = await response.json();
 
     if (response.ok) {
-      showToast(data.message, "success");
+      showToast(result.message, "success");
       setTimeout(() => {
-        window.location.replace(data.redirectUrl);
+        window.location.href = result.data.redirectUrl;
       }, 500);
     } else {
-      showToast(data.message, "error");
+      showToast(result.message, "error");
     }
   } catch (error) {
     showToast(error.message, "error");

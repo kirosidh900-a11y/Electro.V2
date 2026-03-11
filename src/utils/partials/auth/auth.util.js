@@ -1,4 +1,4 @@
-import AppError from "../AppError.js";
+import AppError from "../AppError.utils.js";
 import HTTP_STATUS from "../../../constant/statusCode.js";
 
 export const checkIfAdmin = (admin) => {

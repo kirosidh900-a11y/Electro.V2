@@ -1,6 +1,6 @@
 import User from "../../models/userSchema.model.js";
 import Otp from "../../models/otpSchema.model.js";
-import AppError from "../../utils/partials/AppError.js";
+import AppError from "../../utils/partials/AppError.utils.js";
 import HTTP_STATUS from "../../constant/statusCode.js";
 
 export const getUserData = async (userId) => {
