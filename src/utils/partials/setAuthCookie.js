@@ -1,4 +1,4 @@
-export const setAuthCookie = (res, token, role, days = 1) => {
+const setAuthCookie = (res, token, role, days = 1) => {
   const cookieName = role === "admin" ? "adminToken" : "token";
 
   res.cookie(cookieName, token, {
@@ -8,3 +8,5 @@ export const setAuthCookie = (res, token, role, days = 1) => {
     maxAge: days * 24 * 60 * 60 * 1000,
   });
 };
+
+export default setAuthCookie;

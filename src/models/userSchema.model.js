@@ -57,6 +57,10 @@ const userSchema = new Schema(
   { timestamps: true },
 );
 
+userSchema.index({ name: 1 });
+userSchema.index({ email: 1 });
+userSchema.index({ isBlock: 1 });
+
 const User = mongoose.model("User", userSchema);
 
 export default User;

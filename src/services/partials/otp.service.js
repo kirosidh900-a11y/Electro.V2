@@ -1,7 +1,7 @@
 import Otp from "../../models/otpSchema.model.js";
 import generateOTP from "../../utils/partials/otpGenerater.js";
 import sendEmail from "../../constant/transporter.js";
-import { hashedPassword } from "../../utils/partials/hashHelper.utils.js";
+import { hashPassword } from "../../utils/partials/auth/password.utils.js";
 import AppError from "../../utils/partials/AppError.js";
 import HTTP_STATUS from "../../constant/statusCode.js";
 
@@ -24,7 +24,7 @@ export const sendOtpToEmail = async ({
 
   const finalPassword = password.startsWith("$argon2")
     ? password
-    : await hashedPassword(password);
+    : await hashPassword(password);
 
   await Otp.create({
     email,

@@ -9,8 +9,7 @@
             </div>
             <span class="text-xl font-black tracking-tighter uppercase text-white">Electro</span>
         </div>
-        <button onclick="toggleSidebar()" class="lg:hidden text-gray-500 hover:text-white"><i
-                class="fas fa-times"></i>
+        <button onclick="toggleSidebar()" class="lg:hidden text-gray-500 hover:text-white"><i class="fas fa-times"></i>
         </button>
     </div>
 
@@ -39,46 +38,96 @@
     </div>
 </aside>
 
-<script>
+<!-- Logout Modal -->
+<div id="logoutModal" class="fixed inset-0 hidden items-center justify-center bg-black/50 backdrop-blur-sm z-50">
+
+    <div class="bg-gray-900 text-white rounded-2xl shadow-2xl w-[90%] max-w-md p-7 border border-gray-800">
+
+        <!-- Icon -->
+        <div class="flex items-center justify-center mb-4">
+            <div class="flex items-center justify-center w-14 h-14 rounded-full bg-red-500/20 text-red-400">
+                <i class="fa-solid fa-right-from-bracket text-2xl"></i>
+            </div>
+        </div>
+
+        <!-- Title -->
+        <h2 class="text-xl font-semibold text-center mb-2">
+            Logout from Dashboard?
+        </h2>
+
+        <!-- Message -->
+        <p class="text-gray-400 text-center mb-6 text-sm">
+            You will be signed out of your account and need to login again to continue.
+        </p>
+
+        <!-- Buttons -->
+        <div class="flex justify-center gap-3">
+
+            <button id="cancelLogout" class="px-5 py-2 rounded-lg bg-gray-700 hover:bg-gray-600 transition text-sm">
+                Cancel
+            </button>
+
+            <button id="confirmLogout"
+                class="px-5 py-2 rounded-lg bg-red-500 hover:bg-red-600 transition text-sm font-medium shadow-lg">
+                Logout
+            </button>
+
+        </div>
+
+    </div>
+</div>
+
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/toastify-js/src/toastify.min.css">
+<script src="https://cdn.jsdelivr.net/npm/toastify-js"></script>
+
+
+<script type="module">
+    import { showToast } from "../../partials/errorMsg.utils.js";
+
     const logoutBtn = document.getElementById("logout");
+    const modal = document.getElementById("logoutModal");
+    const cancelBtn = document.getElementById("cancelLogout");
+    const confirmBtn = document.getElementById("confirmLogout");
 
-    logoutBtn?.addEventListener("click", async (e) => {
+    logoutBtn?.addEventListener("click", (e) => {
         e.preventDefault();
+        modal.classList.remove("hidden");
+        modal.classList.add("flex");
+    });
 
-        const result = await Swal.fire({
-            title: "Are you sure you want to logout?",
-            icon: "warning",
-            background: "#1a1a1a",
-            color: "#ffffff",
-            confirmButtonColor: "#fa5252",
-            showCancelButton: true,
-            confirmButtonText: "Yes, logout",
-            cancelButtonText: "No, stay logged in",
-            cancelButtonColor: "#3085d6",
-            confirmButtonColor: "#d33",
-        });
+    cancelBtn?.addEventListener("click", () => {
+        modal.classList.add("hidden");
+        modal.classList.remove("flex");
+    });
 
-        if (!result.isConfirmed) return;
-
+    confirmBtn?.addEventListener("click", async () => {
         try {
             const response = await fetch("/admin/logout", {
                 method: "POST",
-                headers: { "Content-Type": "application/json" },
+                headers: { "Content-Type": "application/json" }
             });
 
             if (!response.ok) throw new Error("Logout failed");
 
             window.location.href = "/admin";
+
         } catch (error) {
-            Swal.fire({
-                icon: "error",
-                title: "Logout error",
-                text: error.message,
-            });
+            showToast(error.message,"error");
         }
     });
 
-    function toggleSidebar() {
+    // close modal if clicking background
+    modal?.addEventListener("click", (e) => {
+        if (e.target === modal) {
+            modal.classList.add("hidden");
+            modal.classList.remove("flex");
+        }
+    });
+
+ </script>
+
+<script>
+       function toggleSidebar() {
         const body = document.body;
         const overlay = document.getElementById('sidebarOverlay');
         if (window.innerWidth >= 1024) {
@@ -88,4 +137,5 @@
             overlay.classList.toggle('hidden');
         }
     }
+
 </script>

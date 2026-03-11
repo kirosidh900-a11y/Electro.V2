@@ -28,18 +28,18 @@ import {
 // Utils
 import { checkIfBlocked } from "../../utils/partials/auth/auth.util.js";
 import generateOTP from "../../utils/partials/otpGenerater.js";
-import { hashedPassword } from "../../utils/partials/hashHelper.utils.js";
-import generateJWT from "../../utils/partials/jwt.utils.js";
-import { setAuthCookie } from "../../utils/partials/setAuthCookie.js";
 import { isConformPassword } from "../../utils/partials/validation.utils.js";
+import generateJWT from "../../utils/partials/jwt.utils.js";
+import setAuthCookie from "../../utils/partials/setAuthCookie.js";
 import AppError from "../../utils/partials/AppError.js";
+import { hashPassword } from "../../utils/partials/auth/password.utils.js";
 
 // External
 import passport from "passport";
 import sendEmail from "../../constant/transporter.js";
 import clearAuthCookie from "../../utils/partials/clearCookie.js";
 
-  //  🔐 AUTH CONTROLLERS
+//  🔐 AUTH CONTROLLERS
 // ================= LOGIN =================
 
 export const showLoginPage = (req, res) => {
@@ -229,11 +229,11 @@ export const savePassword = async (req, res, next) => {
 
     isConformPassword(password, confirmPassword);
 
-    const hashPassword = await hashedPassword(password);
+    const hPassword = await hashPassword(password);
 
     const user = await User.findOneAndUpdate(
       { email },
-      { $set: { password: hashPassword } },
+      { $set: { password: hPassword } },
     );
 
     if (!user) {
