@@ -2,7 +2,7 @@ import Otp from "../../models/otpSchema.model.js";
 import generateOTP from "../../utils/partials/otpGenerater.js";
 import sendEmail from "../../constant/transporter.js";
 import { hashPassword } from "../../utils/partials/auth/password.utils.js";
-import AppError from "../../utils/partials/AppError.js";
+import AppError from "../../utils/partials/AppError.utils.js";
 import HTTP_STATUS from "../../constant/statusCode.js";
 import { OTP_EXPIRY } from "../../constant/auth.constant.js";
 

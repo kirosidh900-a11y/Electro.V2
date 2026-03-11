@@ -1,6 +1,6 @@
 import HTTP_STATUS from "../../constant/statusCode.js";
 import User from "../../models/userSchema.model.js";
-import AppError from "../../utils/partials/AppError.js";
+import AppError from "../../utils/partials/AppError.utils.js";
 
 export const getCustomersService = async ({ page, limit, search, status }) => {
   const query = { isAdmin: false };

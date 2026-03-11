@@ -1,5 +1,5 @@
 import HTTP_STATUS from "../constant/statusCode.js";
-import AppError from "../utils/partials/AppError.js";
+import AppError from "../utils/partials/AppError.utils.js";
 
 export const validateAdminLogin = ({ email, password }) => {
   if (!email) throw new AppError("Email is required", HTTP_STATUS.BAD_REQUEST);

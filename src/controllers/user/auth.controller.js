@@ -30,7 +30,7 @@ import generateJWT from "../../utils/partials/jwt.utils.js";
 import setAuthCookie from "../../utils/partials/setAuthCookie.js";
 import clearAuthCookie from "../../utils/partials/clearCookie.js";
 import { hashPassword } from "../../utils/partials/auth/password.utils.js";
-import AppError from "../../utils/partials/AppError.js";
+import AppError from "../../utils/partials/AppError.utils.js";
 
 // External
 import passport from "passport";

@@ -3,7 +3,7 @@ import { validateAdminLogin } from "../../validations/auth.validation.js";
 import { verifyPassword } from "../../utils/partials/auth/password.utils.js";
 import setAuthCookie from "../../utils/partials/setAuthCookie.js";
 import generateJWT from "../../utils/partials/jwt.utils.js";
-import AppError from "../../utils/partials/AppError.js";
+import AppError from "../../utils/partials/AppError.utils.js";
 import HTTP_STATUS from "../../constant/statusCode.js";
 
 export const adminLoginService = async (data, res) => {

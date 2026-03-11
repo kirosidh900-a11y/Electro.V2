@@ -1,5 +1,5 @@
 import User from "../../models/userSchema.model.js";
-import AppError from "../../utils/partials/AppError.js";
+import AppError from "../../utils/partials/AppError.utils.js";
 
 // Create a unique referral code
 export const createRef = async () => {

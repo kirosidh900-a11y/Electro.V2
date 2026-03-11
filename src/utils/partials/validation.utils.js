@@ -1,4 +1,4 @@
-import AppError from "../../utils/partials/AppError.js";
+import AppError from "./AppError.utils.js";
 
 //Validate Email
 export const isValidEmail = (email) => {

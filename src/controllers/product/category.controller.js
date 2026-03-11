@@ -1,10 +1,23 @@
-import Category from "../../models/CategorySchema.model.js";
 import renderView from "../../utils/admin/renderView.util.js";
-import { getCategoryService } from "../../services/product/category.service.js";
 import HTTP_STATUS from "../../constant/statusCode.js";
 
-//Category CRUD Start Hear
-export const category = async (req, res) => {
+import {
+  getCategoryService,
+  createCategoryService,
+  editCategoryService,
+  deleteCategoryService,
+  toggleCategoryService,
+  addCategoryAttributeService,
+  deleteAttributeService,
+  getAttributesService,
+} from "../../services/product/category.service.js";
+
+import {
+  successResponse,
+} from "../../utils/partials/response.util.js";
+
+//  Category Page
+export const category = async (req, res, next) => {
   try {
     const page = Number(req.query.page) || 1;
     const limit = 6;
@@ -19,7 +32,6 @@ export const category = async (req, res) => {
       status,
     });
 
-    // AJAX request
     if (req.xhr) {
       const rows = await renderView(res, "admin/home/partials/categoryRows", {
         categories,
@@ -35,249 +47,113 @@ export const category = async (req, res) => {
       return res.json({ rows, pagination });
     }
 
-    // Normal page load
-    ((res.locals.title = "Category Management"),
-      res.render("admin/home/category", {
-        categories,
-        currentPage,
-        totalPages,
-      }));
+    res.locals.title = "Category Management";
+
+    res.render("admin/home/category", {
+      categories,
+      currentPage,
+      totalPages,
+    });
   } catch (error) {
-    res.json({ success: false, message: error.message });
+    next(error);
   }
 };
 
-export const createCategory = async (req, res) => {
+ //  Create Category
+export const createCategory = async (req, res, next) => {
   try {
     const { title, status } = req.body;
 
-    const category = await Category.create({
-      title,
-      status,
-    });
+    const category = await createCategoryService(title, status);
 
-    res.json({
-      success: true,
-      category,
-    });
+    return successResponse(
+      res,
+      "Category Successfully Created!",
+      HTTP_STATUS.CREATED,
+      { category },
+    );
   } catch (error) {
-    if (error.code === 11000) {
-      return res.json({
-        success: false,
-        message: "Category already exists",
-      });
-    }
-
-    res.json({
-      success: false,
-      message: error.message,
-    });
+    next(error);
   }
 };
 
-export const editCategory = async (req, res) => {
+  //  Edit Category
+export const editCategory = async (req, res, next) => {
   try {
     const { title } = req.body;
     const id = req.params.id;
 
-    const category = await Category.findByIdAndUpdate(id, { $set: { title } });
+    const category = await editCategoryService(id, title);
 
-    res.json({
-      success: true,
-      category,
-    });
+    return successResponse(res, "Category Updated!", HTTP_STATUS.OK, category);
   } catch (error) {
-    if (error.code === 11000) {
-      return res.json({
-        success: false,
-        message: "Category already exists",
-      });
-    }
-
-    res.json({
-      success: false,
-      message: error.message,
-    });
+    next(error);
   }
 };
 
-export const deleteCategory = async (req, res) => {
+ //  Delete Category
+export const deleteCategory = async (req, res, next) => {
   try {
     const id = req.params.id;
 
-    await Category.findByIdAndUpdate(id, {
-      isDeleted: true,
-    });
+    await deleteCategoryService(id);
 
-    res.json({
-      success: true,
-    });
+    return successResponse(res, "Category Deleted!", HTTP_STATUS.OK);
   } catch (error) {
-    res.json({
-      success: false,
-      message: error.message,
-    });
+    next(error);
   }
 };
 
-// Category Status Update
-export const toggleCategoryStatus = async (req, res) => {
+  //  Toggle Status
+export const toggleCategoryStatus = async (req, res, next) => {
   try {
     const id = req.params.id;
 
-    if (!id) {
-      return res
-        .status(400)
-        .json({ success: false, message: "Category ID not found!" });
-    }
+    await toggleCategoryService(id);
 
-    const category = await Category.findById(id);
-
-    if (!category) {
-      return res
-        .status(HTTP_STATUS.NOT_FOUND)
-        .json({ success: false, message: "Category not found!" });
-    }
-
-    // toggle status
-    category.status = category.status === "listed" ? "unlisted" : "listed";
-
-    await category.save();
-
-    res.status(HTTP_STATUS.OK).json({
-      success: true,
-      status: category.status,
-    });
+    return successResponse(res, "Status Updated!");
   } catch (error) {
-    res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).json({
-      success: false,
-      message: error.message,
-    });
+    next(error);
   }
 };
 
-// Category Attribute
+  //  Add Attribute
 export const addCategoryAttribute = async (req, res, next) => {
   try {
     const categoryId = req.params.id;
     const attribute = req.body;
 
-    const category = await Category.findById(categoryId);
+    await addCategoryAttributeService(categoryId, attribute);
 
-    if (!category) {
-      return res.json({
-        success: false,
-        message: "Category not found",
-      });
-    }
-
-    // prevent duplicate key
-    const key = attribute.key.trim().toLowerCase();
-    const label = attribute.label.trim().toLowerCase();
-
-    const exists = category.attributes.some(
-      (attr) =>
-        attr.key.toLowerCase() === key || attr.label.toLowerCase() === label,
-    );
-
-    if (exists) {
-      return res.json({
-        success: false,
-        message: "Attribute key or label already exists",
-      });
-    }
-
-    category.attributes.push(attribute);
-
-    await category.save();
-
-    res.json({
-      success: true,
-      message: "Attribute added successfully",
-    });
+    return successResponse(res, "Attribute added successfully");
   } catch (error) {
-    res.json({
-      success: false,
-      message: error.message,
-    });
-    console.log("Attribut adding Error:", error);
     next(error);
   }
 };
 
+  //  Delete Attribute
 export const deleteAttribute = async (req, res, next) => {
   try {
-    const _id = req.params.id;
+    const categoryId = req.params.id;
     const key = decodeURIComponent(req.params.key);
 
-    const category = await Category.updateOne(
-      { _id },
-      { $pull: { attributes: { key } } },
-    );
+    await deleteAttributeService(categoryId, key);
 
-    // const exists = category.attributes.some(
-    //   (attr) => attr.key.toLowerCase() === key,
-    // );
-
-    // if (!exists) {
-    //   return res.json({
-    //     success: false,
-    //     message: "This category attribute is exists",
-    //   });
-    // }
-
-    // category.attributes = category.attributes.filter((attr) => attr.key != key);
-    // await category.save();
-    if (category)
-      res.json({
-        success: true,
-        message: "Attribute added successfully",
-      });
-    else
-      return res.json({
-        success: false,
-        message: "Attribute is not Trichable",
-      });
+    return successResponse(res, "Attribute deleted successfully");
   } catch (error) {
-    res.json({
-      success: false,
-      message: error.message,
-    });
-    console.log("Attribut adding Error:", error);
     next(error);
   }
 };
 
-export const getAttributes = async (req, res) => {
+// Get Attributes
+export const getAttributes = async (req, res, next) => {
   try {
     const { id } = req.params;
 
-    const category = await Category.findById(id);
+    const data = await getAttributesService(id);
 
-    if (!category) {
-      return res.json({
-        success: false,
-        message: "Category not found",
-      });
-    }
-
-    const productAttributes = category.attributes.filter(
-      (attr) => !attr.is_variant_level,
-    );
-
-    const variantAttributes = category.attributes.filter(
-      (attr) => attr.is_variant_level,
-    );
-
-    res.json({
-      success: true,
-      productAttributes,
-      variantAttributes,
-    });
+    return successResponse(res, "Attributes fetched", HTTP_STATUS.OK, data);
   } catch (error) {
-    res.json({
-      success: false,
-      message: error.message,
-    });
+    next(error);
   }
 };
