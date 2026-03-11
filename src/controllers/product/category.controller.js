@@ -1,5 +1,6 @@
 import Category from "../../models/CategorySchema.model.js";
 import renderView from "../../utils/admin/renderView.util.js";
+import { getCategoryService } from "../../services/product/category.service.js";
 import HTTP_STATUS from "../../constant/statusCode.js";
 
 //Category CRUD Start Hear
@@ -11,27 +12,12 @@ export const category = async (req, res) => {
     const search = req.query.search || "";
     const status = req.query.status || "All";
 
-    const query = { isDeleted: false };
-
-    // 🔎 Search
-    if (search) {
-      query.title = { $regex: search, $options: "i" };
-    }
-
-    // 📌 Status filter
-    if (status === "listed") query.status = "listed";
-    if (status === "unlisted") query.status = "unlisted";
-
-    const totalCategories = await Category.countDocuments(query);
-
-    const totalPages = Math.ceil(totalCategories / limit);
-
-    const categories = await Category.find(query)
-      .skip((page - 1) * limit)
-      .limit(limit)
-      .sort({ createdAt: -1 });
-
-    const currentPage = page;
+    const { totalPages, categories, currentPage } = await getCategoryService({
+      page,
+      limit,
+      search,
+      status,
+    });
 
     // AJAX request
     if (req.xhr) {
@@ -50,12 +36,12 @@ export const category = async (req, res) => {
     }
 
     // Normal page load
-    res.render("admin/home/category", {
-      categories,
-      currentPage,
-      totalPages,
-      title: "Category Management",
-    });
+    ((res.locals.title = "Category Management"),
+      res.render("admin/home/category", {
+        categories,
+        currentPage,
+        totalPages,
+      }));
   } catch (error) {
     res.json({ success: false, message: error.message });
   }

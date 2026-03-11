@@ -8,7 +8,7 @@ import {
   updateBrand,
   deleteBrand,
   toggleBrandStatus
-} from "../../controllers/admin/brand.controller.js";
+} from "../../controllers/product/brand.controller.js";
 
 const router = Router();
 

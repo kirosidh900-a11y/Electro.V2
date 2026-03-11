@@ -18,6 +18,7 @@ export const getCustomersService = async ({ page, limit, search, status }) => {
   const [totalCustomers, customers] = await Promise.all([
     User.countDocuments(query),
     User.find(query)
+      .sort({ createdAt: -1 })
       .skip((page - 1) * limit)
       .limit(limit)
       .lean(),
@@ -35,7 +36,7 @@ export const getCustomersService = async ({ page, limit, search, status }) => {
 export const toggleBlockCustomerService = async (id) => {
   let customer = await User.findById(id);
 
-  console.log(customer)
+  console.log(customer);
 
   const updatedCustomer = await User.findByIdAndUpdate(
     id,
