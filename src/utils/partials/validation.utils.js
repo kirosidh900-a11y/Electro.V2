@@ -51,7 +51,7 @@ export const isValidName = (name) => {
 };
 
 // Validate password and confirm password
-export const isConformPassword = (password, confirmPassword) => {
+export const isConfirmPassword  = (password, confirmPassword) => {
   if (!password || !confirmPassword) {
     throw new AppError("Password and confirm password are required", 400);
   }

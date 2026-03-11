@@ -5,20 +5,20 @@ import {
   showLoginPage,
   showSignUpPage,
   signUp,
-  verifyOtp,
+  verifySignupOtp,
   resendOtp,
-  Login,
+  login,
   logout,
   showForgotPasswordPage,
   verifyEmail,
   savePassword,
-  passportRed,
-  verifyOTP
+  passportRedirect,
+  verifyForgotPasswordOtp,
 } from "../../controllers/user/auth.controller.js";
 
 import attachUser from "../../middlewares/attachUser.middleware.js";
 import authMiddleware from "../../middlewares/auth.middleware.js";
-import generateJWT  from "../../utils/partials/jwt.utils.js";
+import generateJWT from "../../utils/partials/jwt.utils.js";
 
 const router = Router();
 
@@ -26,12 +26,12 @@ const router = Router();
 router.use(attachUser);
 
 //  AUTH PAGES
-router.route("/login").get(authMiddleware, showLoginPage).post(Login);
+router.route("/login").get(authMiddleware, showLoginPage).post(login);
 
 router.route("/signup").get(authMiddleware, showSignUpPage).post(signUp);
 
 //SignUp Verify
-router.post("/verify-otp", verifyOtp);
+router.post("/verify-otp", verifySignupOtp);
 router.patch("/resend-otp", resendOtp);
 
 //Forgot-password
@@ -40,7 +40,7 @@ router
   .get(authMiddleware, showForgotPasswordPage)
   .post(verifyEmail);
 // Forgot Verify otp
-router.post('/verifyFog-otp', verifyOTP);
+router.post("/verifyFog-otp", verifyForgotPasswordOtp);
 
 router.patch("/reset-password", savePassword);
 
@@ -50,7 +50,7 @@ router.post("/logout", logout);
 //  GOOGLE LOGIN
 
 // Redirect to Google
-router.get("/google-user", authMiddleware, passportRed);
+router.get("/google-user", authMiddleware, passportRedirect);
 
 // Google Callback
 router.get("/google-user/callback", (req, res, next) => {

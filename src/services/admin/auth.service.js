@@ -18,7 +18,7 @@ export const adminLoginService = async (data, res) => {
     throw new AppError("Invalid credentials", HTTP_STATUS.BAD_REQUEST);
   }
 
-  if (admin.isBlocked) {
+  if (admin.isBlock) {
     throw new AppError("Admin is blocked", HTTP_STATUS.FORBIDDEN);
   }
 
@@ -28,7 +28,7 @@ export const adminLoginService = async (data, res) => {
     throw new AppError("Invalid credentials", HTTP_STATUS.UNAUTHORIZED);
   }
 
-  const token = generateJWT(admin, "1h");
+  const token = generateJWT(admin, true);
 
   setAuthCookie(res, token, "admin");
 

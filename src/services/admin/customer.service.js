@@ -33,12 +33,13 @@ export const getCustomersService = async ({ page, limit, search, status }) => {
 };
 
 export const toggleBlockCustomerService = async (id) => {
-  let
-  customer = await User.findById(id);
+  let customer = await User.findById(id);
+
+  console.log(customer)
 
   const updatedCustomer = await User.findByIdAndUpdate(
     id,
-    { isBlocked: !customer.isBlocked },
+    { isBlock: !customer.isBlock },
 
     { returnDocument: "after" },
   );
@@ -47,5 +48,5 @@ export const toggleBlockCustomerService = async (id) => {
     throw new AppError("Customer  is not found!", HTTP_STATUS.NOT_FOUND);
   }
 
-  return updatedCustomer.isBlocked;
+  return updatedCustomer.isBlock;
 };

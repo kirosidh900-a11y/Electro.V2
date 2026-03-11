@@ -1,6 +1,3 @@
-import dotenv from "dotenv";
-dotenv.config();
-
 /* ===============================
    📦 Imports
 ================================= */
@@ -8,57 +5,60 @@ dotenv.config();
 // Constants
 import HTTP_STATUS from "../../constant/statusCode.js";
 
-// Models
-import User from "../../models/userSchema.model.js";
-import Otp from "../../models/otpSchema.model.js";
-
 // Services
 import {
   isValidate,
   addUser,
   isVerifyUser,
-  verifyForgOTP,
+  verifyForgotOTP,
+  findUserByEmail,
 } from "../../services/user/auth.service.js";
 
 import {
   sendOtpToEmail,
   otpExist,
+  saveOTP,
+  findOtp,
+  deleteOtp,
 } from "../../services/partials/otp.service.js";
 
 // Utils
 import { checkIfBlocked } from "../../utils/partials/auth/auth.util.js";
 import generateOTP from "../../utils/partials/otpGenerater.js";
-import { isConformPassword } from "../../utils/partials/validation.utils.js";
+import { isConfirmPassword  } from "../../utils/partials/validation.utils.js";
 import generateJWT from "../../utils/partials/jwt.utils.js";
 import setAuthCookie from "../../utils/partials/setAuthCookie.js";
-import AppError from "../../utils/partials/AppError.js";
+import clearAuthCookie from "../../utils/partials/clearCookie.js";
 import { hashPassword } from "../../utils/partials/auth/password.utils.js";
+import AppError from "../../utils/partials/AppError.js";
 
 // External
 import passport from "passport";
 import sendEmail from "../../constant/transporter.js";
-import clearAuthCookie from "../../utils/partials/clearCookie.js";
 
-//  🔐 AUTH CONTROLLERS
-// ================= LOGIN =================
+import {
+  errorResponse,
+  successResponse,
+} from "../../utils/partials/response.util.js";
+
+/* ================= LOGIN ================= */
 
 export const showLoginPage = (req, res) => {
   res.render("user/auth/login");
 };
 
-export const Login = async (req, res, next) => {
+export const login = async (req, res, next) => {
   try {
     const { email, password, rememberMe } = req.body;
 
     const user = await isVerifyUser(email, password);
-    await checkIfBlocked(user);
+    checkIfBlocked(user);
 
     const token = generateJWT(user, rememberMe);
+
     setAuthCookie(res, token, "user");
 
-    return res.status(200).json({
-      success: true,
-      message: "Login successful",
+    return successResponse(res, "Login successful", HTTP_STATUS.OK, {
       redirectUrl: "/",
     });
   } catch (err) {
@@ -66,7 +66,7 @@ export const Login = async (req, res, next) => {
   }
 };
 
-// ================= SIGNUP =================
+/* ================= SIGNUP ================= */
 
 export const showSignUpPage = (req, res) => {
   res.render("user/auth/signup");
@@ -75,18 +75,16 @@ export const showSignUpPage = (req, res) => {
 export const signUp = async (req, res, next) => {
   try {
     await isValidate(req.body);
+
     await sendOtpToEmail(req.body);
 
-    res.status(HTTP_STATUS.CREATED).json({
-      success: true,
-      message: "OTP sent to your email",
-    });
+    return successResponse(res, "OTP sent to your email", HTTP_STATUS.CREATED);
   } catch (err) {
     next(err);
   }
 };
 
-export const verifyOtp = async (req, res, next) => {
+export const verifySignupOtp = async (req, res, next) => {
   try {
     const { email, otp, purpose } = req.body;
 
@@ -103,38 +101,38 @@ export const verifyOtp = async (req, res, next) => {
       );
     }
 
-    await addUser({ email, ...existingOtp.tempUserData });
-
-    await Otp.deleteMany({ email, purpose });
-
-    res.json({
-      success: true,
-      message: "Account created successfully",
+    await addUser({
+      email,
+      ...existingOtp.tempUserData,
     });
+
+    await deleteOtp({ email, purpose });
+
+    return successResponse(
+      res,
+      "Account created successfully",
+      HTTP_STATUS.CREATED,
+    );
   } catch (err) {
     next(err);
   }
 };
 
+/* ================= RESEND OTP ================= */
+
 export const resendOtp = async (req, res, next) => {
   try {
     const { email, purpose } = req.body;
 
-    const otpDoc = await Otp.findOne({ email, purpose });
+    const otpDoc = await findOtp(email, purpose);
 
     if (!otpDoc) {
-      return res.status(400).json({
-        success: false,
-        message: "Signup session expired",
-      });
+      return errorResponse(res, "Signup session expired", HTTP_STATUS.GONE);
     }
 
     const newOtp = generateOTP();
 
-    otpDoc.otp = newOtp;
-    otpDoc.expiresAt = new Date(Date.now() + 65 * 1000);
-
-    await otpDoc.save();
+    await saveOTP(email, newOtp, purpose);
 
     await sendEmail({
       email,
@@ -142,45 +140,39 @@ export const resendOtp = async (req, res, next) => {
       otp: newOtp,
     });
 
-    res.json({
-      success: true,
-      message: "OTP resent successfully",
-    });
+    return successResponse(res, "OTP resent successfully", HTTP_STATUS.OK);
   } catch (err) {
     next(err);
   }
 };
 
-export const verifyOTP = async (req, res, next) => {
+/* ================= FORGOT PASSWORD OTP ================= */
+
+export const verifyForgotPasswordOtp = async (req, res, next) => {
   try {
     const { email, otp, purpose } = req.body;
 
-    await verifyForgOTP(email, otp, purpose);
+    await verifyForgotOTP(email, otp, purpose);
 
-    res.json({
-      success: true,
-      message: "OTP verified successfully",
-    });
+    return successResponse(res, "OTP verified successfully", HTTP_STATUS.OK);
   } catch (err) {
     next(err);
   }
 };
 
-// ================= LOGOUT =================
+/* ================= LOGOUT ================= */
+
 export const logout = async (req, res, next) => {
   try {
     clearAuthCookie(res, "token");
 
-    return res.status(HTTP_STATUS.OK).json({
-      success: true,
-      message: "Logged out successfully",
-    });
+    return successResponse(res, "Logged out successfully", HTTP_STATUS.OK);
   } catch (err) {
     next(err);
   }
 };
 
-// ================= FORGOT PASSWORD =================
+/* ================= FORGOT PASSWORD ================= */
 
 export const showForgotPasswordPage = (req, res) => {
   res.render("user/auth/forgot");
@@ -190,34 +182,23 @@ export const verifyEmail = async (req, res, next) => {
   try {
     const { email, purpose } = req.body;
 
-    const user = await User.findOne({ email });
+    const user = await findUserByEmail(email);
 
     if (!user) {
-      return res.status(HTTP_STATUS.NOT_FOUND).json({
-        success: false,
-        message: "Email not found",
-      });
+      return errorResponse(res, "Email not found", HTTP_STATUS.NOT_FOUND);
     }
-
-    // checkIfBlocked(user);
 
     const otp = generateOTP();
 
-    const otpDoc = new Otp({
+    await saveOTP(email, otp, purpose);
+
+    await sendEmail({
       email,
+      name: user.name,
       otp,
-      purpose,
-      expiresAt: new Date(Date.now() + 60 * 1000),
     });
 
-    await otpDoc.save();
-
-    await sendEmail({ email, name: user.name, otp });
-
-    res.json({
-      success: true,
-      message: "OTP sent to your email",
-    });
+    return successResponse(res, "OTP sent to your email", HTTP_STATUS.OK);
   } catch (err) {
     next(err);
   }
@@ -227,42 +208,37 @@ export const savePassword = async (req, res, next) => {
   try {
     const { email, password, confirmPassword } = req.body;
 
-    isConformPassword(password, confirmPassword);
+    isConfirmPassword(password, confirmPassword);
 
-    const hPassword = await hashPassword(password);
+    const hashedPassword = await hashPassword(password);
 
-    const user = await User.findOneAndUpdate(
-      { email },
-      { $set: { password: hPassword } },
-    );
+    const user = await findUserByEmail(email);
 
     if (!user) {
-      return res.status(404).json({
-        success: false,
-        message: "Email not found",
-      });
+      return errorResponse(res, "Email not found", HTTP_STATUS.NOT_FOUND);
     }
 
-    res.status(200).json({
-      success: true,
-      message: "Password updated successfully",
-    });
+    user.password = hashedPassword;
+
+    await user.save();
+
+    return successResponse(
+      res,
+      "Password updated successfully",
+      HTTP_STATUS.OK,
+    );
   } catch (err) {
     next(err);
   }
 };
 
-// ================= GOOGLE AUTH =================
+/* ================= GOOGLE AUTH ================= */
 
-export const passportRed = (req, res, next) => {
-  return passport.authenticate("google-user", {
-    scope: ["profile", "email"],
-  })(req, res, next);
-};
+export const passportRedirect = passport.authenticate("google-user", {
+  scope: ["profile", "email"],
+});
 
-export const googleUserAuth = (req, res, next) => {
-  passport.authenticate("google-user", {
-    session: false,
-    failureRedirect: "/login",
-  })(req, res, next);
-};
+export const googleUserAuth = passport.authenticate("google-user", {
+  session: false,
+  failureRedirect: "/login",
+});

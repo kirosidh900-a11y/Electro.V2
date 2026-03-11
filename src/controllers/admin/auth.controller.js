@@ -1,6 +1,7 @@
 import HTTP_STATUS from "../../constant/statusCode.js";
 import clearAuthCookie from "../../utils/partials/clearCookie.js";
 import { adminLoginService } from "../../services/admin/auth.service.js";
+import { successResponse } from "../../utils/partials/response.util.js";
 
 // Show Login Page
 export const showLoginPage = (req, res) => {
@@ -17,9 +18,9 @@ export const Login = async (req, res, next) => {
   try {
     await adminLoginService(req.body, res);
 
-    return res.status(HTTP_STATUS.OK).json({
-      success: true,
-      message: "Admin login successful",
+    const message = "Admin login successful";
+
+    return successResponse(res, message, HTTP_STATUS.OK, {
       redirectUrl: "/admin/dashboard",
     });
   } catch (error) {
@@ -30,10 +31,8 @@ export const Login = async (req, res, next) => {
 export const logout = async (req, res, next) => {
   try {
     clearAuthCookie(res, "adminToken");
-    return res.status(200).json({
-      success: true,
-      message: "Logged out successfully",
-    });
+    const message = "Logged out successfully";
+    return successResponse(res, message, HTTP_STATUS.OK);
   } catch (err) {
     next(err);
   }

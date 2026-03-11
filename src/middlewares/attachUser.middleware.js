@@ -18,6 +18,7 @@ const attachUser = async (req, res, next) => {
     if (!user || user.isBlock) {
       clearAuthCookie(res, "token");
       req.user = null;
+      res.locals.user=null;
       return next();
     }
 
