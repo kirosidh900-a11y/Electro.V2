@@ -25,7 +25,7 @@ import {
 // Utils
 import { checkIfBlocked } from "../../utils/partials/auth/auth.util.js";
 import generateOTP from "../../utils/partials/otpGenerater.js";
-import { isConfirmPassword  } from "../../utils/partials/validation.utils.js";
+import { isConfirmPassword } from "../../utils/partials/validation.utils.js";
 import generateJWT from "../../utils/partials/jwt.utils.js";
 import setAuthCookie from "../../utils/partials/setAuthCookie.js";
 import clearAuthCookie from "../../utils/partials/clearCookie.js";
@@ -52,7 +52,8 @@ export const login = async (req, res, next) => {
     const { email, password, rememberMe } = req.body;
 
     const user = await isVerifyUser(email, password);
-    checkIfBlocked(user);
+
+    await checkIfBlocked(user);
 
     const token = generateJWT(user, rememberMe);
 
@@ -127,7 +128,7 @@ export const resendOtp = async (req, res, next) => {
     const otpDoc = await findOtp(email, purpose);
 
     if (!otpDoc) {
-      return errorResponse(res, "Signup session expired", HTTP_STATUS.GONE);
+      return errorResponse(res, "OTP session expired", HTTP_STATUS.GONE);
     }
 
     const newOtp = generateOTP();
@@ -136,37 +137,11 @@ export const resendOtp = async (req, res, next) => {
 
     await sendEmail({
       email,
-      name: otpDoc.tempUserData?.name ?? "User",
+      name: otpDoc?.tempUserData?.name ?? "User",
       otp: newOtp,
     });
 
     return successResponse(res, "OTP resent successfully", HTTP_STATUS.OK);
-  } catch (err) {
-    next(err);
-  }
-};
-
-/* ================= FORGOT PASSWORD OTP ================= */
-
-export const verifyForgotPasswordOtp = async (req, res, next) => {
-  try {
-    const { email, otp, purpose } = req.body;
-
-    await verifyForgotOTP(email, otp, purpose);
-
-    return successResponse(res, "OTP verified successfully", HTTP_STATUS.OK);
-  } catch (err) {
-    next(err);
-  }
-};
-
-/* ================= LOGOUT ================= */
-
-export const logout = async (req, res, next) => {
-  try {
-    clearAuthCookie(res, "token");
-
-    return successResponse(res, "Logged out successfully", HTTP_STATUS.OK);
   } catch (err) {
     next(err);
   }
@@ -204,6 +179,22 @@ export const verifyEmail = async (req, res, next) => {
   }
 };
 
+/* ================= VERIFY FORGOT PASSWORD OTP ================= */
+
+export const verifyForgotPasswordOtp = async (req, res, next) => {
+  try {
+    const { email, otp, purpose } = req.body;
+
+    await verifyForgotOTP(email, otp, purpose);
+
+    return successResponse(res, "OTP verified successfully", HTTP_STATUS.OK);
+  } catch (err) {
+    next(err);
+  }
+};
+
+/* ================= SAVE NEW PASSWORD ================= */
+
 export const savePassword = async (req, res, next) => {
   try {
     const { email, password, confirmPassword } = req.body;
@@ -227,6 +218,18 @@ export const savePassword = async (req, res, next) => {
       "Password updated successfully",
       HTTP_STATUS.OK,
     );
+  } catch (err) {
+    next(err);
+  }
+};
+
+/* ================= LOGOUT ================= */
+
+export const logout = async (req, res, next) => {
+  try {
+    clearAuthCookie(res, "token");
+
+    return successResponse(res, "Logged out successfully", HTTP_STATUS.OK);
   } catch (err) {
     next(err);
   }

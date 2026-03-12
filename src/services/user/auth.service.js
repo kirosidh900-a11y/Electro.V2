@@ -1,7 +1,6 @@
 import User from "../../models/userSchema.model.js";
 import AppError from "../../utils/partials/AppError.utils.js";
 import HTTP_STATUS from "../../constant/statusCode.js";
-import Otp from "../../models/otpSchema.model.js";
 import argon2 from "argon2";
 
 import {
@@ -83,21 +82,32 @@ export const isValidate = async (data) => {
   await isValidReferral(referral_by, email);
 };
 
+import redisClient from "../../utils/partials/redisClient.util.js";
 export const verifyForgotOTP = async (email, otp, purpose) => {
-  const otpRecord = await Otp.findOne({ email, otp, purpose });
 
-  if (!otpRecord) {
+  const key = `otp:${purpose}:${email}`;
+
+  const stored = await redisClient.get(key);
+
+  if (!stored) {
     throw new AppError(
-      "Invalid OTP or Session Expired",
-      HTTP_STATUS.BAD_REQUEST,
+      "OTP expired or session not found",
+      HTTP_STATUS.GONE
     );
   }
 
-  if (otpRecord.expiresAt < new Date()) {
-    throw new AppError("OTP expired", HTTP_STATUS.BAD_REQUEST);
+  const parsed = JSON.parse(stored);
+
+  if (String(parsed.otp) !== String(otp)) {
+    throw new AppError(
+      "Invalid OTP",
+      HTTP_STATUS.BAD_REQUEST
+    );
   }
 
-  await Otp.deleteMany({ email, purpose });
+  // delete OTP after successful verification
+  await redisClient.del(key);
+
   return true;
 };
 

@@ -1,4 +1,4 @@
-import Otp from "../../models/otpSchema.model.js";
+import redisClient from "../../utils/partials/redisClient.util.js";
 import generateOTP from "../../utils/partials/otpGenerater.js";
 import sendEmail from "../../constant/transporter.js";
 import { hashPassword } from "../../utils/partials/auth/password.utils.js";
@@ -6,7 +6,8 @@ import AppError from "../../utils/partials/AppError.utils.js";
 import HTTP_STATUS from "../../constant/statusCode.js";
 import { OTP_EXPIRY } from "../../constant/auth.constant.js";
 
-// Send OTP Thought Clinet
+/* ================= SEND OTP ================= */
+
 export const sendOtpToEmail = async ({
   email,
   name,
@@ -17,7 +18,7 @@ export const sendOtpToEmail = async ({
   if (!email || !password) {
     throw new AppError(
       "Email and password are required",
-      HTTP_STATUS.NOT_FOUND,
+      HTTP_STATUS.BAD_REQUEST,
     );
   }
 
@@ -27,12 +28,20 @@ export const sendOtpToEmail = async ({
     ? password
     : await hashPassword(password);
 
-  await Otp.create({
-    email,
+  const key = `otp:signup:${email}`;
+
+  const data = JSON.stringify({
     otp,
-    purpose: "signup",
-    tempUserData: { name, phone, password: finalPassword, referral_by },
-    expiresAt: new Date(Date.now() + 2 * 60 * 1000),
+    tempUserData: {
+      name,
+      phone,
+      password: finalPassword,
+      referral_by,
+    },
+  });
+
+  await redisClient.set(key, data, {
+    EX: OTP_EXPIRY / 1000,
   });
 
   await sendEmail({ email, name, otp });
@@ -40,35 +49,53 @@ export const sendOtpToEmail = async ({
   console.log(`[Service] OTP ${otp} generated for ${email}`);
 };
 
-// Verify OTP
+/* ================= VERIFY OTP ================= */
+
 export const otpExist = async (email, otp, purpose) => {
-  const existingOtp = await Otp.findOne({ email, otp, purpose });
-  return existingOtp;
+  const key = `otp:${purpose}:${email}`;
+
+  const stored = await redisClient.get(key);
+
+  if (!stored) return null;
+
+  const parsed = JSON.parse(stored);
+
+  if (String(parsed.otp) !== String(otp)) return null;
+
+  return parsed;
 };
+/* ================= FIND OTP ================= */
 
 export const findOtp = async (email, purpose) => {
-  const existingOtp = await Otp.findOne({ email, purpose });
-  return existingOtp;
+  const key = `otp:${purpose}:${email}`;
+  console.log(key);
+
+  const stored = await redisClient.get(key);
+
+  if (!stored) return null;
+
+  return JSON.parse(stored);
 };
 
-export const saveOTP = async (email, otp, purpose) => {
-  const expiresAt = new Date(Date.now() + OTP_EXPIRY); // 5 min
+/* ================= RESEND OTP ================= */
 
-  const otpDoc = await Otp.findOneAndUpdate(
-    { email, purpose },
-    {
-      otp,
-      expiresAt,
-    },
-    {
-      new: true,
-      upsert: true,
-    },
-  );
+export const saveOTP = async (email, otp, purpose, tempUserData = null) => {
+  const key = `otp:${purpose}:${email}`;
 
-  return otpDoc;
+  const data = JSON.stringify({
+    otp,
+    tempUserData,
+  });
+
+  await redisClient.set(key, data, {
+    EX: OTP_EXPIRY / 1000,
+  });
 };
+
+/* ================= DELETE OTP ================= */
 
 export const deleteOtp = async ({ email, purpose }) => {
-  return await Otp.deleteMany({ email, purpose });
+  const key = `otp:${purpose}:${email}`;
+
+  await redisClient.del(key);
 };
