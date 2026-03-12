@@ -4,7 +4,7 @@ const userSchema = new Schema(
   {
     name: {
       type: String,
-      required:true,
+      required: true,
       trim: true,
     },
 
@@ -24,13 +24,12 @@ const userSchema = new Schema(
     googleId: {
       type: String,
       unique: true,
-      sparse: true, // only index if exists
+      sparse: true,
     },
 
     password: {
       type: String,
       default: null,
-      required: false,
     },
 
     referral_by: {
@@ -54,11 +53,11 @@ const userSchema = new Schema(
       default: false,
     },
   },
-  { timestamps: true },
+  { timestamps: true }
 );
 
+// For Search
 userSchema.index({ name: 1 });
-userSchema.index({ email: 1 });
 userSchema.index({ isBlock: 1 });
 
 const User = mongoose.model("User", userSchema);
