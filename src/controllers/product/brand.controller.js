@@ -1,7 +1,21 @@
 import renderView from "../../utils/admin/renderView.util.js";
-import BrandSchema from "../../models/brandSchema.model.js";
-import fs from "fs";
+import cloudinary from "../../config/cloudinary.js";
+import { getPublicId } from "../../utils/partials/cloudinary.util.js";
 
+import {
+  brandService,
+  createBrandService,
+  findBrandByIdService,
+  softDeleteBrandService,
+  updateBrandService,
+} from "../../services/product/brand.service.js";
+
+import {
+  errorResponse,
+  successResponse,
+} from "../../utils/partials/response.util.js";
+
+import HTTP_STATUS from "../../constant/statusCode.js";
 
 export const brandPage = async (req, res) => {
   try {
@@ -11,26 +25,12 @@ export const brandPage = async (req, res) => {
     const search = req.query.search || "";
     const status = req.query.status || "All";
 
-    const query = { isDeleted: false };
-
-    if (search) {
-      query.title = { $regex: search, $options: "i" };
-    }
-
-    // 📌 Status filter
-    if (status === "listed") query.status = "listed";
-    if (status === "unlisted") query.status = "unlisted";
-
-    const totalBrands = await BrandSchema.countDocuments(query);
-
-    const totalPages = Math.ceil(totalBrands / limit);
-
-    const brands = await BrandSchema.find(query)
-      .skip((page - 1) * limit)
-      .limit(limit)
-      .sort({ createdAt: -1 });
-
-    const currentPage = page;
+    const { brands, currentPage, totalPages } = await brandService({
+      limit,
+      page,
+      search,
+      status,
+    });
 
     // AJAX request
     if (req.xhr) {
@@ -64,125 +64,66 @@ export const createBrand = async (req, res) => {
   try {
     const { title, status } = req.body;
 
-    // check title
-    if (!title || !title.trim()) {
-      if (req.file) {
-        fs.unlink(req.file.path, () => {});
-      }
-
-      return res.json({
-        success: false,
-        message: "Brand title required",
-      });
-    }
-
-    const titlePattern = /^[A-Za-z]+(?: [A-Za-z]+)*$/;
-
-    if (!titlePattern.test(title)) {
-      return res.json({
-        success: false,
-        message: "Brand name must contain only letters and single spaces",
-      });
-    }
-    // check logo
     if (!req.file) {
-      return res.json({
-        success: false,
-        message: "Logo required",
-      });
+      return errorResponse(res, "Logo required", HTTP_STATUS.BAD_REQUEST);
     }
 
-    const logo = `/uploads/brands/${req.file.filename}`;
+    const logo = req.file.path;
 
-    await BrandSchema.create({
-      title,
+    await createBrandService({
+      title: title.trim().toUpperCase(),
       status,
       logo,
     });
 
-    return res.json({
-      success: true,
-      message: "Brand created successfully",
-    });
+    return successResponse(res, "Brand created successfully");
   } catch (error) {
-    // Mongo duplicate key
-    if (error.code === 11000) {
-      if (req.file) {
-        fs.unlink(req.file.path, () => {});
-      }
+    // delete uploaded image if DB failed
+    if (req.file) {
+      const publicId = getPublicId(req.file.path);
+      await cloudinary.uploader.destroy(publicId);
+    }
 
-      return res.json({
-        success: false,
-        message: "Brand already exists",
-      });
+    if (error.code === 11000) {
+      return errorResponse(res, "Brand already exists");
     }
 
     console.error(error);
-
-    if (req.file) {
-      fs.unlink(req.file.path, () => {});
-    }
-
-    res.json({
-      success: false,
-      message: "Failed to create brand",
-    });
+    return errorResponse(res, "Failed to create brand");
   }
 };
 
 export const updateBrand = async (req, res) => {
   try {
     const { id } = req.params;
-    const { title, status } = req.body;
+    const { title } = req.body;
 
-    const brand = await BrandSchema.findById(id);
+    const brand = await findBrandByIdService(id);
 
     if (!brand) {
-      if (req.file) fs.unlink(req.file.path, () => {});
-      return res.json({
-        success: false,
-        message: "Brand not found",
-      });
+      return errorResponse(res, "Brand not found");
     }
 
-    // update title
-    if (title) {
-      brand.title = title.trim().toUpperCase();
-    }
+    let logo = brand.logo;
 
-    // update status
-    if (status) {
-      brand.status = status;
-    }
-
-    // update logo
     if (req.file) {
-      // delete old logo
       if (brand.logo) {
-        const oldPath = `public${brand.logo}`;
-        if (fs.existsSync(oldPath)) {
-          fs.unlinkSync(oldPath);
-        }
+        const publicId = getPublicId(brand.logo);
+        await cloudinary.uploader.destroy(publicId);
       }
 
-      brand.logo = `/uploads/brands/${req.file.filename}`;
+      logo = req.file.path;
     }
 
-    await brand.save();
-
-    res.json({
-      success: true,
-      message: "Brand updated successfully",
+    await updateBrandService(id, {
+      title,
+      logo,
     });
+
+    return successResponse(res, "Brand updated successfully");
   } catch (error) {
     console.error(error);
-
-    if (req.file) fs.unlink(req.file.path, () => {});
-
-    res.json({
-      success: false,
-      message: "Failed to update brand",
-    });
+    return errorResponse(res, "Failed to update brand");
   }
 };
 
@@ -190,40 +131,18 @@ export const deleteBrand = async (req, res) => {
   try {
     const { id } = req.params;
 
-    const brand = await BrandSchema.findById(id);
+    const brand = await findBrandByIdService(id);
 
     if (!brand) {
-      return res.json({
-        success: false,
-        message: "Brand not found",
-      });
+      return errorResponse(res, "Brand not found");
     }
 
-    // delete logo from disk
-    if (brand.logo) {
-      const path = `public${brand.logo}`;
+    await softDeleteBrandService(id);
 
-      if (fs.existsSync(path)) {
-        fs.unlinkSync(path);
-      }
-    }
-
-    // soft delete
-    brand.isDeleted = true;
-
-    await brand.save();
-
-    res.json({
-      success: true,
-      message: "Brand deleted successfully",
-    });
+    return successResponse(res, "Brand deleted successfully");
   } catch (error) {
     console.error(error);
-
-    res.json({
-      success: false,
-      message: "Failed to delete brand",
-    });
+    return errorResponse(res, "Failed to delete brand");
   }
 };
 
@@ -231,30 +150,22 @@ export const toggleBrandStatus = async (req, res) => {
   try {
     const { id } = req.params;
 
-    const brand = await BrandSchema.findById(id);
+    const brand = await findBrandByIdService(id);
 
     if (!brand) {
-      return res.json({
-        success: false,
-        message: "Brand not found",
-      });
+      return errorResponse(res, "Brand not found");
     }
 
-    // toggle status
-    brand.status = brand.status === "listed" ? "unlisted" : "listed";
+    const status = brand.status === "listed" ? "unlisted" : "listed";
 
-    await brand.save();
+    await updateBrandService(id, { status });
 
     res.json({
       success: true,
-      status: brand.status,
+      status,
     });
   } catch (error) {
     console.error(error);
-
-    res.json({
-      success: false,
-      message: "Failed to update brand status",
-    });
+    return errorResponse(res, "Failed to update brand status");
   }
 };
