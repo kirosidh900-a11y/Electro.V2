@@ -2,6 +2,8 @@
 <html lang="en" class="dark">
 
 <head>
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.6.1/cropper.min.css" />
+        <script defer src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.6.1/cropper.min.js"></script>
         <%- include('../../partials/head') %>
 </head>
 
@@ -107,7 +109,7 @@
                                                         class="w-full mt-1 bg-[#0f172a] border border-white/10 px-3 py-2 rounded-lg text-sm">
                                                 <!-- Preview -->
                                                 <img id="brand-logo-preview"
-                                                        class="mt-3 w-20 h-20 object-contain rounded-lg bg-white p-1 hidden">
+                                                        class="mt-3 w-20 h-20 object-contain rounded-2xl bg-white hidden">
                                         </div>
 
                                         <!-- Status -->
@@ -148,9 +150,33 @@
 
                 </div>
 
+                <!-- Image Crop Modal -->
+                <div id="cropModal" class="fixed inset-0 bg-black/70 hidden z-50 flex items-center justify-center">
 
+                        <div class="bg-[#0b1220] p-6 rounded-xl w-[600px]">
 
-                <script>
+                                <h2 class="text-white mb-4">Crop Logo</h2>
+
+                                <div class="max-h-[400px]">
+                                        <img id="cropImage" class="max-w-full">
+                                </div>
+
+                                <div class="flex justify-end gap-3 mt-4">
+                                        <button onclick="closeCrop()" class="px-4 py-2 bg-gray-600 rounded">
+                                                Cancel
+                                        </button>
+
+                                        <button onclick="cropImage()" class="px-4 py-2 bg-cyan-600 rounded">
+                                                Crop
+                                        </button>
+                                </div>
+
+                        </div>
+
+                </div>
+
+                <script type="module">
+                        import { showToast } from "../../partials/errorMsg.utils.js";
 
                         const swalDark = {
                                 background: "#1a1a1a",
@@ -158,167 +184,178 @@
                                 confirmButtonColor: "#fa5252",
                         };
 
+                        let cropper;
+                        let croppedBlob;
 
-                        const addBrandBtn = document.getElementById("add-brand");
+                        const logoInput = document.getElementById("brand-logo");
+                        const cropModal = document.getElementById("cropModal");
+                        const cropImageElement = document.getElementById("cropImage");
+                        const preview = document.getElementById("brand-logo-preview");
+                        const brandForm = document.getElementById("brandForm");
 
-                        if (addBrandBtn) {
-                                addBrandBtn.addEventListener("click", async (e) => {
+                        const addBtn = document.getElementById(`add-${moduleName}`);
 
-                                        openAddModal();
-
-                                });
+                        if (addBtn) {
+                                addBtn.addEventListener("click", () => openAddModal());
                         }
 
-                        function editBrand(id, title, status, logo) {
+                        /* =========================
+                           MODAL FUNCTIONS
+                        ========================= */
 
-                                document.getElementById("brand-id").value = id;
-                                document.getElementById("brand-title").value = title;
-                                document.getElementById("brand-status").value = status;
+                        window.openAddModal = function () {
+                                const submitBtn = document.getElementById("brand-submit-btn");
 
-                                const preview = document.getElementById("brand-logo-preview");
+                                croppedBlob = null;
 
-                                if (logo) {
-                                        preview.src = logo;
-                                        preview.classList.remove("hidden");
-                                }
-
-                                document.getElementById("brand-submit-btn").textContent = "Update Brand";
-
-                                document.getElementById("brandModal").classList.remove("hidden");
-                        }
-
-                        function openAddModal() {
+                                submitBtn.disabled = false;
+                                submitBtn.textContent = "Create Brand";
+                                submitBtn.classList.remove("opacity-60", "cursor-not-allowed");
 
                                 document.getElementById("brand-id").value = "";
                                 document.getElementById("brand-title").value = "";
                                 document.getElementById("brand-status").value = "unlisted";
                                 document.getElementById("brand-logo").value = "";
 
-                                const preview = document.getElementById("brand-logo-preview");
                                 preview.src = "";
                                 preview.classList.add("hidden");
 
                                 document.getElementById("brandModal").classList.remove("hidden");
+                        };
 
-                        }
-
-
-                        function closeModal() {
-
+                        window.closeModal = function () {
                                 document.getElementById("brandModal").classList.add("hidden");
+                        };
 
-                        }
+                        window.editBrand = function (id, title, status, logo) {
+                                const submitBtn = document.getElementById("brand-submit-btn");
 
-                        //Preview Img
+                                submitBtn.disabled = false;
+                                submitBtn.textContent = "Update Brand";
 
-                        const logoInput = document.getElementById("brand-logo");
-                        const preview = document.getElementById("brand-logo-preview");
+                                document.getElementById("brand-id").value = id;
+                                document.getElementById("brand-title").value = title;
+                                document.getElementById("brand-status").value = status;
 
-                        logoInput?.addEventListener("change", function () {
+                                if (logo) {
+                                        preview.src = logo;
+                                        preview.classList.remove("hidden");
+                                }
 
+                                document.getElementById("brandModal").classList.remove("hidden");
+                        };
+
+                        /* =========================
+                           IMAGE CROPPER
+                        ========================= */
+
+                        logoInput.addEventListener("change", function () {
                                 const file = this.files[0];
-
                                 if (!file) return;
 
                                 const reader = new FileReader();
 
                                 reader.onload = function (e) {
+                                        cropImageElement.src = e.target.result;
 
-                                        preview.src = e.target.result;
-                                        preview.classList.remove("hidden");
+                                        cropModal.classList.remove("hidden");
 
+                                        if (cropper) cropper.destroy();
+
+                                        cropper = new Cropper(cropImageElement, {
+                                                aspectRatio: 1,
+                                                viewMode: 1,
+                                                autoCropArea: 1,
+                                                responsive: true,
+                                                background: false,
+                                        });
                                 };
 
                                 reader.readAsDataURL(file);
-
                         });
 
-                        const brandForm = document.getElementById("brandForm");
+                        window.cropImage = function () {
+                                if (!cropper) return;
+
+                                const canvas = cropper.getCroppedCanvas({
+                                        width: 300,
+                                        height: 300,
+                                });
+
+                                canvas.toBlob((blob) => {
+                                        croppedBlob = blob;
+
+                                        preview.src = URL.createObjectURL(blob);
+                                        preview.classList.remove("hidden");
+
+                                        closeCrop();
+                                }, "image/png");
+                        };
+
+                        window.closeCrop = function () {
+                                cropModal.classList.add("hidden");
+
+                                if (cropper) {
+                                        cropper.destroy();
+                                        cropper = null;
+                                }
+                        };
+
+                        /* =========================
+                           BRAND FORM SUBMIT
+                        ========================= */
 
                         brandForm.addEventListener("submit", async (e) => {
-
                                 e.preventDefault();
 
-                                const brandId = document.getElementById("brand-id").value;
-                                const titleInput = document.getElementById("brand-title");
-                                const statusInput = document.getElementById("brand-status");
-                                const logoInput = document.getElementById("brand-logo");
+                                const submitBtn = document.getElementById("brand-submit-btn");
+                                if (submitBtn.disabled) return;
 
-                                const title = titleInput.value.trim();
-                                const status = statusInput.value;
-                                const logoFile = logoInput.files[0];
+                                submitBtn.disabled = true;
+                                submitBtn.textContent = "Processing...";
+                                submitBtn.classList.add("opacity-60", "cursor-not-allowed");
+
+                                const brandId = document.getElementById("brand-id").value;
+                                const title = document.getElementById("brand-title").value.trim();
+                                const status = document.getElementById("brand-status").value;
+
+                                const logoFile = croppedBlob || logoInput.files[0];
 
                                 const titlePattern = /^[A-Za-z]+(?: [A-Za-z]+)*$/;
 
-                                /* -------------------------
-                                   VALIDATIONS
-                                ------------------------- */
-
-                                if (!title) {
-                                        return Swal.fire({
-                                                ...swalDark,
-                                                icon: "warning",
-                                                text: "Brand name is required"
-                                        });
-                                }
-
-                                if (!titlePattern.test(title)) {
-                                        return Swal.fire({
-                                                ...swalDark,
-                                                icon: "warning",
-                                                text: "Brand name can contain only letters and single spaces"
-                                        });
-                                }
-
-                                if (!brandId && !logoFile) {
-                                        return Swal.fire({
-                                                ...swalDark,
-                                                icon: "warning",
-                                                text: "Brand logo is required"
-                                        });
-                                }
-
-                                if (logoFile) {
-
-                                        const allowedTypes = [
-                                                "image/png",
-                                                "image/jpeg",
-                                                "image/webp",
-                                                "image/svg+xml"
-                                        ];
-
-                                        if (!allowedTypes.includes(logoFile.type)) {
-                                                return Swal.fire({
-                                                        ...swalDark,
-                                                        icon: "warning",
-                                                        text: "Only PNG, JPG, WEBP or SVG images allowed"
-                                                });
-                                        }
-
-                                        const maxSize = 2 * 1024 * 1024;
-
-                                        if (logoFile.size > maxSize) {
-                                                return Swal.fire({
-                                                        ...swalDark,
-                                                        icon: "warning",
-                                                        text: "Logo size must be less than 2MB"
-                                                });
-                                        }
-                                }
-
-                                /* -------------------------
-                                   SUBMIT
-                                ------------------------- */
-
-                                const formData = new FormData();
-                                formData.append("title", title);
-                                formData.append("status", status);
-
-                                if (logoFile) {
-                                        formData.append("logo", logoFile);
-                                }
-
                                 try {
+                                        if (!title) throw new Error("Brand name is required");
+
+                                        if (!titlePattern.test(title))
+                                                throw new Error("Brand name can contain only letters and single spaces");
+
+                                        if (!brandId && !logoFile)
+                                                throw new Error("Brand logo is required");
+
+                                        if (logoFile) {
+                                                const allowedTypes = [
+                                                        "image/png",
+                                                        "image/jpeg",
+                                                        "image/webp",
+                                                        "image/svg+xml",
+                                                ];
+
+                                                if (!allowedTypes.includes(logoFile.type))
+                                                        throw new Error("Only PNG, JPG, WEBP or SVG images allowed");
+
+                                                const maxSize = 2 * 1024 * 1024;
+
+                                                if (logoFile.size > maxSize)
+                                                        throw new Error("Logo size must be less than 2MB");
+                                        }
+
+                                        const formData = new FormData();
+                                        formData.append("title", title);
+                                        formData.append("status", status);
+
+                                        if (logoFile) {
+                                                formData.append("logo", logoFile, "logo.png");
+                                        }
 
                                         let url = "/admin/brand";
                                         let method = "POST";
@@ -328,49 +365,29 @@
                                                 method = "PATCH";
                                         }
 
-                                        const res = await fetch(url, {
-                                                method,
-                                                body: formData
-                                        });
+                                        const res = await fetch(url, { method, body: formData });
 
                                         const data = await res.json();
 
-                                        if (!data.success) {
-                                                return Swal.fire({
-                                                        ...swalDark,
-                                                        icon: "error",
-                                                        text: data.message
-                                                });
-                                        }
+                                        if (!data.success) throw new Error(data.message);
 
-                                        Swal.fire({
-                                                ...swalDark,
-                                                toast: true,
-                                                position: "top-end",
-                                                icon: "success",
-                                                title: brandId ? "Brand updated" : "Brand created",
-                                                showConfirmButton: false,
-                                                timer: 2000
-                                        });
+                                        showToast(
+                                                brandId
+                                                        ? "Brand updated successfully"
+                                                        : "Brand created successfully",
+                                                "success"
+                                        );
 
                                         closeModal();
 
-                                        /* -------------------------
-                                           UPDATE TABLE (EDIT MODE)
-                                        ------------------------- */
-
                                         if (brandId) {
-
                                                 const titleCell = document.getElementById(`title-${brandId}`);
                                                 const badge = document.getElementById(`badge-${brandId}`);
                                                 const row = document.getElementById(`row-${brandId}`);
 
-                                                if (titleCell) {
-                                                        titleCell.textContent = title.toUpperCase();
-                                                }
+                                                if (titleCell) titleCell.textContent = title.toUpperCase();
 
                                                 if (badge) {
-
                                                         badge.textContent = status;
 
                                                         badge.className =
@@ -380,38 +397,26 @@
                                                 }
 
                                                 if (logoFile && row) {
-
                                                         const img = row.querySelector("img");
-
-                                                        if (img) {
-                                                                img.src = URL.createObjectURL(logoFile);
-                                                        }
-
+                                                        if (img) img.src = URL.createObjectURL(logoFile);
                                                 }
-
                                         } else {
-
-                                                // if creating new brand just reload
                                                 location.reload();
-
                                         }
-
                                 } catch (error) {
-
-                                        console.error(error);
-
-                                        Swal.fire({
-                                                ...swalDark,
-                                                icon: "error",
-                                                text: "Something went wrong"
-                                        });
-
+                                        showToast(error.message || "Something went wrong", "error");
+                                } finally {
+                                        submitBtn.disabled = false;
+                                        submitBtn.textContent = brandId ? "Update Brand" : "Create Brand";
+                                        submitBtn.classList.remove("opacity-60", "cursor-not-allowed");
                                 }
-
                         });
 
-                        async function deleteBrand(brand_id) {
+                        /* =========================
+                           DELETE BRAND
+                        ========================= */
 
+                        window.deleteBrand = async function (brand_id) {
                                 const result = await Swal.fire({
                                         title: "Delete Brand?",
                                         text: "This action cannot be undone!",
@@ -419,58 +424,36 @@
                                         ...swalDark,
                                         showCancelButton: true,
                                         confirmButtonText: "Yes, delete it!",
-                                        cancelButtonText: "Cancel"
                                 });
 
                                 if (!result.isConfirmed) return;
 
                                 try {
-
                                         const res = await fetch(`/admin/brand/${brand_id}`, {
-                                                method: "DELETE"
+                                                method: "DELETE",
                                         });
 
                                         const data = await res.json();
 
-                                        if (!data.success) {
-                                                return Swal.fire({
-                                                        icon: "error",
-                                                        ...swalDark,
-                                                        text: data.message
-                                                });
-                                        }
+                                        if (!data.success) throw new Error(data.message);
 
-                                        Swal.fire({
-                                                toast: true,
-                                                position: "top-end",
-                                                icon: "success",
-                                                title: "Brand deleted successfully",
-                                                ...swalDark,
-                                                showConfirmButton: false,
-                                                timer: 2000
-                                        });
+                                        showToast("Brand deleted successfully", "success");
 
-                                        // remove row from table
                                         const row = document.getElementById(`row-${brand_id}`);
+
                                         row.classList.add("opacity-0");
+
                                         setTimeout(() => row.remove(), 300);
-
                                 } catch (error) {
-
-                                        console.error(error);
-
-                                        Swal.fire({
-                                                icon: "error",
-                                                ...swalDark,
-                                                text: "Something went wrong"
-                                        });
-
+                                        showToast(error.message || "Something went wrong", "error");
                                 }
+                        };
 
-                        }
+                        /* =========================
+                           TOGGLE BRAND STATUS
+                        ========================= */
 
-                        async function toggleBrandStatus(brand_id, status) {
-
+                        window.toggleBrandStatus = async function (brand_id, status) {
                                 const action = status === "listed" ? "unlist" : "list";
 
                                 const result = await Swal.fire({
@@ -480,42 +463,34 @@
                                         ...swalDark,
                                         showCancelButton: true,
                                         confirmButtonText: `Yes, ${action}!`,
-                                        cancelButtonText: "Cancel"
                                 });
 
                                 if (!result.isConfirmed) return;
 
                                 try {
-
                                         const res = await fetch(`/admin/brand/status/${brand_id}`, {
-                                                method: "PATCH"
+                                                method: "PATCH",
                                         });
 
                                         const data = await res.json();
 
-                                        if (!data.success) {
-                                                return Swal.fire({
-                                                        icon: "error",
-                                                        ...swalDark,
-                                                        text: data.message
-                                                });
-                                        }
-
-                                        const btn = document.getElementById(`status-${brand_id}`);
+                                        if (!data.success) throw new Error(data.message);
                                         const badge = document.getElementById(`badge-${brand_id}`);
+                                        const btn = document.getElementById(`status-${brand_id}`);
 
                                         const newStatus = data.status;
 
-                                        // update badge
+                                        /* update badge */
+
                                         badge.textContent = newStatus;
 
-                                        if (newStatus === "listed") {
-                                                badge.className = "px-3 py-1 rounded-full text-xs bg-emerald-500/20 text-emerald-400";
-                                        } else {
-                                                badge.className = "px-3 py-1 rounded-full text-xs bg-red-500/20 text-red-400";
-                                        }
+                                        badge.className =
+                                                newStatus === "listed"
+                                                        ? "px-3 py-1 rounded-full text-xs bg-emerald-500/20 text-emerald-400"
+                                                        : "px-3 py-1 rounded-full text-xs bg-red-500/20 text-red-400";
 
-                                        // update button text
+                                        /* update button */
+
                                         btn.textContent = newStatus === "listed" ? "Unlist" : "List";
 
                                         btn.className =
@@ -529,30 +504,14 @@
                                                 `toggleBrandStatus('${brand_id}','${newStatus}')`
                                         );
 
-                                        Swal.fire({
-                                                toast: true,
-                                                position: "top-end",
-                                                icon: "success",
-                                                title: `Brand ${action}ed successfully`,
-                                                showConfirmButton: false,
-                                                timer: 2000
-                                        });
-
+                                        showToast(`Brand ${action}ed successfully`, "success");
                                 } catch (error) {
-
-                                        console.error(error);
-
-                                        Swal.fire({
-                                                icon: "error",
-                                                ...swalDark,
-                                                text: "Something went wrong"
-                                        });
-
+                                        showToast(error.message || "Something went wrong", "error");
                                 }
-
-                        }
-                        
+                        };
                 </script>
+
+
 
 
                 <script>
