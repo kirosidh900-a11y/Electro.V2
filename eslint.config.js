@@ -3,8 +3,10 @@ import globals from "globals";
 import { defineConfig } from "eslint/config";
 
 export default defineConfig([
+  /* =========================
+     Node Backend
+  ========================= */
 
-  // Node backend (controllers, routes, middleware, etc.)
   {
     files: ["src/**/*.js"],
     ignores: ["src/public/**"],
@@ -12,24 +14,41 @@ export default defineConfig([
     ...js.configs.recommended,
 
     languageOptions: {
+      ecmaVersion: "latest",
+      sourceType: "module",
+
       globals: {
-        ...globals.node
-      }
-    }
+        ...globals.node,
+      },
+    },
+
+    rules: {
+      "no-unused-vars": "warn",
+      "no-console": "off",
+    },
   },
 
-  // Browser frontend (public JS)
+  /* =========================
+     Browser Frontend
+  ========================= */
+
   {
     files: ["src/public/**/*.js"],
 
     ...js.configs.recommended,
 
     languageOptions: {
+      ecmaVersion: "latest",
+      sourceType: "module",
+
       globals: {
         ...globals.browser,
-        Swal: "readonly"
-      }
-    }
-  }
+        Swal: "readonly",
+      },
+    },
 
+    rules: {
+      "no-unused-vars": "warn",
+    },
+  },
 ]);
