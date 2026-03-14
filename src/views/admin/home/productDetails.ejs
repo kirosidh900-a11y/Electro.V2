@@ -580,9 +580,9 @@
                                 try {
 
                                         const res = await fetch(`/admin/category/${categoryId}/attributes`)
-                                        const data = await res.json()
+                                        const result = await res.json()
 
-                                        data.variantAttributes.forEach(attr => {
+                                        result.data.variantAttributes.forEach(attr => {
 
                                                 const input = document.createElement("input")
 

@@ -36,6 +36,7 @@ const productSchema = new mongoose.Schema(
       type: String,
       required: true,
       trim: true,
+      uppercase:true,
     },
 
     category: {

@@ -265,9 +265,8 @@
                                 try {
 
                                         const res = await fetch(`/admin/category/${categoryId}/attributes`);
-                                        const data = await res.json();
-
-                                        data.productAttributes.forEach(attr => {
+                                        const result = await res.json();
+                                        result.data.productAttributes.forEach(attr => {
 
                                                 const input = document.createElement("input");
 

@@ -12,8 +12,8 @@ import {
   getProductDetails,
   addVariant,
   deleteVariant,
-  addVariantImage,
-  deleteVariantImage,
+ // addVariantImage,
+  //deleteVariantImage,
   editVariant,
 } from "../../controllers/product/product.controller.js";
 
@@ -45,7 +45,7 @@ router
 // Img add and delete
 router
   .route("/:productId/variants/:variantId/image")
-  .post(isAuth, pImgUpload.single("image"), addVariantImage)
-  .delete(isAuth, deleteVariantImage);
+ // .post(isAuth, pImgUpload.single("image"), addVariantImage)
+ // .delete(isAuth, deleteVariantImage);
 
 export default router;
