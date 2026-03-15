@@ -387,7 +387,7 @@ after:transition-all peer-checked:after:translate-x-full">
                                 const title = document.getElementById("category-title").value.trim();
                                 const status = document.getElementById("category-status").value;
 
-                                const pattern = /^[A-Za-z&]+(?: [A-Za-z&]+)*$/;
+                                const pattern = /^[A-Za-z&-]+(?: [A-Za-z&-]+)*$/;
 
                                 if (!title)
                                         return showToast("Category name required", "warning");
