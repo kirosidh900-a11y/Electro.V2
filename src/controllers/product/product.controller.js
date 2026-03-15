@@ -1,14 +1,32 @@
-import Products from "../../models/productSchema.model.js";
-import Category from "../../models/CategorySchema.model.js";
-import Brand from "../../models/brandSchema.model.js";
-import renderView from "../../utils/admin/renderView.util.js";
-import mongoose from "mongoose";
-import fs from "fs";
-import path from "path";
 import HTTP_STATUS from "../../constant/statusCode.js";
+import renderView from "../../utils/admin/renderView.util.js";
+import cloudinary from "../../config/cloudinary.js";
+import { getPublicId } from "../../utils/partials/cloudinary.util.js";
 
-// PRODUCTS PAGE
+import {
+  getProductsService,
+  createProductService,
+  updateProductService,
+  deleteProductService,
+  toggleProductStatusService,
+  getProductAttributesService,
+  getProductDetailsService,
+  addVariantService,
+  editVariantService,
+  deleteVariantService,
+} from "../../services/product/product.service.js";
 
+import {
+  addVariantImageService,
+  deleteVariantImageService,
+} from "../../services/product/variantImage.service.js";
+
+import {
+  errorResponse,
+  successResponse,
+} from "../../utils/partials/response.util.js";
+
+//  PRODUCTS PAGE
 export const productsPage = async (req, res, next) => {
   try {
     const page = Number(req.query.page) || 1;
@@ -17,29 +35,10 @@ export const productsPage = async (req, res, next) => {
     const search = req.query.search || "";
     const status = req.query.status || "All";
 
-    const query = { isDeleted: false };
+    const { products, currentPage, categories, brands, totalPages } =
+      await getProductsService({ page, limit, search, status });
 
-    if (search) query.name = { $regex: search, $options: "i" };
-
-    if (status === "listed") query.status = "listed";
-    if (status === "unlisted") query.status = "unlisted";
-
-    const totalProducts = await Products.countDocuments(query);
-    const totalPages = Math.ceil(totalProducts / limit);
-
-    const products = await Products.find(query)
-      .populate("category", "title")
-      .populate("brand", "title")
-      .skip((page - 1) * limit)
-      .limit(limit)
-      .sort({ createdAt: -1 });
-
-    const categories = await Category.find({ isDeleted: false });
-    const brands = await Brand.find({ isDeleted: false });
-
-    const currentPage = page;
-
-    if (req.headers.accept && req.headers.accept.includes("application/json")) {
+    if (req.headers.accept?.includes("application/json")) {
       const rows = await renderView(res, "admin/home/partials/productRows", {
         products,
         currentPage,
@@ -54,373 +53,135 @@ export const productsPage = async (req, res, next) => {
       return res.status(HTTP_STATUS.OK).json({ rows, pagination });
     }
 
+    res.locals.title = "Products Management";
     res.status(HTTP_STATUS.OK).render("admin/home/products", {
       products,
       categories,
       brands,
       currentPage,
       totalPages,
-      title: "Products Management",
     });
   } catch (error) {
-    console.log(error);
     next(error);
   }
 };
 
-// CREATE PRODUCT
+//  CREATE PRODUCT
 export const createProduct = async (req, res) => {
   try {
-    let { name, category, brand, status, attributes } = req.body;
-    name = name?.trim();
+    const product = await createProductService(req.body);
 
-    if (!name) {
-      return res.status(HTTP_STATUS.BAD_REQUEST).json({
-        success: false,
-        message: "Product name is required",
-      });
-    }
-
-    const productNamePattern = /^[A-Za-z0-9]+(?:[ _-][A-Za-z0-9]+)*$/;
-
-    if (!productNamePattern.test(name)) {
-      return res.status(HTTP_STATUS.UNPROCESSABLE_ENTITY).json({
-        success: false,
-        message: "Invalid product name",
-      });
-    }
-
-    if (!category) {
-      return res.status(HTTP_STATUS.BAD_REQUEST).json({
-        success: false,
-        message: "Category is required",
-      });
-    }
-
-    if (!brand) {
-      return res.status(HTTP_STATUS.BAD_REQUEST).json({
-        success: false,
-        message: "Brand is required",
-      });
-    }
-
-    const validStatus = ["listed", "unlisted"];
-
-    if (status && !validStatus.includes(status)) {
-      return res.status(HTTP_STATUS.BAD_REQUEST).json({
-        success: false,
-        message: "Invalid product status",
-      });
-    }
-
-    const existingProduct = await Products.findOne({
-      name: { $regex: `^${name}$`, $options: "i" },
-    });
-
-    if (existingProduct) {
-      return res.status(HTTP_STATUS.CONFLICT).json({
-        success: false,
-        message: "Product with this name already exists",
-      });
-    }
-
-    const product = await Products.create({
-      name,
-      category,
-      brand,
-      status,
-      attributes: attributes || [],
-    });
-
-    return res.status(HTTP_STATUS.CREATED).json({
+    res.status(HTTP_STATUS.CREATED).json({
       success: true,
       message: "Product created successfully",
       product,
     });
   } catch (error) {
-    console.log(error);
-
-    res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).json({
+    res.status(HTTP_STATUS.BAD_REQUEST).json({
       success: false,
-      message: "Something went wrong while creating the product",
+      message: error.message,
     });
   }
 };
 
-//UPDATE PRODUCT
+//  UPDATE PRODUCT
 export const updateProduct = async (req, res) => {
   try {
     const { id } = req.params;
-    let { name, category, brand, status, attributes } = req.body;
 
-    name = name?.trim();
-
-    if (!name) {
-      return res.status(HTTP_STATUS.BAD_REQUEST).json({
-        success: false,
-        message: "Product name is required",
-      });
-    }
-
-    const productNamePattern = /^[A-Za-z0-9]+(?:[ _-][A-Za-z0-9]+)*$/;
-
-    if (!productNamePattern.test(name)) {
-      return res.status(HTTP_STATUS.UNPROCESSABLE_ENTITY).json({
-        success: false,
-        message: "Invalid product name",
-      });
-    }
-
-    if (!category) {
-      return res.status(HTTP_STATUS.BAD_REQUEST).json({
-        success: false,
-        message: "Category is required",
-      });
-    }
-
-    if (!brand) {
-      return res.status(HTTP_STATUS.BAD_REQUEST).json({
-        success: false,
-        message: "Brand is required",
-      });
-    }
-
-    const validStatus = ["listed", "unlisted"];
-
-    if (status && !validStatus.includes(status)) {
-      return res.status(HTTP_STATUS.BAD_REQUEST).json({
-        success: false,
-        message: "Invalid product status",
-      });
-    }
-
-    const existingProduct = await Products.findOne({
-      _id: { $ne: id },
-      name: { $regex: `^${name}$`, $options: "i" },
-    });
-
-    if (existingProduct) {
-      return res.status(HTTP_STATUS.CONFLICT).json({
-        success: false,
-        message: "Product with this name already exists",
-      });
-    }
-
-    const updatedProduct = await Products.findByIdAndUpdate(
-      id,
-      { name, category, brand, status, attributes: attributes || [] },
-      { new: true },
-    );
+    const product = await updateProductService(id, req.body);
 
     res.status(HTTP_STATUS.OK).json({
       success: true,
       message: "Product updated successfully",
-      product: updatedProduct,
+      product,
     });
   } catch (error) {
-    console.log(error);
-
-    res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).json({
+    res.status(HTTP_STATUS.BAD_REQUEST).json({
       success: false,
-      message: "Something went wrong while updating the product",
+      message: error.message,
     });
   }
 };
 
-// DELETE PRODUCT
+//  DELETE PRODUCT
 export const deleteProduct = async (req, res) => {
   try {
-    const { id } = req.params;
-
-    const product = await Products.findById(id);
-
-    if (!product) {
-      return res.status(HTTP_STATUS.NOT_FOUND).json({
-        success: false,
-        message: "Product not found",
-      });
-    }
-
-    product.isDeleted = true;
-
-    await product.save();
+    await deleteProductService(req.params.id);
 
     res.status(HTTP_STATUS.OK).json({
       success: true,
       message: "Product deleted successfully",
     });
   } catch (error) {
-    console.error(error);
-
-    res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).json({
+    res.status(HTTP_STATUS.BAD_REQUEST).json({
       success: false,
-      message: "Failed to delete product",
+      message: error.message,
     });
   }
 };
 
-//TOGGLE STATUS
+//  TOGGLE STATUS
 export const toggleProductStatus = async (req, res) => {
   try {
-    const { id } = req.params;
-
-    const product = await Products.findById(id);
-
-    if (!product) {
-      return res.status(HTTP_STATUS.NOT_FOUND).json({
-        success: false,
-        message: "Product not found",
-      });
-    }
-
-    product.status = product.status === "listed" ? "unlisted" : "listed";
-
-    await product.save();
+    const status = await toggleProductStatusService(req.params.id);
 
     res.status(HTTP_STATUS.OK).json({
       success: true,
-      status: product.status,
+      status,
     });
   } catch (error) {
-    console.error(error);
-
-    res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).json({
+    res.status(HTTP_STATUS.BAD_REQUEST).json({
       success: false,
-      message: "Failed to update product status",
+      message: error.message,
     });
   }
 };
 
-//Get Attributes
+//  GET ATTRIBUTES
 export const getAttributes = async (req, res) => {
   try {
-    const { id } = req.params;
+    const attributes = await getProductAttributesService(req.params.id);
 
-    if (!mongoose.Types.ObjectId.isValid(id)) {
-      return res.status(HTTP_STATUS.BAD_REQUEST).json({
-        success: false,
-        message: "Invalid product ID",
-      });
-    }
-
-    const product = await Products.findById(id);
-
-    if (!product) {
-      return res.status(HTTP_STATUS.NOT_FOUND).json({
-        success: false,
-        message: "Product not found",
-      });
-    }
-
-    const productAttributes = product.attributes || [];
-
-    return res.status(HTTP_STATUS.OK).json({
+    res.status(HTTP_STATUS.OK).json({
       success: true,
-      productAttributes,
+      productAttributes: attributes,
     });
   } catch (error) {
-    console.log(error);
-
-    res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).json({
+    res.status(HTTP_STATUS.BAD_REQUEST).json({
       success: false,
-      message: "Failed to fetch product attributes",
+      message: error.message,
     });
   }
 };
 
-//GET PRODUCT DETAILS
+//  PRODUCT DETAILS
 export const getProductDetails = async (req, res, next) => {
   try {
-    const { id } = req.params;
-
-    if (!mongoose.Types.ObjectId.isValid(id)) {
-      return res.redirect("/admin/products");
-    }
-
-    const product = await Products.findOne({
-      _id: id,
-      isDeleted: false,
-    })
-      .populate("category", "title")
-      .populate("brand", "title");
-
-    if (!product) {
-      return res.redirect("/admin/products");
-    }
-
-    const variants = product.variants.filter((v) => !v.isDeleted);
-
-    const totalVariants = variants.length;
-
-    let minPrice = 0;
-    let totalStock = 0;
-
-    if (variants.length > 0) {
-      minPrice = Math.min(...variants.map((v) => v.price));
-      totalStock = variants.reduce((sum, v) => sum + (v.stock || 0), 0);
-    }
+    const data = await getProductDetailsService(req.params.id);
 
     res.status(HTTP_STATUS.OK).render("admin/home/productDetails", {
       title: "Product Details",
-      product,
-      variants,
-      totalVariants,
-      minPrice,
-      totalStock,
+      ...data,
     });
   } catch (error) {
-    console.log(error);
-    next(error);
+    return res.redirect("/admin/products");
   }
 };
 
-// CUD of Product Variant Side
+//  VARIANTS
 export const addVariant = async (req, res) => {
   try {
-    const { id } = req.params;
-    const { sku, price, stock, attributes } = req.body;
-
-    const product = await Products.findById(id);
-
-    if (!product) {
-      return res.status(HTTP_STATUS.NOT_FOUND).json({
-        success: false,
-        message: "Product not found",
-      });
-    }
-
-    const normalizedSku = sku.trim().toLowerCase();
-
-    const skuExists = product.variants.some(
-      (v) => v.sku.trim().toLowerCase() === normalizedSku,
-    );
-
-    if (skuExists) {
-      return res.status(HTTP_STATUS.CONFLICT).json({
-        success: false,
-        message: "SKU already exists",
-      });
-    }
-
-    product.variants.push({
-      sku,
-      price,
-      stock,
-      attributes: new Map(Object.entries(attributes || {})),
-    });
-
-    await product.save();
+    await addVariantService(req.params.id, req.body);
 
     res.status(HTTP_STATUS.CREATED).json({
       success: true,
       message: "Variant added successfully",
     });
   } catch (error) {
-    console.log(error);
-
-    res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).json({
+    res.status(HTTP_STATUS.BAD_REQUEST).json({
       success: false,
-      message: "Failed to add variant",
+      message: error.message,
     });
   }
 };
@@ -428,186 +189,91 @@ export const addVariant = async (req, res) => {
 export const editVariant = async (req, res) => {
   try {
     const { productId, variantId } = req.params;
-    const { sku, price, stock, attributes } = req.body;
 
-    const product = await Products.findById(productId);
-
-    if (!product) {
-      return res.status(HTTP_STATUS.NOT_FOUND).json({
-        success: false,
-        message: "Product not found",
-      });
-    }
-
-    const variant = product.variants.id(variantId);
-
-    if (!variant) {
-      return res.status(HTTP_STATUS.NOT_FOUND).json({
-        success: false,
-        message: "Variant not found",
-      });
-    }
-
-    const normalizedSku = sku.trim().toLowerCase();
-
-    const skuExists = product.variants.some(
-      (v) =>
-        v.sku?.trim().toLowerCase() === normalizedSku &&
-        v._id.toString() !== variantId,
-    );
-
-    if (skuExists) {
-      return res.status(HTTP_STATUS.CONFLICT).json({
-        success: false,
-        message: "SKU already exists",
-      });
-    }
-
-    variant.sku = sku;
-    variant.price = price;
-    variant.stock = stock;
-    variant.attributes = new Map(Object.entries(attributes || {}));
-
-    await product.save();
+    await editVariantService(productId, variantId, req.body);
 
     res.status(HTTP_STATUS.OK).json({
       success: true,
       message: "Variant updated successfully",
     });
   } catch (error) {
-    console.log(error);
-
-    res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).json({
+    res.status(HTTP_STATUS.BAD_REQUEST).json({
       success: false,
-      message: "Failed to update variant",
+      message: error.message,
     });
   }
 };
 
 export const deleteVariant = async (req, res) => {
   try {
-    const { variantId } = req.params;
-
-    const result = await Products.updateOne(
-      { "variants._id": variantId },
-      { $pull: { variants: { _id: variantId } } },
-    );
-
-    if (result.modifiedCount === 0) {
-      return res.status(HTTP_STATUS.NOT_FOUND).json({
-        success: false,
-        message: "Variant not found",
-      });
-    }
+    await deleteVariantService(req.params.variantId);
 
     res.status(HTTP_STATUS.OK).json({
       success: true,
       message: "Variant deleted successfully",
     });
-  } catch (err) {
-    console.log("Delete Variant Error:", err);
-
-    res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).json({
+  } catch (error) {
+    res.status(HTTP_STATUS.BAD_REQUEST).json({
       success: false,
-      message: "Failed to delete variant",
+      message: error.message,
     });
   }
 };
 
-// IMG Controler
+// Image Adding
 export const addVariantImage = async (req, res) => {
   try {
     const { productId, variantId } = req.params;
 
-    const product = await Products.findById(productId);
+    const file = req.file || req.files?.[0];
 
-    if (!product) {
-      return res.status(HTTP_STATUS.NOT_FOUND).json({
-        success: false,
-        message: "Product not found",
-      });
+    if (!file) {
+      return errorResponse(res, "Image required", HTTP_STATUS.BAD_REQUEST);
     }
 
-    const variant = product.variants.id(variantId);
+    const imagePath = file.path;
 
-    if (!variant) {
-      return res.status(HTTP_STATUS.NOT_FOUND).json({
-        success: false,
-        message: "Variant not found",
-      });
-    }
+    const result = await addVariantImageService({
+      productId,
+      variantId,
+      imagePath,
+    });
 
-    const imagePath = `/uploads/products/${req.file.filename}`;
-
-    if (!variant.product_image) {
-      variant.product_image = [];
-    }
-
-    variant.product_image.push(imagePath);
-
-    product.markModified("variants");
-
-    await product.save();
-
-    res.status(HTTP_STATUS.CREATED).json({
-      success: true,
-      message: "Image uploaded successfully",
+    return successResponse(res, result.message, HTTP_STATUS.OK, {
+      image: result.image,
     });
   } catch (error) {
-    console.log(error);
+    const file = req.file || req.files?.[0];
 
-    res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).json({
-      success: false,
-      message: "Upload failed",
-    });
+    if (file) {
+      const publicId = getPublicId(file.path);
+      await cloudinary.uploader.destroy(publicId);
+    }
+
+    return errorResponse(res, error.message || "Upload failed");
   }
 };
 
+// Delete Image
 export const deleteVariantImage = async (req, res) => {
   try {
     const { productId, variantId } = req.params;
     const { imagePath } = req.body;
 
-    const product = await Products.findById(productId);
-
-    if (!product) {
-      return res.status(HTTP_STATUS.NOT_FOUND).json({
-        success: false,
-        message: "Product not found",
-      });
+    if (!imagePath) {
+      return errorResponse(res, "Image path required", HTTP_STATUS.BAD_REQUEST);
     }
 
-    const variant = product.variants.id(variantId);
+    const public_id = getPublicId(imagePath);
 
-    if (!variant) {
-      return res.status(HTTP_STATUS.NOT_FOUND).json({
-        success: false,
-        message: "Variant not found",
-      });
-    }
-
-    variant.product_image = variant.product_image.filter(
-      (img) => img !== imagePath,
-    );
-
-    const filePath = path.join("public", imagePath);
-
-    if (fs.existsSync(filePath)) {
-      fs.unlinkSync(filePath);
-    }
-
-    await product.save();
-
-    res.status(HTTP_STATUS.OK).json({
-      success: true,
-      message: "Image deleted successfully",
+    const result = await deleteVariantImageService({
+      productId,
+      variantId,
+      public_id,
     });
+
+    return successResponse(res, result.message);
   } catch (error) {
-    console.log(error);
-
-    res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).json({
-      success: false,
-      message: "Delete failed",
-    });
+    return errorResponse(res, error.message || "Delete failed");
   }
 };

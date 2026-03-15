@@ -31,26 +31,26 @@
                                                 <!-- ACTION DROPDOWN -->
                                                 <div class="relative">
 
-                                                        <button onclick="toggleActionMenu()"
+                                                        <!-- <button onclick="toggleActionMenu()"
                                                                 class="bg-gray-700 hover:bg-gray-600 text-white text-sm px-4 py-2 rounded-lg flex items-center gap-2">
 
                                                                 Action
                                                                 <i class="fas fa-chevron-down text-xs"></i>
 
-                                                        </button>
+                                                        </button> -->
 
                                                         <!-- DROPDOWN -->
                                                         <div id="actionDropdown"
                                                                 class="absolute right-0 mt-2 w-44 bg-[#0f172a] border border-white/10 rounded-lg shadow-lg hidden">
 
                                                                 <!-- EDIT PRODUCT -->
-                                                                <a href="/admin/products/edit/<%= product._id %>"
+                                                                <!-- <a href="/admin/products/edit/<%= product._id %>"
                                                                         class="block px-4 py-2 text-sm text-gray-300 hover:bg-white/10">
                                                                         Edit Product
-                                                                </a>
+                                                                </a> -->
 
                                                                 <!-- LIST / UNLIST -->
-                                                                <% if(product.status==="listed" ){ %>
+                                                                <!-- <% if(product.status==="listed" ){ %>
 
                                                                         <button onclick="toggleProductStatus('<%= product._id %>','unlist')"
                                                                                 class="w-full text-left px-4 py-2 text-sm text-yellow-400 hover:bg-white/10">
@@ -64,7 +64,7 @@
                                                                                         List Product
                                                                                 </button>
 
-                                                                                <% } %>
+                                                                                <% } %> -->
 
                                                                                         <!-- DELETE PRODUCT -->
                                                                                         <button onclick="deleteProduct('<%= product._id %>')"
@@ -224,150 +224,156 @@
 
                                                                 <% } else { %>
 
+                                                                        <div class="overflow-x-auto">
+                                                                                <table
+                                                                                        class="min-w-full text-sm text-gray-300">
 
-                                                                        <table class="w-full text-sm text-gray-300">
+                                                                                        <thead
+                                                                                                class="border-b border-white/10 text-gray-400">
+                                                                                                <tr>
 
-                                                                                <thead
-                                                                                        class="border-b border-white/10 text-gray-400">
-                                                                                        <tr>
-
-                                                                                                <th
-                                                                                                        class="py-3 text-left">
-                                                                                                        SKU</th>
-
-                                                                                                <%
-                                                                                                        attributeKeys.forEach(key=>
-                                                                                                        { %>
                                                                                                         <th
                                                                                                                 class="py-3 text-left">
-                                                                                                                <%= key.toUpperCase()
-                                                                                                                        %>
+                                                                                                                SKU
                                                                                                         </th>
-                                                                                                        <% }) %>
-
-                                                                                                                <th
-                                                                                                                        class="py-3 text-left">
-                                                                                                                        Price
-                                                                                                                </th>
-                                                                                                                <th
-                                                                                                                        class="py-3 text-left">
-                                                                                                                        Stock
-                                                                                                                </th>
-                                                                                                                <th
-                                                                                                                        class="py-3 text-left">
-                                                                                                                        Images
-                                                                                                                </th>
-                                                                                                                <th
-                                                                                                                        class="py-3 text-right">
-                                                                                                                        Actions
-                                                                                                                </th>
-
-                                                                                        </tr>
-                                                                                </thead>
-
-                                                                                <tbody>
-
-                                                                                        <% variants.forEach(v=> { %>
-
-                                                                                                <tr
-                                                                                                        class="border-b border-white/5">
-
-                                                                                                        <td
-                                                                                                                class="py-3">
-                                                                                                                <%= v.sku
-                                                                                                                        %>
-                                                                                                        </td>
 
                                                                                                         <%
                                                                                                                 attributeKeys.forEach(key=>
-                                                                                                                { %>
+                                                                                                                {
+                                                                                                                %>
+                                                                                                                <th
+                                                                                                                        class="py-3 text-left">
+                                                                                                                        <%= key.toUpperCase()
+                                                                                                                                %>
+                                                                                                                </th>
+                                                                                                                <% }) %>
+
+                                                                                                                        <th
+                                                                                                                                class="py-3 text-left">
+                                                                                                                                Price
+                                                                                                                        </th>
+                                                                                                                        <th
+                                                                                                                                class="py-3 text-left">
+                                                                                                                                Stock
+                                                                                                                        </th>
+                                                                                                                        <th
+                                                                                                                                class="py-3 text-left">
+                                                                                                                                Images
+                                                                                                                        </th>
+                                                                                                                        <th
+                                                                                                                                class="py-3 text-right">
+                                                                                                                                Actions
+                                                                                                                        </th>
+
+                                                                                                </tr>
+                                                                                        </thead>
+
+                                                                                        <tbody>
+
+                                                                                                <% variants.forEach(v=>
+                                                                                                        { %>
+
+                                                                                                        <tr
+                                                                                                                class="border-b border-white/5">
 
                                                                                                                 <td
                                                                                                                         class="py-3">
-                                                                                                                        <%= v.attributes?.get
-                                                                                                                                ?
-                                                                                                                                v.attributes.get(key)
-                                                                                                                                :
-                                                                                                                                v.attributes?.[key]
-                                                                                                                                || "-"
+                                                                                                                        <%= v.sku
                                                                                                                                 %>
                                                                                                                 </td>
 
-                                                                                                                <% }) %>
-
-                                                                                                                        <td>₹<%= v.price
-                                                                                                                                        %>
-                                                                                                                        </td>
-                                                                                                                        <td>
-                                                                                                                                <%= v.stock
-                                                                                                                                        %>
-                                                                                                                        </td>
-
-
-                                                                                                                        <!-- IMAGES COLUMN -->
+                                                                                                                <%
+                                                                                                                        attributeKeys.forEach(key=>
+                                                                                                                        {
+                                                                                                                        %>
 
                                                                                                                         <td
                                                                                                                                 class="py-3">
-
-                                                                                                                                <div
-                                                                                                                                        class="flex flex-col items-center gap-2">
-
-                                                                                                                                        <% if(v.product_image
-                                                                                                                                                &&
-                                                                                                                                                v.product_image.length){
-                                                                                                                                                %>
-
-                                                                                                                                                <%
-                                                                                                                                                        v.product_image.forEach(img=>
-                                                                                                                                                        {
-                                                                                                                                                        %>
-
-                                                                                                                                                        <div
-                                                                                                                                                                class="relative group">
-
-                                                                                                                                                                <img src="<%= img %>"
-                                                                                                                                                                        class="w-12 h-12 object-cover rounded border border-white/10" />
-
-                                                                                                                                                                <button onclick="deleteVariantImage('<%= v._id %>','<%= img %>')"
-                                                                                                                                                                        class="absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-4 h-4 text-[10px] hidden group-hover:flex items-center justify-center">
-                                                                                                                                                                        ×
-                                                                                                                                                                </button>
-
-                                                                                                                                                        </div>
-
-                                                                                                                                                        <% })
-                                                                                                                                                                %>
-
-                                                                                                                                                                <% }
-                                                                                                                                                                        %>
-
-
-                                                                                                                                                                        <!-- ADD IMAGE BOX -->
-
-                                                                                                                                                                        <div onclick="openImageUpload('<%= v._id %>')"
-                                                                                                                                                                                class="w-12 h-12 border-2 border-dashed border-gray-500 rounded flex flex-col items-center justify-center cursor-pointer hover:border-blue-500">
-
-                                                                                                                                                                                <i
-                                                                                                                                                                                        class="fas fa-plus text-xs"></i>
-                                                                                                                                                                                <span
-                                                                                                                                                                                        class="text-[9px]">Add</span>
-
-                                                                                                                                                                        </div>
-
-                                                                                                                                </div>
-
+                                                                                                                                <%= v.attributes?.get
+                                                                                                                                        ?
+                                                                                                                                        v.attributes.get(key)
+                                                                                                                                        :
+                                                                                                                                        v.attributes?.[key]
+                                                                                                                                        || "-"
+                                                                                                                                        %>
                                                                                                                         </td>
 
+                                                                                                                        <% })
+                                                                                                                                %>
 
-                                                                                                                        <td
-                                                                                                                                class="text-right">
+                                                                                                                                <td>₹<%= v.price
+                                                                                                                                                %>
+                                                                                                                                </td>
+                                                                                                                                <td>
+                                                                                                                                        <%= v.stock
+                                                                                                                                                %>
+                                                                                                                                </td>
 
-                                                                                                                                <div
-                                                                                                                                        class="flex justify-end gap-3">
 
-                                                                                                                                        <!-- EDIT -->
+                                                                                                                                <!-- IMAGES COLUMN -->
 
-                                                                                                                                        <button onclick='editVariant(
+                                                                                                                                <td
+                                                                                                                                        class="py-3">
+
+                                                                                                                                        <div
+                                                                                                                                                class="flex flex-col items-center gap-2">
+
+                                                                                                                                                <% if(v.product_image
+                                                                                                                                                        &&
+                                                                                                                                                        v.product_image.length){
+                                                                                                                                                        %>
+
+                                                                                                                                                        <%
+                                                                                                                                                                v.product_image.forEach(img=>
+                                                                                                                                                                {
+                                                                                                                                                                %>
+
+                                                                                                                                                                <div
+                                                                                                                                                                        class="relative group">
+
+                                                                                                                                                                        <img src="<%= img %>"
+                                                                                                                                                                                class="w-12 h-12 object-cover rounded border border-white/10" />
+
+                                                                                                                                                                        <button onclick='deleteVariantImage("<%= v._id %>", <%- JSON.stringify(img) %>)'
+                                                                                                                                                                                class="absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-4 h-4 text-[10px] hidden group-hover:flex items-center justify-center">
+                                                                                                                                                                                ×
+                                                                                                                                                                        </button>
+
+                                                                                                                                                                </div>
+
+                                                                                                                                                                <% })
+                                                                                                                                                                        %>
+
+                                                                                                                                                                        <% }
+                                                                                                                                                                                %>
+
+
+                                                                                                                                                                                <!-- ADD IMAGE BOX -->
+
+                                                                                                                                                                                <div onclick="openImageUpload('<%= v._id %>')"
+                                                                                                                                                                                        class="w-12 h-12 border-2 border-dashed border-gray-500 rounded flex flex-col items-center justify-center cursor-pointer hover:border-blue-500">
+
+                                                                                                                                                                                        <i
+                                                                                                                                                                                                class="fas fa-plus text-xs"></i>
+                                                                                                                                                                                        <span
+                                                                                                                                                                                                class="text-[9px]">Add</span>
+
+                                                                                                                                                                                </div>
+
+                                                                                                                                        </div>
+
+                                                                                                                                </td>
+
+
+                                                                                                                                <td
+                                                                                                                                        class="text-right">
+
+                                                                                                                                        <div
+                                                                                                                                                class="flex justify-end gap-3">
+
+                                                                                                                                                <!-- EDIT -->
+
+                                                                                                                                                <button onclick='editVariant(
                         "<%= v._id %>",
                         "<%= v.sku %>",
                         "<%= v.price %>",
@@ -375,34 +381,35 @@
                         <%- JSON.stringify(v.attributes instanceof Map ? Object.fromEntries(v.attributes) : v.attributes) %>
                 )' class="text-blue-400 text-xs hover:text-blue-300">
 
-                                                                                                                                                Edit
+                                                                                                                                                        Edit
 
-                                                                                                                                        </button>
+                                                                                                                                                </button>
 
 
-                                                                                                                                        <!-- DELETE -->
+                                                                                                                                                <!-- DELETE -->
 
-                                                                                                                                        <button onclick="deleteVariant('<%= v._id %>')"
-                                                                                                                                                class="text-red-400 text-xs hover:text-red-300">
+                                                                                                                                                <button onclick="deleteVariant('<%= v._id %>')"
+                                                                                                                                                        class="text-red-400 text-xs hover:text-red-300">
 
-                                                                                                                                                Delete
+                                                                                                                                                        Delete
 
-                                                                                                                                        </button>
+                                                                                                                                                </button>
 
-                                                                                                                                </div>
+                                                                                                                                        </div>
 
-                                                                                                                        </td>
-                                                                                                                        <input type="file"
-                                                                                                                                id="variantImageInput"
-                                                                                                                                class="hidden"
-                                                                                                                                accept="image/*">
-                                                                                                </tr>
+                                                                                                                                </td>
+                                                                                                                                <input type="file"
+                                                                                                                                        id="variantImageInput"
+                                                                                                                                        class="hidden"
+                                                                                                                                        accept="image/*">
+                                                                                                        </tr>
 
-                                                                                                <% }) %>
+                                                                                                        <% }) %>
 
-                                                                                </tbody>
+                                                                                        </tbody>
 
-                                                                        </table>
+                                                                                </table>
+                                                                        </div>
 
                                                                         <% } %>
 
@@ -511,353 +518,266 @@
                         </div>
 
                 </div>
-                <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
-                <script>
+                <script type="module">
 
-                        function toggleActionMenu() {
+                        import { showToast } from "../../partials/errorMsg.utils.js";
+                        import { confirmAction } from "../../partials/confirm.util.js";
 
-                                const menu = document.getElementById("actionDropdown")
+                        let editingVariantAttributes = {};
+                        let currentVariantId = null;
 
-                                menu.classList.toggle("hidden")
 
-                        }
+                        // ================= ACTION MENU =================
 
-                        // close dropdown when clicking outside
+                        window.toggleActionMenu = function () {
+
+                                const menu = document.getElementById("actionDropdown");
+                                menu.classList.toggle("hidden");
+
+                        };
+
                         document.addEventListener("click", function (e) {
 
-                                const menu = document.getElementById("actionDropdown")
+                                const menu = document.getElementById("actionDropdown");
 
                                 if (!e.target.closest(".relative")) {
-
-                                        menu.classList.add("hidden")
-
+                                        menu?.classList.add("hidden");
                                 }
 
-                        })
-
-                        const swalDark = {
-                                background: "#1a1a1a",
-                                color: "#ffffff",
-                                confirmButtonColor: "#fa5252",
-                                cancelButtonColor: "#6b7280"
-                        }
-
-                        let editingVariantAttributes = {}
-                        let currentVariantId = null
+                        });
 
 
-                        function openVariantModal() {
+                        // ================= OPEN VARIANT MODAL =================
 
-                                document.getElementById("variant-id").value = ""
-                                document.getElementById("variant-sku").value = ""
-                                document.getElementById("variant-price").value = ""
-                                document.getElementById("variant-stock").value = ""
+                        window.openVariantModal = function () {
 
-                                editingVariantAttributes = {}
+                                document.getElementById("variant-id").value = "";
+                                document.getElementById("variant-sku").value = "";
+                                document.getElementById("variant-price").value = "";
+                                document.getElementById("variant-stock").value = "";
 
-                                document.getElementById("variantModalTitle").textContent = "Add Variant"
+                                editingVariantAttributes = {};
 
-                                loadVariantAttributes()
+                                document.getElementById("variantModalTitle").textContent = "Add Variant";
 
-                                document.getElementById("variantModal").classList.remove("hidden")
+                                loadVariantAttributes();
 
-                        }
+                                document.getElementById("variantModal").classList.remove("hidden");
+
+                        };
 
 
-                        function closeVariantModal() {
-                                document.getElementById("variantModal").classList.add("hidden")
-                        }
+                        // ================= CLOSE VARIANT MODAL =================
 
+                        window.closeVariantModal = function () {
+
+                                document.getElementById("variantModal").classList.add("hidden");
+
+                        };
+
+
+                        // ================= LOAD VARIANT ATTRIBUTES =================
 
                         async function loadVariantAttributes(existingAttributes = {}) {
 
-                                const categoryId = "<%= product.category._id %>"
-                                const container = document.getElementById("variantAttributes")
+                                const categoryId = "<%= product.category._id %>";
+                                const container = document.getElementById("variantAttributes");
 
-                                container.innerHTML = ""
+                                container.innerHTML = "";
 
                                 try {
 
-                                        const res = await fetch(`/admin/category/${categoryId}/attributes`)
-                                        const data = await res.json()
+                                        const res = await fetch(`/admin/category/${categoryId}/attributes`);
+                                        const result = await res.json();
 
-                                        data.variantAttributes.forEach(attr => {
+                                        result.data.variantAttributes.forEach(attr => {
 
-                                                const input = document.createElement("input")
+                                                const input = document.createElement("input");
 
-                                                input.placeholder = attr.label
-                                                input.name = attr.key
-                                                input.value = existingAttributes[attr.key] || ""
+                                                input.placeholder = attr.label;
+                                                input.name = attr.key;
+                                                input.value = existingAttributes[attr.key] || "";
 
-                                                input.className = "bg-[#0f172a] border border-white/10 px-3 py-2 rounded-lg text-sm"
+                                                input.className =
+                                                        "bg-[#0f172a] border border-white/10 px-3 py-2 rounded-lg text-sm";
 
-                                                container.appendChild(input)
+                                                container.appendChild(input);
 
-                                        })
+                                        });
 
-                                } catch (err) {
+                                } catch {
 
-                                        Swal.fire({
-                                                ...swalDark,
-                                                icon: "error",
-                                                title: "Failed",
-                                                text: "Failed to load attributes"
-                                        })
+                                        showToast("Failed to load attributes", "error");
 
                                 }
 
                         }
 
 
-                        function editVariant(id, sku, price, stock, attributes = {}) {
+                        // ================= EDIT VARIANT =================
 
-                                document.getElementById("variant-id").value = id
-                                document.getElementById("variant-sku").value = sku
-                                document.getElementById("variant-price").value = price
-                                document.getElementById("variant-stock").value = stock
+                        window.editVariant = function (id, sku, price, stock, attributes = {}) {
 
-                                editingVariantAttributes = attributes || {}
+                                document.getElementById("variant-id").value = id;
+                                document.getElementById("variant-sku").value = sku;
+                                document.getElementById("variant-price").value = price;
+                                document.getElementById("variant-stock").value = stock;
 
-                                document.getElementById("variantModalTitle").textContent = "Edit Variant"
+                                editingVariantAttributes = attributes || {};
 
-                                loadVariantAttributes(editingVariantAttributes)
+                                document.getElementById("variantModalTitle").textContent = "Edit Variant";
 
-                                document.getElementById("variantModal").classList.remove("hidden")
+                                loadVariantAttributes(editingVariantAttributes);
 
-                        }
+                                document.getElementById("variantModal").classList.remove("hidden");
+
+                        };
 
 
+                        // ================= SUBMIT VARIANT =================
 
-                        const variantForm = document.getElementById("variantForm")
+                        const variantForm = document.getElementById("variantForm");
 
                         variantForm.addEventListener("submit", async (e) => {
 
-                                e.preventDefault()
+                                e.preventDefault();
 
                                 try {
 
-                                        const variantId = document.getElementById("variant-id").value
-                                        const sku = document.getElementById("variant-sku").value.trim()
-                                        const price = parseFloat(document.getElementById("variant-price").value)
-                                        const stock = parseInt(document.getElementById("variant-stock").value)
+                                        const variantId = document.getElementById("variant-id").value;
+                                        const sku = document.getElementById("variant-sku").value.trim();
+                                        const price = parseFloat(document.getElementById("variant-price").value);
+                                        const stock = parseInt(document.getElementById("variant-stock").value);
 
-                                        if (!sku) {
+                                        if (!sku) return showToast("SKU is required", "warning");
 
-                                                Swal.fire({
-                                                        ...swalDark,
-                                                        icon: "warning",
-                                                        title: "Validation Error",
-                                                        text: "SKU is required"
-                                                })
-                                                return
-                                        }
+                                        if (sku.length < 3)
+                                                return showToast("SKU must be at least 3 characters", "warning");
 
-                                        if (sku.length < 3) {
+                                        if (!price || price <= 0)
+                                                return showToast("Price must be greater than 0", "warning");
 
-                                                Swal.fire({
-                                                        ...swalDark,
-                                                        icon: "warning",
-                                                        title: "Validation Error",
-                                                        text: "SKU must be at least 3 characters"
-                                                })
-                                                return
-                                        }
-
-                                        if (!price || price <= 0) {
-
-                                                Swal.fire({
-                                                        ...swalDark,
-                                                        icon: "warning",
-                                                        title: "Validation Error",
-                                                        text: "Price must be greater than 0"
-                                                })
-                                                return
-                                        }
-
-                                        if (stock < 0) {
-
-                                                Swal.fire({
-                                                        ...swalDark,
-                                                        icon: "warning",
-                                                        title: "Validation Error",
-                                                        text: "Stock cannot be negative"
-                                                })
-                                                return
-                                        }
+                                        if (stock < 0)
+                                                return showToast("Stock cannot be negative", "warning");
 
 
-                                        const attributes = {}
+                                        const attributes = {};
 
-                                        document.querySelectorAll("#variantAttributes input")
+                                        document
+                                                .querySelectorAll("#variantAttributes input")
                                                 .forEach(input => {
-                                                        attributes[input.name] = input.value.trim()
-                                                })
+
+                                                        attributes[input.name] = input.value.trim();
+
+                                                });
 
                                         for (const key in attributes) {
 
-                                                if (!attributes[key]) {
-
-                                                        Swal.fire({
-                                                                ...swalDark,
-                                                                icon: "warning",
-                                                                title: "Validation Error",
-                                                                text: `${key} cannot be empty`
-                                                        })
-                                                        return
-
-                                                }
+                                                if (!attributes[key])
+                                                        return showToast(`${key} cannot be empty`, "warning");
 
                                         }
 
 
-                                        let url = `/admin/products/<%= product._id %>/variants`
-                                        let method = "POST"
+                                        let url = `/admin/products/<%= product._id %>/variants`;
+                                        let method = "POST";
 
                                         if (variantId) {
-                                                url = `/admin/products/<%= product._id %>/variants/${variantId}`
-                                                method = "PATCH"
+
+                                                url = `/admin/products/<%= product._id %>/variants/${variantId}`;
+                                                method = "PATCH";
+
                                         }
 
                                         const res = await fetch(url, {
+
                                                 method,
-                                                headers: {
-                                                        "Content-Type": "application/json"
-                                                },
+                                                headers: { "Content-Type": "application/json" },
                                                 body: JSON.stringify({ sku, price, stock, attributes })
-                                        })
 
-                                        const data = await res.json()
+                                        });
 
-                                        if (!data.success) {
+                                        const data = await res.json();
 
-                                                Swal.fire({
-                                                        ...swalDark,
-                                                        icon: "error",
-                                                        title: "Error",
-                                                        text: data.message
-                                                })
-                                                return
-                                        }
+                                        if (!data.success)
+                                                return showToast(data.message, "error");
 
-                                        Swal.fire({
-                                                ...swalDark,
-                                                icon: "success",
-                                                title: "Success",
-                                                text: data.message
-                                        }).then(() => location.reload())
+                                        showToast(data.message, "success");
 
-                                } catch (err) {
+                                        setTimeout(() => location.reload(), 1200);
 
-                                        Swal.fire({
-                                                ...swalDark,
-                                                icon: "error",
-                                                title: "Error",
-                                                text: "Something went wrong"
-                                        })
+                                } catch {
+
+                                        showToast("Something went wrong", "error");
 
                                 }
 
-                        })
+                        });
 
 
+                        // ================= DELETE VARIANT =================
 
-                        async function deleteVariant(id) {
+                        window.deleteVariant = async function (id) {
 
-                                const result = await Swal.fire({
-                                        ...swalDark,
-                                        title: "Delete Variant?",
-                                        text: "This action cannot be undone",
-                                        icon: "warning",
-                                        showCancelButton: true,
-                                        confirmButtonText: "Delete"
-                                })
+                                const confirmed = await confirmAction("Delete Variant?");
 
-                                if (!result.isConfirmed) return
+                                if (!confirmed) return;
 
                                 try {
 
-                                        const res = await fetch(`/admin/products/<%= product._id %>/variants/${id}`, {
-                                                method: "DELETE"
-                                        })
+                                        const res = await fetch(
+                                                `/admin/products/<%= product._id %>/variants/${id}`,
+                                                { method: "DELETE" }
+                                        );
 
-                                        const data = await res.json()
+                                        const data = await res.json();
 
-                                        if (!data.success) {
+                                        if (!data.success)
+                                                return showToast(data.message, "error");
 
-                                                Swal.fire({
-                                                        ...swalDark,
-                                                        icon: "error",
-                                                        title: "Error",
-                                                        text: data.message
-                                                })
-                                                return
-                                        }
+                                        showToast("Variant deleted successfully", "success");
 
-                                        Swal.fire({
-                                                ...swalDark,
-                                                icon: "success",
-                                                title: "Deleted",
-                                                text: data.message
-                                        }).then(() => location.reload())
+                                        setTimeout(() => location.reload(), 1200);
 
-                                } catch (err) {
+                                } catch {
 
-                                        Swal.fire({
-                                                ...swalDark,
-                                                icon: "error",
-                                                title: "Error",
-                                                text: "Delete failed"
-                                        })
+                                        showToast("Delete failed", "error");
 
                                 }
 
-                        }
+                        };
 
 
+                        // ================= IMAGE UPLOAD =================
 
-                        function openImageUpload(variantId) {
+                        window.openImageUpload = function (variantId) {
 
-                                currentVariantId = variantId
-                                document.getElementById("variantImageInput").click()
+                                currentVariantId = variantId;
 
-                        }
+                                document.getElementById("variantImageInput").click();
+
+                        };
 
 
-
-                        document.getElementById("variantImageInput")
+                        document
+                                .getElementById("variantImageInput")
                                 .addEventListener("change", async function () {
 
                                         try {
 
-                                                const file = this.files[0]
+                                                const file = this.files[0];
 
-                                                if (!file) return
+                                                if (!file) return;
 
-                                                if (!file.type.startsWith("image/")) {
+                                                if (!file.type.startsWith("image/"))
+                                                        return showToast("Only image files allowed", "warning");
 
-                                                        Swal.fire({
-                                                                ...swalDark,
-                                                                icon: "warning",
-                                                                title: "Invalid File",
-                                                                text: "Only image files are allowed"
-                                                        })
-                                                        return
-                                                }
+                                                if (file.size > 5 * 1024 * 1024)
+                                                        return showToast("Image must be less than 5MB", "warning");
 
-                                                if (file.size > 5 * 1024 * 1024) {
-
-                                                        Swal.fire({
-                                                                ...swalDark,
-                                                                icon: "warning",
-                                                                title: "File Too Large",
-                                                                text: "Image must be less than 5MB"
-                                                        })
-                                                        return
-                                                }
-
-                                                const formData = new FormData()
-                                                formData.append("image", file)
+                                                const formData = new FormData();
+                                                formData.append("image", file);
 
                                                 const res = await fetch(
                                                         `/admin/products/<%= product._id %>/variants/${currentVariantId}/image`,
@@ -865,54 +785,33 @@
                                                                 method: "POST",
                                                                 body: formData
                                                         }
-                                                )
+                                                );
 
-                                                const data = await res.json()
+                                                const data = await res.json();
 
-                                                if (!data.success) {
+                                                if (!data.success)
+                                                        return showToast(data.message, "error");
 
-                                                        Swal.fire({
-                                                                ...swalDark,
-                                                                icon: "error",
-                                                                title: "Upload Failed",
-                                                                text: data.message
-                                                        })
-                                                        return
-                                                }
+                                                showToast("Image uploaded successfully", "success");
 
-                                                Swal.fire({
-                                                        ...swalDark,
-                                                        icon: "success",
-                                                        title: "Uploaded",
-                                                        text: "Image uploaded successfully"
-                                                }).then(() => location.reload())
+                                                setTimeout(() => location.reload(), 1200);
 
-                                        } catch (err) {
+                                        } catch {
 
-                                                Swal.fire({
-                                                        ...swalDark,
-                                                        icon: "error",
-                                                        title: "Error",
-                                                        text: "Image upload failed"
-                                                })
+                                                showToast("Image upload failed", "error");
 
                                         }
 
-                                })
+                                });
 
 
+                        // ================= DELETE IMAGE =================
 
-                        async function deleteVariantImage(variantId, imagePath) {
+                        window.deleteVariantImage = async function (variantId, imagePath) {
 
-                                const result = await Swal.fire({
-                                        ...swalDark,
-                                        title: "Delete Image?",
-                                        icon: "warning",
-                                        showCancelButton: true,
-                                        confirmButtonText: "Delete"
-                                })
+                                const confirmed = await confirmAction("Delete image?");
 
-                                if (!result.isConfirmed) return
+                                if (!confirmed) return;
 
                                 try {
 
@@ -920,45 +819,27 @@
                                                 `/admin/products/<%= product._id %>/variants/${variantId}/image`,
                                                 {
                                                         method: "DELETE",
-                                                        headers: {
-                                                                "Content-Type": "application/json"
-                                                        },
+                                                        headers: { "Content-Type": "application/json" },
                                                         body: JSON.stringify({ imagePath })
                                                 }
-                                        )
+                                        );
 
-                                        const data = await res.json()
+                                        const data = await res.json();
 
-                                        if (!data.success) {
+                                        if (!data.success)
+                                                return showToast(data.message, "error");
 
-                                                Swal.fire({
-                                                        ...swalDark,
-                                                        icon: "error",
-                                                        title: "Error",
-                                                        text: data.message
-                                                })
-                                                return
-                                        }
+                                        showToast("Image removed", "success");
 
-                                        Swal.fire({
-                                                ...swalDark,
-                                                icon: "success",
-                                                title: "Deleted",
-                                                text: "Image removed"
-                                        }).then(() => location.reload())
+                                        setTimeout(() => location.reload(), 1200);
 
-                                } catch (err) {
+                                } catch {
 
-                                        Swal.fire({
-                                                ...swalDark,
-                                                icon: "error",
-                                                title: "Error",
-                                                text: "Delete failed"
-                                        })
+                                        showToast("Delete failed", "error");
 
                                 }
 
-                        }
+                        };
 
                 </script>
 </body>

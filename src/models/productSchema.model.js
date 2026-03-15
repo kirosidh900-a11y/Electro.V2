@@ -4,6 +4,7 @@ const variantSchema = new mongoose.Schema({
   sku: {
     type: String,
     required: true,
+    unique: true,
   },
 
   price: {
@@ -36,6 +37,7 @@ const productSchema = new mongoose.Schema(
       type: String,
       required: true,
       trim: true,
+      uppercase: true,
     },
 
     category: {
@@ -80,6 +82,7 @@ const productSchema = new mongoose.Schema(
   { timestamps: true },
 );
 
+productSchema.index({ brand: 1 });
 productSchema.index({ category: 1 });
 productSchema.index({ isDeleted: 1 });
 

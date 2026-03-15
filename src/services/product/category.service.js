@@ -82,6 +82,7 @@ export const toggleCategoryService = async (id) => {
   category.status = category.status === "listed" ? "unlisted" : "listed";
 
   await category.save();
+  return category.status;
 };
 
 //    Add Attribute

@@ -12,10 +12,18 @@ import {
   getProductDetails,
   addVariant,
   deleteVariant,
-  addVariantImage,
-  deleteVariantImage,
   editVariant,
+  addVariantImage,
+  deleteVariantImage
 } from "../../controllers/product/product.controller.js";
+
+import {
+  addVariantImageService,
+  deleteVariantImageService,
+} from "../../services/product/variantImage.service.js";
+
+import { setUploadFolder } from "../../middlewares/setUploadFolder.middleware.js";
+import upload from "../../middlewares/cloudinaryUpload.middleware.js";
 
 const router = Router();
 
@@ -45,7 +53,12 @@ router
 // Img add and delete
 router
   .route("/:productId/variants/:variantId/image")
-  .post(isAuth, pImgUpload.single("image"), addVariantImage)
+  .post(
+    isAuth,
+    setUploadFolder("products"),
+    upload.single("image"),
+    addVariantImage,
+  )
   .delete(isAuth, deleteVariantImage);
 
 export default router;
