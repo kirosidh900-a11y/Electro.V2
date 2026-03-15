@@ -1,8 +1,27 @@
 export const adminMenu = [
   { name: "Dashboard", icon: "fas fa-home", path: "/admin/dashboard" },
+
   { name: "Customers", icon: "fas fa-users", path: "/admin/customers" },
-  { name: "Category", icon: "fas fa-box", path: "/admin/category" },
-  { name: "Brand", icon: "fas fa-tag", path: "/admin/brand" },
-  { name: "Products", icon: "fas fa-shopping-bag", path: "/admin/products" },
-  
+
+  {
+    name: "Catalog",
+    icon: "fas fa-box",
+    children: [
+      { name: "Categories", path: "/admin/category" },
+      { name: "Brands", path: "/admin/brand" },
+      {
+        name: "Products",
+        path: "/admin/products",
+        children: [
+          { name: "Product List", path: "/admin/products" },
+          { name: "Product Details", path: "/admin/products/details/:id" },
+        ],
+      },
+    ],
+  },
+
+  { name: "Orders", icon: "fas fa-receipt", path: "/admin/orders" },
+  { name: "Coupons", icon: "fas fa-ticket-alt", path: "/admin/coupons" },
+  { name: "Reviews", icon: "fas fa-star", path: "/admin/reviews" },
+  { name: "Settings", icon: "fas fa-cog", path: "/admin/settings" },
 ];

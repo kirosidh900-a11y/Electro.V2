@@ -1,41 +1,120 @@
 <div id="sidebarOverlay" onclick="toggleSidebar()" class="fixed inset-0 bg-black/80 z-40 hidden lg:hidden"></div>
 
+<div id="sidebarOverlay" onclick="toggleSidebar()" class="fixed inset-0 bg-black/80 z-40 hidden lg:hidden"></div>
+
 <aside id="sidebar" class="fixed inset-y-0 left-0 z-50 bg-[#05070a] border-r border-white/5 flex flex-col">
+
+    <!-- Logo -->
     <div class="p-6 flex items-center justify-between border-b border-white/5">
+
         <div class="flex items-center gap-3">
+
             <div
                 class="w-9 h-9 bg-cyan-500 rounded-xl flex items-center justify-center text-white shadow-lg shadow-cyan-500/20">
                 <i class="fas fa-bolt"></i>
             </div>
-            <span class="text-xl font-black tracking-tighter uppercase text-white">Electro</span>
+
+            <span class="text-xl font-black tracking-tighter uppercase text-white">
+                Electro
+            </span>
+
         </div>
-        <button onclick="toggleSidebar()" class="lg:hidden text-gray-500 hover:text-white"><i class="fas fa-times"></i>
+
+        <button onclick="toggleSidebar()" class="lg:hidden text-gray-500 hover:text-white">
+            <i class="fas fa-times"></i>
         </button>
+
     </div>
 
+
+    <!-- Navigation -->
     <nav class="flex-1 px-4 py-8 space-y-1 overflow-y-auto">
+
         <p class="text-[10px] text-gray-500 font-bold uppercase tracking-widest px-4 mb-4">
             Main Menu
         </p>
 
         <% menu.forEach(item=> { %>
-            <a href="<%= item.path %>" class="flex items-center gap-4 px-4 py-3 rounded-xl transition-all
-      <%= currentPath === item.path
-          ? 'bg-cyan-600 text-white font-bold shadow-lg shadow-cyan-900/20'
-          : 'text-gray-400 hover:bg-white/5' %>">
 
-                <i class="<%= item.icon %> w-5"></i>
-                <%= item.name %>
-            </a>
-            <% }) %>
+            <% if(!item.children){ %>
+
+                <!-- Normal Menu -->
+                <a href="<%= item.path %>" class="flex items-center gap-4 px-4 py-3 rounded-xl transition-all
+<%= currentPath.startsWith(item.path)
+? 'bg-cyan-600 text-white font-bold shadow-lg shadow-cyan-900/20'
+: 'text-gray-400 hover:bg-white/5' %>">
+
+                    <i class="<%= item.icon %> w-5"></i>
+                    <%= item.name %>
+
+                </a>
+
+                <% } else { %>
+
+                    <% const isParentActive=item.children.some(child=>
+                        currentPath.startsWith(child.path)
+                        );
+                        %>
+
+                        <!-- Parent Menu -->
+                        <div class="menu-parent">
+
+                            <button onclick="toggleMenu('<%= item.name %>')" class="flex items-center justify-between w-full px-4 py-3 rounded-xl transition
+<%= isParentActive
+? 'text-white'
+: 'text-gray-400 hover:bg-white/5' %>">
+
+                                <div class="flex items-center gap-4">
+                                    <i class="<%= item.icon %> w-5"></i>
+                                    <%= item.name %>
+                                </div>
+
+                                <i class="fas fa-chevron-down text-xs <%= isParentActive ? 'rotate-180' : '' %>"></i>
+
+                            </button>
+
+
+                            <!-- Children -->
+                            <div id="submenu-<%= item.name %>"
+                                class="ml-8 mt-1 space-y-1 <%= isParentActive ? '' : 'hidden' %>">
+
+                                <% item.children.forEach(child=> { %>
+
+                                    <a href="<%= child.path %>" class="block px-4 py-2 rounded-lg text-sm transition
+<%= currentPath.startsWith(child.path)
+? 'bg-cyan-600 text-white'
+: 'text-gray-400 hover:bg-white/5' %>">
+
+                                        <%= child.name %>
+
+                                    </a>
+
+                                    <% }) %>
+
+                            </div>
+
+                        </div>
+
+                        <% } %>
+
+                            <% }) %>
+
     </nav>
 
+
+    <!-- Logout -->
     <div class="p-6 border-t border-white/5">
+
         <button id="logout"
             class="flex items-center gap-3 text-red-500 font-bold hover:bg-red-500/10 w-full p-3 rounded-xl transition-all">
-            <i class="fas fa-power-off"></i> Logout
+
+            <i class="fas fa-power-off"></i>
+            Logout
+
         </button>
+
     </div>
+
 </aside>
 
 <!-- Logout Modal -->
@@ -112,7 +191,7 @@
             window.location.href = "/admin";
 
         } catch (error) {
-            showToast(error.message,"error");
+            showToast(error.message, "error");
         }
     });
 
@@ -124,10 +203,10 @@
         }
     });
 
- </script>
+</script>
 
 <script>
-       function toggleSidebar() {
+    function toggleSidebar() {
         const body = document.body;
         const overlay = document.getElementById('sidebarOverlay');
         if (window.innerWidth >= 1024) {
@@ -138,4 +217,13 @@
         }
     }
 
+    function toggleMenu(menuName) {
+
+        const submenu = document.getElementById(`submenu-${menuName}`);
+
+        if (!submenu) return;
+
+        submenu.classList.toggle("hidden");
+
+    }
 </script>
