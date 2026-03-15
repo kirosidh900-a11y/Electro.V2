@@ -202,452 +202,13 @@
                 </div>
 
                 <!-- ================= SCRIPTS ================= -->
-                <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-
-                <script>
-
-                        const swalDark = {
-                                background: "#1a1a1a",
-                                color: "#ffffff",
-                                confirmButtonColor: "#fa5252"
-                        };
-
-                        let editingAttributes = {};
-
-
-                        // OPEN ADD MODAL
-                        function openAddModal() {
-
-                                document.getElementById("product-id").value = "";
-                                document.getElementById("product-name").value = "";
-                                document.getElementById("product-category").value = "";
-                                document.getElementById("product-brand").value = "";
-                                document.getElementById("product-status").value = "unlisted";
-
-                                document.getElementById("productAttributes").innerHTML = "";
-
-                                editingAttributes = {};
-
-                                document.getElementById("product-submit-btn").textContent = "Create Product";
-
-                                const title = document.getElementById("productModalTitle");
-                                if (title) title.textContent = "Add Product";
-
-                                document.getElementById("productModal").classList.remove("hidden");
-                        }
-
-
-                        // CLOSE MODAL
-                        function closeModal() {
-                                document.getElementById("productModal").classList.add("hidden");
-                        }
-
-
-                        // ADD BUTTON AUTO DETECT
-                        const pageTitle = document.querySelector("h1")?.textContent || "";
-                        const moduleName = pageTitle.replace("Management", "").trim().toLowerCase();
-                        const addBtn = document.getElementById(`add-${moduleName}`);
-
-                        if (addBtn) {
-                                addBtn.addEventListener("click", openAddModal);
-                        }
-
-
-                        // ================= LOAD CATEGORY ATTRIBUTES =================
-
-                        async function loadCategoryAttributes(categoryId, existingAttributes = {}) {
-
-                                const container = document.getElementById("productAttributes");
-                                container.innerHTML = "";
-
-                                if (!categoryId) return;
-
-                                try {
-
-                                        const res = await fetch(`/admin/category/${categoryId}/attributes`);
-                                        const result = await res.json();
-                                        result.data.productAttributes.forEach(attr => {
-
-                                                const input = document.createElement("input");
-
-                                                input.placeholder = attr.label;
-                                                input.name = attr.key;
-                                                input.value = existingAttributes[attr.key] || "";
-
-                                                input.className =
-                                                        "bg-[#0f172a] border border-white/10 px-3 py-2 rounded-lg text-sm";
-
-                                                container.appendChild(input);
-
-                                        });
-
-                                }
-                                catch (err) {
-
-                                        Swal.fire({
-                                                ...swalDark,
-                                                icon: "error",
-                                                text: "Failed to load attributes"
-                                        });
-
-                                }
-
-                        }
-
-                        async function loadProductAttributes(productId, existingAttributes = {}) {
-
-                                const container = document.getElementById("productAttributes");
-                                container.innerHTML = "";
-
-                                if (!productId) return;
-
-                                try {
-
-                                        const res = await fetch(`/admin/products/${productId}/attributes`);
-
-                                        const data = await res.json();
-
-                                        if (!data.success) return;
-
-                                        const attributes = data.productAttributes || {};
-
-                                        Object.keys(attributes).forEach(key => {
-
-                                                const input = document.createElement("input");
-
-                                                input.name = key;
-                                                input.placeholder = key;
-                                                input.value = existingAttributes[key] || attributes[key] || "";
-
-                                                input.className =
-                                                        "bg-[#0f172a] border border-white/10 px-3 py-2 rounded-lg text-sm";
-
-                                                container.appendChild(input);
-
-                                        });
-
-                                } catch (err) {
-
-                                        Swal.fire({
-                                                icon: "error",
-                                                text: "Failed to load attributes"
-                                        });
-
-                                }
-
-                        }
-
-                        // CATEGORY CHANGE
-                        const categorySelect = document.getElementById("product-category");
-
-                        categorySelect?.addEventListener("change", function () {
-
-                                loadCategoryAttributes(this.value, editingAttributes);
-
-                        });
-
-
-
-                        // ================= EDIT PRODUCT =================
-
-                        function editProduct(id, name, category, brand, status, attributes = {}) {
-
-                                document.getElementById("product-id").value = id;
-                                document.getElementById("product-name").value = name;
-                                document.getElementById("product-category").value = category || "";
-                                document.getElementById("product-brand").value = brand || "";
-                                document.getElementById("product-status").value = status;
-
-                                editingAttributes = attributes || {};
-
-                                document.getElementById("product-submit-btn").textContent = "Update Product";
-
-                                const title = document.getElementById("productModalTitle");
-                                if (title) title.textContent = "Edit Product";
-
-                                loadProductAttributes(id, editingAttributes);
-
-                                document.getElementById("productModal").classList.remove("hidden");
-                        }
-
-                        // ================= FORM SUBMIT =================
-
-                        const productForm = document.getElementById("productForm");
-
-                        productForm?.addEventListener("submit", async (e) => {
-
-                                e.preventDefault();
-
-                                const id = document.getElementById("product-id").value;
-                                const name = document.getElementById("product-name").value.trim();
-                                const category = document.getElementById("product-category").value;
-                                const brand = document.getElementById("product-brand").value;
-                                const status = document.getElementById("product-status").value;
-
-                                const productNamePattern = /^[A-Za-z0-9]+(?:[ _-][A-Za-z0-9]+)*$/;
-
-                                if (!name)
-                                        return Swal.fire({ ...swalDark, icon: "warning", text: "Product name required" });
-
-                                if (!productNamePattern.test(name))
-                                        return Swal.fire({ ...swalDark, icon: "warning", text: "Invalid product name" });
-
-                                if (!category)
-                                        return Swal.fire({ ...swalDark, icon: "warning", text: "Select category" });
-
-                                if (!brand)
-                                        return Swal.fire({ ...swalDark, icon: "warning", text: "Select brand" });
-
-
-                                // COLLECT ATTRIBUTES
-                                const attributes = {};
-                                const inputs = document.querySelectorAll("#productAttributes input");
-
-                                for (const input of inputs) {
-
-                                        const key = input.name;
-                                        const value = input.value.trim();
-
-                                        if (!value)
-                                                return Swal.fire({ ...swalDark, icon: "warning", text: `${key} is required` });
-
-                                        attributes[key] = value;
-
-                                }
-
-
-                                let url = "/admin/products";
-                                let method = "POST";
-
-                                if (id) {
-                                        url = `/admin/products/${id}`;
-                                        method = "PATCH";
-                                }
-
-                                try {
-
-                                        const res = await fetch(url, {
-                                                method,
-                                                headers: { "Content-Type": "application/json" },
-                                                body: JSON.stringify({
-                                                        name,
-                                                        category,
-                                                        brand,
-                                                        status,
-                                                        attributes
-                                                })
-                                        });
-
-                                        const data = await res.json();
-
-                                        if (!data.success)
-                                                return Swal.fire({ ...swalDark, icon: "error", text: data.message });
-
-
-                                        await Swal.fire({
-                                                ...swalDark,
-                                                icon: "success",
-                                                text: data.message,
-                                                timer: 1500,
-                                                showConfirmButton: false
-                                        });
-
-
-                                        // ================= UPDATE TABLE =================
-
-                                        if (id) {
-
-                                                const row = document.getElementById(`row-${id}`);
-
-                                                if (row) {
-
-                                                        const titleCell = document.getElementById(`title-${id}`);
-                                                        const categoryCell = document.getElementById(`category-${id}`);
-                                                        const brandCell = document.getElementById(`brand-${id}`);
-                                                        const badge = document.getElementById(`badge-${id}`);
-
-                                                        if (titleCell) titleCell.textContent = name;
-
-                                                        const categoryText =
-                                                                document.querySelector("#product-category option:checked")?.textContent.trim() || "-";
-
-                                                        const brandText =
-                                                                document.querySelector("#product-brand option:checked")?.textContent.trim() || "-";
-
-                                                        if (categoryCell) categoryCell.textContent = categoryText;
-                                                        if (brandCell) brandCell.textContent = brandText;
-
-                                                        if (badge) {
-
-                                                                badge.textContent = status;
-
-                                                                badge.className =
-                                                                        status === "listed"
-                                                                                ? "px-3 py-1 rounded-full text-xs bg-emerald-500/20 text-emerald-400"
-                                                                                : "px-3 py-1 rounded-full text-xs bg-red-500/20 text-red-400";
-
-                                                        }
-
-                                                }
-
-                                        }
-                                        else {
-
-                                                location.reload();
-
-                                        }
-
-                                        closeModal();
-
-                                }
-                                catch (err) {
-
-                                        Swal.fire({
-                                                ...swalDark,
-                                                icon: "error",
-                                                text: "Something went wrong"
-                                        });
-
-                                }
-
-                        });
-
-
-
-
-                        // ================= DELETE PRODUCT =================
-
-                        async function deleteProduct(product_id) {
-
-                                const result = await Swal.fire({
-                                        title: "Delete Product?",
-                                        text: "This cannot be undone!",
-                                        icon: "warning",
-                                        ...swalDark,
-                                        showCancelButton: true,
-                                        confirmButtonText: "Delete"
-                                });
-
-                                if (!result.isConfirmed) return;
-
-                                try {
-
-                                        const res = await fetch(`/admin/products/${product_id}`, {
-                                                method: "DELETE"
-                                        });
-
-                                        const data = await res.json();
-
-                                        if (!data.success)
-                                                return Swal.fire({ ...swalDark, icon: "error", text: data.message });
-
-                                        const row = document.getElementById(`row-${product_id}`);
-
-                                        if (row) {
-
-                                                row.style.opacity = "0";
-                                                setTimeout(() => row.remove(), 300);
-
-                                        }
-
-                                }
-                                catch (err) {
-
-                                        Swal.fire({ ...swalDark, icon: "error", text: "Server error" });
-
-                                }
-
-                        }
-
-
-                        async function toggleProductStatus(product_id, status) {
-
-                                const action = status === "listed" ? "unlist" : "list";
-
-                                const result = await Swal.fire({
-                                        title: "Are you sure?",
-                                        text: `Do you want to ${action} this brand?`,
-                                        icon: "warning",
-                                        ...swalDark,
-                                        showCancelButton: true,
-                                        confirmButtonText: `Yes, ${action}!`,
-                                        cancelButtonText: "Cancel"
-                                });
-
-                                if (!result.isConfirmed) return;
-
-                                try {
-
-                                        const res = await fetch(`/admin/products/${product_id}/status/`, {
-                                                method: "PATCH"
-                                        });
-
-                                        const data = await res.json();
-
-                                        if (!data.success) {
-                                                return Swal.fire({
-                                                        icon: "error",
-                                                        ...swalDark,
-                                                        text: data.message
-                                                });
-                                        }
-
-                                        const btn = document.getElementById(`status-${product_id}`);
-                                        const badge = document.getElementById(`badge-${product_id}`);
-
-                                        const newStatus = data.status;
-
-                                        // update badge
-                                        badge.textContent = newStatus;
-
-                                        if (newStatus === "listed") {
-                                                badge.className = "px-3 py-1 rounded-full text-xs bg-emerald-500/20 text-emerald-400";
-                                        } else {
-                                                badge.className = "px-3 py-1 rounded-full text-xs bg-red-500/20 text-red-400";
-                                        }
-
-                                        // update button text
-                                        btn.textContent = newStatus === "listed" ? "Unlist" : "List";
-
-                                        btn.className =
-                                                `px-3 py-1 text-xs rounded-md font-semibold ${newStatus === "listed"
-                                                        ? "bg-yellow-500/20 text-yellow-400 hover:bg-yellow-500/30"
-                                                        : "bg-emerald-500/20 text-emerald-400 hover:bg-emerald-500/30"
-                                                }`;
-
-                                        btn.setAttribute(
-                                                "onclick",
-                                                `toggleProductStatus('${product_id}','${newStatus}')`
-                                        );
-
-                                        Swal.fire({
-                                                toast: true,
-                                                position: "top-end",
-                                                icon: "success",
-                                                title: `Brand ${action}ed successfully`,
-                                                showConfirmButton: false,
-                                                timer: 2000
-                                        });
-
-                                } catch (error) {
-
-                                        console.error(error);
-
-                                        Swal.fire({
-                                                icon: "error",
-                                                ...swalDark,
-                                                text: "Something went wrong"
-                                        });
-
-                                }
-
-                        }
-
-                </script>
 
                 <!-- search and filter -->
                 <script>
                         const filter = document.getElementById("filter");
+
+                        const pageTitle = document.querySelector("h1")?.textContent || "";
+                        const moduleName = pageTitle.replace("Management", "").trim().toLowerCase();
 
                         function debounce(func, delay) {
                                 let timer;
@@ -662,7 +223,8 @@
                         }
 
                         async function searchData() {
-
+                                const title = document.g
+                                moduleName
                                 const value = searchInput?.value.trim() || "";
                                 const filterValue = filter?.value.trim() || "";
 
@@ -698,6 +260,375 @@
 
                 </script>
 
+                <script type="module">
+
+                        import { showToast } from "../../partials/errorMsg.utils.js";
+                        import { confirmAction } from "../../partials/confirm.util.js";
+
+                        let editingAttributes = {};
+
+                        const categorySelect = document.getElementById("product-category");
+
+                        categorySelect?.addEventListener("change", function () {
+                                loadCategoryAttributes(this.value, editingAttributes);
+                        });
+
+
+                        // ================= OPEN ADD MODAL =================
+
+                        function openAddModal() {
+
+                                document.getElementById("product-id").value = "";
+                                document.getElementById("product-name").value = "";
+                                document.getElementById("product-category").value = "";
+                                document.getElementById("product-brand").value = "";
+                                document.getElementById("product-status").value = "unlisted";
+
+                                document.getElementById("productAttributes").innerHTML = "";
+
+                                editingAttributes = {};
+
+                                document.getElementById("product-submit-btn").textContent = "Create Product";
+
+                                const title = document.getElementById("productModalTitle");
+                                if (title) title.textContent = "Add Product";
+
+                                document.getElementById("productModal").classList.remove("hidden");
+                        }
+
+
+                        // ================= CLOSE MODAL =================
+
+                        function closeModal() {
+                                document.getElementById("productModal").classList.add("hidden");
+                        }
+
+
+                        // ================= LOAD CATEGORY ATTRIBUTES =================
+
+                        async function loadCategoryAttributes(categoryId, existingAttributes = {}) {
+
+                                const container = document.getElementById("productAttributes");
+                                container.innerHTML = "";
+
+                                if (!categoryId) return;
+
+                                try {
+
+                                        const res = await fetch(`/admin/category/${categoryId}/attributes`);
+                                        const result = await res.json();
+
+                                        result.data.productAttributes.forEach(attr => {
+
+                                                const input = document.createElement("input");
+
+                                                input.placeholder = attr.label;
+                                                input.name = attr.key;
+                                                input.value = existingAttributes[attr.key] || "";
+
+                                                input.className =
+                                                        "bg-[#0f172a] border border-white/10 px-3 py-2 rounded-lg text-sm";
+
+                                                container.appendChild(input);
+
+                                        });
+
+                                } catch {
+
+                                        showToast("Failed to load attributes", "error");
+
+                                }
+
+                        }
+
+
+                        // ================= FORM SUBMIT =================
+
+                        const productForm = document.getElementById("productForm");
+                        const addBtn = document.getElementById(`add-${moduleName}`);
+
+                        if (addBtn) {
+                                addBtn.addEventListener("click", openAddModal);
+                        }
+
+                        productForm?.addEventListener("submit", async (e) => {
+
+                                e.preventDefault();
+
+                                const id = document.getElementById("product-id").value;
+                                const name = document.getElementById("product-name").value.trim();
+                                const category = document.getElementById("product-category").value;
+                                const brand = document.getElementById("product-brand").value;
+                                const status = document.getElementById("product-status").value;
+
+                                const productNamePattern = /^[A-Za-z0-9]+(?:[ _-][A-Za-z0-9]+)*$/;
+
+                                if (!name)
+                                        return showToast("Product name required", "warning");
+
+                                if (!productNamePattern.test(name))
+                                        return showToast("Invalid product name", "warning");
+
+                                if (!category)
+                                        return showToast("Select category", "warning");
+
+                                if (!brand)
+                                        return showToast("Select brand", "warning");
+
+
+                                const attributes = {};
+                                const inputs = document.querySelectorAll("#productAttributes input");
+
+                                for (const input of inputs) {
+
+                                        const key = input.name;
+                                        const value = input.value.trim();
+
+                                        if (!value)
+                                                return showToast(`${key} is required`, "warning");
+
+                                        attributes[key] = value;
+
+                                }
+
+
+                                let url = "/admin/products";
+                                let method = "POST";
+
+                                if (id) {
+                                        url = `/admin/products/${id}`;
+                                        method = "PATCH";
+                                }
+
+                                try {
+
+                                        const res = await fetch(url, {
+                                                method,
+                                                headers: { "Content-Type": "application/json" },
+                                                body: JSON.stringify({
+                                                        name,
+                                                        category,
+                                                        brand,
+                                                        status,
+                                                        attributes
+                                                })
+                                        });
+
+                                        const data = await res.json();
+
+                                        if (!data.success)
+                                                return showToast(data.message, "error");
+
+
+                                        if (!id) location.reload();
+
+                                        showToast(data.message, "success");
+
+                                        if (id) {
+
+                                                const row = document.getElementById(`row-${id}`);
+
+                                                if (row) {
+
+                                                        const titleCell = document.getElementById(`title-${id}`);
+                                                        const categoryCell = document.getElementById(`category-${id}`);
+                                                        const brandCell = document.getElementById(`brand-${id}`);
+                                                        const badge = document.getElementById(`badge-${id}`);
+                                                        const statusBtn = document.getElementById(`status-${id}`);
+
+                                                        // update product name
+                                                        if (titleCell) titleCell.textContent = name;
+
+                                                        // update category
+                                                        const categoryText =
+                                                                document.querySelector("#product-category option:checked")?.textContent.trim() || "-";
+
+                                                        if (categoryCell) categoryCell.textContent = categoryText;
+
+                                                        // update brand
+                                                        const brandText =
+                                                                document.querySelector("#product-brand option:checked")?.textContent.trim() || "-";
+
+                                                        if (brandCell) brandCell.textContent = brandText;
+
+                                                        // update status badge
+                                                        if (badge) {
+
+                                                                badge.textContent = status;
+
+                                                                badge.className =
+                                                                        status === "listed"
+                                                                                ? "px-3 py-1 rounded-full text-xs bg-emerald-500/20 text-emerald-400"
+                                                                                : "px-3 py-1 rounded-full text-xs bg-red-500/20 text-red-400";
+                                                        }
+
+                                                        // update toggle button
+                                                        if (statusBtn) {
+
+                                                                statusBtn.textContent = status === "listed" ? "Unlist" : "List";
+
+                                                                statusBtn.className =
+                                                                        `px-3 py-1 text-xs rounded-md font-semibold ${status === "listed"
+                                                                                ? "bg-yellow-500/20 text-yellow-400"
+                                                                                : "bg-emerald-500/20 text-emerald-400"
+                                                                        }`;
+
+                                                                statusBtn.setAttribute(
+                                                                        "onclick",
+                                                                        `event.stopPropagation();toggleProductStatus('${id}','${status}')`
+                                                                );
+                                                        }
+
+                                                }
+
+                                        } else {
+
+                                                location.reload();
+
+                                        }
+
+                                        closeModal();
+
+                                } catch {
+
+                                        showToast("Something went wrong", "error");
+
+                                }
+
+                        });
+
+                        function editProduct(id, name, category, brand, status, attributes = {}) {
+
+                                document.getElementById("product-id").value = id;
+                                document.getElementById("product-name").value = name;
+                                document.getElementById("product-category").value = category || "";
+                                document.getElementById("product-brand").value = brand || "";
+                                document.getElementById("product-status").value = status;
+
+                                editingAttributes = attributes || {};
+
+                                document.getElementById("product-submit-btn").textContent = "Update Product";
+
+                                const title = document.getElementById("productModalTitle");
+                                if (title) title.textContent = "Edit Product";
+
+                                // 🔥 load attributes for the selected category
+                                if (category) {
+                                        loadCategoryAttributes(category, editingAttributes);
+                                }
+                                
+                                document.getElementById("productModal").classList.remove("hidden");
+                        }
+
+
+                        // ================= DELETE PRODUCT =================
+
+                        async function deleteProduct(product_id) {
+
+                                const confirmed = await confirmAction("Delete Product?");
+
+                                if (!confirmed) return;
+
+                                try {
+
+                                        const res = await fetch(`/admin/products/${product_id}`, {
+                                                method: "DELETE"
+                                        });
+
+                                        const data = await res.json();
+
+                                        if (!data.success)
+                                                return showToast(data.message, "error");
+
+                                        const row = document.getElementById(`row-${product_id}`);
+
+                                        if (row) {
+                                                row.style.opacity = "0";
+                                                setTimeout(() => row.remove(), 300);
+                                        }
+
+                                        showToast("Product deleted", "success");
+
+                                } catch {
+
+                                        showToast("Server error", "error");
+
+                                }
+
+                        }
+
+
+                        // ================= TOGGLE STATUS =================
+
+                        async function toggleProductStatus(product_id, status) {
+
+                                const action = status === "listed" ? "unlist" : "list";
+
+                                const confirmed = await confirmAction(`Do you want to ${action} this product?`);
+
+                                if (!confirmed) return;
+
+                                try {
+
+                                        const res = await fetch(`/admin/products/${product_id}/status`, {
+                                                method: "PATCH"
+                                        });
+
+                                        const data = await res.json();
+
+                                        if (!data.success)
+                                                return showToast(data.message, "error");
+                                        console.log(data)
+                                        const newStatus = data.status; // backend should return updated status
+
+                                        const badge = document.getElementById(`badge-${product_id}`);
+                                        const btn = document.getElementById(`status-${product_id}`);
+
+                                        // ================= UPDATE BADGE =================
+
+                                        badge.textContent = newStatus;
+
+                                        if (newStatus === "listed") {
+                                                badge.className =
+                                                        "px-3 py-1 rounded-full text-xs bg-emerald-500/20 text-emerald-400";
+                                        } else {
+                                                badge.className =
+                                                        "px-3 py-1 rounded-full text-xs bg-red-500/20 text-red-400";
+                                        }
+
+                                        // ================= UPDATE BUTTON =================
+
+                                        btn.textContent = newStatus === "listed" ? "Unlist" : "List";
+
+                                        btn.className =
+                                                `px-3 py-1 text-xs rounded-md font-semibold ${newStatus === "listed"
+                                                        ? "bg-yellow-500/20 text-yellow-400 hover:bg-yellow-500/30"
+                                                        : "bg-emerald-500/20 text-emerald-400 hover:bg-emerald-500/30"
+                                                }`;
+
+                                        btn.setAttribute(
+                                                "onclick",
+                                                `event.stopPropagation();toggleProductStatus('${product_id}','${newStatus}')`
+                                        );
+
+                                        showToast(`Product ${action}ed successfully`, "success");
+
+                                } catch {
+
+                                        showToast("Something went wrong", "error");
+
+                                }
+
+                        }
+
+                        window.openAddModal = openAddModal;
+                        window.closeModal = closeModal;
+                        window.editProduct = editProduct;
+                        window.deleteProduct = deleteProduct;
+                        window.toggleProductStatus = toggleProductStatus;
+
+
+                </script>
 
                 <!-- pagenation -->
                 <script>
@@ -741,9 +672,8 @@
                                 }
 
                         });
+
                 </script>
-
-
 </body>
 
 </html>

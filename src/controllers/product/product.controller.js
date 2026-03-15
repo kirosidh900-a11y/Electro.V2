@@ -53,13 +53,13 @@ export const productsPage = async (req, res, next) => {
       return res.status(HTTP_STATUS.OK).json({ rows, pagination });
     }
 
+    res.locals.title = "Products Management";
     res.status(HTTP_STATUS.OK).render("admin/home/products", {
       products,
       categories,
       brands,
       currentPage,
       totalPages,
-      title: "Products Management",
     });
   } catch (error) {
     next(error);
@@ -220,16 +220,18 @@ export const deleteVariant = async (req, res) => {
   }
 };
 
-// Image Adding   
+// Image Adding
 export const addVariantImage = async (req, res) => {
   try {
     const { productId, variantId } = req.params;
 
-    if (!req.file) {
+    const file = req.file || req.files?.[0];
+
+    if (!file) {
       return errorResponse(res, "Image required", HTTP_STATUS.BAD_REQUEST);
     }
 
-    const imagePath = req.file.path;
+    const imagePath = file.path;
 
     const result = await addVariantImageService({
       productId,
@@ -237,24 +239,32 @@ export const addVariantImage = async (req, res) => {
       imagePath,
     });
 
-    return successResponse(res, result.message, {
+    return successResponse(res, result.message, HTTP_STATUS.OK, {
       image: result.image,
     });
   } catch (error) {
-    // rollback cloudinary upload if service fails
-    if (req.file) {
-      const publicId = getPublicId(req.file.path);
+    const file = req.file || req.files?.[0];
+
+    if (file) {
+      const publicId = getPublicId(file.path);
       await cloudinary.uploader.destroy(publicId);
     }
 
     return errorResponse(res, error.message || "Upload failed");
   }
 };
+
 // Delete Image
 export const deleteVariantImage = async (req, res) => {
   try {
     const { productId, variantId } = req.params;
-    const { public_id } = req.body;
+    const { imagePath } = req.body;
+
+    if (!imagePath) {
+      return errorResponse(res, "Image path required", HTTP_STATUS.BAD_REQUEST);
+    }
+
+    const public_id = getPublicId(imagePath);
 
     const result = await deleteVariantImageService({
       productId,

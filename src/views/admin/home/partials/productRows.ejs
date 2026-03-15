@@ -61,13 +61,14 @@
 
                                         </button>
 
-                                        <button onclick="event.stopPropagation(); toggleProductStatus('<%= product._id %>','<%= product.status %>')"
-                                                id="status-<%= product._id %>" class="px-3 py-1 text-xs rounded-md font-semibold
-<%= product.status==='listed'
-? 'bg-yellow-500/20 text-yellow-400'
-: 'bg-emerald-500/20 text-emerald-400' %>">
+                                        <button id="status-<%= product._id %>"
+                                                onclick="event.stopPropagation();toggleProductStatus('<%= product._id %>','<%= product.status %>')"
+                                                class="px-3 py-1 text-xs rounded-md font-semibold
+    <%= product.status === 'listed'
+        ? 'bg-yellow-500/20 text-yellow-400'
+        : 'bg-emerald-500/20 text-emerald-400' %>">
 
-                                                <%= product.status==='listed' ? "Unlist" : "List" %>
+                                                <%= product.status==='listed' ? 'Unlist' : 'List' %>
 
                                         </button>
 

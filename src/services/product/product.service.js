@@ -240,11 +240,14 @@ export const addVariantService = async (productId, data) => {
 
   const normalizedSku = data.sku.trim().toLowerCase();
 
-  const skuExists = product.variants.some(
-    (v) => v.sku.trim().toLowerCase() === normalizedSku,
-  );
+  // 🔥 check globally
+  const skuExists = await Products.findOne({
+    "variants.sku": { $regex: `^${normalizedSku}$`, $options: "i" },
+  });
 
-  if (skuExists) throw new Error("SKU already exists");
+  if (skuExists) {
+    throw new Error("SKU already exists for another variant");
+  }
 
   product.variants.push({
     sku: data.sku,
@@ -268,17 +271,20 @@ export const editVariantService = async (productId, variantId, data) => {
 
   const normalizedSku = data.sku.trim().toLowerCase();
 
-  const skuExists = product.variants.some(
-    (v) =>
-      v.sku?.trim().toLowerCase() === normalizedSku &&
-      v._id.toString() !== variantId,
-  );
+  // 🔍 check globally across all products
+  const skuExists = await Products.findOne({
+    "variants.sku": { $regex: `^${normalizedSku}$`, $options: "i" },
+    "variants._id": { $ne: variantId },
+  });
 
-  if (skuExists) throw new Error("SKU already exists");
+  if (skuExists) {
+    throw new Error("SKU already exists for another variant");
+  }
 
   variant.sku = data.sku;
   variant.price = data.price;
   variant.stock = data.stock;
+
   variant.attributes = new Map(Object.entries(data.attributes || {}));
 
   await product.save();
