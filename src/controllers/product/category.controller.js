@@ -12,9 +12,7 @@ import {
   getAttributesService,
 } from "../../services/product/category.service.js";
 
-import {
-  successResponse,
-} from "../../utils/partials/response.util.js";
+import { successResponse } from "../../utils/partials/response.util.js";
 
 //  Category Page
 export const category = async (req, res, next) => {
@@ -59,7 +57,7 @@ export const category = async (req, res, next) => {
   }
 };
 
- //  Create Category
+//  Create Category
 export const createCategory = async (req, res, next) => {
   try {
     const { title, status } = req.body;
@@ -77,7 +75,7 @@ export const createCategory = async (req, res, next) => {
   }
 };
 
-  //  Edit Category
+//  Edit Category
 export const editCategory = async (req, res, next) => {
   try {
     const { title } = req.body;
@@ -91,7 +89,7 @@ export const editCategory = async (req, res, next) => {
   }
 };
 
- //  Delete Category
+//  Delete Category
 export const deleteCategory = async (req, res, next) => {
   try {
     const id = req.params.id;
@@ -104,20 +102,20 @@ export const deleteCategory = async (req, res, next) => {
   }
 };
 
-  //  Toggle Status
+//  Toggle Status
 export const toggleCategoryStatus = async (req, res, next) => {
   try {
     const id = req.params.id;
 
-    await toggleCategoryService(id);
+    const status = await toggleCategoryService(id);
 
-    return successResponse(res, "Status Updated!");
+    return successResponse(res, "Status Updated!", HTTP_STATUS.OK, { status });
   } catch (error) {
     next(error);
   }
 };
 
-  //  Add Attribute
+//  Add Attribute
 export const addCategoryAttribute = async (req, res, next) => {
   try {
     const categoryId = req.params.id;
@@ -131,7 +129,7 @@ export const addCategoryAttribute = async (req, res, next) => {
   }
 };
 
-  //  Delete Attribute
+//  Delete Attribute
 export const deleteAttribute = async (req, res, next) => {
   try {
     const categoryId = req.params.id;
