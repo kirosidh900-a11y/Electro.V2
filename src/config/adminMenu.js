@@ -9,15 +9,8 @@ export const adminMenu = [
     children: [
       { name: "Categories", path: "/admin/category" },
       { name: "Brands", path: "/admin/brand" },
-      {
-        name: "Products",
-        path: "/admin/products",
-        children: [
-          { name: "Product List", path: "/admin/products" },
-          { name: "Product Details", path: "/admin/products/details/:id" },
-        ],
-      },
-    ],
+      { name: "Products", path: "/admin/products" }
+    ]
   },
 
   { name: "Orders", icon: "fas fa-receipt", path: "/admin/orders" },
