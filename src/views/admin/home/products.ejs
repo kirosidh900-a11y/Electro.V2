@@ -3,6 +3,8 @@
 
 <head>
         <%- include('../../partials/head') %>
+                <link href="https://unpkg.com/cropperjs/dist/cropper.css" rel="stylesheet">
+                <script defer src="https://unpkg.com/cropperjs/dist/cropper.js"></script>
 </head>
 
 <body class="min-h-screen flex">
@@ -516,7 +518,7 @@
                                 if (category) {
                                         loadCategoryAttributes(category, editingAttributes);
                                 }
-                                
+
                                 document.getElementById("productModal").classList.remove("hidden");
                         }
 
