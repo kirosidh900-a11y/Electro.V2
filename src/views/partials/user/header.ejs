@@ -44,7 +44,7 @@
 
             <!-- Profile Image -->
             <div class="relative">
-              <img src="<%= user.profilePhoto ? '/profile-photo/' + user.profilePhoto : '/user/imgs/user.png' %>"
+              <img src="<%= user.photo ? user.photo : '/user/imgs/user.png' %>"
                 class="w-8 h-8 rounded-full object-cover border border-gray-600 shadow-sm" />
 
               <!-- Online Dot -->

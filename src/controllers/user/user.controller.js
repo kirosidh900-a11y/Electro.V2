@@ -38,13 +38,12 @@ export const showHomePage = async (req, res) => {
   }
 };
 
-export const profilePage = async (req, res) => {
+export const profilePage = async (req, res, next) => {
   try {
+    console.log(res.locals.user);
     res.render("user/home/profile");
   } catch (error) {
-    console.log(error);
-    res
-      .status(HTTP_STATUS.INTERNAL_SERVER_ERROR)
-      .send("Failed to load homepage");
+    console.log("Profile Page Error:", error);
+    next(error);
   }
 };
