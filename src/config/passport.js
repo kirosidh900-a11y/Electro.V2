@@ -36,7 +36,7 @@ passport.use(
         // BLOCK CHECK
         if (user && user.isBlock) {
           return done(null, false, {
-            message: "Your account has been blocked ❌",
+            message: "Your account has been blocked",
           });
         }
 
@@ -48,13 +48,19 @@ passport.use(
             name: profile.displayName || "User",
             email,
             googleId: profile.id,
+            photo: profile.photos[0].value.replace("s96-c", "s200-c"),
             referralCode,
           });
         }
 
-        // If user exists but googleId not saved
-        if (user && !user.googleId) {
-          user.googleId = profile.id;
+        // If user exists but googleId or photo not saved
+        if (user) {
+          user.googleId ||= profile.id;
+
+          if (!user.photo && profile.photos?.length) {
+            user.photo = profile.photos[0].value.replace("s96-c", "s200-c");
+          }
+
           await user.save();
         }
 

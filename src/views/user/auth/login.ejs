@@ -8,11 +8,11 @@
     <link href="/user/css/output.css" rel="stylesheet">
 
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
-   
+
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/toastify-js/src/toastify.min.css">
-    <script defer src="https://cdn.jsdelivr.net/npm/toastify-js"></script>
-   
-   <style>
+    <script src="https://cdn.jsdelivr.net/npm/toastify-js"></script>
+
+    <style>
         /* Fade-in animation for the login card */
         @keyframes fadeInUp {
             from {
@@ -154,9 +154,16 @@
             </div>
         </main>
 
+
+
         <%- include('../../partials/user/footer') %>
             <script type="module" src="/user/js/auth/login.js"></script>
-
+            <% if (typeof error !=="undefined" && error) { %>
+                <script type="module">
+                    import { showToast } from "../../partials/errorMsg.utils.js";
+                    showToast('<%= error %>', 'error');
+                </script>
+                <% } %>
 </body>
 
 </html>

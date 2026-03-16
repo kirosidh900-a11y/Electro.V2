@@ -19,6 +19,8 @@ import {
 import attachUser from "../../middlewares/attachUser.middleware.js";
 import authMiddleware from "../../middlewares/auth.middleware.js";
 import generateJWT from "../../utils/partials/jwt.utils.js";
+import setCookieMSG from "../../utils/partials/setCookieMsg.utils.js";
+import setAuthCookie from "../../utils/partials/setAuthCookie.js";
 
 const router = Router();
 
@@ -26,23 +28,30 @@ const router = Router();
 router.use(attachUser);
 
 //  AUTH PAGES
-router.route("/login").get(authMiddleware, showLoginPage).post(login);
+router
+  .route("/login")
+  .get(authMiddleware, showLoginPage)
+  .post(authMiddleware, login);
 
-router.route("/signup").get(authMiddleware, showSignUpPage).post(signUp);
+router
+  .route("/signup")
+  .get(authMiddleware, showSignUpPage)
+  .post(authMiddleware, signUp);
 
 //SignUp Verify
-router.post("/verify-otp", verifySignupOtp);
-router.patch("/resend-otp", resendOtp);
+router.post("/verify-otp", authMiddleware, verifySignupOtp);
+router.patch("/resend-otp", authMiddleware, resendOtp);
 
 //Forgot-password
 router
   .route("/forgot-password")
   .get(authMiddleware, showForgotPasswordPage)
-  .post(verifyEmail);
-// Forgot Verify otp
-router.post("/verifyFog-otp", verifyForgotPasswordOtp);
+  .post(authMiddleware, verifyEmail);
 
-router.patch("/reset-password", savePassword);
+// Forgot Verify otp
+router.post("/verifyFog-otp", authMiddleware, verifyForgotPasswordOtp);
+
+router.patch("/reset-password", authMiddleware, savePassword);
 
 //  LOGOUT
 router.post("/logout", logout);
@@ -58,46 +67,17 @@ router.get("/google-user/callback", (req, res, next) => {
     "google-user",
     { session: false },
     (err, user, info) => {
-      // ❌ LOGIN FAILED
+
+      // LOGIN FAILED
       if (!user) {
-        res.clearCookie("token", { path: "/" });
-
-        res.cookie(
-          "authResult",
-          encodeURIComponent(
-            JSON.stringify({
-              success: false,
-              message: info?.message || "Login failed",
-            }),
-          ),
-          { maxAge: 5000, path: "/" },
-        );
-
+        res.clearCookie("token");
+        setCookieMSG(res, info?.message || "Login failed");
         return res.redirect("/auth/login");
       }
 
-      // ✅ LOGIN SUCCESS
+      // LOGIN SUCCESS
       const token = generateJWT(user, "1h");
-
-      res.cookie("token", token, {
-        httpOnly: true,
-        secure: process.env.NODE_ENV === "production",
-        sameSite: "lax",
-        maxAge: 60 * 60 * 1000,
-        path: "/",
-      });
-
-      res.cookie(
-        "authResult",
-        encodeURIComponent(
-          JSON.stringify({
-            success: true,
-            message: "Login successful 🎉",
-          }),
-        ),
-        { maxAge: 5000, path: "/" },
-      );
-
+      setAuthCookie(res, token, "user");
       return res.redirect("/");
     },
   )(req, res, next);

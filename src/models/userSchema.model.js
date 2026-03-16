@@ -52,8 +52,12 @@ const userSchema = new Schema(
       type: Boolean,
       default: false,
     },
+    photo: {
+      type: String,
+      default: null,
+    },
   },
-  { timestamps: true }
+  { timestamps: true },
 );
 
 // For Search

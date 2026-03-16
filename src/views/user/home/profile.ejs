@@ -1,0 +1,335 @@
+<script src="https://cdn.tailwindcss.com"></script>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+
+<body class="bg-gray-100 font-sans">
+
+    <%- include("../../partials/user/header") %>
+
+        <div class="min-h-screen p-4 sm:p-6 lg:p-10">
+
+            <div class="max-w-6xl mx-auto flex flex-col lg:flex-row gap-6">
+
+                <%- include("./partials/profileSidebar") %>
+
+                    <!-- MAIN CONTENT -->
+                    <main class="flex-1 bg-white rounded-xl shadow-sm p-8">
+
+                        <h1 class="text-2xl font-bold text-red-500 mb-10">Edit Your Profile</h1>
+
+                        <!-- AVATAR -->
+                        <div class="flex flex-col items-center pb-10 mb-10 border-b border-gray-100">
+
+                            <div class="relative">
+
+                                <div class="h-28 w-28 rounded-full overflow-hidden shadow-lg">
+                                    <img src="<%= user?.photo || 'https://api.dicebear.com/7.x/avataaars/svg?seed=Sidharth' %>"
+                                        class="w-full h-full object-cover">
+                                </div>
+
+
+                                <div class="relative">
+
+                                    <input type="file" id="photoUpload" class="hidden" />
+
+                                    <label for="photoUpload" class="absolute -bottom-7 left-1/2 -translate-x-1/2
+flex items-center gap-2 bg-slate-800 text-white
+px-4 py-2 text-xs rounded-full shadow hover:bg-slate-700
+cursor-pointer">
+
+                                        <i class="fa-solid fa-camera"></i>
+                                        Upload Photo
+
+                                    </label>
+
+                                </div>
+
+                            </div>
+
+                        </div>
+
+                        <div class="space-y-8">
+
+                            <!-- NAME -->
+                            <section class="bg-gray-50 border border-gray-100 rounded-xl p-6 space-y-4">
+
+                                <div class="flex justify-between items-center">
+                                    <h3 class="font-semibold text-gray-800">Personal Information</h3>
+
+                                    <button id="editNameBtn"
+                                        class="text-xs font-semibold text-orange-500 hover:underline">
+                                        Edit
+                                    </button>
+                                </div>
+
+                                <div class="flex gap-3">
+
+                                    <input id="nameInput" value="<%= user?.name %>" disabled
+                                        class="flex-1 p-3 border border-gray-200 rounded-lg bg-white">
+
+                                    <button id="saveNameBtn"
+                                        class="hidden px-5 py-3 bg-red-500 text-white rounded-lg text-sm font-semibold">
+                                        Save
+                                    </button>
+
+                                </div>
+
+                            </section>
+
+                            <!-- PASSWORD -->
+                            <section class="bg-gray-50 border border-gray-100 rounded-xl p-6 space-y-4">
+
+                                <div class="flex justify-between items-center">
+
+                                    <h3 class="font-semibold text-gray-800">
+                                        <%= user?.hasPassword ? "Password Change" : "Add Password" %>
+                                    </h3>
+
+                                    <button id="editPasswordBtn"
+                                        class="text-xs font-semibold text-orange-500 hover:underline">
+
+                                        <%= user?.hasPassword ? "Edit" : "Add Password" %>
+
+                                    </button>
+
+                                </div>
+
+                                <div id="passwordFields" class="grid grid-cols-1 md:grid-cols-2 gap-6 hidden">
+
+                                    <% if(user?.hasPassword){ %>
+
+                                        <div class="md:col-span-2">
+                                            <label class="text-sm text-gray-500">Current Password</label>
+                                            <input type="password" class="w-full p-3 border rounded-lg">
+                                        </div>
+
+                                        <% } %>
+
+                                            <div>
+                                                <label class="text-sm text-gray-500">New Password</label>
+                                                <input type="password" class="w-full p-3 border rounded-lg">
+                                            </div>
+
+                                            <div>
+                                                <label class="text-sm text-gray-500">Confirm Password</label>
+                                                <input type="password" class="w-full p-3 border rounded-lg">
+                                            </div>
+
+                                </div>
+
+                                <div id="passwordActions" class="flex justify-end gap-3 hidden">
+
+                                    <button id="cancelPasswordBtn" class="px-5 py-2 text-gray-500 hover:text-gray-700">
+                                        Cancel
+                                    </button>
+
+                                    <button class="px-5 py-2 bg-red-500 text-white font-semibold rounded-lg">
+                                        Save
+                                    </button>
+
+                                </div>
+
+                            </section>
+
+                            <!-- EMAIL PHONE -->
+                            <section class="bg-gray-50 border border-gray-100 rounded-xl p-6">
+
+                                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+
+                                    <div>
+
+                                        <div class="flex justify-between mb-2">
+                                            <label class="text-sm text-gray-500">Email</label>
+
+                                            <button id="editEmailBtn"
+                                                class="text-xs font-semibold text-orange-500 hover:underline">
+                                                Edit
+                                            </button>
+                                        </div>
+
+                                        <div class="flex gap-3">
+
+                                            <input id="emailInput" value="<%= user?.email %>" disabled
+                                                class="flex-1 p-3 border rounded-lg">
+
+                                            <button id="saveEmailBtn"
+                                                class="hidden px-4 py-2 bg-red-500 text-white rounded-lg text-sm">
+                                                Save
+                                            </button>
+
+                                        </div>
+
+                                    </div>
+
+                                    <div class="space-y-2">
+
+                                        <div class="flex justify-between items-center">
+
+                                            <label class="text-sm text-gray-500">Phone</label>
+
+                                            <button id="editPhoneBtn"
+                                                class="text-xs font-semibold text-orange-500 hover:underline">
+
+                                                <%= user?.phone ? "Edit" : "Add" %>
+
+                                            </button>
+
+                                        </div>
+
+                                        <div class="flex gap-3">
+
+                                            <input id="phoneInput" type="text" value="<%= user?.phone || '' %>"
+                                                placeholder="Enter your phone number" disabled
+                                                class="flex-1 p-3 border border-gray-200 rounded-lg bg-white" />
+
+                                            <button id="savePhoneBtn"
+                                                class="hidden px-4 py-2 bg-red-500 text-white rounded-lg text-sm font-semibold">
+
+                                                Save
+
+                                            </button>
+
+                                        </div>
+
+                                    </div>
+
+                                </div>
+
+                            </section>
+
+                        </div>
+
+                    </main>
+
+            </div>
+        </div>
+
+        <%- include("../../partials/user/footer") %>
+
+            <script>
+
+                // NAME EDIT
+                const editNameBtn = document.getElementById("editNameBtn");
+                const nameInput = document.getElementById("nameInput");
+                const saveNameBtn = document.getElementById("saveNameBtn");
+
+                let originalName = nameInput.value;
+
+                editNameBtn.onclick = () => {
+                    if (nameInput.disabled) {
+                        nameInput.disabled = false;
+                        editNameBtn.textContent = "Cancel";
+                        saveNameBtn.classList.remove("hidden");
+                        nameInput.focus();
+                    } else {
+                        nameInput.value = originalName;
+                        nameInput.disabled = true;
+                        editNameBtn.textContent = "Edit";
+                        saveNameBtn.classList.add("hidden");
+                    }
+                }
+
+                saveNameBtn.onclick = () => {
+                    originalName = nameInput.value;
+                    nameInput.disabled = true;
+                    editNameBtn.textContent = "Edit";
+                    saveNameBtn.classList.add("hidden");
+                }
+
+                // EMAIL EDIT
+                const editEmailBtn = document.getElementById("editEmailBtn");
+                const emailInput = document.getElementById("emailInput");
+
+                const saveEmailBtn = document.getElementById("saveEmailBtn");
+
+                let originalEmail = emailInput.value;
+
+                editEmailBtn.onclick = () => {
+                    if (emailInput.disabled) {
+                        emailInput.disabled = false;
+                        editEmailBtn.textContent = "Cancel";
+                        saveEmailBtn.classList.remove("hidden");
+                        emailInput.focus();
+                    } else {
+                        emailInput.value = originalEmail;
+                        emailInput.disabled = true;
+                        editEmailBtn.textContent = "Edit";
+                        saveEmailBtn.classList.add("hidden");
+                    }
+                }
+
+                saveEmailBtn.onclick = () => {
+                    originalEmail = emailInput.value;
+                    emailInput.disabled = true;
+                    editEmailBtn.textContent = "Edit";
+                    saveEmailBtn.classList.add("hidden");
+                }
+
+                // PASSWORD EDIT
+                const editPasswordBtn = document.getElementById("editPasswordBtn");
+                const passwordFields = document.getElementById("passwordFields");
+                const passwordActions = document.getElementById("passwordActions");
+                const cancelPasswordBtn = document.getElementById("cancelPasswordBtn");
+
+                editPasswordBtn.onclick = () => {
+                    const hidden = passwordFields.classList.contains("hidden");
+
+                    if (hidden) {
+                        passwordFields.classList.remove("hidden");
+                        passwordActions.classList.remove("hidden");
+                        editPasswordBtn.textContent = "Cancel";
+                    } else {
+                        passwordFields.classList.add("hidden");
+                        passwordActions.classList.add("hidden");
+                        editPasswordBtn.textContent = "<%= user?.hasPassword?'Edit':'Add Password' %>";
+                    }
+                }
+
+                cancelPasswordBtn.onclick = () => {
+                    passwordFields.classList.add("hidden");
+                    passwordActions.classList.add("hidden");
+                    editPasswordBtn.textContent = "<%= user?.hasPassword?'Edit':'Add Password' %>";
+                }
+
+
+                const editPhoneBtn = document.getElementById("editPhoneBtn");
+                const phoneInput = document.getElementById("phoneInput");
+                const savePhoneBtn = document.getElementById("savePhoneBtn");
+
+                let originalPhone = phoneInput.value;
+
+                editPhoneBtn.onclick = () => {
+
+                    if (phoneInput.disabled) {
+
+                        phoneInput.disabled = false;
+                        editPhoneBtn.textContent = "Cancel";
+                        savePhoneBtn.classList.remove("hidden");
+
+                        phoneInput.focus();
+
+                    } else {
+
+                        phoneInput.value = originalPhone;
+                        phoneInput.disabled = true;
+
+                        editPhoneBtn.textContent = originalPhone ? "Edit" : "Add";
+                        savePhoneBtn.classList.add("hidden");
+
+                    }
+
+                };
+
+                savePhoneBtn.onclick = () => {
+
+                    originalPhone = phoneInput.value;
+
+                    phoneInput.disabled = true;
+                    savePhoneBtn.classList.add("hidden");
+
+                    editPhoneBtn.textContent = originalPhone ? "Edit" : "Add";
+
+                };
+
+            </script>
+
+</body>

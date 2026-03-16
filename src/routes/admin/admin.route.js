@@ -8,9 +8,7 @@ import customersRouter from "./customer.route.js";
 import dashboardRouter from "./dashbord.route.js";
 import authRouter from "./auth.route.js";
 
-import {
-  isAuth,
-} from "../../middlewares/admin/authAdmin.middleware.js";
+import { isAuth } from "../../middlewares/admin/authAdmin.middleware.js";
 
 const router = Router();
 
@@ -19,10 +17,10 @@ router.use(adminAuth);
 
 //Routes
 router.use("/", authRouter);
-router.use("/customers", isAuth, customersRouter);
-router.use("/dashboard", isAuth, dashboardRouter);
-router.use("/category", isAuth, categoryRouter);
-router.use("/brand", isAuth, brandsRouter);
-router.use("/products", isAuth, productsRouter);
+router.use("/customers", customersRouter);
+router.use("/dashboard", dashboardRouter);
+router.use("/category", categoryRouter);
+router.use("/brand", brandsRouter);
+router.use("/products", productsRouter);
 
 export default router;

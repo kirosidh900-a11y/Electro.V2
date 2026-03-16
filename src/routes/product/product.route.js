@@ -14,7 +14,7 @@ import {
   deleteVariant,
   editVariant,
   addVariantImage,
-  deleteVariantImage
+  deleteVariantImage,
 } from "../../controllers/product/product.controller.js";
 
 import {
@@ -44,7 +44,7 @@ router.get("/:id/attributes", isAuth, getAttributes);
 router.patch("/:id/status", isAuth, toggleProductStatus);
 
 // Add , delete and Edit Variant Hear
-router.post("/:id/variants", addVariant);
+router.post("/:id/variants", isAuth, addVariant);
 router
   .route("/:productId/variants/:variantId")
   .patch(isAuth, editVariant)
