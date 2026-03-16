@@ -1,6 +1,6 @@
-import jwt from "jsonwebtoken";
-import { getUserData } from "../services/user/user.service.js";
 import clearAuthCookie from "../utils/partials/clearCookie.js";
+import setCookieMSG from "../utils/partials/setCookieMsg.utils.js";
+import verifyUser from "../utils/partials/verifyToken.utils.js";
 
 const attachUser = async (req, res, next) => {
   const token = req.cookies.token;
@@ -11,15 +11,21 @@ const attachUser = async (req, res, next) => {
   }
 
   try {
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    const user = await getUserData(decoded.id);
+    const user = await verifyUser(token);
 
     // 🔥 If user deleted OR blocked → logout
     if (!user || user.isBlock) {
       clearAuthCookie(res, "token");
+
+      // store toast message in cookie
+      if (user.isBlock) {
+        setCookieMSG(res, "Your account is blocked!");
+      }
+
       req.user = null;
-      res.locals.user=null;
-      return next();
+      res.locals.user = null;
+
+      return res.redirect('/auth/login');
     }
 
     req.user = user;

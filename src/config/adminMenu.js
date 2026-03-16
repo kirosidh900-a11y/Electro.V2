@@ -9,12 +9,12 @@ export const adminMenu = [
     children: [
       { name: "Categories", path: "/admin/category" },
       { name: "Brands", path: "/admin/brand" },
-      { name: "Products", path: "/admin/products" }
-    ]
+      { name: "Products", path: "/admin/products" },
+    ],
   },
 
-  { name: "Orders", icon: "fas fa-receipt", path: "/admin/orders" },
-  { name: "Coupons", icon: "fas fa-ticket-alt", path: "/admin/coupons" },
-  { name: "Reviews", icon: "fas fa-star", path: "/admin/reviews" },
-  { name: "Settings", icon: "fas fa-cog", path: "/admin/settings" },
+  { name: "Orders", icon: "fas fa-clipboard-list", path: "/admin/orders" },
+  // { name: "Coupons", icon: "fas fa-ticket-alt", path: "/admin/coupons" },
+  // { name: "Reviews", icon: "fas fa-star", path: "/admin/reviews" },
+  // { name: "Settings", icon: "fas fa-cog", path: "/admin/settings" },
 ];

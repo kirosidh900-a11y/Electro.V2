@@ -44,7 +44,11 @@ import {
 /* ================= LOGIN ================= */
 
 export const showLoginPage = (req, res) => {
-  res.render("user/auth/login");
+  const error = req.cookies.toastError || null;
+
+  clearAuthCookie(res, "toastError");
+
+  res.render("user/auth/login", { error });
 };
 
 export const login = async (req, res, next) => {

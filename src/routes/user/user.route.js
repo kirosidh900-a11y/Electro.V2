@@ -1,7 +1,10 @@
 import { Router } from "express";
-import { showHomePage } from "../../controllers/user/user.controller.js";
-import authMiddleware from "../../middlewares/auth.middleware.js";
+import {
+  showHomePage,
+  profilePage,
+} from "../../controllers/user/user.controller.js";
 import attachUser from "../../middlewares/attachUser.middleware.js";
+import userAuth from "../../middlewares/user/userAuth.middleware.js";
 
 const router = Router();
 
@@ -10,8 +13,6 @@ router.use(attachUser);
 
 router.get("/", showHomePage);
 
-router.get("/myProfile", authMiddleware, async (req, res) => {
-  res.json({ message: "Protected route accessed", user: req.user });
-});
+router.get("/myProfile", userAuth, profilePage);
 
 export default router;

@@ -64,6 +64,14 @@ export const getProductsService = async ({ page, limit, search, status }) => {
 
       { $sort: { createdAt: -1 } },
 
+      {
+        $project: {
+          variants: 0,
+          attributes: 0,
+          "category.attributes": 0,
+        },
+      },
+
       { $skip: (page - 1) * limit },
 
       { $limit: limit },
@@ -124,15 +132,21 @@ export const getProductsService = async ({ page, limit, search, status }) => {
     ]),
 
     //Categories
-    Category.find({ isDeleted: false }).lean(),
+    Category.find({ isDeleted: false })
+      .select(
+        "-attributes -status -createdAt -updatedAt -__v  -isDeleted -status",
+      )
+      .lean(),
 
     //Brand
-    Brand.find({ isDeleted: false }).lean(),
+    Brand.find({ isDeleted: false })
+      .select("-logo -status -createdAt -updatedAt -__v  -isDeleted")
+      .lean(),
   ]);
 
   const totalProductsCount = totalProducts[0]?.total || 0;
 
-  console.log(products);
+  console.log(products[0]);
 
   const totalPages = Math.ceil(totalProductsCount / limit);
 
@@ -153,6 +167,7 @@ export const createProductService = async (data) => {
 
   return product;
 };
+
 //  UPDATE PRODUCT
 export const updateProductService = async (id, data) => {
   const existingProduct = await Products.findOne({

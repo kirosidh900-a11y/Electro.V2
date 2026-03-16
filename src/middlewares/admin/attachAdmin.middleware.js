@@ -1,7 +1,6 @@
-import jwt from "jsonwebtoken";
-import User from "../../models/userSchema.model.js";
 import { adminMenu } from "../../config/adminMenu.js";
 import clearAuthCookie from "../../utils/partials/clearCookie.js";
+import verifyUser from "../../utils/partials/verifyToken.utils.js";
 
 const adminAuth = async (req, res, next) => {
   const token = req.cookies.adminToken;
@@ -11,8 +10,7 @@ const adminAuth = async (req, res, next) => {
   }
 
   try {
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    const admin = await User.findById(decoded.id).select("-password -googleId");
+    const admin = await verifyUser(token);
 
     if (!admin || !admin.isAdmin || admin.isBlock) {
       res.locals.admin = null;
@@ -20,7 +18,7 @@ const adminAuth = async (req, res, next) => {
       res.locals.currentPath = null;
       clearAuthCookie(res, "adminToken");
 
-      return res.redirect("/admin"); // better than next()
+      return res.redirect("/admin");
     }
 
     req.admin = admin;
