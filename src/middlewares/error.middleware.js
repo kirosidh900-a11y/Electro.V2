@@ -1,3 +1,5 @@
+import { errorResponse } from "../utils/partials/response.util.js";
+
 // eslint-disable-next-line no-unused-vars
 const errorMiddleware = (err, req, res, _next) => {
   console.error(err);
@@ -10,18 +12,12 @@ const errorMiddleware = (err, req, res, _next) => {
     req.originalUrl.startsWith("/admin") ||
     req.originalUrl.startsWith("/name")
   ) {
-    return res.status(statusCode).json({
-      success: false,
-      message: err.message || "Internal Server Error",
-    });
+    errorResponse(res, err.message || "Internal Server Error", statusCode);
   }
 
   // Detect API request automatically
   if (req.headers.accept?.includes("application/json")) {
-    return res.status(statusCode).json({
-      success: false,
-      message: err.message || "Internal Server Error",
-    });
+    errorResponse(res, err.message || "Internal Server Error", statusCode);
   }
 
   // Normal page errors

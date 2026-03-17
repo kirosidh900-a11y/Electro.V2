@@ -128,6 +128,7 @@ export const verifySignupOtp = async (req, res, next) => {
 export const resendOtp = async (req, res, next) => {
   try {
     const { email, purpose } = req.body;
+    console.log(email, purpose);
 
     const otpDoc = await findOtp(email, purpose);
 
@@ -141,11 +142,11 @@ export const resendOtp = async (req, res, next) => {
 
     await sendEmail({
       email,
-      name: otpDoc?.tempUserData?.name ?? "User",
+      name: (otpDoc?.tempUserData?.name || res.locals.user?.name) ?? "User",
       otp: newOtp,
     });
 
-    return successResponse(res, "OTP resent successfully", HTTP_STATUS.OK);
+    return successResponse(res, "OTP resent successfully");
   } catch (err) {
     next(err);
   }

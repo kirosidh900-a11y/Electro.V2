@@ -206,6 +206,39 @@ cursor-pointer">
             </div>
         </div>
 
+        <!-- OTP MODAL -->
+        <div id="otpModal" class="fixed inset-0 bg-black/50 hidden items-center justify-center z-50">
+            <div class="bg-white w-full max-w-md rounded-xl p-6 space-y-4">
+
+                <h2 class="text-lg font-semibold text-gray-800">Verify Email</h2>
+
+                <p class="text-sm text-gray-500">
+                    Enter the OTP sent to your email
+                </p>
+
+                <input id="otpInput" type="text" maxlength="6"
+                    class="w-full p-3 border rounded-lg text-center tracking-widest text-lg" placeholder="------" />
+
+                <div class="flex justify-between items-center text-sm">
+
+                    <button id="resendOtpBtn" class="text-blue-500 hover:underline">
+                        Resend OTP
+                    </button>
+
+                    <span id="otpTimer" class="text-gray-400"></span>
+
+                </div>
+
+                <div class="flex justify-end gap-3">
+                    <button id="closeOtpModal" class="px-4 py-2 text-gray-500">Cancel</button>
+                    <button id="verifyOtpBtn" class="px-4 py-2 bg-red-500 text-white rounded-lg font-semibold">
+                        Verify
+                    </button>
+                </div>
+
+            </div>
+        </div>
+
         <%- include("../../partials/user/footer") %>
 
             <script type="module">
@@ -282,7 +315,6 @@ cursor-pointer">
                     }
                 };
 
-
                 // EMAIL EDIT
                 const editEmailBtn = document.getElementById("editEmailBtn");
                 const emailInput = document.getElementById("emailInput");
@@ -306,25 +338,41 @@ cursor-pointer">
                 }
 
                 saveEmailBtn.onclick = async () => {
+                    try {
 
-                    const res = await fetch('/email', {
-                        method: 'PATCH',
-                        headers: {
-                            "Content-Type": "application/json"
-                        },
-                        body: JSON.stringify({ name })
-                    });
+                        const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+                        const newEmail = emailInput.value.trim();
+                        if (!emailPattern.test(newEmail)) {
+                            throw new Error("Invalid email format");
+                        }
 
-                    const data = await res.json();
+                        const res = await fetch('/email', {
+                            method: 'POST',
+                            headers: {
+                                "Content-Type": "application/json",
+                                "Accept": "application/json"
+                            },
+                            body: JSON.stringify({ newEmail })
+                        });
 
-                    // Throw error if response is not OK
-                    if (!res.ok) {
-                        throw new Error(data.message || "Update failed");
+                        const data = await res.json();
+
+                        // Throw error if response is not OK
+                        if (!res.ok) {
+                            throw new Error(data.message || "Update failed");
+                        }
+
+                        originalEmail = emailInput.value;
+                        emailInput.disabled = true;
+                        editEmailBtn.textContent = "Edit";
+                        saveEmailBtn.classList.add("hidden");
+                        showToast(data.message || "OTP sent successfully", 'success')
+
+                        openOtpModal();
+                    } catch (error) {
+                        console.error(error);
+                        showToast(error.message || "Internal Server Error", 'error')
                     }
-                    originalEmail = emailInput.value;
-                    emailInput.disabled = true;
-                    editEmailBtn.textContent = "Edit";
-                    saveEmailBtn.classList.add("hidden");
                 }
 
                 // PASSWORD EDIT
@@ -335,7 +383,6 @@ cursor-pointer">
 
                 editPasswordBtn.onclick = () => {
                     const hidden = passwordFields.classList.contains("hidden");
-
                     if (hidden) {
                         passwordFields.classList.remove("hidden");
                         passwordActions.classList.remove("hidden");
@@ -343,6 +390,11 @@ cursor-pointer">
                     } else {
                         passwordFields.classList.add("hidden");
                         passwordActions.classList.add("hidden");
+                        document.getElementById("password").value = "";
+                        document.getElementById("cPassword").value = "";
+                        if (document.getElementById("crPassword")) {
+                            document.getElementById("crPassword").value = "";
+                        }
                         editPasswordBtn.textContent = "<%= user?.hasPassword?'Edit':'Add Password' %>";
                     }
                 }
@@ -350,9 +402,13 @@ cursor-pointer">
                 cancelPasswordBtn.onclick = () => {
                     passwordFields.classList.add("hidden");
                     passwordActions.classList.add("hidden");
+                    document.getElementById("password").value = "";
+                    document.getElementById("cPassword").value = "";
+                    if (document.getElementById("crPassword")) {
+                        document.getElementById("crPassword").value = "";
+                    }
                     editPasswordBtn.textContent = "<%= user?.hasPassword?'Edit':'Add Password' %>";
                 }
-
 
                 const savePasswordBtn = document.getElementById("savePasswordBtn");
 
@@ -422,6 +478,12 @@ cursor-pointer">
                         document.getElementById("editPasswordBtn").textContent =
                             "<%= user?.hasPassword ? 'Edit' : 'Add Password' %>";
 
+                        document.getElementById("password").value = "";
+                        document.getElementById("cPassword").value = "";
+                        if (document.getElementById("crPassword")) {
+                            document.getElementById("crPassword").value = "";
+                        }
+
                     } catch (error) {
                         showToast(error.message, "error");
                     }
@@ -466,6 +528,137 @@ cursor-pointer">
 
                 };
 
+                //verify otp
+                document.getElementById("verifyOtpBtn").onclick = async () => {
+                    try {
+                        const otp = document.getElementById("otpInput").value.trim();
+
+                        if (!otp || otp.length !== 6 || !/^\d{6}$/.test(otp)
+                        ) {
+                            throw new Error("Enter valid 6-digit OTP");
+                        }
+
+                        const res = await fetch("/email", {
+                            method: "PATCH",
+                            headers: {
+                                "Content-Type": "application/json",
+                                "Accept": "application/json"
+                            },
+                            body: JSON.stringify({
+                                otp,
+                                newEmail: emailInput.value.trim()
+                            })
+                        });
+
+                        const data = await res.json();
+
+                        if (!res.ok) throw new Error(data.message);
+
+                        showToast("Email updated successfully", "success");
+                        document.getElementById('headerEmail').textContent = emailInput.value.trim()
+
+                        closeOtpModalFunc();
+
+                    } catch (error) {
+                        showToast(error.message, "error");
+                    }
+                };
+
+
+                //resend Otp
+                const resendBtn = document.getElementById("resendOtpBtn");
+
+                resendBtn.onclick = async () => {
+
+                    if (resendBtn.disabled) return;
+
+                    try {
+                        const res = await fetch("/resend-otp", {
+                            method: "POST",
+                            headers: {
+                                "Content-Type": "application/json",
+                                "Accept": "application/json"
+                            },
+                            body: JSON.stringify({
+                                email: emailInput.value.trim(),
+                                purpose: 'reset-email'
+                            })
+                        });
+
+                        const data = await res.json();
+
+                        if (!res.ok) throw new Error(data.message);
+
+                        showToast("OTP resent", "success");
+
+                        startOtpTimer(); // restart timer
+
+                    } catch (error) {
+                        showToast(error.message, "error");
+                    }
+                };
+
+
+            </script>
+
+            <script>
+                const otpModal = document.getElementById("otpModal");
+
+                const resendBtn = document.getElementById("resendOtpBtn");
+
+
+                function openOtpModal() {
+                    otpModal.classList.remove("hidden");
+                    otpModal.classList.add("flex");
+
+                    document.getElementById("otpInput").value = "";
+
+                    startOtpTimer();
+                }
+
+                function closeOtpModalFunc() {
+                    otpModal.classList.add("hidden");
+                    otpModal.classList.remove("flex");
+
+                    document.getElementById("otpInput").value = "";
+
+                    clearInterval(timerInterval); // ✅ stop timer
+                }
+
+                document.getElementById("closeOtpModal").onclick = closeOtpModalFunc;
+
+
+                let timerInterval;
+
+                function startOtpTimer() {
+                    let time = 50;
+
+                    const timerEl = document.getElementById("otpTimer");
+
+                    resendBtn.disabled = true;
+                    resendBtn.classList.add("opacity-50", "cursor-not-allowed");
+
+                    clearInterval(timerInterval);
+
+                    timerInterval = setInterval(() => {
+
+                        timerEl.textContent = `00:${time < 10 ? "0" : ""}${time}`;
+                        resendBtn.textContent = `Resend in ${time}s`;
+
+                        time--;
+
+                        if (time < 0) {
+                            clearInterval(timerInterval);
+
+                            timerEl.textContent = "You can resend now";
+
+                            resendBtn.disabled = false;
+                            resendBtn.textContent = "Resend OTP";
+                            resendBtn.classList.remove("opacity-50", "cursor-not-allowed");
+                        }
+
+                    }, 1000);
+                }
             </script>
 
 </body>

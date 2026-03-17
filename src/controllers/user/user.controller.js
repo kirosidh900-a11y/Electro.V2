@@ -1,12 +1,25 @@
 import HTTP_STATUS from "../../constant/statusCode.js";
+import sendEmail from "../../constant/transporter.js";
 import Products from "../../models/productSchema.model.js";
-import { findUserById } from "../../services/user/auth.service.js";
+import {
+  findOtp,
+  otpExist,
+  saveOTP,
+  sendOtpToEmail,
+} from "../../services/partials/otp.service.js";
+import {
+  findUserByEmail,
+  findUserById,
+  isUserExist,
+} from "../../services/user/auth.service.js";
 
 import AppError from "../../utils/partials/AppError.utils.js";
 import {
   hashPassword,
   verifyPassword,
 } from "../../utils/partials/auth/password.utils.js";
+import generateOTP from "../../utils/partials/otpGenerater.js";
+import { successResponse } from "../../utils/partials/response.util.js";
 
 export const showHomePage = async (req, res) => {
   try {
@@ -69,9 +82,8 @@ export const editName = async (req, res, next) => {
     user.name = name;
     await user.save();
 
-    res
-      .status(HTTP_STATUS.OK)
-      .json({ success: true, message: "Your name is updated successfully!" });
+    const message = "Your name is updated successfully!";
+    successResponse(res, message);
   } catch (error) {
     console.error("Profile Page Error:", error);
     next(error);
@@ -114,11 +126,61 @@ export const editPassword = async (req, res, next) => {
 
     await user.save();
 
-    res.json({
-      success: true,
-      message: "Password updated successfully",
-    });
+    const message = "Password updated successfully";
+    successResponse(res, message);
   } catch (error) {
+    next(error);
+  }
+};
+
+export const sendEmailOtp = async (req, res, next) => {
+  try {
+    const { newEmail } = req.body;
+
+    const existing = await findUserByEmail(newEmail);
+
+    if (existing) {
+      throw new AppError("Email already in use", 400);
+    }
+
+    const otp = generateOTP();
+
+    // Save OTP Redis
+    await saveOTP(newEmail, otp, "reset-email");
+
+    const name = res.locals.user?.name;
+
+    // send mail
+    await sendEmail({ email: newEmail, name, otp });
+
+    successResponse(res, "OTP sent successfully");
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const updateEamil = async (req, res, next) => {
+  try {
+    const { newEmail, otp } = req.body;
+
+    const [userData, isExist, user] = await Promise.all([
+      otpExist(newEmail, otp, "reset-email"),
+      isUserExist(newEmail),
+      findUserById(res.locals.user._id, true),
+    ]);
+
+    if (!userData) {
+      throw new AppError(
+        "Session is Expired or Invalid OTP, Try again",
+        HTTP_STATUS.BAD_REQUEST,
+      );
+    }
+
+    user.email = newEmail;
+    user.save();
+    successResponse(res,"Email successfully updated!")
+  } catch (error) {
+    console.error("Email update error", error);
     next(error);
   }
 };
