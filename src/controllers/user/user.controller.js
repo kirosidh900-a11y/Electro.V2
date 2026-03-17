@@ -1,6 +1,8 @@
 import HTTP_STATUS from "../../constant/statusCode.js";
 import sendEmail from "../../constant/transporter.js";
 import Products from "../../models/productSchema.model.js";
+import { sendSMS } from "../../services/partials/sms.service.js";
+
 import {
   findOtp,
   otpExist,
@@ -56,6 +58,7 @@ export const showHomePage = async (req, res) => {
   }
 };
 
+//Profile page loder
 export const profilePage = async (req, res, next) => {
   try {
     res.render("user/home/profile");
@@ -65,6 +68,7 @@ export const profilePage = async (req, res, next) => {
   }
 };
 
+//Name Update
 export const editName = async (req, res, next) => {
   try {
     const { name } = req.body;
@@ -90,6 +94,7 @@ export const editName = async (req, res, next) => {
   }
 };
 
+//Password Edit
 export const editPassword = async (req, res, next) => {
   try {
     const { currentPassword, newPassword } = req.body;
@@ -133,6 +138,7 @@ export const editPassword = async (req, res, next) => {
   }
 };
 
+//Email Update
 export const sendEmailOtp = async (req, res, next) => {
   try {
     const { newEmail } = req.body;
@@ -178,9 +184,73 @@ export const updateEamil = async (req, res, next) => {
 
     user.email = newEmail;
     user.save();
-    successResponse(res,"Email successfully updated!")
+    successResponse(res, "Email successfully updated!");
   } catch (error) {
     console.error("Email update error", error);
+    next(error);
+  }
+};
+
+//Phone Number Update
+
+export const sendPhoneOtp = async (req, res, next) => {
+  try {
+    const { phone } = req.body;
+
+    if (!phone) {
+      throw new AppError("Phone is required", 400);
+    }
+
+    const otp = generateOTP();
+
+    await saveOTP(phone, otp, "update-phone");
+
+    // 🔥 Send SMS
+    const data =await sendSMS({
+      phone,
+      message: `Your OTP is ${otp}. Do not share it.`,
+    });
+
+    console.log(data);
+
+    res.json({
+      success: true,
+      message: "OTP sent to phone",
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const verifyPhoneOtp = async (req, res, next) => {
+  try {
+    const { phone, otp } = req.body;
+
+    if (!phone || !otp) {
+      throw new AppError("Phone and OTP required", 400);
+    }
+
+    const isValid = await otpExist(phone, otp, "update-phone");
+
+    if (!isValid) {
+      throw new AppError("Invalid or expired OTP", 400);
+    }
+
+    const user = await findUserById(res.locals.user._id);
+
+    if (!user) {
+      throw new AppError("User not found", 404);
+    }
+
+    // ✅ NOW update phone (after OTP)
+    user.phone = phone;
+    await user.save();
+
+    res.json({
+      success: true,
+      message: "Phone updated successfully",
+    });
+  } catch (error) {
     next(error);
   }
 };

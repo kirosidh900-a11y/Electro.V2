@@ -1,15 +1,16 @@
 import multer from "multer";
-import { CloudinaryStorage } from "multer-storage-cloudinary";
+import pkg from "multer-storage-cloudinary";
 import cloudinary from "../config/cloudinary.js";
+
+// ✅ FIXED IMPORT
+const CloudinaryStorage = pkg.default || pkg;
 
 const storage = new CloudinaryStorage({
   cloudinary,
-  params: async (req) => {
-    return {
-      folder: req.folder || "general",
-      allowed_formats: ["jpg", "jpeg", "png", "webp"],
-    };
-  },
+  params: async (req, file) => ({
+    folder: req.folder || "general",
+    format: file.mimetype.split("/")[1],
+  }),
 });
 
 const upload = multer({ storage });

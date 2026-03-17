@@ -342,9 +342,15 @@ cursor-pointer">
 
                         const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
                         const newEmail = emailInput.value.trim();
+
                         if (!emailPattern.test(newEmail)) {
                             throw new Error("Invalid email format");
                         }
+
+                        if (newEmail === originalEmail) {
+                            throw new Error("No changes detected");
+                        }
+
 
                         const res = await fetch('/email', {
                             method: 'POST',
@@ -489,45 +495,6 @@ cursor-pointer">
                     }
                 };
 
-                const editPhoneBtn = document.getElementById("editPhoneBtn");
-                const phoneInput = document.getElementById("phoneInput");
-                const savePhoneBtn = document.getElementById("savePhoneBtn");
-
-                let originalPhone = phoneInput.value;
-
-                editPhoneBtn.onclick = () => {
-
-                    if (phoneInput.disabled) {
-
-                        phoneInput.disabled = false;
-                        editPhoneBtn.textContent = "Cancel";
-                        savePhoneBtn.classList.remove("hidden");
-
-                        phoneInput.focus();
-
-                    } else {
-
-                        phoneInput.value = originalPhone;
-                        phoneInput.disabled = true;
-
-                        editPhoneBtn.textContent = originalPhone ? "Edit" : "Add";
-                        savePhoneBtn.classList.add("hidden");
-
-                    }
-
-                };
-
-                savePhoneBtn.onclick = () => {
-
-                    originalPhone = phoneInput.value;
-
-                    phoneInput.disabled = true;
-                    savePhoneBtn.classList.add("hidden");
-
-                    editPhoneBtn.textContent = originalPhone ? "Edit" : "Add";
-
-                };
-
                 //verify otp
                 document.getElementById("verifyOtpBtn").onclick = async () => {
                     try {
@@ -598,8 +565,108 @@ cursor-pointer">
                     }
                 };
 
+                //Phone
+                const editPhoneBtn = document.getElementById("editPhoneBtn");
+                const phoneInput = document.getElementById("phoneInput");
+                const savePhoneBtn = document.getElementById("savePhoneBtn");
 
-            </script>
+                let originalPhone = phoneInput.value;
+
+                editPhoneBtn.onclick = () => {
+
+                    if (phoneInput.disabled) {
+
+                        phoneInput.disabled = false;
+                        editPhoneBtn.textContent = "Cancel";
+                        savePhoneBtn.classList.remove("hidden");
+
+                        phoneInput.focus();
+
+                    } else {
+
+                        phoneInput.value = originalPhone;
+                        phoneInput.disabled = true;
+
+                        editPhoneBtn.textContent = originalPhone ? "Edit" : "Add";
+                        savePhoneBtn.classList.add("hidden");
+
+                    }
+
+                };
+
+                savePhoneBtn.onclick = async () => {
+                    try {
+                        const phone = phoneInput.value.trim();
+
+                        if (!phone) throw new Error("Phone number is required");
+
+                        const phonePattern = /^[6-9]\d{9}$/;
+
+                        if (!phonePattern.test(phone)) {
+                            throw new Error("Enter valid 10-digit phone number");
+                        }
+
+                        const res = await fetch("/phone", {
+                            method: "POST",
+                            headers: {
+                                "Content-Type": "application/json",
+                                "Accept": "application/json"
+                            },
+                            body: JSON.stringify({ phone })
+                        });
+
+                        const data = await res.json();
+
+                        if (!res.ok) throw new Error(data.message);
+
+                        showToast("OTP sent to your phone", "success");
+
+                        openOtpModal(); // 🔥 reuse same modal
+
+                    } catch (error) {
+                        showToast(error.message, "error");
+                    }
+                };
+
+                document.getElementById("verifyOtpBtn").onclick = async () => {
+                    try {
+                        const otp = document.getElementById("otpInput").value.trim();
+                        const phone = phoneInput.value.trim();
+
+                        if (!/^\d{6}$/.test(otp)) {
+                            throw new Error("Enter valid OTP");
+                        }
+
+                        const res = await fetch("/phone", {
+                            method: "PATCH",
+                            headers: {
+                                "Content-Type": "application/json",
+                                "Accept": "application/json"
+                            },
+                            body: JSON.stringify({ phone, otp })
+                        });
+
+                        const data = await res.json();
+
+                        if (!res.ok) throw new Error(data.message);
+
+                        // ✅ Save locally after success
+                        originalPhone = phone;
+
+                        phoneInput.disabled = true;
+                        savePhoneBtn.classList.add("hidden");
+                        editPhoneBtn.textContent = "Edit";
+
+                        showToast("Phone updated successfully", "success");
+
+                        closeOtpModalFunc();
+
+                    } catch (error) {
+                        showToast(error.message, "error");
+                    }
+                };
+           
+           </script>
 
             <script>
                 const otpModal = document.getElementById("otpModal");

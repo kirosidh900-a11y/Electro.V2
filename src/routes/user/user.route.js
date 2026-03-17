@@ -7,6 +7,8 @@ import {
   editPassword,
   sendEmailOtp,
   updateEamil,
+  sendPhoneOtp,
+  verifyPhoneOtp,
 } from "../../controllers/user/user.controller.js";
 
 import attachUser from "../../middlewares/attachUser.middleware.js";
@@ -22,8 +24,17 @@ router.get("/", showHomePage);
 
 router.get("/myProfile", userAuth, profilePage);
 router.patch("/name", userAuth, editName);
-router.route("/email").post(userAuth, sendEmailOtp).patch(userAuth,updateEamil);
-router.post('/resend-otp',userAuth,resendOtp)
+router
+  .route("/email")
+  .post(userAuth, sendEmailOtp)
+  .patch(userAuth, updateEamil);
+  
+router.post("/resend-otp", userAuth, resendOtp);
 router.patch("/password", userAuth, editPassword);
+
+router
+  .route("/phone")
+  .post(userAuth, sendPhoneOtp)
+  .patch(userAuth, verifyPhoneOtp);
 
 export default router;

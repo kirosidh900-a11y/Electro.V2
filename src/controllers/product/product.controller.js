@@ -228,6 +228,8 @@ export const addVariantImage = async (req, res) => {
 
     const file = req.file || req.files?.[0];
 
+    console.log(file)
+
     if (!file) {
       return errorResponse(res, "Image required", HTTP_STATUS.BAD_REQUEST);
     }
