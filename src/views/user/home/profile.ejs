@@ -302,7 +302,22 @@ cursor-pointer">
                     }
                 }
 
-                saveEmailBtn.onclick = () => {
+                saveEmailBtn.onclick = async() => {
+
+                    const res = await fetch('/email', {
+                        method: 'PATCH',
+                        headers: {
+                            "Content-Type": "application/json"
+                        },
+                        body: JSON.stringify({ name })
+                    });
+
+                    const data = await res.json();
+
+                    // Throw error if response is not OK
+                    if (!res.ok) {
+                        throw new Error(data.message || "Update failed");
+                    }
                     originalEmail = emailInput.value;
                     emailInput.disabled = true;
                     editEmailBtn.textContent = "Edit";

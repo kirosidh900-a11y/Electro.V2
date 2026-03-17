@@ -16,11 +16,11 @@ router.use(adminAuth);
 
 
 //Routes
-router.use("/", authRouter);
 router.use("/customers", customersRouter);
 router.use("/dashboard", dashboardRouter);
 router.use("/category", categoryRouter);
 router.use("/brand", brandsRouter);
 router.use("/products", productsRouter);
+router.use("/", authRouter);
 
 export default router;
