@@ -46,6 +46,7 @@ export const customers = async (req, res) => {
       totalPages,
     });
   } catch (error) {
+    console.error("Customer Page load Error :", error);
     res.json({ success: false, message: error.message });
   }
 };
@@ -61,7 +62,7 @@ export const toggleBlockCustomer = async (req, res, next) => {
       isBlock,
     });
   } catch (error) {
-    console.log("toggleBlockCustomerError:", error);
+    console.error("toggleBlockCustomerError:", error);
     next(error);
   }
 };

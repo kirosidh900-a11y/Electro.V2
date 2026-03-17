@@ -28,25 +28,17 @@ export const sendOtpToEmail = async ({
     ? password
     : await hashPassword(password);
 
-  const key = `otp:signup:${email}`;
+  const tempUserData = {
+    name,
+    phone,
+    password: finalPassword,
+    referral_by,
+  };
 
-  const data = JSON.stringify({
-    otp,
-    tempUserData: {
-      name,
-      phone,
-      password: finalPassword,
-      referral_by,
-    },
-  });
-
-  await redisClient.set(key, data, {
-    EX: OTP_EXPIRY / 1000,
-  });
-
+  await saveOTP(email, otp, "signup", tempUserData);
   await sendEmail({ email, name, otp });
 
-  console.log(`[Service] OTP ${otp} generated for ${email}`);
+  console.warn(`[Service] OTP ${otp} generated for ${email}`);
 };
 
 /* ================= VERIFY OTP ================= */
@@ -64,11 +56,11 @@ export const otpExist = async (email, otp, purpose) => {
 
   return parsed;
 };
+
 /* ================= FIND OTP ================= */
 
 export const findOtp = async (email, purpose) => {
   const key = `otp:${purpose}:${email}`;
-  console.log(key);
 
   const stored = await redisClient.get(key);
 

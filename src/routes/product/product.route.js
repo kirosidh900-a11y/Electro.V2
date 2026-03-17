@@ -1,6 +1,5 @@
 import { Router } from "express";
 import { isAuth } from "../../middlewares/admin/authAdmin.middleware.js";
-import pImgUpload from "../../config/multer/productUpload.js";
 
 import {
   productsPage,
@@ -17,10 +16,6 @@ import {
   deleteVariantImage,
 } from "../../controllers/product/product.controller.js";
 
-import {
-  addVariantImageService,
-  deleteVariantImageService,
-} from "../../services/product/variantImage.service.js";
 
 import { setUploadFolder } from "../../middlewares/setUploadFolder.middleware.js";
 import upload from "../../middlewares/cloudinaryUpload.middleware.js";

@@ -11,7 +11,6 @@ const verifyUser = async (token) => {
   if (!user) {
     throw new Error("User not found");
   }
-  console.log(user)
 
   const hasPassword = !!user.password;
 

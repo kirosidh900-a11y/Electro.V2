@@ -27,13 +27,24 @@
                 class="text-cyan-500">Live</span></h2>
     </div>
 
-    <div class="flex items-center gap-4">
+    <div class="flex items-center gap-3">
+
         <div class="text-right hidden sm:block">
-            <p class="text-sm font-black text-white">
+            <p class="text-sm font-semibold text-white">
                 <%= admin?.name || "Admin Root" %>
             </p>
-            <p class="text-[10px] text-emerald-500 font-mono tracking-tighter uppercase">Secure</p>
+
+            <p class="text-[10px] text-emerald-400 font-semibold tracking-widest uppercase">
+                Secure
+            </p>
         </div>
-        <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-cyan-500 to-blue-600 border border-white/20"></div>
+
+        <div class="w-10 h-10 rounded-xl overflow-hidden border border-white/20 shadow">
+
+            <img src="<%= admin?.photo || '/user/imgs/user.png' %>" alt="Admin Avatar"
+                class="w-full h-full object-cover" onerror="this.src='/user/imgs/user.png'">
+
+        </div>
+
     </div>
 </header>

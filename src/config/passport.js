@@ -66,7 +66,7 @@ passport.use(
 
         return done(null, user);
       } catch (err) {
-        console.log("Passport Error:", err);
+        console.error("Passport Error:", err);
         return done(null, false, {
           message: "Authentication failed",
         });

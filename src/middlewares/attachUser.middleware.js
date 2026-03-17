@@ -31,7 +31,7 @@ const attachUser = async (req, res, next) => {
     req.user = user;
     res.locals.user = user;
   } catch (err) {
-    console.log(err);
+    console.error(err);
     res.clearCookie("token", { path: "/" });
     req.user = null;
     res.locals.user = null;
