@@ -13,8 +13,6 @@ const router = Router();
 // Prevent caching of protected pages
 router.use(adminAuth);
 
-
-
 //Routes
 router.use("/customers", customersRouter);
 router.use("/dashboard", dashboardRouter);

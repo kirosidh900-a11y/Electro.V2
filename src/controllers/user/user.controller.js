@@ -3,6 +3,10 @@ import Products from "../../models/productSchema.model.js";
 import { findUserById } from "../../services/user/auth.service.js";
 
 import AppError from "../../utils/partials/AppError.utils.js";
+import {
+  hashPassword,
+  verifyPassword,
+} from "../../utils/partials/auth/password.utils.js";
 
 export const showHomePage = async (req, res) => {
   try {
@@ -70,6 +74,51 @@ export const editName = async (req, res, next) => {
       .json({ success: true, message: "Your name is updated successfully!" });
   } catch (error) {
     console.error("Profile Page Error:", error);
+    next(error);
+  }
+};
+
+export const editPassword = async (req, res, next) => {
+  try {
+    const { currentPassword, newPassword } = req.body;
+
+    const passwordPattern =
+      /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/;
+
+    if (!passwordPattern.test(newPassword)) {
+      throw new AppError(
+        "Password must be 8+ chars, include uppercase, lowercase, number & special character",
+        HTTP_STATUS.BAD_REQUEST,
+      );
+    }
+
+    const user = await findUserById(res.locals.user._id, true);
+
+    if (!user) {
+      throw new AppError("User not found", HTTP_STATUS.NOT_FOUND);
+    }
+
+    // If already has password → verify current
+    if (user.password) {
+      const isMatch = await verifyPassword(currentPassword, user.password);
+
+      if (!isMatch) {
+        throw new AppError(
+          "Current password is incorrect",
+          HTTP_STATUS.BAD_REQUEST,
+        );
+      }
+    }
+
+    user.password = await hashPassword(newPassword);
+
+    await user.save();
+
+    res.json({
+      success: true,
+      message: "Password updated successfully",
+    });
+  } catch (error) {
     next(error);
   }
 };
