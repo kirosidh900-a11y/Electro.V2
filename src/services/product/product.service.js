@@ -146,8 +146,6 @@ export const getProductsService = async ({ page, limit, search, status }) => {
 
   const totalProductsCount = totalProducts[0]?.total || 0;
 
-  console.log(products[0]);
-
   const totalPages = Math.ceil(totalProductsCount / limit);
 
   return { products, categories, brands, totalPages, currentPage: page };

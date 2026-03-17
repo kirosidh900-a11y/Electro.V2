@@ -1,9 +1,7 @@
 import HTTP_STATUS from "../../constant/statusCode.js";
 import Products from "../../models/productSchema.model.js";
-import {
-  findUserByEmail,
-  findUserById,
-} from "../../services/user/auth.service.js";
+import { findUserById } from "../../services/user/auth.service.js";
+
 import AppError from "../../utils/partials/AppError.utils.js";
 
 export const showHomePage = async (req, res) => {
@@ -30,13 +28,11 @@ export const showHomePage = async (req, res) => {
       };
     });
 
-    console.log(formattedProducts);
-
     res.render("user/home/index", {
       products: formattedProducts,
     });
   } catch (error) {
-    console.log(error);
+    console.error("show home page Error:", error);
     res
       .status(HTTP_STATUS.INTERNAL_SERVER_ERROR)
       .send("Failed to load homepage");
@@ -45,10 +41,9 @@ export const showHomePage = async (req, res) => {
 
 export const profilePage = async (req, res, next) => {
   try {
-    console.log(res.locals.user);
     res.render("user/home/profile");
   } catch (error) {
-    console.log("Profile Page Error:", error);
+    console.error("Profile Page Error:", error);
     next(error);
   }
 };
@@ -74,7 +69,7 @@ export const editName = async (req, res, next) => {
       .status(HTTP_STATUS.OK)
       .json({ success: true, message: "Your name is updated successfully!" });
   } catch (error) {
-    console.log("Profile Page Error:", error);
+    console.error("Profile Page Error:", error);
     next(error);
   }
 };

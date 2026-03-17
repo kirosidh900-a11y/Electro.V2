@@ -29,7 +29,7 @@ const adminAuth = async (req, res, next) => {
 
     next();
   } catch (err) {
-    console.log("AdminAuth Error:", err);
+    console.error("AdminAuth Error:", err);
     clearAuthCookie(res, "adminToken");
     res.locals.admin = null;
     res.locals.menu = null;

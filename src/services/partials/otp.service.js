@@ -46,7 +46,7 @@ export const sendOtpToEmail = async ({
 
   await sendEmail({ email, name, otp });
 
-  console.log(`[Service] OTP ${otp} generated for ${email}`);
+  console.warn(`[Service] OTP ${otp} generated for ${email}`);
 };
 
 /* ================= VERIFY OTP ================= */
@@ -68,7 +68,6 @@ export const otpExist = async (email, otp, purpose) => {
 
 export const findOtp = async (email, purpose) => {
   const key = `otp:${purpose}:${email}`;
-  console.log(key);
 
   const stored = await redisClient.get(key);
 

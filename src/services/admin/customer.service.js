@@ -36,8 +36,6 @@ export const getCustomersService = async ({ page, limit, search, status }) => {
 export const toggleBlockCustomerService = async (id) => {
   let customer = await User.findById(id);
 
-  console.log(customer);
-
   const updatedCustomer = await User.findByIdAndUpdate(
     id,
     { isBlock: !customer.isBlock },

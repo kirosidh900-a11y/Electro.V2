@@ -165,7 +165,8 @@ export const getProductDetails = async (req, res, next) => {
       ...data,
     });
   } catch (error) {
-    return res.redirect("/admin/products");
+    console.error("Get Product Details Page Error", error);
+    next(error);
   }
 };
 

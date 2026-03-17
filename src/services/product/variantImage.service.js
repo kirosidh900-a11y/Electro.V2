@@ -47,7 +47,9 @@ export const addVariantImageService = async ({
 
     await cloudinary.uploader.destroy(`products/${publicId}`);
 
-    throw new AppError("Failed to save image", 500);
+    console.error("Add Variant Image Service Error:", error.message);
+
+    throw new AppError(error.message || "Failed to save image", 500);
   }
 };
 

@@ -8,8 +8,6 @@ import customersRouter from "./customer.route.js";
 import dashboardRouter from "./dashbord.route.js";
 import authRouter from "./auth.route.js";
 
-import { isAuth } from "../../middlewares/admin/authAdmin.middleware.js";
-
 const router = Router();
 
 // Prevent caching of protected pages
