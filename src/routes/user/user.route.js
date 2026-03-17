@@ -2,6 +2,7 @@ import { Router } from "express";
 import {
   showHomePage,
   profilePage,
+  editName,
 } from "../../controllers/user/user.controller.js";
 import attachUser from "../../middlewares/attachUser.middleware.js";
 import userAuth from "../../middlewares/user/userAuth.middleware.js";
@@ -14,5 +15,6 @@ router.use(attachUser);
 router.get("/", showHomePage);
 
 router.get("/myProfile", userAuth, profilePage);
+router.patch("/name", userAuth, editName);
 
 export default router;

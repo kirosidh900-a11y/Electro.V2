@@ -8,7 +8,7 @@ import {
   isValidName,
   isValidPhone,
   isValidPassword,
-  isConfirmPassword ,
+  isConfirmPassword,
 } from "../../utils/partials/validation.utils.js";
 
 import { isValidReferral, createRef } from "./referral.service.js";
@@ -37,7 +37,7 @@ export const isVerifyUser = async (email, password) => {
   checkGoogleAuth(user);
 
   const isPasswordValid = await argon2.verify(user.password, password);
-  
+
   if (!isPasswordValid) {
     throw new AppError("Invalid email or password", HTTP_STATUS.BAD_REQUEST);
   }
@@ -84,25 +84,18 @@ export const isValidate = async (data) => {
 
 import redisClient from "../../utils/partials/redisClient.util.js";
 export const verifyForgotOTP = async (email, otp, purpose) => {
-
   const key = `otp:${purpose}:${email}`;
 
   const stored = await redisClient.get(key);
 
   if (!stored) {
-    throw new AppError(
-      "OTP expired or session not found",
-      HTTP_STATUS.GONE
-    );
+    throw new AppError("OTP expired or session not found", HTTP_STATUS.GONE);
   }
 
   const parsed = JSON.parse(stored);
 
   if (String(parsed.otp) !== String(otp)) {
-    throw new AppError(
-      "Invalid OTP",
-      HTTP_STATUS.BAD_REQUEST
-    );
+    throw new AppError("Invalid OTP", HTTP_STATUS.BAD_REQUEST);
   }
 
   // delete OTP after successful verification
@@ -113,4 +106,12 @@ export const verifyForgotOTP = async (email, otp, purpose) => {
 
 export const findUserByEmail = async (email) => {
   return await User.findOne({ email });
+};
+
+export const findUserById = async (id, pass = false) => {
+  let qurey = "";
+  if (!pass) {
+    qurey = "-password -googleId -photo";
+  }
+  return await User.findById(id).select(qurey);
 };

@@ -205,12 +205,16 @@ cursor-pointer">
 
         <%- include("../../partials/user/footer") %>
 
-            <script>
+            <script type="module">
+                import { showToast } from "/partials/errorMsg.utils.js";
+                import { confirmAction } from "/partials/confirm.util.js";
 
                 // NAME EDIT
                 const editNameBtn = document.getElementById("editNameBtn");
                 const nameInput = document.getElementById("nameInput");
                 const saveNameBtn = document.getElementById("saveNameBtn");
+                const sidebarNameInput = document.getElementById('sidebarName');
+                const headNameInput = document.getElementById('headName');
 
                 let originalName = nameInput.value;
 
@@ -228,12 +232,53 @@ cursor-pointer">
                     }
                 }
 
-                saveNameBtn.onclick = () => {
-                    originalName = nameInput.value;
-                    nameInput.disabled = true;
-                    editNameBtn.textContent = "Edit";
-                    saveNameBtn.classList.add("hidden");
-                }
+                saveNameBtn.onclick = async () => {
+                    try {
+
+                        // name validation 
+                        const namePattern = /^[A-Za-z]+(?: [A-Za-z]+)*$/;
+
+                        const name = nameInput.value.trim();
+
+                        if (!namePattern.test(name)) {
+                            throw new Error("Invalid format!");
+                        }
+
+                        const res = await fetch('/name', {
+                            method: 'PATCH',
+                            headers: {
+                                "Content-Type": "application/json"
+                            },
+                            body: JSON.stringify({ name })
+                        });
+
+                        const data = await res.json();
+
+                        // Throw error if response is not OK
+                        if (!res.ok) {
+                            throw new Error(data.message || "Update failed");
+                        }
+
+
+                        originalName = name;
+                        sidebarNameInput.textContent = name;
+                        headNameInput.textContent = name;
+
+
+                        nameInput.disabled = true;
+                        editNameBtn.textContent = "Edit";
+                        saveNameBtn.classList.add("hidden");
+
+                        // ✅ Success
+                        showToast(data.message || "Name updated successfully", "success");
+                        return;
+
+                    } catch (error) {
+                        console.log(error);
+                        showToast(error.message, "error")
+                    }
+                };
+
 
                 // EMAIL EDIT
                 const editEmailBtn = document.getElementById("editEmailBtn");

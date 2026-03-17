@@ -1,5 +1,10 @@
 import HTTP_STATUS from "../../constant/statusCode.js";
 import Products from "../../models/productSchema.model.js";
+import {
+  findUserByEmail,
+  findUserById,
+} from "../../services/user/auth.service.js";
+import AppError from "../../utils/partials/AppError.utils.js";
 
 export const showHomePage = async (req, res) => {
   try {
@@ -42,6 +47,32 @@ export const profilePage = async (req, res, next) => {
   try {
     console.log(res.locals.user);
     res.render("user/home/profile");
+  } catch (error) {
+    console.log("Profile Page Error:", error);
+    next(error);
+  }
+};
+
+export const editName = async (req, res, next) => {
+  try {
+    const { name } = req.body;
+    const user = await findUserById(res.locals.user._id);
+
+    if (!user) {
+      throw new AppError("User not found", HTTP_STATUS.NOT_FOUND);
+    }
+    const namePattern = /^[A-Za-z]+(?: [A-Za-z]+)*$/;
+
+    if (!namePattern.test(name)) {
+      throw new AppError("Name is invalid format!", HTTP_STATUS.BAD_REQUEST);
+    }
+
+    user.name = name;
+    await user.save();
+
+    res
+      .status(HTTP_STATUS.OK)
+      .json({ success: true, message: "Your name is updated successfully!" });
   } catch (error) {
     console.log("Profile Page Error:", error);
     next(error);

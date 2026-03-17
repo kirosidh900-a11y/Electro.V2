@@ -7,7 +7,8 @@ const errorMiddleware = (err, req, res, _next) => {
   // API routes
   if (
     req.originalUrl.startsWith("/auth") ||
-    req.originalUrl.startsWith("/admin")
+    req.originalUrl.startsWith("/admin") || 
+    req.originalUrl.startsWith('/name')
   ) {
     return res.status(statusCode).json({
       success: false,

@@ -92,7 +92,7 @@ loginForm.addEventListener("submit", async (e) => {
     }
   } catch (error) {
     console.log("loginForm Error:", error);
-    showToast("Something went wrong. Please try again.",'error');
+    showToast("Something went wrong. Please try again.", "error");
     return;
   }
 });
