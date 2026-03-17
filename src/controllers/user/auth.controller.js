@@ -47,6 +47,7 @@ export const showLoginPage = (req, res) => {
   const error = req.cookies.toastError || null;
 
   clearAuthCookie(res, "toastError");
+  console.log("error")
 
   res.render("user/auth/login", { error });
 };
