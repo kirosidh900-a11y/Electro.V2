@@ -11,24 +11,12 @@ import {
 import attachUser from "../../middlewares/attachUser.middleware.js";
 import { addressSchema } from "../../validations/address.validator.js";
 import { validate } from "../../middlewares/validate.middleware.js";
+import authMiddleware from "../../middlewares/user/userAuth.middleware.js";
 
 const router = Router();
 
-
-
-import { State, City } from "country-state-city";
-
-// India states
-const states = State.getStatesOfCountry("IN");
-
-// Districts (cities used as districts)
-const districts = City.getCitiesOfState("IN", "KL");
-
-console.log("total states:",states);
-// console.log(districts);
-
 // Protect all routes
-router.use(attachUser);
+router.use(authMiddleware);
 
 router
   .route("/")
@@ -39,7 +27,7 @@ router
 router
   .route("/:id")
   .get(getSingleAddress)
-  .patch(validate(addressSchema), updateAddress)
+  .put(validate(addressSchema), updateAddress)
   .delete(deleteAddress);
 
 // Set default address

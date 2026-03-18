@@ -24,12 +24,14 @@ const attachUser = async (req, res, next) => {
 
       req.user = null;
       res.locals.user = null;
+      res.locals.currentRoute = null;
 
       return res.redirect('/auth/login');
     }
 
     req.user = user;
     res.locals.user = user;
+    res.locals.currentRoute = req.path;
   } catch (err) {
     console.error(err);
     res.clearCookie("token", { path: "/" });

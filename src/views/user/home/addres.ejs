@@ -62,7 +62,7 @@
                                                                                                         </span>
                                                                                                         <div
                                                                                                                 class="flex gap-2">
-                                                                                                                <button onclick="openAddressModal('<%= JSON.stringify(addr) %>')"
+                                                                                                                <button onclick="openAddressModal('<%= encodeURIComponent(JSON.stringify(addr)) %>')"
                                                                                                                         class="text-gray-400 hover:text-blue-600 transition-colors p-1">
                                                                                                                         <i
                                                                                                                                 class="fa fa-pen-to-square"></i>
@@ -246,9 +246,7 @@
                         // Store states
                         let statesData = [];
 
-                        // =======================
                         // LOAD STATES
-                        // =======================
                         async function loadStates() {
                                 try {
                                         const res = await fetch('/location/states');
@@ -259,9 +257,7 @@
                         }
                         loadStates();
 
-                        // =======================
                         // LOAD DISTRICTS
-                        // =======================
                         async function loadDistricts(stateCode) {
                                 try {
                                         const res = await fetch(`/location/districts/${stateCode}`);
@@ -272,11 +268,9 @@
                                 }
                         }
 
-                        // =======================
                         // OPEN MODAL
-                        // =======================
                         window.openAddressModal = async function (addressJson = null) {
-                                const addr = addressJson ? JSON.parse(addressJson) : {};
+                                const addr = addressJson ? JSON.parse(decodeURIComponent(addressJson)) : {};
                                 const isEdit = !!addr._id;
 
                                 const modal = document.getElementById('addressModal');
@@ -299,9 +293,7 @@
                                 const stateSelect = form.state;
                                 const districtSelect = form.district;
 
-                                // =======================
                                 // LOAD STATES DROPDOWN
-                                // =======================
                                 stateSelect.innerHTML =
                                         '<option value="">Select State</option>' +
                                         statesData.map(s => `
@@ -310,9 +302,7 @@
             </option>
         `).join('');
 
-                                // =======================
                                 // LOAD DISTRICTS (EDIT MODE)
-                                // =======================
                                 if (addr.stateCode) {
                                         const districts = await loadDistricts(addr.stateCode);
 
@@ -327,9 +317,7 @@
                                         districtSelect.innerHTML = '<option value="">Select District</option>';
                                 }
 
-                                // =======================
                                 // STATE CHANGE → DISTRICTS
-                                // =======================
                                 stateSelect.onchange = async () => {
                                         const stateCode = stateSelect.value;
 
@@ -345,9 +333,7 @@
                                                 districts.map(d => `<option value="${d}">${d}</option>`).join('');
                                 };
 
-                                // =======================
                                 // SUBMIT FORM
-                                // =======================
                                 form.onsubmit = async (e) => {
                                         e.preventDefault();
 
@@ -360,9 +346,9 @@
                                                 address: form.address.value.trim(),
                                                 city: form.city.value.trim(),
 
-                                                // 🔥 IMPORTANT FIX
+                                                // 🔥 IMPORTANT FIXa
                                                 state: stateSelect.options[stateSelect.selectedIndex].text,
-                                                stateCode: stateSelect.value,
+
                                                 district: districtSelect.value,
 
                                                 landmark: form.landmark.value.trim() || null,
@@ -371,12 +357,15 @@
                                         };
 
                                         try {
-                                                const url = isEdit ? `/address-book/${addr._id}` : '/address-book';
+                                                const url = isEdit ? `/address/${addr._id}` : '/address';
                                                 const method = isEdit ? 'PUT' : 'POST';
 
                                                 const res = await fetch(url, {
                                                         method,
-                                                        headers: { "Content-Type": "application/json" },
+                                                        headers: {
+                                                                "Content-Type": "application/json",
+                                                                "Accept": "application/json"
+                                                        },
                                                         body: JSON.stringify(formData)
                                                 });
 
@@ -393,17 +382,16 @@
                                 };
                         };
 
-                        // =======================
                         // DELETE ADDRESS
-                        // =======================
                         window.deleteAddress = async function (id) {
                                 const confirmed = await confirmAction("Delete Address?", "This action cannot be undone.");
                                 if (confirmed) {
                                         try {
-                                                const res = await fetch('/address-book', {
+                                                const res = await fetch(`/address/${id}`, {
                                                         method: 'DELETE',
-                                                        headers: { "Content-Type": "application/json" },
-                                                        body: JSON.stringify({ id })
+                                                        headers: {
+                                                                "Accept": "application/json"
+                                                        }
                                                 });
 
                                                 const data = await res.json();
@@ -417,9 +405,7 @@
                                 }
                         };
 
-                        // =======================
                         // CLOSE MODAL
-                        // =======================
                         window.closeAddressModal = () => {
                                 document.getElementById('addressModal').classList.add('hidden');
                         };

@@ -45,6 +45,10 @@ const addressSchema = new Schema(
       type: String,
       required: true,
     },
+    district: {
+      type: String,
+      required: true,
+    },
 
     addressType: {
       type: String,
@@ -57,21 +61,17 @@ const addressSchema = new Schema(
       default: false,
     },
   },
-  { timestamps: true }
+  { timestamps: true },
 );
 
-
 // ADD MIDDLEWARE HERE (inside schema file)
-addressSchema.pre("save", async function (next) {
+addressSchema.pre("save", async function () {
   if (this.isDefault) {
-    await mongoose.model("Address").updateMany(
-      { userId: this.userId },
-      { isDefault: false }
-    );
+    await mongoose
+      .model("Address")
+      .updateMany({ userId: this.userId }, { isDefault: false });
   }
-  next();
 });
-
 
 addressSchema.index({ userId: 1 });
 

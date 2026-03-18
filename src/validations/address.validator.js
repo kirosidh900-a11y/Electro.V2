@@ -23,6 +23,8 @@ export const addressSchema = Joi.object({
 
   state: Joi.string().required(),
 
+  district: Joi.string().required(),
+
   landmark: Joi.string().allow("", null),
 
   addressType: Joi.string().valid("home", "work"),

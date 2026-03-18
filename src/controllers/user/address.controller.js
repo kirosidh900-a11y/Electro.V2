@@ -7,10 +7,19 @@ export const createAddress = async (req, res, next) => {
   try {
     const userId = res.locals.user._id;
 
+    // Joi already validated req.body ✅
     const address = await Address.create({
       ...req.body,
       userId,
     });
+
+    // Handle default address
+    if (req.body.isDefault) {
+      await Address.updateMany(
+        { userId, _id: { $ne: address._id } },
+        { $set: { isDefault: false } },
+      );
+    }
 
     res.status(HTTP_STATUS.CREATED).json({
       success: true,
@@ -26,6 +35,8 @@ export const createAddress = async (req, res, next) => {
 export const getUserAddresses = async (req, res, next) => {
   try {
     const userId = res.locals.user._id;
+
+    console.log(res.locals.currentRoute)
 
     const addresses = await Address.find({ userId }).sort({
       isDefault: -1,

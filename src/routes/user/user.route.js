@@ -20,14 +20,13 @@ import { resendOtp } from "../../controllers/user/auth.controller.js";
 import upload from "../../middlewares/cloudinaryUpload.middleware.js";
 import { setUploadFolder } from "../../middlewares/setUploadFolder.middleware.js";
 import locationRoutes from "./location.route.js";
-
 const router = Router();
 
 // Prevent caching of protected pages
-router.use(attachUser);
+ router.use(attachUser);
 
 //Routes
-router.use("/addres", addresRouter);
+router.use("/address", addresRouter);
 router.use("/location", locationRoutes);
 
 //Home side
