@@ -1,6 +1,6 @@
-import HTTP_STATUS from "../../../constant/statusCode.js";
-import Address from "../../models/address.model.js";
-import AppError from "../../utils/AppError.js";
+import HTTP_STATUS from "../../constant/statusCode.js";
+import Address from "../../models/addressSchema.model.js";
+import AppError from "../../utils/partials/AppError.utils.js";
 
 // CREATE ADDRESS
 export const createAddress = async (req, res, next) => {

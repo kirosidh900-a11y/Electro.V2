@@ -6,29 +6,30 @@ import {
   updateAddress,
   deleteAddress,
   setDefaultAddress,
-} from "../controllers/user/address.controller.js";
+} from "../../controllers/user/address.controller.js";
 
-import protect from "../middlewares/auth.middleware.js";
+import attachUser from "../../middlewares/attachUser.middleware.js";
+import { addressSchema } from "../../validations/address.validator.js";
+import { validate } from "../../middlewares/validate.middleware.js";
 
 const router = Router();
 
 // Protect all routes
-router.use(protect);
+router.use(attachUser);
 
 router
   .route("/")
-  .post(createAddress)
+  .post(validate(addressSchema), createAddress)
   .get(getUserAddresses);
+  
 // Update + Delete
 router
   .route("/:id")
   .get(getSingleAddress)
-  .patch(updateAddress)
+  .patch(validate(addressSchema), updateAddress)
   .delete(deleteAddress);
 
 // Set default address
-router
-  .route("/default/:id")
-  .patch(setDefaultAddress);
+router.route("/default/:id").patch(setDefaultAddress);
 
 export default router;
