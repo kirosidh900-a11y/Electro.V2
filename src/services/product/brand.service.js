@@ -36,7 +36,7 @@ export const createBrandService = async (data) => {
 };
 
 export const updateBrandService = async (id, data) => {
-  return BrandSchema.findByIdAndUpdate(id, data, { new: true });
+  return BrandSchema.findByIdAndUpdate(id, data, { returnDocument: "after" });
 };
 
 export const softDeleteBrandService = async (id) => {

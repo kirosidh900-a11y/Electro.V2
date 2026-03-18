@@ -19,31 +19,36 @@
                         <!-- AVATAR -->
                         <div class="flex flex-col items-center pb-10 mb-10 border-b border-gray-100">
 
-                            <div class="relative">
+                            <div class="relative group">
 
-                                <div class="h-28 w-28 rounded-full overflow-hidden shadow-lg">
-                                    <img src="<%= user?.photo || 'https://api.dicebear.com/7.x/avataaars/svg?seed=Sidharth' %>"
-                                        class="w-full h-full object-cover">
-                                </div>
+                                <!-- Avatar -->
+                                <img src="<%= user?.photo || 'https://res.cloudinary.com/dxtiklfxy/image/upload/v1773824246/profile/qhvfjaqer1o81nwkxvcz.png' %>"
+                                    class="profile-avatar  w-32 h-32 rounded-full object-cover shadow-md border-4 border-white" />
 
+                                <!-- Soft overlay -->
+                                <div class="absolute inset-0 rounded-full bg-black/30 opacity-0 
+            group-hover:opacity-100 transition duration-300"></div>
 
-                                <div class="relative">
+                                <!-- Camera button -->
+                                <label for="photoUpload" class="absolute bottom-1 right-1 bg-white text-gray-700
+            w-9 h-9 flex items-center justify-center rounded-full shadow-md
+            cursor-pointer hover:bg-gray-100 transition">
 
-                                    <input type="file" id="photoUpload" class="hidden" />
+                                    <i class="fa-solid fa-camera text-sm"></i>
+                                </label>
 
-                                    <label for="photoUpload" class="absolute -bottom-7 left-1/2 -translate-x-1/2
-flex items-center gap-2 bg-slate-800 text-white
-px-4 py-2 text-xs rounded-full shadow hover:bg-slate-700
-cursor-pointer">
-
-                                        <i class="fa-solid fa-camera"></i>
-                                        Upload Photo
-
-                                    </label>
-
-                                </div>
+                                <input type="file" id="photoUpload" accept="image/*" class="hidden" />
 
                             </div>
+
+                            <!-- Remove Button -->
+
+                            <button id="removePhotoBtn" class="<%= user?.photo ? '' : 'hidden' %> mt-3 px-4 py-1.5 text-sm rounded-full 
+    border border-red-400 text-red-500 
+    hover:text-white hover:bg-red-500 transition font-medium">
+                                Remove Photo
+                            </button>
+
 
                         </div>
 
@@ -251,6 +256,7 @@ cursor-pointer">
                 const saveNameBtn = document.getElementById("saveNameBtn");
                 const sidebarNameInput = document.getElementById('sidebarName');
                 const headNameInput = document.getElementById('headName');
+                const headNameInput1 = document.getElementById('headName1');
 
                 let originalName = nameInput.value;
 
@@ -299,7 +305,7 @@ cursor-pointer">
                         originalName = name;
                         sidebarNameInput.textContent = name;
                         headNameInput.textContent = name;
-
+                        headNameInput1.textContent = name;
 
                         nameInput.disabled = true;
                         editNameBtn.textContent = "Edit";
@@ -322,6 +328,7 @@ cursor-pointer">
                 const saveEmailBtn = document.getElementById("saveEmailBtn");
 
                 let originalEmail = emailInput.value;
+                let otpContext = null;
 
                 editEmailBtn.onclick = () => {
                     if (emailInput.disabled) {
@@ -373,7 +380,7 @@ cursor-pointer">
                         editEmailBtn.textContent = "Edit";
                         saveEmailBtn.classList.add("hidden");
                         showToast(data.message || "OTP sent successfully", 'success')
-
+                        otpContext = 'email';
                         openOtpModal();
                     } catch (error) {
                         console.error(error);
@@ -496,33 +503,63 @@ cursor-pointer">
                 };
 
                 //verify otp
-                document.getElementById("verifyOtpBtn").onclick = async () => {
+                //clone
+                const verifyBtn = document.getElementById("verifyOtpBtn");
+
+                verifyBtn.onclick = async () => {
                     try {
                         const otp = document.getElementById("otpInput").value.trim();
 
-                        if (!otp || otp.length !== 6 || !/^\d{6}$/.test(otp)
-                        ) {
-                            throw new Error("Enter valid 6-digit OTP");
+                        if (!/^\d{6}$/.test(otp)) {
+                            throw new Error("Enter valid OTP");
                         }
 
-                        const res = await fetch("/email", {
-                            method: "PATCH",
-                            headers: {
-                                "Content-Type": "application/json",
-                                "Accept": "application/json"
-                            },
-                            body: JSON.stringify({
-                                otp,
-                                newEmail: emailInput.value.trim()
-                            })
-                        });
+                        let res, data;
 
-                        const data = await res.json();
+                        if (otpContext === "email") {
+                            res = await fetch("/email", {
+                                method: "PATCH",
+                                headers: {
+                                    "Content-Type": "application/json",
+                                    "Accept": "application/json"
+                                },
+                                body: JSON.stringify({
+                                    otp,
+                                    newEmail: emailInput.value.trim()
+                                })
+                            });
 
-                        if (!res.ok) throw new Error(data.message);
+                            data = await res.json();
 
-                        showToast("Email updated successfully", "success");
-                        document.getElementById('headerEmail').textContent = emailInput.value.trim()
+                            if (!res.ok) throw new Error(data.message);
+
+                            document.getElementById('headerEmail').textContent = emailInput.value.trim();
+                            showToast("Email updated successfully", "success");
+
+                        } else if (otpContext === "phone") {
+
+                            const phone = phoneInput.value.trim();
+
+                            res = await fetch("/phone", {
+                                method: "PATCH",
+                                headers: {
+                                    "Content-Type": "application/json",
+                                    "Accept": "application/json"
+                                },
+                                body: JSON.stringify({ phone, otp })
+                            });
+
+                            data = await res.json();
+
+                            if (!res.ok) throw new Error(data.message);
+
+                            originalPhone = phone;
+                            phoneInput.disabled = true;
+                            savePhoneBtn.classList.add("hidden");
+                            editPhoneBtn.textContent = "Edit";
+
+                            showToast("Phone updated successfully", "success");
+                        }
 
                         closeOtpModalFunc();
 
@@ -536,20 +573,30 @@ cursor-pointer">
                 const resendBtn = document.getElementById("resendOtpBtn");
 
                 resendBtn.onclick = async () => {
-
                     if (resendBtn.disabled) return;
 
                     try {
+                        let payload = {};
+
+                        if (otpContext === "email") {
+                            payload = {
+                                email: emailInput.value.trim(),
+                                purpose: "reset-email"
+                            };
+                        } else if (otpContext === "phone") {
+                            payload = {
+                                phone: phoneInput.value.trim(),
+                                purpose: "reset-phone"
+                            };
+                        }
+
                         const res = await fetch("/resend-otp", {
                             method: "POST",
                             headers: {
                                 "Content-Type": "application/json",
                                 "Accept": "application/json"
                             },
-                            body: JSON.stringify({
-                                email: emailInput.value.trim(),
-                                purpose: 'reset-email'
-                            })
+                            body: JSON.stringify(payload)
                         });
 
                         const data = await res.json();
@@ -557,13 +604,13 @@ cursor-pointer">
                         if (!res.ok) throw new Error(data.message);
 
                         showToast("OTP resent", "success");
-
-                        startOtpTimer(); // restart timer
+                        startOtpTimer();
 
                     } catch (error) {
                         showToast(error.message, "error");
                     }
                 };
+
 
                 //Phone
                 const editPhoneBtn = document.getElementById("editPhoneBtn");
@@ -620,7 +667,7 @@ cursor-pointer">
                         if (!res.ok) throw new Error(data.message);
 
                         showToast("OTP sent to your phone", "success");
-
+                        otpContext = 'phone';
                         openOtpModal(); // 🔥 reuse same modal
 
                     } catch (error) {
@@ -628,45 +675,84 @@ cursor-pointer">
                     }
                 };
 
-                document.getElementById("verifyOtpBtn").onclick = async () => {
+                //Profile photo
+
+                const photoUpload = document.getElementById("photoUpload");
+
+                photoUpload.onchange = async (e) => {
                     try {
-                        const otp = document.getElementById("otpInput").value.trim();
-                        const phone = phoneInput.value.trim();
+                        const file = e.target.files[0];
 
-                        if (!/^\d{6}$/.test(otp)) {
-                            throw new Error("Enter valid OTP");
-                        }
+                        console.log("FILE:", file);
+                        console.log("TYPE:", typeof file);
 
-                        const res = await fetch("/phone", {
+                        if (!file) return;
+
+                        const formData = new FormData();
+                        formData.append("photo", file);
+
+                        console.log("FormData:", formData);
+
+                        const res = await fetch("/photo", {
                             method: "PATCH",
-                            headers: {
-                                "Content-Type": "application/json",
-                                "Accept": "application/json"
-                            },
-                            body: JSON.stringify({ phone, otp })
+                            body: formData
                         });
 
                         const data = await res.json();
 
                         if (!res.ok) throw new Error(data.message);
 
-                        // ✅ Save locally after success
-                        originalPhone = phone;
+                        // 🔥 Update UI instantly
+                        const avatarImg = document.querySelector(".profile-avatar");
+                        const sidebarImg = document.getElementById('sidebarImg');
+                        const headImg = document.getElementById('headImg');
+                        avatarImg.src = data.photo;
+                        sidebarImg.src = data.photo;
+                        headImg.src = data.photo;
+                        document.getElementById("removePhotoBtn").classList.remove("hidden");
 
-                        phoneInput.disabled = true;
-                        savePhoneBtn.classList.add("hidden");
-                        editPhoneBtn.textContent = "Edit";
-
-                        showToast("Phone updated successfully", "success");
-
-                        closeOtpModalFunc();
+                        showToast("Profile photo updated", "success");
+                        // 🔥 IMPORTANT FIX
+                        photoUpload.value = "";
 
                     } catch (error) {
                         showToast(error.message, "error");
                     }
                 };
-           
-           </script>
+
+                //Remove profile Photo
+                const removeBtn = document.getElementById("removePhotoBtn");
+
+                if (removeBtn) {
+                    removeBtn.onclick = async () => {
+                        try {
+                            const res = await fetch("/photo", {
+                                method: "DELETE",
+                                headers: {
+                                    "Accept": "application/json"
+                                }
+                            });
+
+                            const data = await res.json();
+
+                            if (!res.ok) throw new Error(data.message);
+
+                            // 🔥 Reset avatar
+                            const url = "https://res.cloudinary.com/dxtiklfxy/image/upload/v1773824246/profile/qhvfjaqer1o81nwkxvcz.png";
+
+                            document.querySelector(".profile-avatar").src = url;
+                            document.getElementById('headImg').src = url;
+                            document.getElementById('sidebarImg').src = url;
+                            document.getElementById("removePhotoBtn").classList.add("hidden");
+                            showToast("Photo removed", "success");
+
+                        } catch (error) {
+                            showToast(error.message, "error");
+                        }
+                    };
+                }
+
+            </script>
 
             <script>
                 const otpModal = document.getElementById("otpModal");

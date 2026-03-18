@@ -2,11 +2,10 @@ import HTTP_STATUS from "../../constant/statusCode.js";
 import sendEmail from "../../constant/transporter.js";
 import Products from "../../models/productSchema.model.js";
 import { sendSMS } from "../../services/partials/sms.service.js";
+import cloudinary from "../../config/cloudinary.js";
+import streamifier from "streamifier";
 
-import {
-  otpExist,
-  saveOTP,
-} from "../../services/partials/otp.service.js";
+import { otpExist, saveOTP } from "../../services/partials/otp.service.js";
 import {
   findUserByEmail,
   findUserById,
@@ -20,6 +19,10 @@ import {
 } from "../../utils/partials/auth/password.utils.js";
 import generateOTP from "../../utils/partials/otpGenerater.js";
 import { successResponse } from "../../utils/partials/response.util.js";
+import {
+  uploadToCloudinary,
+  deleteFromCloudinary,
+} from "../../services/partials/cloudinary.service.js";
 
 export const showHomePage = async (req, res) => {
   try {
@@ -170,7 +173,7 @@ export const updateEamil = async (req, res, next) => {
     const [userData, _isExist, user] = await Promise.all([
       otpExist(newEmail, otp, "reset-email"),
       isUserExist(newEmail),
-      findUserById(res.locals.user._id, true),
+      findUserById(res.locals.user._id),
     ]);
 
     if (!userData) {
@@ -209,7 +212,6 @@ export const sendPhoneOtp = async (req, res, next) => {
       message: `Your OTP is ${otp}. Do not share it.`,
     });
 
-
     res.json({
       success: true,
       message: "OTP sent to phone",
@@ -246,6 +248,63 @@ export const verifyPhoneOtp = async (req, res, next) => {
     res.json({
       success: true,
       message: "Phone updated successfully",
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+//Profile photo
+export const updateProfilePhoto = async (req, res, next) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ message: "No file uploaded" });
+    }
+
+    const user = await findUserById(res.locals.user._id);
+
+    // 🔥 DELETE OLD PHOTO IF EXISTS
+    if (user?.photoId) {
+      await deleteFromCloudinary(user?.photoId);
+    }
+
+    // 🔥 Upload using stream
+    const result = await uploadToCloudinary(req.file.buffer, "profile");
+
+    // Save URL to DB
+    user.photo = result.secure_url;
+    user.photoId = result.public_id;
+
+    await user.save();
+
+    res.json({
+      success: true,
+      photo: result.secure_url,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const deleteProfilePhoto = async (req, res, next) => {
+  try {
+    const user = await findUserById(res.locals.user._id);
+
+    if (!user || !user.photoId) {
+      throw new AppError("No photo found", HTTP_STATUS.BAD_REQUEST);
+    }
+
+    // 🔥 Delete from Cloudinary
+    await deleteFromCloudinary(user.photoId);
+
+    user.photo = null;
+    user.photoId = null;
+
+    await user.save();
+
+    res.json({
+      success: true,
+      message: "Photo removed",
     });
   } catch (error) {
     next(error);

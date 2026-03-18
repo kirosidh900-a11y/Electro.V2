@@ -50,7 +50,8 @@
 
             <!-- Profile Image -->
             <div class="relative">
-              <img src="<%= user.photo ? user.photo : '/user/imgs/user.png' %>"
+              <img id="headImg"
+                src="<%= user.photo ? user.photo : 'https://res.cloudinary.com/dxtiklfxy/image/upload/v1773824246/profile/qhvfjaqer1o81nwkxvcz.png' %>"
                 class="w-8 h-8 rounded-full object-cover border border-gray-600 shadow-sm" />
 
               <!-- Online Dot -->
@@ -74,7 +75,7 @@
              border border-gray-200 animate-fadeIn z-50">
 
             <li class="px-5 py-4 border-b bg-gray-50">
-              <p class="font-semibold text-gray-800 text-sm">
+              <p id="headName1" class="font-semibold text-gray-800 text-sm">
                 <%= user.name %>
               </p>
               <p id="headerEmail" class="text-xs text-gray-500 truncate">

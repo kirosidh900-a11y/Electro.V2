@@ -1,10 +1,14 @@
 import { errorResponse } from "../utils/partials/response.util.js";
 
- 
 const errorMiddleware = (err, req, res, _next) => {
   console.error(err);
 
   const statusCode = err.statusCode || 500;
+
+  // Detect API request automatically
+  if (req.headers.accept?.includes("application/json")) {
+    errorResponse(res, err.message || "Internal Server Error", statusCode);
+  }
 
   // API routes
   if (
@@ -12,11 +16,6 @@ const errorMiddleware = (err, req, res, _next) => {
     req.originalUrl.startsWith("/admin") ||
     req.originalUrl.startsWith("/name")
   ) {
-    errorResponse(res, err.message || "Internal Server Error", statusCode);
-  }
-
-  // Detect API request automatically
-  if (req.headers.accept?.includes("application/json")) {
     errorResponse(res, err.message || "Internal Server Error", statusCode);
   }
 
