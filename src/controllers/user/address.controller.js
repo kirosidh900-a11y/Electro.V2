@@ -32,10 +32,11 @@ export const getUserAddresses = async (req, res, next) => {
       createdAt: -1,
     });
 
-    res.json({
-      success: true,
-      addresses,
-    });
+    // res.json({
+    //   success: true,
+    //   addresses,
+    // });
+    res.render("user/home/addres", { addresses });
   } catch (error) {
     next(error);
   }

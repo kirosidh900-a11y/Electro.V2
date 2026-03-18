@@ -14,6 +14,19 @@ import { validate } from "../../middlewares/validate.middleware.js";
 
 const router = Router();
 
+
+
+import { State, City } from "country-state-city";
+
+// India states
+const states = State.getStatesOfCountry("IN");
+
+// Districts (cities used as districts)
+const districts = City.getCitiesOfState("IN", "KL");
+
+console.log("total states:",states);
+// console.log(districts);
+
 // Protect all routes
 router.use(attachUser);
 
@@ -21,7 +34,7 @@ router
   .route("/")
   .post(validate(addressSchema), createAddress)
   .get(getUserAddresses);
-  
+
 // Update + Delete
 router
   .route("/:id")
