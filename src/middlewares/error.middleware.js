@@ -1,6 +1,6 @@
 import { errorResponse } from "../utils/partials/response.util.js";
 
-// eslint-disable-next-line no-unused-vars
+ 
 const errorMiddleware = (err, req, res, _next) => {
   console.error(err);
 

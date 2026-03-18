@@ -4,10 +4,8 @@ import Products from "../../models/productSchema.model.js";
 import { sendSMS } from "../../services/partials/sms.service.js";
 
 import {
-  findOtp,
   otpExist,
   saveOTP,
-  sendOtpToEmail,
 } from "../../services/partials/otp.service.js";
 import {
   findUserByEmail,
@@ -169,7 +167,7 @@ export const updateEamil = async (req, res, next) => {
   try {
     const { newEmail, otp } = req.body;
 
-    const [userData, isExist, user] = await Promise.all([
+    const [userData, _isExist, user] = await Promise.all([
       otpExist(newEmail, otp, "reset-email"),
       isUserExist(newEmail),
       findUserById(res.locals.user._id, true),
@@ -206,12 +204,11 @@ export const sendPhoneOtp = async (req, res, next) => {
     await saveOTP(phone, otp, "update-phone");
 
     // 🔥 Send SMS
-    const data =await sendSMS({
+    await sendSMS({
       phone,
       message: `Your OTP is ${otp}. Do not share it.`,
     });
 
-    console.log(data);
 
     res.json({
       success: true,
