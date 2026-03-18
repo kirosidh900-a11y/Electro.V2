@@ -128,7 +128,6 @@ export const verifySignupOtp = async (req, res, next) => {
 export const resendOtp = async (req, res, next) => {
   try {
     const { email, purpose } = req.body;
-    console.log(email, purpose);
 
     const otpDoc = await findOtp(email, purpose);
 

@@ -54,7 +54,11 @@ const userSchema = new Schema(
     },
     photo: {
       type: String,
-      default: null,
+      sparse: true,
+    },
+    photoId: {
+      type: String,
+      sparse: true,
     },
   },
   { timestamps: true },

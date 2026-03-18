@@ -7,11 +7,17 @@ import {
   editPassword,
   sendEmailOtp,
   updateEamil,
+  sendPhoneOtp,
+  verifyPhoneOtp,
+  deleteProfilePhoto,
+  updateProfilePhoto,
 } from "../../controllers/user/user.controller.js";
 
 import attachUser from "../../middlewares/attachUser.middleware.js";
 import userAuth from "../../middlewares/user/userAuth.middleware.js";
 import { resendOtp } from "../../controllers/user/auth.controller.js";
+import upload from "../../middlewares/cloudinaryUpload.middleware.js";
+import { setUploadFolder } from "../../middlewares/setUploadFolder.middleware.js";
 
 const router = Router();
 
@@ -22,8 +28,26 @@ router.get("/", showHomePage);
 
 router.get("/myProfile", userAuth, profilePage);
 router.patch("/name", userAuth, editName);
-router.route("/email").post(userAuth, sendEmailOtp).patch(userAuth,updateEamil);
-router.post('/resend-otp',userAuth,resendOtp)
+router
+  .route("/email")
+  .post(userAuth, sendEmailOtp)
+  .patch(userAuth, updateEamil);
+
+router.post("/resend-otp", userAuth, resendOtp);
 router.patch("/password", userAuth, editPassword);
+
+router
+  .route("/phone")
+  .post(userAuth, sendPhoneOtp)
+  .patch(userAuth, verifyPhoneOtp);
+
+router
+  .route("/photo")
+  .patch(
+    setUploadFolder("profile"),
+    upload.single("photo"),
+    updateProfilePhoto,
+  )
+  .delete(deleteProfilePhoto);
 
 export default router;
