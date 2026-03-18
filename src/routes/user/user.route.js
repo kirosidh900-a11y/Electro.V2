@@ -15,6 +15,7 @@ import {
 
 import attachUser from "../../middlewares/attachUser.middleware.js";
 import userAuth from "../../middlewares/user/userAuth.middleware.js";
+import addresRouter from './addres.route.js'
 import { resendOtp } from "../../controllers/user/auth.controller.js";
 import upload from "../../middlewares/cloudinaryUpload.middleware.js";
 import { setUploadFolder } from "../../middlewares/setUploadFolder.middleware.js";
@@ -24,6 +25,7 @@ const router = Router();
 // Prevent caching of protected pages
 router.use(attachUser);
 
+router.get('/addres',addresRouter)
 router.get("/", showHomePage);
 
 router.get("/myProfile", userAuth, profilePage);
