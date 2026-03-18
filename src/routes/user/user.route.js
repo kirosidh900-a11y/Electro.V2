@@ -15,17 +15,24 @@ import {
 
 import attachUser from "../../middlewares/attachUser.middleware.js";
 import userAuth from "../../middlewares/user/userAuth.middleware.js";
+import addresRouter from "./addres.route.js";
 import { resendOtp } from "../../controllers/user/auth.controller.js";
 import upload from "../../middlewares/cloudinaryUpload.middleware.js";
 import { setUploadFolder } from "../../middlewares/setUploadFolder.middleware.js";
-
+import locationRoutes from "./location.route.js";
 const router = Router();
 
 // Prevent caching of protected pages
-router.use(attachUser);
+ router.use(attachUser);
 
+//Routes
+router.use("/address", addresRouter);
+router.use("/location", locationRoutes);
+
+//Home side
 router.get("/", showHomePage);
 
+//Profile Side
 router.get("/myProfile", userAuth, profilePage);
 router.patch("/name", userAuth, editName);
 router
@@ -43,11 +50,7 @@ router
 
 router
   .route("/photo")
-  .patch(
-    setUploadFolder("profile"),
-    upload.single("photo"),
-    updateProfilePhoto,
-  )
+  .patch(setUploadFolder("profile"), upload.single("photo"), updateProfilePhoto)
   .delete(deleteProfilePhoto);
 
 export default router;

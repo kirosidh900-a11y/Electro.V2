@@ -1,0 +1,412 @@
+<script src="https://cdn.tailwindcss.com"></script>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+
+<%- include("../../partials/user/header") %>
+
+        <main class="min-h-screen bg-gray-50 py-10">
+                <div class="max-w-7xl mx-auto px-4 lg:px-8">
+                        <div class="flex flex-col lg:flex-row gap-8">
+
+
+                                <%- include("./partials/profileSidebar") %>
+
+
+                                        <section class="flex-grow">
+                                                <div
+                                                        class="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 mb-8">
+                                                        <div
+                                                                class="flex justify-between items-center border-b border-gray-100 pb-5 mb-6">
+                                                                <div>
+                                                                        <h2 class="text-2xl font-bold text-gray-800">My
+                                                                                Addresses</h2>
+                                                                        <p class="text-sm text-gray-500 mt-1">Manage
+                                                                                your shipping and billing locations</p>
+                                                                </div>
+                                                                <button onclick="openAddressModal()"
+                                                                        class="hidden md:flex items-center gap-2 bg-red-500 hover:bg-red-600 text-white px-5 py-2.5 rounded-xl transition-all shadow-md shadow-red-100">
+                                                                        <i class="fa fa-plus-circle"></i>
+                                                                        <span class="font-medium">Add New Address</span>
+                                                                </button>
+                                                        </div>
+
+                                                        <div
+                                                                class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+
+                                                                <div onclick="openAddressModal()"
+                                                                        class="group border-2 border-dashed border-gray-200 rounded-2xl p-6 flex flex-col items-center justify-center text-center cursor-pointer hover:border-red-400 hover:bg-red-50 transition-all min-h-[200px] h-full">
+                                                                        <div
+                                                                                class="w-12 h-12 bg-gray-50 group-hover:bg-red-100 rounded-full flex items-center justify-center mb-3 transition-colors">
+                                                                                <i
+                                                                                        class="fa fa-plus text-gray-400 group-hover:text-red-500 text-lg"></i>
+                                                                        </div>
+                                                                        <h3
+                                                                                class="font-semibold text-gray-700 group-hover:text-red-600">
+                                                                                Add New Address</h3>
+                                                                        <p class="text-xs text-gray-400 mt-1 px-4">Save
+                                                                                a new location for faster checkout</p>
+                                                                </div>
+
+                                                                <% if (addresses && addresses.length> 0) { %>
+                                                                        <% addresses.forEach((addr)=> { %>
+                                                                                <div
+                                                                                        class="relative bg-white border border-gray-200 rounded-2xl p-5 hover:shadow-lg hover:border-red-200 transition-all group flex flex-col justify-between min-h-[200px] h-full">
+                                                                                        <div>
+                                                                                                <div
+                                                                                                        class="flex justify-between items-start mb-4">
+                                                                                                        <span
+                                                                                                                class="px-3 py-1 bg-red-50 text-red-600 text-[10px] font-bold rounded-full uppercase tracking-wider">
+                                                                                                                <i
+                                                                                                                        class="fa <%= addr.addressType === 'Home' ? 'fa-home' : 'fa-briefcase' %> mr-1"></i>
+                                                                                                                <%= addr.addressType
+                                                                                                                        %>
+                                                                                                        </span>
+                                                                                                        <div
+                                                                                                                class="flex gap-2">
+                                                                                                                <button onclick="openAddressModal('<%= encodeURIComponent(JSON.stringify(addr)) %>')"
+                                                                                                                        class="text-gray-400 hover:text-blue-600 transition-colors p-1">
+                                                                                                                        <i
+                                                                                                                                class="fa fa-pen-to-square"></i>
+                                                                                                                </button>
+                                                                                                                <button onclick="deleteAddress('<%= addr._id %>')"
+                                                                                                                        class="text-gray-400 hover:text-red-600 transition-colors p-1">
+                                                                                                                        <i
+                                                                                                                                class="fa fa-trash-can"></i>
+                                                                                                                </button>
+                                                                                                        </div>
+                                                                                                </div>
+
+                                                                                                <h3
+                                                                                                        class="font-bold text-gray-800 text-lg mb-2 truncate">
+                                                                                                        <%= addr.name %>
+                                                                                                </h3>
+
+                                                                                                <div
+                                                                                                        class="space-y-1.5 text-sm text-gray-600">
+                                                                                                        <p
+                                                                                                                class="truncate">
+                                                                                                                <i
+                                                                                                                        class="fa fa-location-dot text-gray-400 w-5 text-center"></i>
+                                                                                                                <%= addr.city
+                                                                                                                        %>
+                                                                                                                        ,
+                                                                                                                        <%= addr.district
+                                                                                                                                %>
+                                                                                                        </p>
+                                                                                                        <p
+                                                                                                                class="ml-5 text-gray-500 text-xs">
+                                                                                                                <%= addr.state
+                                                                                                                        %>
+                                                                                                                        -
+                                                                                                                        <span
+                                                                                                                                class="font-mono text-gray-800 font-medium">
+                                                                                                                                <%= addr.pincode
+                                                                                                                                        %>
+                                                                                                                        </span>
+                                                                                                        </p>
+                                                                                                </div>
+                                                                                        </div>
+
+                                                                                        <div
+                                                                                                class="mt-4 pt-3 border-t border-gray-50">
+                                                                                                <p
+                                                                                                        class="text-sm text-gray-700 font-medium">
+                                                                                                        <i
+                                                                                                                class="fa fa-phone text-gray-400 w-5 text-center"></i>
+                                                                                                        <%= addr.phone
+                                                                                                                %>
+                                                                                                </p>
+                                                                                        </div>
+                                                                                </div>
+                                                                                <% }) %>
+                                                                                        <% } %>
+
+                                                        </div>
+                                                </div>
+                                        </section>
+                        </div>
+                </div>
+        </main>
+
+        <div id="addressModal"
+                class="fixed inset-0 bg-black bg-opacity-50 hidden z-50 flex items-center justify-center p-4">
+                <div class="bg-white rounded-xl shadow-xl w-full max-w-2xl overflow-hidden">
+                        <div class="p-6 border-b flex justify-between items-center">
+                                <h3 class="text-xl font-bold text-gray-800">Address Details</h3>
+                                <button onclick="closeAddressModal()"
+                                        class="text-gray-400 hover:text-gray-600">&times;</button>
+                        </div>
+
+                        <form id="addressForm" class="p-6">
+                                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                        <div class="col-span-1">
+                                                <label class="block text-xs font-bold text-gray-500 uppercase">Full Name
+                                                        *</label>
+                                                <input name="name" type="text" required
+                                                        class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-red-500 outline-none">
+                                        </div>
+                                        <div class="col-span-1">
+                                                <label class="block text-xs font-bold text-gray-500 uppercase">Phone
+                                                        Number *</label>
+                                                <input name="phone" type="text" required
+                                                        class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-red-500 outline-none">
+                                        </div>
+
+                                        <div class="col-span-1">
+                                                <label class="block text-xs font-bold text-gray-500 uppercase">Pincode
+                                                        *</label>
+                                                <input name="pincode" type="text" required
+                                                        class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-red-500 outline-none">
+                                        </div>
+                                        <div class="col-span-1">
+                                                <label class="block text-xs font-bold text-gray-500 uppercase">Locality
+                                                        *</label>
+                                                <input name="locality" type="text" required
+                                                        class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-red-500 outline-none">
+                                        </div>
+
+                                        <div class="col-span-2">
+                                                <label class="block text-xs font-bold text-gray-500 uppercase">Address
+                                                        (Area and Street) *</label>
+                                                <textarea name="address" required rows="3"
+                                                        class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-red-500 outline-none"></textarea>
+                                        </div>
+
+                                        <div class="col-span-1">
+                                                <label class="block text-xs font-bold text-gray-500 uppercase">City/Town
+                                                        *</label>
+                                                <input name="city" type="text" required
+                                                        class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-red-500 outline-none">
+                                        </div>
+                                        <div class="col-span-1">
+                                                <label class="block text-xs font-bold text-gray-500 uppercase">State
+                                                        *</label>
+                                                <select name="state" required
+                                                        class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-red-500 outline-none"></select>
+                                        </div>
+
+                                        <div class="col-span-1">
+                                                <label class="block text-xs font-bold text-gray-500 uppercase">District
+                                                        *</label>
+                                                <select name="district" required
+                                                        class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-red-500 outline-none"></select>
+                                        </div>
+
+                                        <div class="col-span-1">
+                                                <label class="block text-xs font-bold text-gray-500 uppercase">Landmark
+                                                        (Optional)</label>
+                                                <input name="landmark" type="text"
+                                                        class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-red-500 outline-none">
+                                        </div>
+                                        <div class="col-span-1">
+                                                <label class="block text-xs font-bold text-gray-500 uppercase">Alternate
+                                                        Phone (Optional)</label>
+                                                <input name="altPhone" type="text"
+                                                        class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-red-500 outline-none">
+                                        </div>
+
+                                        <div class="col-span-1">
+                                                <label class="block text-xs font-bold text-gray-500 uppercase mb-2">Address
+                                                        Type</label>
+                                                <div class="flex gap-4">
+                                                        <label class="flex items-center gap-2"><input type="radio"
+                                                                        name="addressType" value="home" checked>
+                                                                Home</label>
+                                                        <label class="flex items-center gap-2"><input type="radio"
+                                                                        name="addressType" value="work"> Work</label>
+                                                </div>
+                                        </div>
+
+                                        <div class="col-span-1 flex items-end">
+                                                <label class="flex items-center gap-2 cursor-pointer">
+                                                        <input name="isDefault" type="checkbox"
+                                                                class="w-4 h-4 text-red-600 border-gray-300 rounded focus:ring-red-500">
+                                                        <span class="text-sm font-medium text-gray-700">Set as default
+                                                                address</span>
+                                                </label>
+                                        </div>
+                                </div>
+
+                                <div class="mt-8 flex justify-end gap-3">
+                                        <button type="button" onclick="closeAddressModal()"
+                                                class="px-6 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200">Cancel</button>
+                                        <button type="submit"
+                                                class="px-6 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition">Save
+                                                Address</button>
+                                </div>
+                        </form>
+                </div>
+        </div>
+
+        <%- include("../../partials/user/footer") %>
+
+                <script type="module">
+                        import { showToast } from "/partials/errorMsg.utils.js";
+                        import { confirmAction } from "/partials/confirm.util.js";
+
+                        // Store states
+                        let statesData = [];
+
+                        // LOAD STATES
+                        async function loadStates() {
+                                try {
+                                        const res = await fetch('/location/states');
+                                        statesData = await res.json();
+                                } catch (err) {
+                                        console.error("States fetch failed", err);
+                                }
+                        }
+                        loadStates();
+
+                        // LOAD DISTRICTS
+                        async function loadDistricts(stateCode) {
+                                try {
+                                        const res = await fetch(`/location/districts/${stateCode}`);
+                                        return await res.json();
+                                } catch (err) {
+                                        console.error("District fetch failed", err);
+                                        return [];
+                                }
+                        }
+
+                        // OPEN MODAL
+                        window.openAddressModal = async function (addressJson = null) {
+                                const addr = addressJson ? JSON.parse(decodeURIComponent(addressJson)) : {};
+                                const isEdit = !!addr._id;
+
+                                const modal = document.getElementById('addressModal');
+                                const form = document.getElementById('addressForm');
+
+                                modal.classList.remove('hidden');
+
+                                // Fill basic fields
+                                form.name.value = addr.name || '';
+                                form.phone.value = addr.phone || '';
+                                form.altPhone.value = addr.altPhone || '';
+                                form.pincode.value = addr.pincode || '';
+                                form.locality.value = addr.locality || '';
+                                form.address.value = addr.address || '';
+                                form.city.value = addr.city || '';
+                                form.landmark.value = addr.landmark || '';
+                                form.addressType.value = addr.addressType || 'home';
+                                form.isDefault.checked = addr.isDefault || false;
+
+                                const stateSelect = form.state;
+                                const districtSelect = form.district;
+
+                                // LOAD STATES DROPDOWN
+                                stateSelect.innerHTML =
+                                        '<option value="">Select State</option>' +
+                                        statesData.map(s => `
+            <option value="${s.isoCode}" ${s.isoCode === addr.stateCode ? 'selected' : ''}>
+                ${s.name}
+            </option>
+        `).join('');
+
+                                // LOAD DISTRICTS (EDIT MODE)
+                                if (addr.stateCode) {
+                                        const districts = await loadDistricts(addr.stateCode);
+
+                                        districtSelect.innerHTML =
+                                                '<option value="">Select District</option>' +
+                                                districts.map(d => `
+                <option value="${d}" ${d === addr.district ? 'selected' : ''}>
+                    ${d}
+                </option>
+            `).join('');
+                                } else {
+                                        districtSelect.innerHTML = '<option value="">Select District</option>';
+                                }
+
+                                // STATE CHANGE → DISTRICTS
+                                stateSelect.onchange = async () => {
+                                        const stateCode = stateSelect.value;
+
+                                        if (!stateCode) {
+                                                districtSelect.innerHTML = '<option value="">Select District</option>';
+                                                return;
+                                        }
+
+                                        const districts = await loadDistricts(stateCode);
+
+                                        districtSelect.innerHTML =
+                                                '<option value="">Select District</option>' +
+                                                districts.map(d => `<option value="${d}">${d}</option>`).join('');
+                                };
+
+                                // SUBMIT FORM
+                                form.onsubmit = async (e) => {
+                                        e.preventDefault();
+
+                                        const formData = {
+                                                name: form.name.value.trim(),
+                                                phone: form.phone.value.trim(),
+                                                altPhone: form.altPhone.value.trim() || null,
+                                                pincode: form.pincode.value.trim(),
+                                                locality: form.locality.value.trim(),
+                                                address: form.address.value.trim(),
+                                                city: form.city.value.trim(),
+
+                                                // 🔥 IMPORTANT FIXa
+                                                state: stateSelect.options[stateSelect.selectedIndex].text,
+
+                                                district: districtSelect.value,
+
+                                                landmark: form.landmark.value.trim() || null,
+                                                addressType: form.addressType.value,
+                                                isDefault: form.isDefault.checked
+                                        };
+
+                                        try {
+                                                const url = isEdit ? `/address/${addr._id}` : '/address';
+                                                const method = isEdit ? 'PUT' : 'POST';
+
+                                                const res = await fetch(url, {
+                                                        method,
+                                                        headers: {
+                                                                "Content-Type": "application/json",
+                                                                "Accept": "application/json"
+                                                        },
+                                                        body: JSON.stringify(formData)
+                                                });
+
+                                                const result = await res.json();
+
+                                                if (!res.ok) throw new Error(result.message || "Failed to save address");
+
+                                                showToast(result.message || "Address saved successfully", "success");
+                                                setTimeout(() => location.reload(), 1000);
+
+                                        } catch (error) {
+                                                showToast(error.message, "error");
+                                        }
+                                };
+                        };
+
+                        // DELETE ADDRESS
+                        window.deleteAddress = async function (id) {
+                                const confirmed = await confirmAction("Delete Address?", "This action cannot be undone.");
+                                if (confirmed) {
+                                        try {
+                                                const res = await fetch(`/address/${id}`, {
+                                                        method: 'DELETE',
+                                                        headers: {
+                                                                "Accept": "application/json"
+                                                        }
+                                                });
+
+                                                const data = await res.json();
+
+                                                if (res.ok) location.reload();
+                                                else throw new Error(data.message);
+
+                                        } catch (error) {
+                                                showToast(error.message, "error");
+                                        }
+                                }
+                        };
+
+                        // CLOSE MODAL
+                        window.closeAddressModal = () => {
+                                document.getElementById('addressModal').classList.add('hidden');
+                        };
+                </script>

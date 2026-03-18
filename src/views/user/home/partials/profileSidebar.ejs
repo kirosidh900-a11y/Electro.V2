@@ -1,55 +1,116 @@
- <!-- SIDEBAR -->
-                <aside class="w-full lg:w-1/4 bg-white rounded-xl shadow-sm overflow-hidden h-fit lg:sticky lg:top-6">
+<!-- SIDEBAR -->
+<aside class="w-full lg:w-1/4 bg-white rounded-xl shadow-sm overflow-hidden h-fit lg:sticky lg:top-6">
 
-                    <div class="p-6 flex items-center gap-4 border-b border-gray-100">
+    <!-- USER -->
+    <div class="p-6 flex items-center gap-4 border-b border-gray-100">
 
-                        <div class="h-12 w-12 rounded-full overflow-hidden">
-                            <img id="sidebarImg" src="<%= user?.photo || 'https://res.cloudinary.com/dxtiklfxy/image/upload/v1773824246/profile/qhvfjaqer1o81nwkxvcz.png' %>"
-                                class="w-full h-full object-cover">
-                        </div>
+        <div class="h-12 w-12 rounded-full overflow-hidden">
+            <img id="sidebarImg"
+                src="<%= user?.photo || 'https://res.cloudinary.com/dxtiklfxy/image/upload/v1773824246/profile/qhvfjaqer1o81nwkxvcz.png' %>"
+                class="w-full h-full object-cover">
+        </div>
 
-                        <div>
-                            <p class="text-xs text-gray-400">Hello,</p>
-                            <h2 id="sidebarName" class="font-semibold text-gray-800">
-                                <%= user?.name %>
-                            </h2>
-                        </div>
+        <div>
+            <p class="text-xs text-gray-400">Hello,</p>
+            <h2 id="sidebarName" class="font-semibold text-gray-800">
+                <%= user?.name %>
+            </h2>
+        </div>
 
-                    </div>
+    </div>
 
-                    <nav class="p-4 space-y-1">
+    <!-- NAV -->
+    <nav class="p-4 space-y-1">
 
-                        <a
-                            class="flex items-center justify-between p-3 text-blue-600 bg-blue-50 rounded-lg font-medium">
-                            <span class="flex items-center gap-3">
-                                <i class="fa-solid fa-box"></i> My Orders
-                            </span>
-                            <i class="fa-solid fa-chevron-right text-xs"></i>
-                        </a>
+        <!-- ORDERS -->
+        <a href="/orders"
+            class="flex items-center justify-between p-3 rounded-lg font-medium transition
+            <%= currentRoute === '/orders'
+            ? 'text-blue-600 bg-blue-50'
+            : 'text-gray-600 hover:bg-gray-50' %>">
 
-                        <p class="text-[10px] font-bold text-gray-400 uppercase px-3 pt-5 pb-2">
-                            Account Settings
-                        </p>
+            <span class="flex items-center gap-3">
+                <i class="fa-solid fa-box"></i> My Orders
+            </span>
 
-                        <a class="block p-3 text-blue-600 font-medium rounded-lg">Profile Information</a>
-                        <a class="block p-3 text-gray-600 hover:bg-gray-50 rounded-lg">Manage Addresses</a>
-                        <a class="block p-3 text-gray-600 hover:bg-gray-50 rounded-lg">My Referral Info</a>
+            <i class="fa-solid fa-chevron-right text-xs"></i>
+        </a>
 
-                        <p class="text-[10px] font-bold text-gray-400 uppercase px-3 pt-5 pb-2">
-                            My Stuff
-                        </p>
+        <!-- ACCOUNT SETTINGS -->
+        <p class="text-[10px] font-bold text-gray-400 uppercase px-3 pt-5 pb-2">
+            Account Settings
+        </p>
 
-                        <a class="block p-3 text-gray-600 hover:bg-gray-50 rounded-lg">My Coupons</a>
-                        <a class="block p-3 text-gray-600 hover:bg-gray-50 rounded-lg">My Reviews & Ratings</a>
-                        <a class="block p-3 text-gray-600 hover:bg-gray-50 rounded-lg">My Wishlist</a>
+        <!-- PROFILE -->
+        <a href="/myProfile"
+            class="block p-3 rounded-lg font-medium transition
+            <%= currentRoute === '/myProfile'
+            ? 'text-blue-600 bg-blue-50'
+            : 'text-gray-600 hover:bg-gray-50' %>">
 
-                        <div class="mt-4 pt-4 border-t border-gray-100">
-                            <a href="/logout"
-                                class="flex items-center gap-3 p-3 text-red-500 hover:bg-red-50 rounded-lg">
-                                <i class="fa-solid fa-power-off"></i> Logout
-                            </a>
-                        </div>
+            Profile Information
+        </a>
 
-                    </nav>
+        <!-- ADDRESS -->
+        <a href="/address"
+            class="block p-3 rounded-lg font-medium transition
+            <%= currentRoute === '/address'
+            ? 'text-blue-600 bg-blue-50'
+            : 'text-gray-600 hover:bg-gray-50' %>">
 
-                </aside>
+            Manage Addresses
+        </a>
+
+        <!-- REFERRAL -->
+        <a href="/referral"
+            class="block p-3 rounded-lg font-medium transition
+            <%= currentRoute === '/referral'
+            ? 'text-blue-600 bg-blue-50'
+            : 'text-gray-600 hover:bg-gray-50' %>">
+
+            My Referral Info
+        </a>
+
+        <!-- MY STUFF -->
+        <p class="text-[10px] font-bold text-gray-400 uppercase px-3 pt-5 pb-2">
+            My Stuff
+        </p>
+
+        <a href="/coupons"
+            class="block p-3 rounded-lg transition
+            <%= currentRoute === '/coupons'
+            ? 'text-blue-600 bg-blue-50'
+            : 'text-gray-600 hover:bg-gray-50' %>">
+
+            My Coupons
+        </a>
+
+        <a href="/reviews"
+            class="block p-3 rounded-lg transition
+            <%= currentRoute === '/reviews'
+            ? 'text-blue-600 bg-blue-50'
+            : 'text-gray-600 hover:bg-gray-50' %>">
+
+            My Reviews & Ratings
+        </a>
+
+        <a href="/wishlist"
+            class="block p-3 rounded-lg transition
+            <%= currentRoute === '/wishlist'
+            ? 'text-blue-600 bg-blue-50'
+            : 'text-gray-600 hover:bg-gray-50' %>">
+
+            My Wishlist
+        </a>
+
+        <!-- LOGOUT -->
+        <div class="mt-4 pt-4 border-t border-gray-100">
+            <a id="logout"
+                class="flex items-center gap-3 p-3 text-red-500 hover:bg-red-50 rounded-lg transition">
+                <i class="fa-solid fa-power-off"></i> Logout
+            </a>
+        </div>
+
+    </nav>
+
+</aside>
