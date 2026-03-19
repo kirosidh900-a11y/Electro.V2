@@ -293,7 +293,14 @@
 
                                 const canvas = cropper.getCroppedCanvas({
                                         width: 300,
-                                        height: 300
+                                        height: 300,
+                                        viewMode: 1,
+                                        responsive: true,
+                                        autoCropArea: 1,
+
+                                        // ✅ Full control to user
+                                        movable: true,
+                                        zoomable: true,
                                 });
 
                                 canvas.toBlob((blob) => {

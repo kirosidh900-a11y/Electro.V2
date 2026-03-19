@@ -2,6 +2,8 @@ import Products from "../../models/productSchema.model.js";
 import Category from "../../models/CategorySchema.model.js";
 import Brand from "../../models/brandSchema.model.js";
 import mongoose from "mongoose";
+import AppError from "../../utils/partials/AppError.utils.js";
+import HTTP_STATUS from "../../constant/statusCode.js";
 
 //  PRODUCTS PAGE
 export const getProductsService = async ({ page, limit, search, status }) => {
@@ -219,6 +221,7 @@ export const getProductAttributesService = async (id) => {
   return product.attributes || [];
 };
 
+//GET PRODUCTS DATA
 export const getProductByIdService = async (id) => {
   const product = await Products.findById(id)
     .populate("category", "_id title")
@@ -233,7 +236,33 @@ export const getProductByIdService = async (id) => {
     category: product.category?._id,
     brand: product.brand?._id,
     status: product.status,
-    attributes: product.attributes || {}, 
+    attributes: product.attributes || {},
+  };
+};
+
+//GET VARIANT DATA
+export const getVariantByIdService = async (productId, variantId) => {
+  const product = await Products.findById(productId).select("variants");
+  console.log(product);
+  if (!product) {
+    throw new AppError("Product not found", HTTP_STATUS.NOT_FOUND);
+  }
+
+  const variant = product.variants.id(variantId);
+
+  if (!variant) {
+    throw new AppError("Variant not found", HTTP_STATUS.NOT_FOUND);
+  }
+
+  // 🔥 normalize attributes (important if Map)
+  const normalizedAttributes =
+    variant.attributes instanceof Map
+      ? Object.fromEntries(variant.attributes)
+      : variant.attributes;
+
+  return {
+    ...variant.toObject(),
+    attributes: normalizedAttributes,
   };
 };
 
@@ -264,30 +293,74 @@ export const getProductDetailsService = async (id) => {
 };
 
 //  ADD VARIANT
-export const addVariantService = async (productId, data) => {
+export const addVariantService = async ({
+  productId,
+  sku,
+  price,
+  stock,
+  description,
+  attributes,
+  files,
+}) => {
   const product = await Products.findById(productId);
 
-  if (!product) throw new Error("Product not found");
+  if (!product) {
+    throw new AppError("Product not found", HTTP_STATUS.NOT_FOUND);
+  }
 
-  const normalizedSku = data.sku.trim().toLowerCase();
+  const normalizedSku = sku.trim().toLowerCase();
 
   // 🔥 check globally
-  const skuExists = await Products.findOne({
+  const skuExists = await Products.exists({
     "variants.sku": { $regex: `^${normalizedSku}$`, $options: "i" },
   });
 
   if (skuExists) {
-    throw new Error("SKU already exists for another variant");
+    throw new AppError(
+      "SKU already exists for another variant",
+      HTTP_STATUS.CONFLICT,
+    );
   }
 
-  product.variants.push({
-    sku: data.sku,
-    price: data.price,
-    stock: data.stock,
-    attributes: new Map(Object.entries(data.attributes || {})),
-  });
+  // ================= IMAGE UPLOAD =================
+
+  const uploadedImages = [];
+
+  if (!files || files.length < 3) {
+    throw new AppError(
+      "At least 3 product images are required",
+      HTTP_STATUS.BAD_REQUEST,
+    );
+  }
+
+  for (const file of files) {
+    const uploaded = await uploadToCloudinary(file.buffer, "products");
+
+    uploadedImages.push({
+      url: uploaded.secure_url,
+      imageId: uploaded.public_id,
+    });
+  }
+
+  // ================= CREATE VARIANT =================
+
+  const newVariant = {
+    sku,
+    price,
+    stock,
+    description,
+    attributes: new Map(Object.entries(attributes || {})),
+    product_images: uploadedImages,
+  };
+
+  product.variants.push(newVariant);
 
   await product.save();
+
+  return {
+    message: "Variant added successfully",
+    variant: product.variants[product.variants.length - 1],
+  };
 };
 
 //  EDIT VARIANT

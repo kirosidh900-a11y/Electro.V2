@@ -422,9 +422,12 @@
 
                 </div>
 
-                <div id="variantModal" class="fixed inset-0 bg-black/60 hidden z-50 flex items-center justify-center">
+                <div id="variantModal"
+                        class="flex flex-col gap-4  inset-0 bg-black/60 hidden z-50 flex items-center justify-center p-4">
 
-                        <div class="bg-[#0b1220] w-[550px] rounded-xl border border-white/10 p-6">
+                        <div class="bg-[#0b1220] w-full max-w-lg sm:max-w-xl md:max-w-2xl lg:max-w-3xl 
+    max-h-[90vh] overflow-y-auto rounded-xl border border-white/10 p-6">
+
 
                                 <div class="flex justify-between items-center mb-4">
 
@@ -481,6 +484,31 @@
 
                                         </div>
 
+                                        <!-- DESCRIPTION -->
+                                        <div>
+                                                <label class="text-sm text-gray-400">Description</label>
+                                                <textarea id="variant-description"
+                                                        class="w-full mt-1 bg-[#0f172a] border border-white/10 px-3 py-2 rounded-lg text-sm"
+                                                        rows="3"></textarea>
+                                        </div>
+
+                                        <!-- MULTI IMAGE UPLOAD -->
+                                        <div>
+                                                <label class="text-sm text-gray-400">Images</label>
+
+                                                <input type="file" id="variantImageInput" class="hidden"
+                                                        accept="image/*" multiple>
+
+                                                <div id="variantImagePreview"
+                                                        class="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-2 mt-2">
+                                                </div>
+
+                                                <button type="button" onclick="openImageUploadForForm()"
+                                                        class=" flex flex-col sm:flex-row justify-center gap-3 mt-4 mt-2 px-3 py-1 bg-blue-600 text-white text-xs rounded">
+                                                        + Add Images
+                                                </button>
+                                        </div>
+
 
                                         <!-- VARIANT ATTRIBUTES (Dynamic) -->
 
@@ -500,7 +528,7 @@
                                         <div class="flex justify-center gap-3 mt-4">
 
                                                 <button type="button" onclick="closeVariantModal()"
-                                                        class="px-4 py-2 bg-gray-600 hover:bg-gray-700 text-white rounded-lg text-sm">
+                                                        class="flex flex-col sm:flex-row justify-center gap-3 mt-4 px-4 py-2 bg-gray-600 hover:bg-gray-700 text-white rounded-lg text-sm">
 
                                                         Cancel
 
@@ -508,7 +536,7 @@
 
 
                                                 <button type="submit"
-                                                        class="px-4 py-2 bg-cyan-600 hover:bg-cyan-700 text-white rounded-lg text-sm">
+                                                        class="flex flex-col sm:flex-row justify-center gap-3 mt-4 px-4 py-2 bg-cyan-600 hover:bg-cyan-700 text-white rounded-lg text-sm">
 
                                                         Save Variant
 
@@ -521,6 +549,7 @@
                         </div>
 
                 </div>
+
                 <!-- croper modal -->
                 <div id="variantCropModal"
                         class="fixed inset-0 bg-black/70 hidden z-50 flex items-center justify-center">
@@ -538,7 +567,7 @@
                                                 Cancel
                                         </button>
 
-                                        <button onclick="cropVariantImage()" class="px-4 py-2 bg-cyan-600 rounded">
+                                        <button onclick="handleCrop()" class="px-4 py-2 bg-cyan-600 rounded">
                                                 Crop
                                         </button>
                                 </div>
@@ -555,9 +584,12 @@
                         let editingVariantAttributes = {};
                         let currentVariantId = null;
 
-                        // 🔥 Cropper variables
+                        // Cropper variables
                         let variantCropper;
                         let variantCroppedBlob;
+                        let variantImages = []; //  store cropped blobs
+                        let cropMode = "single"; // "single" | "multi"
+
 
                         const variantImageInput = document.getElementById("variantImageInput");
                         const variantCropModal = document.getElementById("variantCropModal");
@@ -584,6 +616,9 @@
                                 document.getElementById("variant-sku").value = "";
                                 document.getElementById("variant-price").value = "";
                                 document.getElementById("variant-stock").value = "";
+                                variantImages = [];
+                                document.getElementById("variantImagePreview").innerHTML = "";
+                                document.getElementById("variant-description").value = "";
 
                                 editingVariantAttributes = {};
 
@@ -630,21 +665,64 @@
 
                         /* ================= EDIT VARIANT ================= */
 
-                        window.editVariant = function (id, sku, price, stock, attributes = {}) {
-                                document.getElementById("variant-id").value = id;
-                                document.getElementById("variant-sku").value = sku;
-                                document.getElementById("variant-price").value = price;
-                                document.getElementById("variant-stock").value = stock;
+                        window.editVariant = async function (variantId) {
 
-                                editingVariantAttributes = attributes || {};
+                                try {
 
-                                document.getElementById("variantModalTitle").textContent = "Edit Variant";
+                                        const res = await fetch(
+                                                `/admin/products/<%= product._id %>/variants/${variantId}`
+                                        );
 
-                                loadVariantAttributes(editingVariantAttributes);
+                                        const data = await res.json();
 
-                                document.getElementById("variantModal").classList.remove("hidden");
+                                        if (!data.success) {
+                                                return showToast(data.message, "error");
+                                        }
+
+                                        const variant = data.data.variant;
+
+                                        console.log("FETCHED VARIANT:", variant);
+
+                                        // ================= SET BASIC FIELDS =================
+
+                                        document.getElementById("variant-id").value = variant._id;
+                                        document.getElementById("variant-sku").value = variant.sku || "";
+                                        document.getElementById("variant-price").value = variant.price || "";
+                                        document.getElementById("variant-stock").value = variant.stock || "";
+                                        document.getElementById("variant-description").value = variant.description || "";
+
+                                        // ================= ATTRIBUTES =================
+
+                                        editingVariantAttributes = variant.attributes || {};
+                                        await loadVariantAttributes(editingVariantAttributes);
+
+                                        // ================= IMAGES =================
+
+                                        const preview = document.getElementById("variantImagePreview");
+                                        preview.innerHTML = "";
+
+                                        if (variant.product_images?.length) {
+                                                variant.product_images.forEach(img => {
+                                                        const image = document.createElement("img");
+                                                        image.src = img.url;
+                                                        image.className = "w-16 h-16 object-cover rounded";
+
+                                                        preview.appendChild(image);
+                                                });
+                                        }
+
+                                        // reset new images
+                                        variantImages = [];
+
+                                        document.getElementById("variantModalTitle").textContent = "Edit Variant";
+
+                                        document.getElementById("variantModal").classList.remove("hidden");
+
+                                } catch (error) {
+                                        console.error(error);
+                                        showToast("Failed to load variant", "error");
+                                }
                         };
-
                         /* ================= SUBMIT VARIANT ================= */
 
                         const variantForm = document.getElementById("variantForm");
@@ -657,6 +735,8 @@
                                         const sku = document.getElementById("variant-sku").value.trim();
                                         const price = parseFloat(document.getElementById("variant-price").value);
                                         const stock = parseInt(document.getElementById("variant-stock").value);
+                                        const description = document.getElementById("variant-description").value.trim();
+
 
                                         if (!sku) return showToast("SKU is required", "warning");
                                         if (sku.length < 3) return showToast("SKU must be at least 3 characters", "warning");
@@ -672,6 +752,25 @@
                                         for (const key in attributes) {
                                                 if (!attributes[key]) return showToast(`${key} cannot be empty`, "warning");
                                         }
+                                        if (!description || description.length < 5)
+                                                return showToast("Description required", "warning");
+
+                                        if (!variantId && variantImages.length < 3)
+                                                return showToast("At least three image required", "warning");
+
+                                        // 🔥 FormData
+                                        const formData = new FormData();
+
+                                        formData.append("sku", sku);
+                                        formData.append("price", price);
+                                        formData.append("stock", stock);
+                                        formData.append("description", description);
+                                        formData.append("attributes", JSON.stringify(attributes));
+
+                                        // 🔥 append images
+                                        variantImages.forEach((img, i) => {
+                                                formData.append("images", img, `variant-${i}.png`);
+                                        });
 
                                         let url = `/admin/products/<%= product._id %>/variants`;
                                         let method = "POST";
@@ -683,8 +782,7 @@
 
                                         const res = await fetch(url, {
                                                 method,
-                                                headers: { "Content-Type": "application/json" },
-                                                body: JSON.stringify({ sku, price, stock, attributes })
+                                                body: formData
                                         });
 
                                         const data = await res.json();
@@ -730,6 +828,7 @@
 
                         window.openImageUpload = function (variantId) {
                                 currentVariantId = variantId;
+                                cropMode = "single";
                                 variantImageInput.click();
                         };
 
@@ -739,9 +838,6 @@
 
                                 if (!file.type.startsWith("image/"))
                                         return showToast("Only image files allowed", "warning");
-
-                                if (file.size > 5 * 1024 * 1024)
-                                        return showToast("Image must be less than 5MB", "warning");
 
                                 const reader = new FileReader();
 
@@ -753,10 +849,9 @@
                                                 if (variantCropper) variantCropper.destroy();
 
                                                 variantCropper = new Cropper(variantCropImage, {
+                                                        aspectRatio: 1,
                                                         viewMode: 1,
                                                         autoCropArea: 1,
-                                                        responsive: true,
-                                                        background: false,
                                                 });
                                         }, 100);
                                 };
@@ -764,14 +859,51 @@
                                 reader.readAsDataURL(file);
                         });
 
+                        function handleNextImage(files) {
+                                const file = files.shift();
+                                if (!file) return;
+
+                                if (!file.type.startsWith("image/"))
+                                        return showToast("Only image files allowed", "warning");
+
+                                const reader = new FileReader();
+
+                                reader.onload = function (e) {
+                                        variantCropImage.src = e.target.result;
+                                        variantCropModal.classList.remove("hidden");
+
+                                        setTimeout(() => {
+                                                if (variantCropper) variantCropper.destroy();
+
+                                                variantCropper = new Cropper(variantCropImage, {
+                                                        aspectRatio: 1,
+                                                        viewMode: 1,
+                                                        autoCropArea: 1,
+                                                });
+
+                                                // store remaining files
+                                                variantCropModal.dataset.remaining = JSON.stringify(files);
+                                        }, 100);
+                                };
+
+                                reader.readAsDataURL(file);
+                        }
+
                         /* ================= CROP & UPLOAD ================= */
 
-                        window.cropVariantImage = async function () {
+                        window.cropSingleVariantImage = async function () {
                                 if (!variantCropper) return;
 
                                 const canvas = variantCropper.getCroppedCanvas({
                                         width: 400,
-                                        height: 400
+                                        height: 400,
+                                        viewMode: 1,
+                                        responsive: true,
+                                        autoCropArea: 1,
+
+                                        // ✅ Full control to user
+                                        movable: true,
+                                        zoomable: true,
                                 });
 
                                 canvas.toBlob(async (blob) => {
@@ -796,8 +928,7 @@
                                                 showToast("Image uploaded successfully", "success");
 
                                                 closeVariantCrop();
-
-                                                setTimeout(() => location.reload(), 1000);
+                                                setTimeout(() => location.reload(), 800);
 
                                         } catch {
                                                 showToast("Upload failed", "error");
@@ -806,6 +937,45 @@
                                 }, "image/png");
                         };
 
+                        window.cropMultiVariantImage = function () {
+                                if (!variantCropper) return;
+
+                                const canvas = variantCropper.getCroppedCanvas({
+                                        width: 400,
+                                        height: 400,
+                                        viewMode: 1,
+                                        responsive: true,
+                                        autoCropArea: 1,
+
+                                        // ✅ Full control to user
+                                        movable: true,
+                                        zoomable: true,
+                                });
+
+                                canvas.toBlob((blob) => {
+
+                                        variantImages.push(blob);
+
+                                        const preview = document.getElementById("variantImagePreview");
+
+                                        const img = document.createElement("img");
+                                        img.src = URL.createObjectURL(blob);
+                                        img.className = "w-16 h-16 rounded object-cover";
+
+                                        preview.appendChild(img);
+
+                                        closeVariantCrop();
+
+                                }, "image/png");
+                        };
+
+                        window.handleCrop = function () {
+                                if (cropMode === "single") {
+                                        cropSingleVariantImage();
+                                } else {
+                                        cropMultiVariantImage();
+                                }
+                        };
                         /* ================= CLOSE CROP ================= */
 
                         window.closeVariantCrop = function () {
@@ -847,6 +1017,12 @@
                                 } catch {
                                         showToast("Delete failed", "error");
                                 }
+                        };
+
+                        window.openImageUploadForForm = function () {
+                                currentVariantId = null;
+                                cropMode = "multi";
+                                variantImageInput.click();
                         };
 
                 </script>

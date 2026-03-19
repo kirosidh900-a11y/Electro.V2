@@ -15,10 +15,14 @@ import {
   addVariantImage,
   deleteVariantImage,
   getProductById,
+  getVariantById,
 } from "../../controllers/product/product.controller.js";
 
 import { setUploadFolder } from "../../middlewares/setUploadFolder.middleware.js";
 import upload from "../../middlewares/cloudinaryUpload.middleware.js";
+import { validate } from "../../middlewares/validate.middleware.js";
+import { addVariantSchema } from "../../validations/variant.validation.js";
+import { validateVariantImages } from "../../middlewares/imageValidation.middleware.js";
 
 const router = Router();
 
@@ -43,9 +47,18 @@ router.get("/:id/datas", getProductById);
 router.patch("/:id/status", toggleProductStatus);
 
 // Add , delete and Edit Variant Hear
-router.post("/:id/variants", addVariant);
+router.post(
+  "/:id/variants",
+  setUploadFolder("products"),
+  upload.array("images"),
+  validate(addVariantSchema),   // ✅ now works
+  validateVariantImages,        
+  addVariant
+);
+
 router
   .route("/:productId/variants/:variantId")
+  .get(getVariantById)
   .patch(editVariant)
   .delete(deleteVariant);
 

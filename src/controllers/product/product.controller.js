@@ -15,6 +15,7 @@ import {
   editVariantService,
   deleteVariantService,
   getProductByIdService,
+  getVariantByIdService,
 } from "../../services/product/product.service.js";
 
 import {
@@ -26,6 +27,7 @@ import {
   errorResponse,
   successResponse,
 } from "../../utils/partials/response.util.js";
+
 import {
   deleteFromCloudinary,
   uploadToCloudinary,
@@ -160,7 +162,7 @@ export const getAttributes = async (req, res) => {
   }
 };
 
-// GET PRODUCT DATAS
+// GET PRODUCT DATA
 export const getProductById = async (req, res) => {
   try {
     const { id } = req.params;
@@ -184,6 +186,24 @@ export const getProductById = async (req, res) => {
   }
 };
 
+//GET VARIANT DATA
+export const getVariantById = async (req, res) => {
+  try {
+    const { productId, variantId } = req.params;
+
+    const variant = await getVariantByIdService(productId, variantId);
+
+    return successResponse(
+      res,
+      "Variant fetched successfully",
+      HTTP_STATUS.OK,
+      { variant },
+    );
+  } catch (error) {
+    return errorResponse(res, error.message);
+  }
+};
+
 //  PRODUCT DETAILS
 export const getProductDetails = async (req, res, next) => {
   try {
@@ -203,17 +223,31 @@ export const getProductDetails = async (req, res, next) => {
 //  VARIANTS
 export const addVariant = async (req, res) => {
   try {
-    await addVariantService(req.params.id, req.body);
+    const productId = req.params.id;
 
-    res.status(HTTP_STATUS.CREATED).json({
-      success: true,
-      message: "Variant added successfully",
+    let { sku, price, stock, description, attributes } = req.body;
+
+    if (typeof attributes === "string") {
+      attributes = JSON.parse(attributes);
+    }
+
+    const files = req.files || [];
+
+    const result = await addVariantService({
+      productId,
+      sku,
+      price,
+      stock,
+      description,
+      attributes,
+      files,
+    });
+
+    return successResponse(res, result.message, HTTP_STATUS.CREATED, {
+      variant: result.variant,
     });
   } catch (error) {
-    res.status(HTTP_STATUS.BAD_REQUEST).json({
-      success: false,
-      message: error.message,
-    });
+    return errorResponse(res, error.message, error.statusCode);
   }
 };
 
