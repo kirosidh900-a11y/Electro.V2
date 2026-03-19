@@ -16,6 +16,10 @@ import {
 } from "../../utils/partials/response.util.js";
 
 import HTTP_STATUS from "../../constant/statusCode.js";
+import {
+  deleteFromCloudinary,
+  uploadToCloudinary,
+} from "../../services/partials/cloudinary.service.js";
 
 export const brandPage = async (req, res) => {
   try {
@@ -105,19 +109,26 @@ export const updateBrand = async (req, res) => {
     }
 
     let logo = brand.logo;
+    let brandId = brand.brandId;
 
+    // ✅ Only if new image uploaded
     if (req.file) {
-      if (brand.logo) {
-        const publicId = getPublicId(brand.logo);
-        await cloudinary.uploader.destroy(publicId);
+      // delete old image
+      if (brand?.brandId) {
+        await deleteFromCloudinary(brand.brandId);
       }
 
-      logo = req.file.path;
+      // upload new image
+      const result = await uploadToCloudinary(req.file.buffer, "brand");
+
+      logo = result.secure_url;
+      brandId = result.public_id;
     }
 
     await updateBrandService(id, {
       title,
       logo,
+      brandId,
     });
 
     return successResponse(res, "Brand updated successfully");
