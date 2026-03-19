@@ -14,6 +14,7 @@ import {
   addVariantService,
   editVariantService,
   deleteVariantService,
+  getProductByIdService,
 } from "../../services/product/product.service.js";
 
 import {
@@ -54,6 +55,7 @@ export const productsPage = async (req, res, next) => {
     }
 
     res.locals.title = "Products Management";
+    console.log(products[0]);
     res.status(HTTP_STATUS.OK).render("admin/home/products", {
       products,
       categories,
@@ -155,6 +157,30 @@ export const getAttributes = async (req, res) => {
   }
 };
 
+// GET PRODUCT DATAS
+export const getProductById = async (req, res) => {
+  try {
+    const { id } = req.params;
+    console.log(id);
+
+    const product = await getProductByIdService(id);
+
+    if (!product) {
+      return errorResponse(res, "Product not found",HTTP_STATUS.NOT_FOUND);
+    }
+
+    return successResponse(
+      res,
+      "Product fetched successfully",
+      HTTP_STATUS.OK,
+      product,
+    );
+  } catch (error) {
+    console.error(error);
+    return errorResponse(res, "Failed to fetch product");
+  }
+};
+
 //  PRODUCT DETAILS
 export const getProductDetails = async (req, res, next) => {
   try {
@@ -227,7 +253,6 @@ export const addVariantImage = async (req, res) => {
     const { productId, variantId } = req.params;
 
     const file = req.file || req.files?.[0];
-
 
     if (!file) {
       return errorResponse(res, "Image required", HTTP_STATUS.BAD_REQUEST);

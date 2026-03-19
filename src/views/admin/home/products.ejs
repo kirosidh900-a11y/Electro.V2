@@ -320,13 +320,20 @@
                                         const res = await fetch(`/admin/category/${categoryId}/attributes`);
                                         const result = await res.json();
 
-                                        result.data.productAttributes.forEach(attr => {
+                                        const allAttributes = result.data.productAttributes;
+
+
+                                        console.log(allAttributes)
+
+                                        allAttributes.forEach(attr => {
 
                                                 const input = document.createElement("input");
 
                                                 input.placeholder = attr.label;
                                                 input.name = attr.key;
-                                                input.value = existingAttributes[attr.key] || "";
+
+                                                // 🔥 IMPORTANT FIX
+                                                input.value = existingAttributes?.[attr.key] || "";
 
                                                 input.className =
                                                         "bg-[#0f172a] border border-white/10 px-3 py-2 rounded-lg text-sm";
@@ -340,9 +347,7 @@
                                         showToast("Failed to load attributes", "error");
 
                                 }
-
                         }
-
 
                         // ================= FORM SUBMIT =================
 
@@ -499,30 +504,48 @@
 
                         });
 
-                        function editProduct(id, name, category, brand, status, attributes = {}) {
+                        async function editProduct(id) {
 
-                                document.getElementById("product-id").value = id;
-                                document.getElementById("product-name").value = name;
-                                document.getElementById("product-category").value = category || "";
-                                document.getElementById("product-brand").value = brand || "";
-                                document.getElementById("product-status").value = status;
+                                try {
 
-                                editingAttributes = attributes || {};
+                                        const res = await fetch(`/admin/products/${id}/datas`, {
+                                                headers: {
+                                                        'Accept': 'applicaton/json'
+                                                }
+                                        });
+                                        const data = await res.json();
+                                        console.log("Data:", data)
 
-                                document.getElementById("product-submit-btn").textContent = "Update Product";
+                                        if (!data.success) {
+                                                return showToast(data.message, "error");
+                                        }
 
-                                const title = document.getElementById("productModalTitle");
-                                if (title) title.textContent = "Edit Product";
+                                        const product = data.data;
 
-                                // 🔥 load attributes for the selected category
-                                if (category) {
-                                        loadCategoryAttributes(category, editingAttributes);
+                                        document.getElementById("product-id").value = product._id;
+                                        document.getElementById("product-name").value = product.name;
+                                        document.getElementById("product-category").value = product.category || "";
+                                        document.getElementById("product-brand").value = product.brand || "";
+                                        document.getElementById("product-status").value = product.status;
+
+                                        // 🔥 set attributes from backend
+                                        editingAttributes = product.attributes || {};
+
+                                        // 🔥 load category attributes + fill values
+                                        await loadCategoryAttributes(product.category, editingAttributes);
+
+                                        document.getElementById("product-submit-btn").textContent = "Update Product";
+
+                                        const title = document.getElementById("productModalTitle");
+                                        if (title) title.textContent = "Edit Product";
+
+                                        document.getElementById("productModal").classList.remove("hidden");
+
+                                } catch (error) {
+                                        console.error(error);
+                                        showToast("Failed to load product", "error");
                                 }
-
-                                document.getElementById("productModal").classList.remove("hidden");
                         }
-
-
                         // ================= DELETE PRODUCT =================
 
                         async function deleteProduct(product_id) {

@@ -219,6 +219,24 @@ export const getProductAttributesService = async (id) => {
   return product.attributes || [];
 };
 
+export const getProductByIdService = async (id) => {
+  const product = await Products.findById(id)
+    .populate("category", "_id title")
+    .populate("brand", "_id title")
+    .lean();
+
+  if (!product) return null;
+
+  return {
+    _id: product._id,
+    name: product.name,
+    category: product.category?._id,
+    brand: product.brand?._id,
+    status: product.status,
+    attributes: product.attributes || {}, 
+  };
+};
+
 //  GET PRODUCT DETAILS
 export const getProductDetailsService = async (id) => {
   const product = await Products.findOne({

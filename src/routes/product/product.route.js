@@ -14,36 +14,40 @@ import {
   editVariant,
   addVariantImage,
   deleteVariantImage,
+  getProductById,
 } from "../../controllers/product/product.controller.js";
-
 
 import { setUploadFolder } from "../../middlewares/setUploadFolder.middleware.js";
 import upload from "../../middlewares/cloudinaryUpload.middleware.js";
 
 const router = Router();
 
+router.use(isAuth);
+
 // Add and Get Product Hear
-router.route("/").get(isAuth, productsPage).post(isAuth, createProduct);
+router.route("/").get(productsPage).post(createProduct);
 
 // Update and Delete Product & Get Product details page Hear
 router
   .route("/:id")
-  .get(isAuth, getProductDetails)
-  .patch(isAuth, updateProduct)
-  .delete(isAuth, deleteProduct);
+  .get(getProductDetails)
+  .patch(updateProduct)
+  .delete(deleteProduct);
 
 // Get attributes for Add product hear
-router.get("/:id/attributes", isAuth, getAttributes);
+router.get("/:id/attributes", getAttributes);
+//Get Product Details for edit product
+router.get("/:id/datas", getProductById);
 
 // Update Status
-router.patch("/:id/status", isAuth, toggleProductStatus);
+router.patch("/:id/status", toggleProductStatus);
 
 // Add , delete and Edit Variant Hear
-router.post("/:id/variants", isAuth, addVariant);
+router.post("/:id/variants", addVariant);
 router
   .route("/:productId/variants/:variantId")
-  .patch(isAuth, editVariant)
-  .delete(isAuth, deleteVariant);
+  .patch(editVariant)
+  .delete(deleteVariant);
 
 // Img add and delete
 router
@@ -54,6 +58,6 @@ router
     upload.single("image"),
     addVariantImage,
   )
-  .delete(isAuth, deleteVariantImage);
+  .delete(deleteVariantImage);
 
 export default router;
