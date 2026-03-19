@@ -65,31 +65,33 @@ export const brandPage = async (req, res) => {
 };
 
 export const createBrand = async (req, res) => {
+  let uploadedImage;
+
   try {
     const { title, status } = req.body;
 
     if (!req.file) {
-      return errorResponse(res, "Logo required", HTTP_STATUS.BAD_REQUEST);
+      return errorResponse(res, "Logo required", HTTP_STATUS.NOT_FOUND);
     }
 
-    const logo = req.file.path;
+    uploadedImage = await uploadToCloudinary(req.file.buffer, "brand");
 
     await createBrandService({
       title: title.trim().toUpperCase(),
       status,
-      logo,
+      logo: uploadedImage.secure_url,
+      brandId: uploadedImage.public_id,
     });
 
     return successResponse(res, "Brand created successfully");
   } catch (error) {
-    // delete uploaded image if DB failed
-    if (req.file) {
-      const publicId = getPublicId(req.file.path);
-      await cloudinary.uploader.destroy(publicId);
+    // cleanup only if uploaded
+    if (uploadedImage?.public_id) {
+      await deleteFromCloudinary(uploadedImage.public_id);
     }
 
     if (error.code === 11000) {
-      return errorResponse(res, "Brand already exists");
+      return errorResponse(res, "Brand already exists",HTTP_STATUS.CONFLICT);
     }
 
     console.error(error);
@@ -98,6 +100,8 @@ export const createBrand = async (req, res) => {
 };
 
 export const updateBrand = async (req, res) => {
+  let uploadedImage;
+
   try {
     const { id } = req.params;
     const { title } = req.body;
@@ -111,18 +115,12 @@ export const updateBrand = async (req, res) => {
     let logo = brand.logo;
     let brandId = brand.brandId;
 
-    // ✅ Only if new image uploaded
+    // Only if new image uploaded
     if (req.file) {
-      // delete old image
-      if (brand?.brandId) {
-        await deleteFromCloudinary(brand.brandId);
-      }
+      uploadedImage = await uploadToCloudinary(req.file.buffer, "brand");
 
-      // upload new image
-      const result = await uploadToCloudinary(req.file.buffer, "brand");
-
-      logo = result.secure_url;
-      brandId = result.public_id;
+      logo = uploadedImage.secure_url;
+      brandId = uploadedImage.public_id;
     }
 
     await updateBrandService(id, {
@@ -131,8 +129,18 @@ export const updateBrand = async (req, res) => {
       brandId,
     });
 
+    // After DB success → delete old image
+    if (req.file && brand?.brandId) {
+      await deleteFromCloudinary(brand.brandId);
+    }
+
     return successResponse(res, "Brand updated successfully");
   } catch (error) {
+    // If DB fails → delete NEW uploaded image only
+    if (uploadedImage?.public_id) {
+      await deleteFromCloudinary(uploadedImage.public_id);
+    }
+
     console.error(error);
     return errorResponse(res, "Failed to update brand");
   }
