@@ -34,12 +34,6 @@ const brandSchema = new mongoose.Schema(
 // pagination + sorting optimization
 brandSchema.index({ isDeleted: 1, status: 1, createdAt: -1 });
 
-// unique only for active brands
-brandSchema.index(
-  { title: 1 },
-  { unique: true, partialFilterExpression: { isDeleted: false } },
-);
-
 const Brand = mongoose.model("Brand", brandSchema);
 
 export default Brand;

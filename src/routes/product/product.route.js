@@ -52,12 +52,7 @@ router
 // Img add and delete
 router
   .route("/:productId/variants/:variantId/image")
-  .post(
-    isAuth,
-    setUploadFolder("products"),
-    upload.single("image"),
-    addVariantImage,
-  )
+  .post(setUploadFolder("products"), upload.single("image"), addVariantImage)
   .delete(deleteVariantImage);
 
 export default router;

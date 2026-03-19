@@ -3,6 +3,9 @@
 
 <head>
         <%- include('../../partials/head') %>
+                <link rel="stylesheet" href="https://unpkg.com/cropperjs@1.6.2/dist/cropper.min.css">
+                <script src="https://unpkg.com/cropperjs@1.6.2/dist/cropper.min.js"></script>
+
 </head>
 
 <body class="min-h-screen flex">
@@ -66,11 +69,11 @@
 
                                                                                 <% } %> -->
 
-                                                                                        <!-- DELETE PRODUCT -->
-                                                                                        <button onclick="deleteProduct('<%= product._id %>')"
-                                                                                                class="w-full text-left px-4 py-2 text-sm text-red-400 hover:bg-white/10">
-                                                                                                Delete Product
-                                                                                        </button>
+                                                                <!-- DELETE PRODUCT -->
+                                                                <button onclick="deleteProduct('<%= product._id %>')"
+                                                                        class="w-full text-left px-4 py-2 text-sm text-red-400 hover:bg-white/10">
+                                                                        Delete Product
+                                                                </button>
 
                                                         </div>
 
@@ -318,20 +321,20 @@
                                                                                                                                         <div
                                                                                                                                                 class="flex flex-col items-center gap-2">
 
-                                                                                                                                                <% if(v.product_image
+                                                                                                                                                <% if(v.product_images
                                                                                                                                                         &&
-                                                                                                                                                        v.product_image.length){
+                                                                                                                                                        v.product_images.length){
                                                                                                                                                         %>
 
                                                                                                                                                         <%
-                                                                                                                                                                v.product_image.forEach(img=>
+                                                                                                                                                                v.product_images.forEach(img=>
                                                                                                                                                                 {
                                                                                                                                                                 %>
 
                                                                                                                                                                 <div
                                                                                                                                                                         class="relative group">
 
-                                                                                                                                                                        <img src="<%= img %>"
+                                                                                                                                                                        <img src="<%= img.url %>"
                                                                                                                                                                                 class="w-12 h-12 object-cover rounded border border-white/10" />
 
                                                                                                                                                                         <button onclick='deleteVariantImage("<%= v._id %>", <%- JSON.stringify(img) %>)'
@@ -518,6 +521,31 @@
                         </div>
 
                 </div>
+                <!-- croper modal -->
+                <div id="variantCropModal"
+                        class="fixed inset-0 bg-black/70 hidden z-50 flex items-center justify-center">
+
+                        <div class="bg-[#0b1220] p-6 rounded-xl w-[600px]">
+
+                                <h2 class="text-white mb-4">Crop Image</h2>
+
+                                <div class="max-h-[400px]">
+                                        <img id="variantCropImage" class="max-w-full">
+                                </div>
+
+                                <div class="flex justify-end gap-3 mt-4">
+                                        <button onclick="closeVariantCrop()" class="px-4 py-2 bg-gray-600 rounded">
+                                                Cancel
+                                        </button>
+
+                                        <button onclick="cropVariantImage()" class="px-4 py-2 bg-cyan-600 rounded">
+                                                Crop
+                                        </button>
+                                </div>
+
+                        </div>
+
+                </div>
 
                 <script type="module">
 
@@ -527,31 +555,31 @@
                         let editingVariantAttributes = {};
                         let currentVariantId = null;
 
+                        // 🔥 Cropper variables
+                        let variantCropper;
+                        let variantCroppedBlob;
 
-                        // ================= ACTION MENU =================
+                        const variantImageInput = document.getElementById("variantImageInput");
+                        const variantCropModal = document.getElementById("variantCropModal");
+                        const variantCropImage = document.getElementById("variantCropImage");
+
+                        /* ================= ACTION MENU ================= */
 
                         window.toggleActionMenu = function () {
-
                                 const menu = document.getElementById("actionDropdown");
                                 menu.classList.toggle("hidden");
-
                         };
 
                         document.addEventListener("click", function (e) {
-
                                 const menu = document.getElementById("actionDropdown");
-
                                 if (!e.target.closest(".relative")) {
                                         menu?.classList.add("hidden");
                                 }
-
                         });
 
-
-                        // ================= OPEN VARIANT MODAL =================
+                        /* ================= VARIANT MODAL ================= */
 
                         window.openVariantModal = function () {
-
                                 document.getElementById("variant-id").value = "";
                                 document.getElementById("variant-sku").value = "";
                                 document.getElementById("variant-price").value = "";
@@ -564,35 +592,25 @@
                                 loadVariantAttributes();
 
                                 document.getElementById("variantModal").classList.remove("hidden");
-
                         };
-
-
-                        // ================= CLOSE VARIANT MODAL =================
 
                         window.closeVariantModal = function () {
-
                                 document.getElementById("variantModal").classList.add("hidden");
-
                         };
 
-
-                        // ================= LOAD VARIANT ATTRIBUTES =================
+                        /* ================= LOAD ATTRIBUTES ================= */
 
                         async function loadVariantAttributes(existingAttributes = {}) {
-
                                 const categoryId = "<%= product.category._id %>";
                                 const container = document.getElementById("variantAttributes");
 
                                 container.innerHTML = "";
 
                                 try {
-
                                         const res = await fetch(`/admin/category/${categoryId}/attributes`);
                                         const result = await res.json();
 
                                         result.data.variantAttributes.forEach(attr => {
-
                                                 const input = document.createElement("input");
 
                                                 input.placeholder = attr.label;
@@ -603,22 +621,16 @@
                                                         "bg-[#0f172a] border border-white/10 px-3 py-2 rounded-lg text-sm";
 
                                                 container.appendChild(input);
-
                                         });
 
                                 } catch {
-
                                         showToast("Failed to load attributes", "error");
-
                                 }
-
                         }
 
-
-                        // ================= EDIT VARIANT =================
+                        /* ================= EDIT VARIANT ================= */
 
                         window.editVariant = function (id, sku, price, stock, attributes = {}) {
-
                                 document.getElementById("variant-id").value = id;
                                 document.getElementById("variant-sku").value = sku;
                                 document.getElementById("variant-price").value = price;
@@ -631,101 +643,70 @@
                                 loadVariantAttributes(editingVariantAttributes);
 
                                 document.getElementById("variantModal").classList.remove("hidden");
-
                         };
 
-
-                        // ================= SUBMIT VARIANT =================
+                        /* ================= SUBMIT VARIANT ================= */
 
                         const variantForm = document.getElementById("variantForm");
 
                         variantForm.addEventListener("submit", async (e) => {
-
                                 e.preventDefault();
 
                                 try {
-
                                         const variantId = document.getElementById("variant-id").value;
                                         const sku = document.getElementById("variant-sku").value.trim();
                                         const price = parseFloat(document.getElementById("variant-price").value);
                                         const stock = parseInt(document.getElementById("variant-stock").value);
 
                                         if (!sku) return showToast("SKU is required", "warning");
-
-                                        if (sku.length < 3)
-                                                return showToast("SKU must be at least 3 characters", "warning");
-
-                                        if (!price || price <= 0)
-                                                return showToast("Price must be greater than 0", "warning");
-
-                                        if (stock < 0)
-                                                return showToast("Stock cannot be negative", "warning");
-
+                                        if (sku.length < 3) return showToast("SKU must be at least 3 characters", "warning");
+                                        if (!price || price <= 0) return showToast("Price must be greater than 0", "warning");
+                                        if (stock < 0) return showToast("Stock cannot be negative", "warning");
 
                                         const attributes = {};
 
-                                        document
-                                                .querySelectorAll("#variantAttributes input")
-                                                .forEach(input => {
-
-                                                        attributes[input.name] = input.value.trim();
-
-                                                });
+                                        document.querySelectorAll("#variantAttributes input").forEach(input => {
+                                                attributes[input.name] = input.value.trim();
+                                        });
 
                                         for (const key in attributes) {
-
-                                                if (!attributes[key])
-                                                        return showToast(`${key} cannot be empty`, "warning");
-
+                                                if (!attributes[key]) return showToast(`${key} cannot be empty`, "warning");
                                         }
-
 
                                         let url = `/admin/products/<%= product._id %>/variants`;
                                         let method = "POST";
 
                                         if (variantId) {
-
                                                 url = `/admin/products/<%= product._id %>/variants/${variantId}`;
                                                 method = "PATCH";
-
                                         }
 
                                         const res = await fetch(url, {
-
                                                 method,
                                                 headers: { "Content-Type": "application/json" },
                                                 body: JSON.stringify({ sku, price, stock, attributes })
-
                                         });
 
                                         const data = await res.json();
 
-                                        if (!data.success)
-                                                return showToast(data.message, "error");
+                                        if (!data.success) return showToast(data.message, "error");
 
                                         showToast(data.message, "success");
 
                                         setTimeout(() => location.reload(), 1200);
 
                                 } catch {
-
                                         showToast("Something went wrong", "error");
-
                                 }
-
                         });
 
-
-                        // ================= DELETE VARIANT =================
+                        /* ================= DELETE VARIANT ================= */
 
                         window.deleteVariant = async function (id) {
-
                                 const confirmed = await confirmAction("Delete Variant?");
-
                                 if (!confirmed) return;
 
                                 try {
-
                                         const res = await fetch(
                                                 `/admin/products/<%= product._id %>/variants/${id}`,
                                                 { method: "DELETE" }
@@ -741,44 +722,64 @@
                                         setTimeout(() => location.reload(), 1200);
 
                                 } catch {
-
                                         showToast("Delete failed", "error");
-
                                 }
-
                         };
 
-
-                        // ================= IMAGE UPLOAD =================
+                        /* ================= IMAGE UPLOAD (WITH CROPPER) ================= */
 
                         window.openImageUpload = function (variantId) {
-
                                 currentVariantId = variantId;
-
-                                document.getElementById("variantImageInput").click();
-
+                                variantImageInput.click();
                         };
 
+                        variantImageInput.addEventListener("change", function () {
+                                const file = this.files[0];
+                                if (!file) return;
 
-                        document
-                                .getElementById("variantImageInput")
-                                .addEventListener("change", async function () {
+                                if (!file.type.startsWith("image/"))
+                                        return showToast("Only image files allowed", "warning");
+
+                                if (file.size > 5 * 1024 * 1024)
+                                        return showToast("Image must be less than 5MB", "warning");
+
+                                const reader = new FileReader();
+
+                                reader.onload = function (e) {
+                                        variantCropImage.src = e.target.result;
+                                        variantCropModal.classList.remove("hidden");
+
+                                        setTimeout(() => {
+                                                if (variantCropper) variantCropper.destroy();
+
+                                                variantCropper = new Cropper(variantCropImage, {
+                                                        viewMode: 1,
+                                                        autoCropArea: 1,
+                                                        responsive: true,
+                                                        background: false,
+                                                });
+                                        }, 100);
+                                };
+
+                                reader.readAsDataURL(file);
+                        });
+
+                        /* ================= CROP & UPLOAD ================= */
+
+                        window.cropVariantImage = async function () {
+                                if (!variantCropper) return;
+
+                                const canvas = variantCropper.getCroppedCanvas({
+                                        width: 400,
+                                        height: 400
+                                });
+
+                                canvas.toBlob(async (blob) => {
+
+                                        const formData = new FormData();
+                                        formData.append("image", blob, "variant.png");
 
                                         try {
-
-                                                const file = this.files[0];
-
-                                                if (!file) return;
-
-                                                if (!file.type.startsWith("image/"))
-                                                        return showToast("Only image files allowed", "warning");
-
-                                                if (file.size > 5 * 1024 * 1024)
-                                                        return showToast("Image must be less than 5MB", "warning");
-
-                                                const formData = new FormData();
-                                                formData.append("image", file);
-
                                                 const res = await fetch(
                                                         `/admin/products/<%= product._id %>/variants/${currentVariantId}/image`,
                                                         {
@@ -794,33 +795,43 @@
 
                                                 showToast("Image uploaded successfully", "success");
 
-                                                setTimeout(() => location.reload(), 1200);
+                                                closeVariantCrop();
+
+                                                setTimeout(() => location.reload(), 1000);
 
                                         } catch {
-
-                                                showToast("Image upload failed", "error");
-
+                                                showToast("Upload failed", "error");
                                         }
 
-                                });
+                                }, "image/png");
+                        };
 
+                        /* ================= CLOSE CROP ================= */
 
-                        // ================= DELETE IMAGE =================
+                        window.closeVariantCrop = function () {
+                                variantCropModal.classList.add("hidden");
 
-                        window.deleteVariantImage = async function (variantId, imagePath) {
+                                if (variantCropper) {
+                                        variantCropper.destroy();
+                                        variantCropper = null;
+                                }
 
+                                variantImageInput.value = "";
+                        };
+
+                        /* ================= DELETE IMAGE ================= */
+
+                        window.deleteVariantImage = async function (variantId, img) {
                                 const confirmed = await confirmAction("Delete image?");
-
                                 if (!confirmed) return;
 
                                 try {
-
                                         const res = await fetch(
                                                 `/admin/products/<%= product._id %>/variants/${variantId}/image`,
                                                 {
                                                         method: "DELETE",
                                                         headers: { "Content-Type": "application/json" },
-                                                        body: JSON.stringify({ imagePath })
+                                                        body: JSON.stringify({ imageId: img.imageId })
                                                 }
                                         );
 
@@ -834,11 +845,8 @@
                                         setTimeout(() => location.reload(), 1200);
 
                                 } catch {
-
                                         showToast("Delete failed", "error");
-
                                 }
-
                         };
 
                 </script>

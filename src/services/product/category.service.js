@@ -141,7 +141,7 @@ export const getAttributesService = async (id) => {
   );
 
   const variantAttributes = category.attributes.filter(
-    (attr) => !attr.is_variant_level,
+    (attr) => attr.is_variant_level,
   );
 
   return {

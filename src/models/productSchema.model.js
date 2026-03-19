@@ -21,10 +21,18 @@ const variantSchema = new mongoose.Schema({
     type: Map,
     of: String,
   },
-  product_image: {
-    type: [String],
-    default: [],
-  },
+  product_images: [
+    {
+      url: {
+        type: String,
+        required: true,
+      },
+      imageId: {
+        type: String,
+        required: true,
+      },
+    },
+  ],
   isDeleted: {
     type: Boolean,
     default: false,

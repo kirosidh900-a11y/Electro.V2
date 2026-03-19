@@ -26,6 +26,10 @@ import {
   errorResponse,
   successResponse,
 } from "../../utils/partials/response.util.js";
+import {
+  deleteFromCloudinary,
+  uploadToCloudinary,
+} from "../../services/partials/cloudinary.service.js";
 
 //  PRODUCTS PAGE
 export const productsPage = async (req, res, next) => {
@@ -55,7 +59,6 @@ export const productsPage = async (req, res, next) => {
     }
 
     res.locals.title = "Products Management";
-    console.log(products[0]);
     res.status(HTTP_STATUS.OK).render("admin/home/products", {
       products,
       categories,
@@ -166,7 +169,7 @@ export const getProductById = async (req, res) => {
     const product = await getProductByIdService(id);
 
     if (!product) {
-      return errorResponse(res, "Product not found",HTTP_STATUS.NOT_FOUND);
+      return errorResponse(res, "Product not found", HTTP_STATUS.NOT_FOUND);
     }
 
     return successResponse(
@@ -185,6 +188,7 @@ export const getProductById = async (req, res) => {
 export const getProductDetails = async (req, res, next) => {
   try {
     const data = await getProductDetailsService(req.params.id);
+    console.log(data);
 
     res.status(HTTP_STATUS.OK).render("admin/home/productDetails", {
       title: "Product Details",
@@ -249,6 +253,8 @@ export const deleteVariant = async (req, res) => {
 
 // Image Adding
 export const addVariantImage = async (req, res) => {
+  let uploadedImage;
+
   try {
     const { productId, variantId } = req.params;
 
@@ -258,49 +264,58 @@ export const addVariantImage = async (req, res) => {
       return errorResponse(res, "Image required", HTTP_STATUS.BAD_REQUEST);
     }
 
-    const imagePath = file.path;
+    // 🔥 upload to cloudinary (same pattern)
+    uploadedImage = await uploadToCloudinary(file.buffer, "variants");
 
     const result = await addVariantImageService({
       productId,
       variantId,
-      imagePath,
+      image: uploadedImage.secure_url,
+      imageId: uploadedImage.public_id,
     });
 
-    return successResponse(res, result.message, HTTP_STATUS.OK, {
-      image: result.image,
-    });
+    return successResponse(
+      res,
+      result?.message || "Variant image added",
+      HTTP_STATUS.OK,
+      {
+        image: uploadedImage.secure_url,
+        imageId: uploadedImage.public_id,
+      },
+    );
   } catch (error) {
-    const file = req.file || req.files?.[0];
-
-    if (file) {
-      const publicId = getPublicId(file.path);
-      await cloudinary.uploader.destroy(publicId);
+    // 🔥 rollback (same as createBrand)
+    if (uploadedImage?.public_id) {
+      try {
+        await deleteFromCloudinary(uploadedImage.public_id);
+      } catch (err) {
+        console.error("Cleanup failed:", err);
+      }
     }
 
+    console.error(error);
     return errorResponse(res, error.message || "Upload failed");
   }
 };
 
 // Delete Image
-export const deleteVariantImage = async (req, res) => {
+export const deleteVariantImage = async (req, res, next) => {
   try {
     const { productId, variantId } = req.params;
-    const { imagePath } = req.body;
+    const { imageId } = req.body;
 
-    if (!imagePath) {
-      return errorResponse(res, "Image path required", HTTP_STATUS.BAD_REQUEST);
+    if (!imageId) {
+      throw new AppError("Image ID is required", HTTP_STATUS.BAD_REQUEST);
     }
-
-    const public_id = getPublicId(imagePath);
 
     const result = await deleteVariantImageService({
       productId,
       variantId,
-      public_id,
+      imageId,
     });
 
     return successResponse(res, result.message);
   } catch (error) {
-    return errorResponse(res, error.message || "Delete failed");
+    next(error); // 🔥 pass to global handler
   }
 };
