@@ -13,8 +13,13 @@ const brandSchema = new mongoose.Schema(
       type: String,
       enum: ["listed", "unlisted"],
       default: "unlisted",
+      lowercase: true,
     },
     logo: {
+      type: String,
+      required: true,
+    },
+    brandId: {
       type: String,
       required: true,
     },
@@ -23,13 +28,18 @@ const brandSchema = new mongoose.Schema(
       default: false,
     },
   },
-  { timestamps: true }
+  { timestamps: true },
 );
 
-// useful for filtering active Brands
-brandSchema.index({isDeleted:1})
+// pagination + sorting optimization
+brandSchema.index({ isDeleted: 1, status: 1, createdAt: -1 });
 
-const Brand = mongoose.model('Brand',brandSchema);
+// unique only for active brands
+brandSchema.index(
+  { title: 1 },
+  { unique: true, partialFilterExpression: { isDeleted: false } },
+);
 
+const Brand = mongoose.model("Brand", brandSchema);
 
 export default Brand;

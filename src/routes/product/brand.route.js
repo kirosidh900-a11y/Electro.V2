@@ -12,16 +12,18 @@ import upload from "../../middlewares/cloudinaryUpload.middleware.js";
 
 const router = Router();
 
+router.use(isAuth);
+
 router
   .route("/")
-  .get(isAuth, brandPage)
-  .post(isAuth, setUploadFolder("brands"), upload.single("logo"), createBrand);
+  .get(brandPage)
+  .post(setUploadFolder("brands"), upload.single("logo"), createBrand);
 
 router
   .route("/:id")
-  .patch(isAuth, setUploadFolder("brands"), upload.single("logo"), updateBrand)
-  .delete(isAuth, deleteBrand);
+  .patch(setUploadFolder("brands"), upload.single("logo"), updateBrand)
+  .delete(deleteBrand);
 
-router.patch("/status/:id", isAuth, toggleBrandStatus);
+router.patch("/status/:id", toggleBrandStatus);
 
 export default router;

@@ -45,6 +45,11 @@ import {
 
 export const showLoginPage = (req, res) => {
   const error = req.cookies.toastError || null;
+  const token = req.cookies?.token;
+
+  if (token) {
+    return res.redirect("/");
+  }
 
   clearAuthCookie(res, "toastError");
 
@@ -74,6 +79,12 @@ export const login = async (req, res, next) => {
 /* ================= SIGNUP ================= */
 
 export const showSignUpPage = (req, res) => {
+  const token = req.cookies.token;
+
+  if (token) {
+    return res.redirect("/");
+  }
+  
   res.render("user/auth/signup");
 };
 

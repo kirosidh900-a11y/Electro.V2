@@ -42,7 +42,7 @@
                                 <td class="px-6 py-4 text-right flex justify-end items-center gap-3">
 
                                         <!-- Edit -->
-                                        <button onclick="editBrand('<%= brand._id %>', '<%= brand.title %>', '<%= brand.status %>', '<%= brand.logo %>')"
+                                        <button id="editBtn-<%= brand._id %>" onclick="editBrand('<%= brand._id %>', '<%= brand.title %>', '<%= brand.status %>', '<%= brand.logo %>')"
                                                 class="text-cyan-400 hover:text-cyan-300">
                                                 <i class="fas fa-edit"></i>
                                         </button>
