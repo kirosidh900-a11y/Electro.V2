@@ -23,8 +23,7 @@
     <nav class="p-4 space-y-1">
 
         <!-- ORDERS -->
-        <a href="/orders"
-            class="flex items-center justify-between p-3 rounded-lg font-medium transition
+        <a href="/orders" class="flex items-center justify-between p-3 rounded-lg font-medium transition
             <%= currentRoute === '/orders'
             ? 'text-blue-600 bg-blue-50'
             : 'text-gray-600 hover:bg-gray-50' %>">
@@ -42,8 +41,7 @@
         </p>
 
         <!-- PROFILE -->
-        <a href="/myProfile"
-            class="block p-3 rounded-lg font-medium transition
+        <a href="/myProfile" class="block p-3 rounded-lg font-medium transition
             <%= currentRoute === '/myProfile'
             ? 'text-blue-600 bg-blue-50'
             : 'text-gray-600 hover:bg-gray-50' %>">
@@ -52,8 +50,7 @@
         </a>
 
         <!-- ADDRESS -->
-        <a href="/address"
-            class="block p-3 rounded-lg font-medium transition
+        <a href="/address" class="block p-3 rounded-lg font-medium transition
             <%= currentRoute === '/address'
             ? 'text-blue-600 bg-blue-50'
             : 'text-gray-600 hover:bg-gray-50' %>">
@@ -62,8 +59,7 @@
         </a>
 
         <!-- REFERRAL -->
-        <a href="/referral"
-            class="block p-3 rounded-lg font-medium transition
+        <a href="/referral" class="block p-3 rounded-lg font-medium transition
             <%= currentRoute === '/referral'
             ? 'text-blue-600 bg-blue-50'
             : 'text-gray-600 hover:bg-gray-50' %>">
@@ -76,8 +72,7 @@
             My Stuff
         </p>
 
-        <a href="/coupons"
-            class="block p-3 rounded-lg transition
+        <a href="/coupons" class="block p-3 rounded-lg transition
             <%= currentRoute === '/coupons'
             ? 'text-blue-600 bg-blue-50'
             : 'text-gray-600 hover:bg-gray-50' %>">
@@ -85,8 +80,7 @@
             My Coupons
         </a>
 
-        <a href="/reviews"
-            class="block p-3 rounded-lg transition
+        <a href="/reviews" class="block p-3 rounded-lg transition
             <%= currentRoute === '/reviews'
             ? 'text-blue-600 bg-blue-50'
             : 'text-gray-600 hover:bg-gray-50' %>">
@@ -94,8 +88,7 @@
             My Reviews & Ratings
         </a>
 
-        <a href="/wishlist"
-            class="block p-3 rounded-lg transition
+        <a href="/wishlist" class="block p-3 rounded-lg transition
             <%= currentRoute === '/wishlist'
             ? 'text-blue-600 bg-blue-50'
             : 'text-gray-600 hover:bg-gray-50' %>">
@@ -105,8 +98,7 @@
 
         <!-- LOGOUT -->
         <div class="mt-4 pt-4 border-t border-gray-100">
-            <a id="logout"
-                class="flex items-center gap-3 p-3 text-red-500 hover:bg-red-50 rounded-lg transition">
+            <a id="logout2" class="flex items-center gap-3 p-3 text-red-500 hover:bg-red-50 rounded-lg transition">
                 <i class="fa-solid fa-power-off"></i> Logout
             </a>
         </div>
@@ -114,3 +106,80 @@
     </nav>
 
 </aside>
+
+<!-- Logout Modal -->
+<div id="logoutModal2" class="fixed inset-0 hidden items-center justify-center bg-black/50 backdrop-blur-sm z-50">
+
+    <div class="bg-gray-900 text-white rounded-2xl shadow-2xl w-[90%] max-w-md p-7 border border-gray-800">
+
+        <!-- Icon -->
+        <div class="flex items-center justify-center mb-4">
+            <div class="flex items-center justify-center w-14 h-14 rounded-full bg-red-500/20 text-red-400">
+                <i class="fa-solid fa-right-from-bracket text-2xl"></i>
+            </div>
+        </div>
+
+        <!-- Title -->
+        <h2 class="text-xl font-semibold text-center mb-2">
+            Logout from Shop?
+        </h2>
+
+        <!-- Message -->
+        <p class="text-gray-400 text-center mb-6 text-sm">
+            You will be signed out of your account and need to login again to continue parchese.
+        </p>
+
+        <!-- Buttons -->
+        <div class="flex justify-center gap-3">
+
+            <button id="cancelLogout2" class="px-5 py-2 rounded-lg bg-gray-700 hover:bg-gray-600 transition text-sm">
+                Cancel
+            </button>
+
+            <button id="confirmLogout2"
+                class="px-5 py-2 rounded-lg bg-red-500 hover:bg-red-600 transition text-sm font-medium shadow-lg">
+                Logout
+            </button>
+
+        </div>
+
+    </div>
+</div>
+
+<script type="module">
+    import { showToast } from "/partials/errorMsg.utils.js";
+
+    document.addEventListener("DOMContentLoaded", () => {
+
+        const logoutBtn = document.getElementById("logout2");
+        const modal = document.getElementById("logoutModal2");
+        const cancelBtn = document.getElementById("cancelLogout2");
+        const confirmBtn = document.getElementById('confirmLogout2');
+
+        logoutBtn?.addEventListener("click", (e) => {
+            e.preventDefault();
+            modal.classList.remove("hidden");
+            modal.classList.add("flex");
+        });
+
+        cancelBtn?.addEventListener("click", () => {
+            modal.classList.add("hidden");
+            modal.classList.remove("flex");
+        });
+
+        confirmBtn?.addEventListener("click", async () => {
+            try {
+                const response = await fetch("/auth/logout", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json", "Accept": 'application/json' },
+                });
+
+                if (!response.ok) throw new Error("Logout failed");
+
+                window.location.href = "/";
+            } catch (error) {
+                showToast(error.message, "error");
+            }
+        });
+    });
+</script>
