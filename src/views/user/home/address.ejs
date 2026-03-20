@@ -290,6 +290,7 @@
                                 form.addressType.value = addr.addressType || 'home';
                                 form.isDefault.checked = addr.isDefault || false;
 
+
                                 const stateSelect = form.state;
                                 const districtSelect = form.district;
 
@@ -337,6 +338,9 @@
                                 form.onsubmit = async (e) => {
                                         e.preventDefault();
 
+                                        //  VALIDATE FIRST
+                                        if (!validateForm(form, stateSelect, districtSelect)) return;
+                                        
                                         const formData = {
                                                 name: form.name.value.trim(),
                                                 phone: form.phone.value.trim(),
@@ -348,7 +352,7 @@
 
                                                 // 🔥 IMPORTANT FIXa
                                                 state: stateSelect.options[stateSelect.selectedIndex].text,
-
+                                                stateCode: stateSelect.value,
                                                 district: districtSelect.value,
 
                                                 landmark: form.landmark.value.trim() || null,
@@ -409,4 +413,82 @@
                         window.closeAddressModal = () => {
                                 document.getElementById('addressModal').classList.add('hidden');
                         };
+
+
+                        function validateForm(form, stateSelect, districtSelect) {
+
+                                const name = form.name.value.trim();
+                                const phone = form.phone.value.trim();
+                                const altPhone = form.altPhone.value.trim();
+                                const pincode = form.pincode.value.trim();
+                                const locality = form.locality.value.trim();
+                                const address = form.address.value.trim();
+                                const city = form.city.value.trim();
+                                const state = stateSelect.value;
+                                const district = districtSelect.value;
+
+                                // NAME
+                                if (!/^[A-Za-z ]{3,}$/.test(name)) {
+                                        showToast("Name must be at least 3 letters", "warning");
+                                        form.name.focus();
+                                        return false;
+                                }
+
+                                // PHONE
+                                if (!/^[6-9]\d{9}$/.test(phone)) {
+                                        showToast("Enter valid 10-digit phone number", "warning");
+                                        form.phone.focus();
+                                        return false;
+                                }
+
+                                // ALT PHONE
+                                if (altPhone && !/^[6-9]\d{9}$/.test(altPhone)) {
+                                        showToast("Invalid alternate phone number", "warning");
+                                        form.altPhone.focus();
+                                        return false;
+                                }
+
+                                // PINCODE
+                                if (!/^[1-9][0-9]{5}$/.test(pincode)) {
+                                        showToast("Invalid pincode", "warning");
+                                        form.pincode.focus();
+                                        return false;
+                                }
+
+                                // LOCALITY
+                                if (locality.length < 3) {
+                                        showToast("Locality must be at least 3 characters", "warning");
+                                        form.locality.focus();
+                                        return false;
+                                }
+
+                                // ADDRESS
+                                if (address.length < 5) {
+                                        showToast("Address too short", "warning");
+                                        form.address.focus();
+                                        return false;
+                                }
+
+                                // CITY
+                                if (!/^[A-Za-z ]{2,}$/.test(city)) {
+                                        showToast("Enter valid city name", "warning");
+                                        form.city.focus();
+                                        return false;
+                                }
+
+                                // STATE
+                                if (!state) {
+                                        showToast("Please select state", "warning");
+                                        return false;
+                                }
+
+                                // DISTRICT
+                                if (!district) {
+                                        showToast("Please select district", "warning");
+                                        return false;
+                                }
+
+                                return true;
+                        }
+
                 </script>

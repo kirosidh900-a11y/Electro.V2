@@ -1,167 +1,107 @@
 import HTTP_STATUS from "../../constant/statusCode.js";
-import Address from "../../models/addressSchema.model.js";
-import AppError from "../../utils/partials/AppError.utils.js";
+import {
+  createAddressService,
+  getUserAddressesService,
+  getSingleAddressService,
+  updateAddressService,
+  deleteAddressService,
+  setDefaultAddressService,
+} from "../../services/user/address.service.js";
 
-// CREATE ADDRESS
+import { successResponse } from "../../utils/partials/response.util.js";
+
+// CREATE
 export const createAddress = async (req, res, next) => {
   try {
     const userId = res.locals.user._id;
 
-    // Joi already validated req.body ✅
-    const address = await Address.create({
-      ...req.body,
-      userId,
-    });
+    const address = await createAddressService(userId, req.body);
 
-    // Handle default address
-    if (req.body.isDefault) {
-      await Address.updateMany(
-        { userId, _id: { $ne: address._id } },
-        { $set: { isDefault: false } },
-      );
-    }
-
-    res.status(HTTP_STATUS.CREATED).json({
-      success: true,
-      message: "Address added successfully",
-      address,
-    });
+    return successResponse(
+      res,
+      "Address added successfully",
+      HTTP_STATUS.CREATED,
+      { address },
+    );
   } catch (error) {
     next(error);
   }
 };
 
-// GET ALL ADDRESSES
+// GET ALL
 export const getUserAddresses = async (req, res, next) => {
   try {
     const userId = res.locals.user._id;
 
-    const addresses = await Address.find({ userId }).sort({
-      isDefault: -1,
-      createdAt: -1,
-    });
+    const addresses = await getUserAddressesService(userId);
 
-    res.render("user/home/addres", { addresses });
+    return res.render("user/home/address", { addresses });
   } catch (error) {
-    console.error('Get user address error:',error)
     next(error);
   }
 };
 
-// GET SINGLE ADDRESS
+// GET ONE
 export const getSingleAddress = async (req, res, next) => {
   try {
     const userId = res.locals.user._id;
 
-    const address = await Address.findOne({
-      _id: req.params.id,
-      userId,
-    });
+    const address = await getSingleAddressService(userId, req.params.id);
 
-    if (!address) {
-      throw new AppError("Address not found", HTTP_STATUS.NOT_FOUND);
-    }
-
-    res.json({
-      success: true,
-      address,
-    });
+    return successResponse(
+      res,
+      "Address fetched successfully",
+      HTTP_STATUS.OK,
+      { address },
+    );
   } catch (error) {
     next(error);
   }
 };
 
-// UPDATE ADDRESS
+// UPDATE
 export const updateAddress = async (req, res, next) => {
   try {
     const userId = res.locals.user._id;
-    const addressId = req.params.id;
 
-    // 🔥 Handle default manually (important)
-    if (req.body.isDefault) {
-      await Address.updateMany({ userId }, { isDefault: false });
-    }
+    const address = await updateAddressService(userId, req.params.id, req.body);
 
-    const address = await Address.findOneAndUpdate(
-      { _id: addressId, userId },
-      req.body,
-      { new: true },
+    return successResponse(
+      res,
+      "Address updated successfully",
+      HTTP_STATUS.OK,
+      { address },
     );
-
-    if (!address) {
-      throw new AppError("Address not found", 404);
-    }
-
-    res.json({
-      success: true,
-      message: "Address updated",
-      address,
-    });
   } catch (error) {
     next(error);
   }
 };
 
-// DELETE ADDRESS
+// DELETE
 export const deleteAddress = async (req, res, next) => {
   try {
     const userId = res.locals.user._id;
-    const addressId = req.params.id;
 
-    const address = await Address.findOneAndDelete({
-      _id: addressId,
-      userId,
-    });
+    await deleteAddressService(userId, req.params.id);
 
-    if (!address) {
-      throw new AppError("Address not found", HTTP_STATUS.NOT_FOUND);
-    }
-
-    // 🔥 If deleted was default → assign new default
-    if (address.isDefault) {
-      const newDefault = await Address.findOne({ userId });
-
-      if (newDefault) {
-        newDefault.isDefault = true;
-        await newDefault.save();
-      }
-    }
-
-    res.json({
-      success: true,
-      message: "Address deleted",
-    });
+    return successResponse(res,"Address deleted successfully");
   } catch (error) {
     next(error);
   }
 };
 
-// SET DEFAULT ADDRESS
+// SET DEFAULT
 export const setDefaultAddress = async (req, res, next) => {
   try {
     const userId = res.locals.user._id;
-    const addressId = req.params.id;
 
-    const address = await Address.findOne({
-      _id: addressId,
-      userId,
-    });
+    await setDefaultAddressService(userId, req.params.id);
 
-    if (!address) {
-      throw new AppError("Address not found", 404);
-    }
-
-    // 🔥 Reset all
-    await Address.updateMany({ userId }, { isDefault: false });
-
-    // 🔥 Set selected
-    address.isDefault = true;
-    await address.save();
-
-    res.json({
-      success: true,
-      message: "Default address updated",
-    });
+    return successResponse(
+      res,
+      "Default address updated successfully",
+      HTTP_STATUS.OK,
+    );
   } catch (error) {
     next(error);
   }
