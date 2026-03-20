@@ -19,7 +19,11 @@ const addressSchema = new Schema(
       required: true,
       match: [/^[6-9]\d{9}$/, "Invalid phone number"],
     },
-
+    altPhone: {
+      type: String,
+      match: [/^[6-9]\d{9}$/, "Invalid phone number"],
+      default: null,
+    },
     pincode: {
       type: String,
       required: true,
@@ -29,6 +33,11 @@ const addressSchema = new Schema(
     locality: {
       type: String,
       required: true,
+    },
+
+    landmark: {
+      type: String,
+      default: null,
     },
 
     address: {
@@ -42,6 +51,10 @@ const addressSchema = new Schema(
     },
 
     state: {
+      type: String,
+      required: true,
+    },
+    stateCode: {
       type: String,
       required: true,
     },
