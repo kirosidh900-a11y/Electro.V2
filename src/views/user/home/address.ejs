@@ -340,7 +340,7 @@
 
                                         //  VALIDATE FIRST
                                         if (!validateForm(form, stateSelect, districtSelect)) return;
-                                        
+
                                         const formData = {
                                                 name: form.name.value.trim(),
                                                 phone: form.phone.value.trim(),
@@ -384,8 +384,20 @@
                                                 showToast(error.message, "error");
                                         }
                                 };
-                        };
 
+                        };
+                       
+                        // PHONE → numbers only & also Pincode
+                        document.addEventListener("input", (e) => {
+                                if (e.target.name === "phone" || e.target.name === "altPhone") {
+                                        e.target.value = e.target.value.replace(/\D/g, "").slice(0, 10);
+                                }
+
+                                if (e.target.name === "pincode") {
+                                        e.target.value = e.target.value.replace(/\D/g, "").slice(0, 6);
+                                }
+                        });
+                        
                         // DELETE ADDRESS
                         window.deleteAddress = async function (id) {
                                 const confirmed = await confirmAction("Delete Address?", "This action cannot be undone.");
