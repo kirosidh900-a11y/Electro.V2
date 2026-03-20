@@ -4,11 +4,8 @@ import Brand from "../../models/brandSchema.model.js";
 import mongoose from "mongoose";
 import AppError from "../../utils/partials/AppError.utils.js";
 import HTTP_STATUS from "../../constant/statusCode.js";
-import {
-  deleteFromCloudinary,
-  uploadToCloudinary,
-} from "../partials/cloudinary.service.js";
-import setAuthCookie from "../../utils/partials/setAuthCookie.js";
+import { uploadToCloudinary } from "../partials/cloudinary.service.js";
+
 import setCookieMSG from "../../utils/partials/setCookieMsg.utils.js";
 
 //  PRODUCTS PAGE

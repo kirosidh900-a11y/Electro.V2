@@ -1,6 +1,4 @@
 import renderView from "../../utils/admin/renderView.util.js";
-import cloudinary from "../../config/cloudinary.js";
-import { getPublicId } from "../../utils/partials/cloudinary.util.js";
 
 import {
   brandService,

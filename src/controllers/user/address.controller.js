@@ -36,19 +36,14 @@ export const getUserAddresses = async (req, res, next) => {
   try {
     const userId = res.locals.user._id;
 
-    console.log(res.locals.currentRoute)
-
     const addresses = await Address.find({ userId }).sort({
       isDefault: -1,
       createdAt: -1,
     });
 
-    // res.json({
-    //   success: true,
-    //   addresses,
-    // });
     res.render("user/home/addres", { addresses });
   } catch (error) {
+    console.error('Get user address error:',error)
     next(error);
   }
 };

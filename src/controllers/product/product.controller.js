@@ -63,7 +63,6 @@ export const productsPage = async (req, res, next) => {
     res.locals.title = "Products Management";
     const error = req.cookies.toastError || null;
 
-    console.log(error);
     res.status(HTTP_STATUS.OK).render("admin/home/products", {
       products,
       categories,
@@ -89,7 +88,7 @@ export const createProduct = async (req, res, next) => {
       product,
     );
   } catch (error) {
-    console.log("Create product Error:", error);
+    console.error("Create product Error:", error);
     return next(error);
   }
 };
@@ -152,7 +151,6 @@ export const getAttributes = async (req, res, next) => {
 export const getProductById = async (req, res, next) => {
   try {
     const { id } = req.params;
-    console.log(id);
 
     const product = await getProductByIdService(id);
 
@@ -314,8 +312,8 @@ export const addVariantImage = async (req, res, next) => {
       }
     }
 
-    console.error("addvariant img error:", err);
-    next(err);
+    console.error("addvariant img error:", error);
+    next(error);
   }
 };
 
@@ -347,7 +345,7 @@ export const checkSkuAvailability = async (req, res, next) => {
     const { sku } = req.query;
 
     const available = await checkSkuAvailabilityService(sku);
-    console.log(available);
+    
     successResponse(res, 'It"s Ok', HTTP_STATUS.OK, { available });
   } catch (error) {
     console.error("check sku error:", error);

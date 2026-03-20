@@ -2,8 +2,6 @@ import HTTP_STATUS from "../../constant/statusCode.js";
 import sendEmail from "../../constant/transporter.js";
 import Products from "../../models/productSchema.model.js";
 import { sendSMS } from "../../services/partials/sms.service.js";
-import cloudinary from "../../config/cloudinary.js";
-import streamifier from "streamifier";
 
 import { otpExist, saveOTP } from "../../services/partials/otp.service.js";
 import {
@@ -170,7 +168,7 @@ export const updateEamil = async (req, res, next) => {
   try {
     const { newEmail, otp } = req.body;
 
-    const [userData, _isExist, user] = await Promise.all([
+    const [userData, , user] = await Promise.all([
       otpExist(newEmail, otp, "reset-email"),
       isUserExist(newEmail),
       findUserById(res.locals.user._id),

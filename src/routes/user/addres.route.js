@@ -8,7 +8,6 @@ import {
   setDefaultAddress,
 } from "../../controllers/user/address.controller.js";
 
-import attachUser from "../../middlewares/attachUser.middleware.js";
 import { addressSchema } from "../../validations/address.validator.js";
 import { validate } from "../../middlewares/validate.middleware.js";
 import authMiddleware from "../../middlewares/user/userAuth.middleware.js";
