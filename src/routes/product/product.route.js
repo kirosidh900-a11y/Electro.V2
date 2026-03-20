@@ -22,7 +22,10 @@ import {
 import { setUploadFolder } from "../../middlewares/setUploadFolder.middleware.js";
 import upload from "../../middlewares/cloudinaryUpload.middleware.js";
 import { validate } from "../../middlewares/validate.middleware.js";
-import { addVariantSchema, editVariantSchema } from "../../validations/variant.validation.js";
+import {
+  addVariantSchema,
+  editVariantSchema,
+} from "../../validations/variant.validation.js";
 import { validateVariantImages } from "../../middlewares/imageValidation.middleware.js";
 
 const router = Router();

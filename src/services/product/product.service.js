@@ -8,6 +8,8 @@ import {
   deleteFromCloudinary,
   uploadToCloudinary,
 } from "../partials/cloudinary.service.js";
+import setAuthCookie from "../../utils/partials/setAuthCookie.js";
+import setCookieMSG from "../../utils/partials/setCookieMsg.utils.js";
 
 //  PRODUCTS PAGE
 export const getProductsService = async ({ page, limit, search, status }) => {
@@ -280,7 +282,7 @@ export const getVariantByIdService = async (productId, variantId) => {
 };
 
 //  GET PRODUCT DETAILS
-export const getProductDetailsService = async (id) => {
+export const getProductDetailsService = async (id, res) => {
   const product = await Products.findOne({
     _id: id,
     isDeleted: false,
@@ -288,7 +290,12 @@ export const getProductDetailsService = async (id) => {
     .populate("category", "title")
     .populate("brand", "title");
 
-  if (!product) throw new Error("Product not found");
+  if (!product) {
+    const tostError = "Product not found";
+    setCookieMSG(res, tostError);
+    res.redirect("/admin/products");
+    return;
+  }
 
   const variants = product.variants.filter((v) => !v.isDeleted);
 
@@ -429,25 +436,18 @@ export const deleteVariantService = async (variantId) => {
 
   const variant = product.variants.id(variantId);
 
-  if (!variant) {
+  if (!variant || variant.isDeleted) {
     throw new AppError("Variant not found", HTTP_STATUS.NOT_FOUND);
   }
 
-  // delete images
-  if (variant.product_images?.length) {
-    await Promise.all(
-      variant.product_images.map((img) =>
-        img.imageId ? deleteFromCloudinary(img.imageId) : null,
-      ),
-    );
-  }
-
-  // remove variant
-  variant.deleteOne();
+  // SOFT DELETE
+  variant.isDeleted = true;
 
   await product.save({ validateBeforeSave: false });
 
-  return true;
+  return {
+    message: "Variant deleted successfully",
+  };
 };
 
 export const checkSkuAvailabilityService = async (sku) => {

@@ -67,43 +67,40 @@
                                                 <!-- ACTION DROPDOWN -->
                                                 <div class="relative">
 
-                                                        <!-- <button onclick="toggleActionMenu()"
+                                                        <button onclick="toggleActionMenu()"
                                                                 class="bg-gray-700 hover:bg-gray-600 text-white text-sm px-4 py-2 rounded-lg flex items-center gap-2">
 
                                                                 Action
                                                                 <i class="fas fa-chevron-down text-xs"></i>
 
-                                                        </button> -->
+                                                        </button>
 
                                                         <!-- DROPDOWN -->
                                                         <div id="actionDropdown"
                                                                 class="absolute right-0 mt-2 w-44 bg-[#0f172a] border border-white/10 rounded-lg shadow-lg hidden">
 
                                                                 <!-- EDIT PRODUCT -->
-                                                                <!-- <a href="/admin/products/edit/<%= product._id %>"
-                                                                        class="block px-4 py-2 text-sm text-gray-300 hover:bg-white/10">
+                                                                <!-- <button 
+                                                                        class="w-full text-left px-4 py-2 text-sm text-gray-300 hover:bg-white/10">
                                                                         Edit Product
-                                                                </a> -->
+                                                                </button> -->
 
                                                                 <!-- LIST / UNLIST -->
-                                                                <!-- <% if(product.status==="listed" ){ %>
+                                                                <button id="status-<%= product._id %>"
+                                                                        onclick="handleProductAction('<%= product._id %>', '<%= product.status %>')"
+                                                                        class="w-full text-left px-4 py-2 text-sm
+                                                                        <%= product.status==='listed'
+                                                                                ? 'text-yellow-400 hover:bg-white/10'
+                                                                                : 'text-green-400 hover:bg-white/10' %>
+                                                                                ">
 
-                                                                        <button onclick="toggleProductStatus('<%= product._id %>','unlist')"
-                                                                                class="w-full text-left px-4 py-2 text-sm text-yellow-400 hover:bg-white/10">
-                                                                                Unlist Product
-                                                                        </button>
+                                                                        <%= product.status==="listed" ? "Unlist Product"
+                                                                                : "List Product" %>
 
-                                                                        <% } else { %>
-
-                                                                                <button onclick="toggleProductStatus('<%= product._id %>','list')"
-                                                                                        class="w-full text-left px-4 py-2 text-sm text-green-400 hover:bg-white/10">
-                                                                                        List Product
-                                                                                </button>
-
-                                                                                <% } %> -->
+                                                                </button>
 
                                                                 <!-- DELETE PRODUCT -->
-                                                                <button onclick="deleteProduct('<%= product._id %>')"
+                                                                <button onclick="handleProductAction('<%= product._id %>','delete')"
                                                                         class="w-full text-left px-4 py-2 text-sm text-red-400 hover:bg-white/10">
                                                                         Delete Product
                                                                 </button>
@@ -147,10 +144,10 @@
                                                                 <p>
                                                                         <span class="text-gray-400">Status:</span>
 
-                                                                        <span class="px-2 py-1 rounded-full text-xs
-                                                              <%= product.status === " listed"
-                                                                                ? "bg-emerald-500/20 text-emerald-400"
-                                                                                : "bg-red-500/20 text-red-400" %>">
+                                                                        <span id="badge-<%= product._id %>" class="px-2 py-1 rounded-full text-xs
+                                                              <%= product.status === 'listed'
+                                                                                ? 'bg-emerald-500/20 text-emerald-400'
+                                                                                : 'bg-red-500/20 text-red-400' %>">
 
                                                                                 <%= product.status==="listed" ? "Listed"
                                                                                         : "Unlisted" %>
@@ -599,7 +596,7 @@
                                 document.getElementById("variantModalTitle").textContent = "Add Variant";
 
                                 loadVariantAttributes();
-                                 skuStatus.textContent=''
+                                skuStatus.textContent = ''
 
 
                                 document.getElementById("variantModal").classList.remove("hidden");
@@ -610,7 +607,7 @@
                         window.closeVariantModal = function () {
                                 document.getElementById("variantModal").classList.add("hidden");
                                 document.body.style.overflow = "auto"; // 🔥 restore scroll
-                                skuStatus.textContent=''
+                                skuStatus.textContent = ''
                         };
 
                         /* ================= LOAD ATTRIBUTES ================= */
@@ -710,42 +707,48 @@
                         variantForm.addEventListener("submit", async (e) => {
                                 e.preventDefault();
 
+                                const submitBtn = variantForm.querySelector("button[type='submit']");
+
+                                //  prevent multiple clicks
+                                if (submitBtn.disabled) return;
+
                                 try {
+                                        submitBtn.disabled = true;
+                                        submitBtn.textContent = "Saving...";
+                                        submitBtn.classList.add("opacity-50", "cursor-not-allowed");
+
                                         const variantId = document.getElementById("variant-id").value;
                                         const sku = document.getElementById("variant-sku").value.trim();
                                         const price = parseFloat(document.getElementById("variant-price").value);
                                         const stock = parseInt(document.getElementById("variant-stock").value);
                                         const description = document.getElementById("variant-description").value.trim();
-                                        const skuInput = document.getElementById("variant-sku");
 
                                         if (skuStatus.textContent.includes("exists")) {
-                                                e.preventDefault();
-                                                return showToast("SKU already exists!", "error");
+                                                throw new Error("SKU already exists!");
                                         }
 
-
-                                        if (!sku) return showToast("SKU is required", "warning");
-                                        if (sku.length < 3) return showToast("SKU must be at least 3 characters", "warning");
-                                        if (!price || price <= 0) return showToast("Price must be greater than 0", "warning");
-                                        if (stock < 0) return showToast("Stock cannot be negative", "warning");
+                                        if (!sku) throw new Error("SKU is required");
+                                        if (sku.length < 3) throw new Error("SKU must be at least 3 characters");
+                                        if (!price || price <= 0) throw new Error("Price must be greater than 0");
+                                        if (stock < 0) throw new Error("Stock cannot be negative");
 
                                         const attributes = {};
-
 
                                         document.querySelectorAll("#variantAttributes input").forEach(input => {
                                                 attributes[input.name] = input.value.trim();
                                         });
 
                                         for (const key in attributes) {
-                                                if (!attributes[key]) return showToast(`${key} cannot be empty`, "warning");
+                                                if (!attributes[key]) throw new Error(`${key} cannot be empty`);
                                         }
+
                                         if (!description || description.length < 5)
-                                                return showToast("Description required", "warning");
+                                                throw new Error("Description required");
 
                                         if (!variantId && variantImages.length < 3)
-                                                return showToast("At least three image required", "warning");
+                                                throw new Error("At least three image required");
 
-                                        // 🔥 FormData
+                                        //  FormData
                                         const formData = new FormData();
 
                                         formData.append("sku", sku);
@@ -754,7 +757,6 @@
                                         formData.append("description", description);
                                         formData.append("attributes", JSON.stringify(attributes));
 
-                                        // 🔥 append images
                                         variantImages.forEach((img, i) => {
                                                 formData.append("images", img, `variant-${i}.png`);
                                         });
@@ -774,14 +776,21 @@
 
                                         const data = await res.json();
 
-                                        if (!data.success) return showToast(data.message, "error");
+                                        if (!data.success) throw new Error(data.message);
 
                                         showToast(data.message, "success");
 
                                         setTimeout(() => location.reload(), 1200);
 
-                                } catch {
-                                        showToast("Something went wrong", "error");
+                                } catch (err) {
+                                        showToast(err.message || "Something went wrong", "error");
+                                } finally {
+                                        // 🔥 re-enable button
+                                        setTimeout(() => {
+                                                submitBtn.disabled = false;
+                                                submitBtn.textContent = "Save Variant";
+                                                submitBtn.classList.remove("opacity-50", "cursor-not-allowed");
+                                        }, 1000)
                                 }
                         });
 
@@ -836,7 +845,7 @@
                                                 if (variantCropper) variantCropper.destroy();
 
                                                 variantCropper = new Cropper(variantCropImage, {
-                                                      //  aspectRatio: 1,
+                                                        //  aspectRatio: 1,
                                                         viewMode: 1,
                                                         autoCropArea: 1,
                                                 });
@@ -1009,6 +1018,92 @@
                                 currentVariantId = null;
                                 cropMode = "multi";
                                 variantImageInput.click();
+                        };
+
+                        // Product togglestatus update and delete product code 
+                        window.handleProductAction = async function (productId, action) {
+
+                                // close dropdown
+                                document.getElementById("actionDropdown").classList.add("hidden");
+
+                                let confirmText = "";
+
+                                if (action === "delete") confirmText = "Delete this product?";
+                                if (action === "listed") confirmText = "Unlist this product?";
+                                if (action === "unlisted") confirmText = "List this product?";
+
+                                const confirmed = await confirmAction(confirmText);
+                                if (!confirmed) return;
+
+                                try {
+                                        let url = "";
+                                        let method = "PATCH";
+
+                                        if (action === "delete") {
+                                                url = `/admin/products/${productId}`;
+                                                method = "DELETE";
+                                        } else {
+                                                url = `/admin/products/${productId}/status`;
+                                        }
+
+                                        const res = await fetch(url, { method });
+                                        const result = await res.json();
+
+                                        if (!result.success) {
+                                                return showToast(data.message, "error");
+                                        }
+
+                                        // DELETE CASE
+                                        if (action === "delete") {
+                                                showToast("Product deleted successfully", "success");
+                                                setTimeout(() => location.reload(), 500); // optional
+                                                return;
+                                        }
+
+                                        // TOGGLE CASE (NO RELOAD)
+                                        const btn = document.getElementById(`status-${productId}`);
+
+
+                                        if (!btn) return;
+
+                                        // determine new state
+                                        const newAction = result.data.action;
+
+                                        // update button text
+                                        btn.textContent = newAction === "listed"
+                                                ? "Unlist Product"
+                                                : "List Product";
+
+                                        // update button color
+                                        btn.className = `w-full text-left px-4 py-2 text-sm ${newAction === "listed"
+                                                ? "text-yellow-400 hover:bg-white/10"
+                                                : "text-green-400 hover:bg-white/10"
+                                                }`;
+
+
+                                        const badge = document.getElementById(`badge-${productId}`);
+
+                                        badge.textContent = newAction === "listed"
+                                                ? "Listed"
+                                                : "Unlisted";
+
+                                        // update button color
+                                        badge.className = `px-2 py-1 rounded-full text-xs ${newAction === "listed"
+                                                ? 'bg-emerald-500/20 text-emerald-400'
+                                                : 'bg-red-500/20 text-red-400'
+                                                }`;
+
+                                        // update onclick
+                                        btn.setAttribute(
+                                                "onclick",
+                                                `handleProductAction('${productId}','${newAction}')`
+                                        );
+
+                                        showToast(`Product ${action}ed successfully`, "success");
+
+                                } catch (err) {
+                                        showToast("Something went wrong", "error");
+                                }
                         };
 
                 </script>

@@ -60,12 +60,16 @@ export const productsPage = async (req, res, next) => {
     }
 
     res.locals.title = "Products Management";
+    const error = req.cookies.toastError || null;
+
+    console.log(error);
     res.status(HTTP_STATUS.OK).render("admin/home/products", {
       products,
       categories,
       brands,
       currentPage,
       totalPages,
+      error,
     });
   } catch (error) {
     next(error);
@@ -120,10 +124,9 @@ export const deleteProduct = async (req, res, next) => {
 //  TOGGLE STATUS
 export const toggleProductStatus = async (req, res, next) => {
   try {
-    console.log("Toggle");
-    const status = await toggleProductStatusService(req.params.id);
+    const action = await toggleProductStatusService(req.params.id);
 
-    successResponse(res, "Toggle Updated!", HTTP_STATUS.OK, status);
+    successResponse(res, "Toggle Updated!", HTTP_STATUS.OK, { action });
   } catch (error) {
     next(error);
   }
@@ -190,8 +193,7 @@ export const getVariantById = async (req, res, next) => {
 //  PRODUCT DETAILS
 export const getProductDetails = async (req, res, next) => {
   try {
-    const data = await getProductDetailsService(req.params.id);
-    console.log(data);
+    const data = await getProductDetailsService(req.params.id, res);
 
     res.status(HTTP_STATUS.OK).render("admin/home/productDetails", {
       title: "Product Details",
@@ -348,6 +350,6 @@ export const checkSkuAvailability = async (req, res, next) => {
     successResponse(res, 'It"s Ok', HTTP_STATUS.OK, { available });
   } catch (error) {
     console.error("check sku error:", error);
-    return next(error); 
+    return next(error);
   }
 };
