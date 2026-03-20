@@ -3,6 +3,42 @@
 
 <head>
         <%- include('../../partials/head') %>
+                <link rel="stylesheet" href="https://unpkg.com/cropperjs@1.6.2/dist/cropper.min.css">
+                <script src="https://unpkg.com/cropperjs@1.6.2/dist/cropper.min.js"></script>
+                <style>
+                        @keyframes scaleIn {
+                                0% {
+                                        opacity: 0;
+                                        transform: scale(0.9);
+                                }
+
+                                100% {
+                                        opacity: 1;
+                                        transform: scale(1);
+                                }
+                        }
+
+                        .animate-scaleIn {
+                                animation: scaleIn 0.2s ease-out;
+                        }
+
+                        @keyframes fadeIn {
+                                from {
+                                        opacity: 0;
+                                        transform: translateY(-10px);
+                                }
+
+                                to {
+                                        opacity: 1;
+                                        transform: translateY(0);
+                                }
+                        }
+
+                        .animate-fadeIn {
+                                animation: fadeIn 0.3s ease;
+                        }
+                </style>
+
 </head>
 
 <body class="min-h-screen flex">
@@ -10,8 +46,8 @@
         <%- include('../../partials/admin/sidebar') %>
 
                 <div id="mainContent" class="flex-1 flex flex-col min-w-0 transition-all duration-300">
-
                         <%- include('../../partials/admin/header') %>
+
 
                                 <main class="flex-1 p-6">
 
@@ -31,46 +67,43 @@
                                                 <!-- ACTION DROPDOWN -->
                                                 <div class="relative">
 
-                                                        <!-- <button onclick="toggleActionMenu()"
+                                                        <button onclick="toggleActionMenu()"
                                                                 class="bg-gray-700 hover:bg-gray-600 text-white text-sm px-4 py-2 rounded-lg flex items-center gap-2">
 
                                                                 Action
                                                                 <i class="fas fa-chevron-down text-xs"></i>
 
-                                                        </button> -->
+                                                        </button>
 
                                                         <!-- DROPDOWN -->
                                                         <div id="actionDropdown"
                                                                 class="absolute right-0 mt-2 w-44 bg-[#0f172a] border border-white/10 rounded-lg shadow-lg hidden">
 
                                                                 <!-- EDIT PRODUCT -->
-                                                                <!-- <a href="/admin/products/edit/<%= product._id %>"
-                                                                        class="block px-4 py-2 text-sm text-gray-300 hover:bg-white/10">
+                                                                <!-- <button 
+                                                                        class="w-full text-left px-4 py-2 text-sm text-gray-300 hover:bg-white/10">
                                                                         Edit Product
-                                                                </a> -->
+                                                                </button> -->
 
                                                                 <!-- LIST / UNLIST -->
-                                                                <!-- <% if(product.status==="listed" ){ %>
+                                                                <button id="status-<%= product._id %>"
+                                                                        onclick="handleProductAction('<%= product._id %>', '<%= product.status %>')"
+                                                                        class="w-full text-left px-4 py-2 text-sm
+                                                                        <%= product.status==='listed'
+                                                                                ? 'text-yellow-400 hover:bg-white/10'
+                                                                                : 'text-green-400 hover:bg-white/10' %>
+                                                                                ">
 
-                                                                        <button onclick="toggleProductStatus('<%= product._id %>','unlist')"
-                                                                                class="w-full text-left px-4 py-2 text-sm text-yellow-400 hover:bg-white/10">
-                                                                                Unlist Product
-                                                                        </button>
+                                                                        <%= product.status==="listed" ? "Unlist Product"
+                                                                                : "List Product" %>
 
-                                                                        <% } else { %>
+                                                                </button>
 
-                                                                                <button onclick="toggleProductStatus('<%= product._id %>','list')"
-                                                                                        class="w-full text-left px-4 py-2 text-sm text-green-400 hover:bg-white/10">
-                                                                                        List Product
-                                                                                </button>
-
-                                                                                <% } %> -->
-
-                                                                                        <!-- DELETE PRODUCT -->
-                                                                                        <button onclick="deleteProduct('<%= product._id %>')"
-                                                                                                class="w-full text-left px-4 py-2 text-sm text-red-400 hover:bg-white/10">
-                                                                                                Delete Product
-                                                                                        </button>
+                                                                <!-- DELETE PRODUCT -->
+                                                                <button onclick="handleProductAction('<%= product._id %>','delete')"
+                                                                        class="w-full text-left px-4 py-2 text-sm text-red-400 hover:bg-white/10">
+                                                                        Delete Product
+                                                                </button>
 
                                                         </div>
 
@@ -111,10 +144,10 @@
                                                                 <p>
                                                                         <span class="text-gray-400">Status:</span>
 
-                                                                        <span class="px-2 py-1 rounded-full text-xs
-                                                              <%= product.status === " listed"
-                                                                                ? "bg-emerald-500/20 text-emerald-400"
-                                                                                : "bg-red-500/20 text-red-400" %>">
+                                                                        <span id="badge-<%= product._id %>" class="px-2 py-1 rounded-full text-xs
+                                                              <%= product.status === 'listed'
+                                                                                ? 'bg-emerald-500/20 text-emerald-400'
+                                                                                : 'bg-red-500/20 text-red-400' %>">
 
                                                                                 <%= product.status==="listed" ? "Listed"
                                                                                         : "Unlisted" %>
@@ -184,13 +217,12 @@
                                         </div>
 
 
-                                        <!-- ================= VARIANTS ================= -->
+                                        <!--=================VARIANTS=================-->
 
                                         <div class="bg-[#0b1220] border border-white/10 rounded-xl p-6">
 
-                                                <div class="flex items-center justify-between mb-4">
-
-                                                        <h3 class="text-white font-semibold">
+                                                <div class="flex items-center justify-between mb-5">
+                                                        <h3 class="text-white font-semibold text-lg">
                                                                 Variants (<%= variants.length %>)
                                                         </h3>
 
@@ -198,220 +230,191 @@
                                                                 class="bg-blue-600 hover:bg-blue-700 text-white text-sm px-4 py-2 rounded-lg">
                                                                 + Add Variant
                                                         </button>
-
                                                 </div>
 
-                                                <% let attributeKeys=[]; variants.forEach(function(v){ const
-                                                        attrs=v.attributes instanceof Map ?
-                                                        Object.fromEntries(v.attributes) : (v.attributes || {});
-                                                        Object.keys(attrs).forEach(function(key){
-                                                        if(!attributeKeys.includes(key)){ attributeKeys.push(key) } })
-                                                        }) %>
+                                                <% if (variants.length===0) { %>
 
+                                                        <div class="text-center text-gray-400 py-10">
+                                                                <p>No variants added yet</p>
+                                                        </div>
 
-                                                        <% if(variants.length===0){ %>
+                                                        <% } else { %>
 
-                                                                <div class="text-center text-gray-400 py-10">
+                                                                <div class="w-full overflow-x-auto">
 
-                                                                        <p>No variants added yet</p>
+                                                                        <table
+                                                                                class="min-w-[1000px] w-full text-sm text-gray-300">
 
-                                                                        <button onclick="openVariantModal()"
-                                                                                class="mt-3 bg-blue-600 px-4 py-2 rounded-lg text-sm text-white">
-                                                                                Add First Variant
-                                                                        </button>
+                                                                                <!-- HEADER -->
+                                                                                <thead
+                                                                                        class="sticky top-0 bg-[#0b1220] border-b border-white/10 text-gray-400">
+                                                                                        <tr>
+                                                                                                <th
+                                                                                                        class="py-3 px-4 text-left">
+                                                                                                        SKU</th>
+                                                                                                <th
+                                                                                                        class="py-3 px-4 text-left">
+                                                                                                        Attributes</th>
+                                                                                                <th
+                                                                                                        class="py-3 px-4 text-left">
+                                                                                                        Price</th>
+                                                                                                <th
+                                                                                                        class="py-3 px-4 text-left">
+                                                                                                        Stock</th>
+                                                                                                <th
+                                                                                                        class="py-3 px-4 text-left">
+                                                                                                        Description</th>
+                                                                                                <th
+                                                                                                        class="py-3 px-4 text-left">
+                                                                                                        Images</th>
+                                                                                                <th
+                                                                                                        class="py-3 px-4 text-right">
+                                                                                                        Actions</th>
+                                                                                        </tr>
+                                                                                </thead>
+
+                                                                                <tbody>
+
+                                                                                        <% variants.forEach(function(v,
+                                                                                                index) { const
+                                                                                                attrs=v.attributes
+                                                                                                instanceof Map ?
+                                                                                                Object.fromEntries(v.attributes)
+                                                                                                : (v.attributes || {});
+                                                                                                %>
+
+                                                                                                <tr
+                                                                                                        class="border-b border-white/5 hover:bg-[#141a25] hover:rounded-full transition">
+
+                                                                                                        <!-- SKU -->
+                                                                                                        <td
+                                                                                                                class="py-3 px-4 text-white font-medium">
+                                                                                                                <%= v.sku
+                                                                                                                        %>
+                                                                                                        </td>
+
+                                                                                                        <!-- ATTRIBUTES -->
+                                                                                                        <td
+                                                                                                                class="py-3 px-4">
+                                                                                                                <div
+                                                                                                                        class="flex flex-wrap gap-1">
+                                                                                                                        <% Object.keys(attrs).forEach(function(key)
+                                                                                                                                {
+                                                                                                                                %>
+                                                                                                                                <span
+                                                                                                                                        class="bg-blue-500/10 text-blue-300 text-[11px] px-2 py-1 rounded">
+                                                                                                                                        <%= key
+                                                                                                                                                %>
+                                                                                                                                                :
+                                                                                                                                                <%= attrs[key]
+                                                                                                                                                        %>
+                                                                                                                                </span>
+                                                                                                                                <% })
+                                                                                                                                        %>
+                                                                                                                </div>
+                                                                                                        </td>
+
+                                                                                                        <!-- PRICE -->
+                                                                                                        <td
+                                                                                                                class="py-3 px-4 text-green-400 font-semibold">
+                                                                                                                ₹<%= v.price
+                                                                                                                        %>
+                                                                                                        </td>
+
+                                                                                                        <!-- STOCK -->
+                                                                                                        <td
+                                                                                                                class="py-3 px-4">
+                                                                                                                <span
+                                                                                                                        class="<%= v.stock > 0 ? 'text-emerald-400' : 'text-red-400' %>">
+                                                                                                                        <%= v.stock
+                                                                                                                                %>
+                                                                                                                </span>
+                                                                                                        </td>
+
+                                                                                                        <!-- DESCRIPTION -->
+                                                                                                        <td
+                                                                                                                class="py-3 px-4 max-w-[250px] text-xs text-gray-400">
+                                                                                                                <div
+                                                                                                                        class="max-h-[60px] overflow-hidden">
+                                                                                                                        <%= v.description
+                                                                                                                                %>
+                                                                                                                </div>
+                                                                                                        </td>
+
+                                                                                                        <!-- IMAGES -->
+                                                                                                        <td
+                                                                                                                class="py-3 px-4">
+                                                                                                                <div
+                                                                                                                        class="flex flex-wrap gap-2 max-w-[140px]">
+
+                                                                                                                        <% if (v.product_images
+                                                                                                                                &&
+                                                                                                                                v.product_images.length)
+                                                                                                                                {
+                                                                                                                                %>
+
+                                                                                                                                <% v.product_images.forEach(function(img)
+                                                                                                                                        {
+                                                                                                                                        %>
+
+                                                                                                                                        <div
+                                                                                                                                                class="relative group">
+                                                                                                                                                <img src="<%= img.url %>"
+                                                                                                                                                        class="w-12 h-12 object-cover rounded border border-white/10" />
+
+                                                                                                                                                <button onclick="deleteVariantImage('<%= v._id %>', '<%= img.imageId %>')"
+                                                                                                                                                        class="absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-4 h-4 text-[10px] hidden group-hover:flex items-center justify-center">
+                                                                                                                                                        ×
+                                                                                                                                                </button>
+                                                                                                                                        </div>
+
+                                                                                                                                        <% })
+                                                                                                                                                %>
+
+                                                                                                                                                <% }
+                                                                                                                                                        %>
+
+                                                                                                                                                        <!-- ADD IMAGE -->
+                                                                                                                                                        <div onclick="openImageUpload('<%= v._id %>')"
+                                                                                                                                                                class="w-12 h-12 border-2 border-dashed border-gray-500 rounded flex items-center justify-center cursor-pointer hover:border-blue-500">
+                                                                                                                                                                <i
+                                                                                                                                                                        class="fas fa-plus text-xs"></i>
+                                                                                                                                                        </div>
+
+                                                                                                                </div>
+                                                                                                        </td>
+
+                                                                                                        <!-- ACTIONS -->
+                                                                                                        <td
+                                                                                                                class="py-3 px-4 text-right">
+                                                                                                                <div
+                                                                                                                        class="flex justify-end gap-2">
+
+                                                                                                                        <button onclick="editVariant(
+                                '<%= v._id %>'
+                            )" class="text-blue-400 text-xs hover:text-blue-300">
+                                                                                                                                Edit
+                                                                                                                        </button>
+
+                                                                                                                        <button onclick="deleteVariant('<%= v._id %>')"
+                                                                                                                                class="text-red-400 text-xs hover:text-red-300">
+                                                                                                                                Delete
+                                                                                                                        </button>
+
+                                                                                                                </div>
+                                                                                                        </td>
+
+                                                                                                </tr>
+
+                                                                                                <% }) %>
+
+                                                                                </tbody>
+
+                                                                        </table>
 
                                                                 </div>
 
-                                                                <% } else { %>
-
-                                                                        <div class="overflow-x-auto">
-                                                                                <table
-                                                                                        class="min-w-full text-sm text-gray-300">
-
-                                                                                        <thead
-                                                                                                class="border-b border-white/10 text-gray-400">
-                                                                                                <tr>
-
-                                                                                                        <th
-                                                                                                                class="py-3 text-left">
-                                                                                                                SKU
-                                                                                                        </th>
-
-                                                                                                        <%
-                                                                                                                attributeKeys.forEach(key=>
-                                                                                                                {
-                                                                                                                %>
-                                                                                                                <th
-                                                                                                                        class="py-3 text-left">
-                                                                                                                        <%= key.toUpperCase()
-                                                                                                                                %>
-                                                                                                                </th>
-                                                                                                                <% }) %>
-
-                                                                                                                        <th
-                                                                                                                                class="py-3 text-left">
-                                                                                                                                Price
-                                                                                                                        </th>
-                                                                                                                        <th
-                                                                                                                                class="py-3 text-left">
-                                                                                                                                Stock
-                                                                                                                        </th>
-                                                                                                                        <th
-                                                                                                                                class="py-3 text-left">
-                                                                                                                                Images
-                                                                                                                        </th>
-                                                                                                                        <th
-                                                                                                                                class="py-3 text-right">
-                                                                                                                                Actions
-                                                                                                                        </th>
-
-                                                                                                </tr>
-                                                                                        </thead>
-
-                                                                                        <tbody>
-
-                                                                                                <% variants.forEach(v=>
-                                                                                                        { %>
-
-                                                                                                        <tr
-                                                                                                                class="border-b border-white/5">
-
-                                                                                                                <td
-                                                                                                                        class="py-3">
-                                                                                                                        <%= v.sku
-                                                                                                                                %>
-                                                                                                                </td>
-
-                                                                                                                <%
-                                                                                                                        attributeKeys.forEach(key=>
-                                                                                                                        {
-                                                                                                                        %>
-
-                                                                                                                        <td
-                                                                                                                                class="py-3">
-                                                                                                                                <%= v.attributes?.get
-                                                                                                                                        ?
-                                                                                                                                        v.attributes.get(key)
-                                                                                                                                        :
-                                                                                                                                        v.attributes?.[key]
-                                                                                                                                        || "-"
-                                                                                                                                        %>
-                                                                                                                        </td>
-
-                                                                                                                        <% })
-                                                                                                                                %>
-
-                                                                                                                                <td>₹<%= v.price
-                                                                                                                                                %>
-                                                                                                                                </td>
-                                                                                                                                <td>
-                                                                                                                                        <%= v.stock
-                                                                                                                                                %>
-                                                                                                                                </td>
-
-
-                                                                                                                                <!-- IMAGES COLUMN -->
-
-                                                                                                                                <td
-                                                                                                                                        class="py-3">
-
-                                                                                                                                        <div
-                                                                                                                                                class="flex flex-col items-center gap-2">
-
-                                                                                                                                                <% if(v.product_image
-                                                                                                                                                        &&
-                                                                                                                                                        v.product_image.length){
-                                                                                                                                                        %>
-
-                                                                                                                                                        <%
-                                                                                                                                                                v.product_image.forEach(img=>
-                                                                                                                                                                {
-                                                                                                                                                                %>
-
-                                                                                                                                                                <div
-                                                                                                                                                                        class="relative group">
-
-                                                                                                                                                                        <img src="<%= img %>"
-                                                                                                                                                                                class="w-12 h-12 object-cover rounded border border-white/10" />
-
-                                                                                                                                                                        <button onclick='deleteVariantImage("<%= v._id %>", <%- JSON.stringify(img) %>)'
-                                                                                                                                                                                class="absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-4 h-4 text-[10px] hidden group-hover:flex items-center justify-center">
-                                                                                                                                                                                ×
-                                                                                                                                                                        </button>
-
-                                                                                                                                                                </div>
-
-                                                                                                                                                                <% })
-                                                                                                                                                                        %>
-
-                                                                                                                                                                        <% }
-                                                                                                                                                                                %>
-
-
-                                                                                                                                                                                <!-- ADD IMAGE BOX -->
-
-                                                                                                                                                                                <div onclick="openImageUpload('<%= v._id %>')"
-                                                                                                                                                                                        class="w-12 h-12 border-2 border-dashed border-gray-500 rounded flex flex-col items-center justify-center cursor-pointer hover:border-blue-500">
-
-                                                                                                                                                                                        <i
-                                                                                                                                                                                                class="fas fa-plus text-xs"></i>
-                                                                                                                                                                                        <span
-                                                                                                                                                                                                class="text-[9px]">Add</span>
-
-                                                                                                                                                                                </div>
-
-                                                                                                                                        </div>
-
-                                                                                                                                </td>
-
-
-                                                                                                                                <td
-                                                                                                                                        class="text-right">
-
-                                                                                                                                        <div
-                                                                                                                                                class="flex justify-end gap-3">
-
-                                                                                                                                                <!-- EDIT -->
-
-                                                                                                                                                <button onclick='editVariant(
-                        "<%= v._id %>",
-                        "<%= v.sku %>",
-                        "<%= v.price %>",
-                        "<%= v.stock %>",
-                        <%- JSON.stringify(v.attributes instanceof Map ? Object.fromEntries(v.attributes) : v.attributes) %>
-                )' class="text-blue-400 text-xs hover:text-blue-300">
-
-                                                                                                                                                        Edit
-
-                                                                                                                                                </button>
-
-
-                                                                                                                                                <!-- DELETE -->
-
-                                                                                                                                                <button onclick="deleteVariant('<%= v._id %>')"
-                                                                                                                                                        class="text-red-400 text-xs hover:text-red-300">
-
-                                                                                                                                                        Delete
-
-                                                                                                                                                </button>
-
-                                                                                                                                        </div>
-
-                                                                                                                                </td>
-                                                                                                                                <input type="file"
-                                                                                                                                        id="variantImageInput"
-                                                                                                                                        class="hidden"
-                                                                                                                                        accept="image/*">
-                                                                                                        </tr>
-
-                                                                                                        <% }) %>
-
-                                                                                        </tbody>
-
-                                                                                </table>
-                                                                        </div>
-
-                                                                        <% } %>
+                                                                <% } %>
 
                                         </div>
 
@@ -419,101 +422,126 @@
 
                 </div>
 
-                <div id="variantModal" class="fixed inset-0 bg-black/60 hidden z-50 flex items-center justify-center">
+                <div id="variantModal"
+                        class="fixed inset-0 bg-black/60 backdrop-blur-sm hidden z-50 flex items-center justify-center">
 
-                        <div class="bg-[#0b1220] w-[550px] rounded-xl border border-white/10 p-6">
+                        <!-- MODAL BOX -->
+                        <div class="bg-[#0b1220] w-full max-w-lg sm:max-w-xl md:max-w-2xl lg:max-w-3xl 
+    max-h-[90vh] overflow-y-auto rounded-xl border border-white/10 p-6 
+    shadow-xl animate-scaleIn">
 
+                                <!-- HEADER -->
                                 <div class="flex justify-between items-center mb-4">
-
                                         <h2 id="variantModalTitle" class="text-lg font-semibold text-white">
                                                 Add Variant
                                         </h2>
 
-                                        <button onclick="closeVariantModal()" class="text-gray-400 hover:text-white">
-
-                                                <i class="fas fa-times"></i>
-
+                                        <button onclick="closeVariantModal()"
+                                                class="text-gray-400 hover:text-white text-lg">
+                                                ✕
                                         </button>
-
                                 </div>
 
-
+                                <!-- FORM -->
                                 <form id="variantForm" class="flex flex-col gap-4">
 
                                         <input type="hidden" id="variant-id">
 
-
                                         <!-- SKU -->
-
                                         <div>
-
                                                 <label class="text-sm text-gray-400">SKU</label>
 
                                                 <input type="text" id="variant-sku"
                                                         class="w-full mt-1 bg-[#0f172a] border border-white/10 px-3 py-2 rounded-lg text-sm">
 
+                                                <!-- 🔥 STATUS -->
+                                                <p id="skuStatus" class="text-xs mt-1"></p>
                                         </div>
-
 
                                         <!-- PRICE -->
-
                                         <div>
-
                                                 <label class="text-sm text-gray-400">Price</label>
-
                                                 <input type="number" id="variant-price"
-                                                        class="w-full mt-1 bg-[#0f172a] border border-white/10 px-3 py-2 rounded-lg text-sm">
-
+                                                        class="w-full mt-1 bg-[#0f172a] border border-white/10 px-3 py-2 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none">
                                         </div>
-
 
                                         <!-- STOCK -->
-
                                         <div>
-
                                                 <label class="text-sm text-gray-400">Stock</label>
-
                                                 <input type="number" id="variant-stock"
-                                                        class="w-full mt-1 bg-[#0f172a] border border-white/10 px-3 py-2 rounded-lg text-sm">
-
+                                                        class="w-full mt-1 bg-[#0f172a] border border-white/10 px-3 py-2 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none">
                                         </div>
 
-
-                                        <!-- VARIANT ATTRIBUTES (Dynamic) -->
-
+                                        <!-- DESCRIPTION -->
                                         <div>
-
-                                                <label class="text-sm text-gray-400">
-                                                        Variant Attributes
-                                                </label>
-
-                                                <div id="variantAttributes" class="flex flex-col gap-2"></div>
-
+                                                <label class="text-sm text-gray-400">Description</label>
+                                                <textarea id="variant-description"
+                                                        class="w-full mt-1 bg-[#0f172a] border border-white/10 px-3 py-2 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none"
+                                                        rows="3"></textarea>
                                         </div>
 
+                                        <!-- IMAGES -->
+                                        <div>
+                                                <label class="text-sm text-gray-400">Images</label>
+
+                                                <input type="file" id="variantImageInput" class="hidden"
+                                                        accept="image/*" multiple>
+
+                                                <div id="variantImagePreview"
+                                                        class="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-2 mt-2">
+                                                </div>
+
+                                                <button type="button" onclick="openImageUploadForForm()"
+                                                        class="mt-3 px-3 py-1 bg-blue-600 hover:bg-blue-700 text-white text-xs rounded">
+                                                        + Add Images
+                                                </button>
+                                        </div>
+
+                                        <!-- ATTRIBUTES -->
+                                        <div>
+                                                <label class="text-sm text-gray-400">Variant Attributes</label>
+                                                <div id="variantAttributes" class="flex flex-col gap-2 mt-2"></div>
+                                        </div>
 
                                         <!-- BUTTONS -->
-
-                                        <div class="flex justify-center gap-3 mt-4">
-
+                                        <div class="flex justify-end gap-3 mt-4">
                                                 <button type="button" onclick="closeVariantModal()"
                                                         class="px-4 py-2 bg-gray-600 hover:bg-gray-700 text-white rounded-lg text-sm">
-
                                                         Cancel
-
                                                 </button>
-
 
                                                 <button type="submit"
                                                         class="px-4 py-2 bg-cyan-600 hover:bg-cyan-700 text-white rounded-lg text-sm">
-
                                                         Save Variant
-
                                                 </button>
-
                                         </div>
 
                                 </form>
+
+                        </div>
+                </div>
+
+                <!-- croper modal -->
+                <div id="variantCropModal"
+                        class="fixed inset-0 bg-black/70 hidden z-50 flex items-center justify-center">
+
+                        <div class="bg-[#0b1220] p-6 rounded-xl w-[600px]">
+
+                                <h2 class="text-white mb-4">Crop Image</h2>
+
+                                <div class="max-h-[400px]">
+                                        <img id="variantCropImage" class="max-w-full">
+                                </div>
+
+                                <div class="flex justify-end gap-3 mt-4">
+                                        <button onclick="closeVariantCrop()" class="px-4 py-2 bg-gray-600 rounded">
+                                                Cancel
+                                        </button>
+
+                                        <button onclick="handleCrop()" class="px-4 py-2 bg-cyan-600 rounded">
+                                                Crop
+                                        </button>
+                                </div>
 
                         </div>
 
@@ -527,72 +555,74 @@
                         let editingVariantAttributes = {};
                         let currentVariantId = null;
 
+                        // Cropper variables
+                        let variantCropper;
+                        let variantCroppedBlob;
+                        let variantImages = []; //  store cropped blobs
+                        let cropMode = "single"; // "single" | "multi"
 
-                        // ================= ACTION MENU =================
+
+                        const variantImageInput = document.getElementById("variantImageInput");
+                        const variantCropModal = document.getElementById("variantCropModal");
+                        const variantCropImage = document.getElementById("variantCropImage");
+
+                        /* ================= ACTION MENU ================= */
 
                         window.toggleActionMenu = function () {
-
                                 const menu = document.getElementById("actionDropdown");
                                 menu.classList.toggle("hidden");
-
                         };
 
                         document.addEventListener("click", function (e) {
-
                                 const menu = document.getElementById("actionDropdown");
-
                                 if (!e.target.closest(".relative")) {
                                         menu?.classList.add("hidden");
                                 }
-
                         });
 
-
-                        // ================= OPEN VARIANT MODAL =================
+                        /* ================= VARIANT MODAL ================= */
 
                         window.openVariantModal = function () {
-
                                 document.getElementById("variant-id").value = "";
                                 document.getElementById("variant-sku").value = "";
                                 document.getElementById("variant-price").value = "";
                                 document.getElementById("variant-stock").value = "";
+                                variantImages = [];
+                                document.getElementById("variantImagePreview").innerHTML = "";
+                                document.getElementById("variant-description").value = "";
 
                                 editingVariantAttributes = {};
 
                                 document.getElementById("variantModalTitle").textContent = "Add Variant";
 
                                 loadVariantAttributes();
+                                skuStatus.textContent = ''
+
 
                                 document.getElementById("variantModal").classList.remove("hidden");
+                                document.body.style.overflow = "hidden"; // 🔥 prevent background scroll
 
                         };
-
-
-                        // ================= CLOSE VARIANT MODAL =================
 
                         window.closeVariantModal = function () {
-
                                 document.getElementById("variantModal").classList.add("hidden");
-
+                                document.body.style.overflow = "auto"; // 🔥 restore scroll
+                                skuStatus.textContent = ''
                         };
 
-
-                        // ================= LOAD VARIANT ATTRIBUTES =================
+                        /* ================= LOAD ATTRIBUTES ================= */
 
                         async function loadVariantAttributes(existingAttributes = {}) {
-
                                 const categoryId = "<%= product.category._id %>";
                                 const container = document.getElementById("variantAttributes");
 
                                 container.innerHTML = "";
 
                                 try {
-
                                         const res = await fetch(`/admin/category/${categoryId}/attributes`);
                                         const result = await res.json();
 
                                         result.data.variantAttributes.forEach(attr => {
-
                                                 const input = document.createElement("input");
 
                                                 input.placeholder = attr.label;
@@ -603,129 +633,174 @@
                                                         "bg-[#0f172a] border border-white/10 px-3 py-2 rounded-lg text-sm";
 
                                                 container.appendChild(input);
-
                                         });
 
                                 } catch {
-
                                         showToast("Failed to load attributes", "error");
-
                                 }
-
                         }
 
+                        /* ================= EDIT VARIANT ================= */
 
-                        // ================= EDIT VARIANT =================
+                        window.editVariant = async function (variantId) {
 
-                        window.editVariant = function (id, sku, price, stock, attributes = {}) {
+                                try {
 
-                                document.getElementById("variant-id").value = id;
-                                document.getElementById("variant-sku").value = sku;
-                                document.getElementById("variant-price").value = price;
-                                document.getElementById("variant-stock").value = stock;
+                                        const res = await fetch(
+                                                `/admin/products/<%= product._id %>/variants/${variantId}`
+                                        );
 
-                                editingVariantAttributes = attributes || {};
+                                        const data = await res.json();
 
-                                document.getElementById("variantModalTitle").textContent = "Edit Variant";
+                                        if (!data.success) {
+                                                return showToast(data.message, "error");
+                                        }
 
-                                loadVariantAttributes(editingVariantAttributes);
+                                        const variant = data.data.variant;
 
-                                document.getElementById("variantModal").classList.remove("hidden");
+                                        console.log("FETCHED VARIANT:", variant);
 
+                                        // ================= SET BASIC FIELDS =================
+
+                                        document.getElementById("variant-id").value = variant._id;
+                                        document.getElementById("variant-sku").value = variant.sku || "";
+                                        document.getElementById("variant-price").value = variant.price || "";
+                                        document.getElementById("variant-stock").value = variant.stock || "";
+                                        document.getElementById("variant-description").value = variant.description || "";
+
+                                        // ================= ATTRIBUTES =================
+
+                                        editingVariantAttributes = variant.attributes || {};
+                                        await loadVariantAttributes(editingVariantAttributes);
+
+                                        // ================= IMAGES =================
+
+                                        const preview = document.getElementById("variantImagePreview");
+                                        preview.innerHTML = "";
+
+                                        if (variant.product_images?.length) {
+                                                variant.product_images.forEach(img => {
+                                                        const image = document.createElement("img");
+                                                        image.src = img.url;
+                                                        image.className = "w-16 h-16 object-cover rounded";
+
+                                                        preview.appendChild(image);
+                                                });
+                                        }
+
+                                        // reset new images
+                                        variantImages = [];
+
+                                        document.getElementById("variantModalTitle").textContent = "Edit Variant";
+
+                                        document.getElementById("variantModal").classList.remove("hidden");
+
+                                } catch (error) {
+                                        console.error(error);
+                                        showToast("Failed to load variant", "error");
+                                }
                         };
-
-
-                        // ================= SUBMIT VARIANT =================
+                        /* ================= SUBMIT VARIANT ================= */
 
                         const variantForm = document.getElementById("variantForm");
 
                         variantForm.addEventListener("submit", async (e) => {
-
                                 e.preventDefault();
 
+                                const submitBtn = variantForm.querySelector("button[type='submit']");
+
+                                //  prevent multiple clicks
+                                if (submitBtn.disabled) return;
+
                                 try {
+                                        submitBtn.disabled = true;
+                                        submitBtn.textContent = "Saving...";
+                                        submitBtn.classList.add("opacity-50", "cursor-not-allowed");
 
                                         const variantId = document.getElementById("variant-id").value;
                                         const sku = document.getElementById("variant-sku").value.trim();
                                         const price = parseFloat(document.getElementById("variant-price").value);
                                         const stock = parseInt(document.getElementById("variant-stock").value);
+                                        const description = document.getElementById("variant-description").value.trim();
 
-                                        if (!sku) return showToast("SKU is required", "warning");
+                                        if (skuStatus.textContent.includes("exists")) {
+                                                throw new Error("SKU already exists!");
+                                        }
 
-                                        if (sku.length < 3)
-                                                return showToast("SKU must be at least 3 characters", "warning");
-
-                                        if (!price || price <= 0)
-                                                return showToast("Price must be greater than 0", "warning");
-
-                                        if (stock < 0)
-                                                return showToast("Stock cannot be negative", "warning");
-
+                                        if (!sku) throw new Error("SKU is required");
+                                        if (sku.length < 3) throw new Error("SKU must be at least 3 characters");
+                                        if (!price || price <= 0) throw new Error("Price must be greater than 0");
+                                        if (stock < 0) throw new Error("Stock cannot be negative");
 
                                         const attributes = {};
 
-                                        document
-                                                .querySelectorAll("#variantAttributes input")
-                                                .forEach(input => {
-
-                                                        attributes[input.name] = input.value.trim();
-
-                                                });
+                                        document.querySelectorAll("#variantAttributes input").forEach(input => {
+                                                attributes[input.name] = input.value.trim();
+                                        });
 
                                         for (const key in attributes) {
-
-                                                if (!attributes[key])
-                                                        return showToast(`${key} cannot be empty`, "warning");
-
+                                                if (!attributes[key]) throw new Error(`${key} cannot be empty`);
                                         }
 
+                                        if (!description || description.length < 5)
+                                                throw new Error("Description required");
+
+                                        if (!variantId && variantImages.length < 3)
+                                                throw new Error("At least three image required");
+
+                                        //  FormData
+                                        const formData = new FormData();
+
+                                        formData.append("sku", sku);
+                                        formData.append("price", price);
+                                        formData.append("stock", stock);
+                                        formData.append("description", description);
+                                        formData.append("attributes", JSON.stringify(attributes));
+
+                                        variantImages.forEach((img, i) => {
+                                                formData.append("images", img, `variant-${i}.png`);
+                                        });
 
                                         let url = `/admin/products/<%= product._id %>/variants`;
                                         let method = "POST";
 
                                         if (variantId) {
-
                                                 url = `/admin/products/<%= product._id %>/variants/${variantId}`;
                                                 method = "PATCH";
-
                                         }
 
                                         const res = await fetch(url, {
-
                                                 method,
-                                                headers: { "Content-Type": "application/json" },
-                                                body: JSON.stringify({ sku, price, stock, attributes })
-
+                                                body: formData
                                         });
 
                                         const data = await res.json();
 
-                                        if (!data.success)
-                                                return showToast(data.message, "error");
+                                        if (!data.success) throw new Error(data.message);
 
                                         showToast(data.message, "success");
 
                                         setTimeout(() => location.reload(), 1200);
 
-                                } catch {
-
-                                        showToast("Something went wrong", "error");
-
+                                } catch (err) {
+                                        showToast(err.message || "Something went wrong", "error");
+                                } finally {
+                                        // 🔥 re-enable button
+                                        setTimeout(() => {
+                                                submitBtn.disabled = false;
+                                                submitBtn.textContent = "Save Variant";
+                                                submitBtn.classList.remove("opacity-50", "cursor-not-allowed");
+                                        }, 1000)
                                 }
-
                         });
 
-
-                        // ================= DELETE VARIANT =================
+                        /* ================= DELETE VARIANT ================= */
 
                         window.deleteVariant = async function (id) {
-
                                 const confirmed = await confirmAction("Delete Variant?");
-
                                 if (!confirmed) return;
 
                                 try {
-
                                         const res = await fetch(
                                                 `/admin/products/<%= product._id %>/variants/${id}`,
                                                 { method: "DELETE" }
@@ -741,44 +816,98 @@
                                         setTimeout(() => location.reload(), 1200);
 
                                 } catch {
-
                                         showToast("Delete failed", "error");
-
                                 }
-
                         };
 
-
-                        // ================= IMAGE UPLOAD =================
+                        /* ================= IMAGE UPLOAD (WITH CROPPER) ================= */
 
                         window.openImageUpload = function (variantId) {
-
                                 currentVariantId = variantId;
-
-                                document.getElementById("variantImageInput").click();
-
+                                cropMode = "single";
+                                variantImageInput.click();
                         };
 
+                        variantImageInput.addEventListener("change", function () {
+                                const file = this.files[0];
+                                if (!file) return;
 
-                        document
-                                .getElementById("variantImageInput")
-                                .addEventListener("change", async function () {
+                                if (!file.type.startsWith("image/"))
+                                        return showToast("Only image files allowed", "warning");
+
+                                const reader = new FileReader();
+
+                                reader.onload = function (e) {
+                                        variantCropImage.src = e.target.result;
+                                        variantCropModal.classList.remove("hidden");
+
+                                        setTimeout(() => {
+                                                if (variantCropper) variantCropper.destroy();
+
+                                                variantCropper = new Cropper(variantCropImage, {
+                                                        //  aspectRatio: 1,
+                                                        viewMode: 1,
+                                                        autoCropArea: 1,
+                                                });
+                                        }, 100);
+                                };
+
+                                reader.readAsDataURL(file);
+                        });
+
+                        function handleNextImage(files) {
+                                const file = files.shift();
+                                if (!file) return;
+
+                                if (!file.type.startsWith("image/"))
+                                        return showToast("Only image files allowed", "warning");
+
+                                const reader = new FileReader();
+
+                                reader.onload = function (e) {
+                                        variantCropImage.src = e.target.result;
+                                        variantCropModal.classList.remove("hidden");
+
+                                        setTimeout(() => {
+                                                if (variantCropper) variantCropper.destroy();
+
+                                                variantCropper = new Cropper(variantCropImage, {
+                                                        aspectRatio: 1,
+                                                        viewMode: 1,
+                                                        autoCropArea: 1,
+                                                });
+
+                                                // store remaining files
+                                                variantCropModal.dataset.remaining = JSON.stringify(files);
+                                        }, 100);
+                                };
+
+                                reader.readAsDataURL(file);
+                        }
+
+                        /* ================= CROP & UPLOAD ================= */
+
+                        window.cropSingleVariantImage = async function () {
+                                if (!variantCropper) return;
+
+                                const canvas = variantCropper.getCroppedCanvas({
+                                        width: 400,
+                                        height: 400,
+                                        viewMode: 1,
+                                        responsive: true,
+
+
+                                        // ✅ Full control to user
+                                        movable: true,
+                                        zoomable: true,
+                                });
+
+                                canvas.toBlob(async (blob) => {
+
+                                        const formData = new FormData();
+                                        formData.append("image", blob, "variant.png");
 
                                         try {
-
-                                                const file = this.files[0];
-
-                                                if (!file) return;
-
-                                                if (!file.type.startsWith("image/"))
-                                                        return showToast("Only image files allowed", "warning");
-
-                                                if (file.size > 5 * 1024 * 1024)
-                                                        return showToast("Image must be less than 5MB", "warning");
-
-                                                const formData = new FormData();
-                                                formData.append("image", file);
-
                                                 const res = await fetch(
                                                         `/admin/products/<%= product._id %>/variants/${currentVariantId}/image`,
                                                         {
@@ -794,33 +923,81 @@
 
                                                 showToast("Image uploaded successfully", "success");
 
-                                                setTimeout(() => location.reload(), 1200);
+                                                closeVariantCrop();
+                                                setTimeout(() => location.reload(), 800);
 
                                         } catch {
-
-                                                showToast("Image upload failed", "error");
-
+                                                showToast("Upload failed", "error");
                                         }
 
+                                }, "image/png");
+                        };
+
+                        window.cropMultiVariantImage = function () {
+                                if (!variantCropper) return;
+
+                                const canvas = variantCropper.getCroppedCanvas({
+                                        width: 400,
+                                        height: 400,
+                                        viewMode: 1,
+                                        responsive: true,
+
+                                        // ✅ Full control to user
+                                        movable: true,
+                                        zoomable: true,
                                 });
 
+                                canvas.toBlob((blob) => {
 
-                        // ================= DELETE IMAGE =================
+                                        variantImages.push(blob);
 
-                        window.deleteVariantImage = async function (variantId, imagePath) {
+                                        const preview = document.getElementById("variantImagePreview");
 
+                                        const img = document.createElement("img");
+                                        img.src = URL.createObjectURL(blob);
+                                        img.className = "w-16 h-16 rounded object-cover";
+
+                                        preview.appendChild(img);
+
+                                        closeVariantCrop();
+
+                                }, "image/png");
+                        };
+
+                        window.handleCrop = function () {
+                                if (cropMode === "single") {
+                                        cropSingleVariantImage();
+                                } else {
+                                        cropMultiVariantImage();
+                                }
+                        };
+                        /* ================= CLOSE CROP ================= */
+
+                        window.closeVariantCrop = function () {
+                                variantCropModal.classList.add("hidden");
+
+                                if (variantCropper) {
+                                        variantCropper.destroy();
+                                        variantCropper = null;
+                                }
+
+                                variantImageInput.value = "";
+                        };
+
+                        /* ================= DELETE IMAGE ================= */
+
+                        window.deleteVariantImage = async function (variantId, imageId) {
+                                console.log(imageId)
                                 const confirmed = await confirmAction("Delete image?");
-
                                 if (!confirmed) return;
 
                                 try {
-
                                         const res = await fetch(
                                                 `/admin/products/<%= product._id %>/variants/${variantId}/image`,
                                                 {
                                                         method: "DELETE",
                                                         headers: { "Content-Type": "application/json" },
-                                                        body: JSON.stringify({ imagePath })
+                                                        body: JSON.stringify({ imageId})
                                                 }
                                         );
 
@@ -834,14 +1011,154 @@
                                         setTimeout(() => location.reload(), 1200);
 
                                 } catch {
-
                                         showToast("Delete failed", "error");
-
                                 }
+                        };
 
+                        window.openImageUploadForForm = function () {
+                                currentVariantId = null;
+                                cropMode = "multi";
+                                variantImageInput.click();
+                        };
+
+                        // Product togglestatus update and delete product code 
+                        window.handleProductAction = async function (productId, action) {
+
+                                // close dropdown
+                                document.getElementById("actionDropdown").classList.add("hidden");
+
+                                let confirmText = "";
+
+                                if (action === "delete") confirmText = "Delete this product?";
+                                if (action === "listed") confirmText = "Unlist this product?";
+                                if (action === "unlisted") confirmText = "List this product?";
+
+                                const confirmed = await confirmAction(confirmText);
+                                if (!confirmed) return;
+
+                                try {
+                                        let url = "";
+                                        let method = "PATCH";
+
+                                        if (action === "delete") {
+                                                url = `/admin/products/${productId}`;
+                                                method = "DELETE";
+                                        } else {
+                                                url = `/admin/products/${productId}/status`;
+                                        }
+
+                                        const res = await fetch(url, { method });
+                                        const result = await res.json();
+
+                                        if (!result.success) {
+                                                return showToast(data.message, "error");
+                                        }
+
+                                        // DELETE CASE
+                                        if (action === "delete") {
+                                                showToast("Product deleted successfully", "success");
+                                                setTimeout(() => location.reload(), 500); // optional
+                                                return;
+                                        }
+
+                                        // TOGGLE CASE (NO RELOAD)
+                                        const btn = document.getElementById(`status-${productId}`);
+
+
+                                        if (!btn) return;
+
+                                        // determine new state
+                                        const newAction = result.data.action;
+
+                                        // update button text
+                                        btn.textContent = newAction === "listed"
+                                                ? "Unlist Product"
+                                                : "List Product";
+
+                                        // update button color
+                                        btn.className = `w-full text-left px-4 py-2 text-sm ${newAction === "listed"
+                                                ? "text-yellow-400 hover:bg-white/10"
+                                                : "text-green-400 hover:bg-white/10"
+                                                }`;
+
+
+                                        const badge = document.getElementById(`badge-${productId}`);
+
+                                        badge.textContent = newAction === "listed"
+                                                ? "Listed"
+                                                : "Unlisted";
+
+                                        // update button color
+                                        badge.className = `px-2 py-1 rounded-full text-xs ${newAction === "listed"
+                                                ? 'bg-emerald-500/20 text-emerald-400'
+                                                : 'bg-red-500/20 text-red-400'
+                                                }`;
+
+                                        // update onclick
+                                        btn.setAttribute(
+                                                "onclick",
+                                                `handleProductAction('${productId}','${newAction}')`
+                                        );
+
+                                        showToast(`Product ${action}ed successfully`, "success");
+
+                                } catch (err) {
+                                        showToast("Something went wrong", "error");
+                                }
                         };
 
                 </script>
+
+                <script>
+                        function debounce(fn, delay) {
+                                let timeout;
+
+                                return function (...args) {
+                                        clearTimeout(timeout);
+                                        timeout = setTimeout(() => fn.apply(this, args), delay);
+                                };
+                        }
+
+                        const skuInput = document.getElementById("variant-sku");
+                        const skuStatus = document.getElementById("skuStatus");
+
+                        const checkSku = debounce(async function () {
+                                const sku = skuInput.value.trim();
+
+                                if (!sku) {
+                                        skuStatus.textContent = "";
+                                        return;
+                                }
+
+                                skuStatus.textContent = "Checking...";
+                                skuStatus.className = "text-xs mt-1 text-gray-400";
+
+                                try {
+                                        const res = await fetch(`/admin/products/check-sku?sku=${sku}`);
+                                        const result = await res.json();
+
+                                        console.log(result)
+
+                                        if (result.data.available) {
+                                                skuStatus.textContent = "✅ SKU available";
+                                                skuStatus.className = "text-xs mt-1 text-emerald-400";
+                                        } else {
+                                                skuStatus.textContent = "❌ SKU already exists";
+                                                skuStatus.className = "text-xs mt-1 text-red-400";
+                                        }
+
+                                } catch (err) {
+                                        skuStatus.textContent = "Error checking SKU";
+                                        skuStatus.className = "text-xs mt-1 text-red-400";
+                                }
+
+                        }, 500);
+
+                        skuInput.addEventListener("input", checkSku);
+
+                </script>
+
+
 </body>
 
 </html>

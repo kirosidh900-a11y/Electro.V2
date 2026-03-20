@@ -166,7 +166,7 @@ export const resendOtp = async (req, res, next) => {
 
 export const showForgotPasswordPage = (req, res) => {
   res.render("user/auth/forgot");
-};
+}
 
 export const verifyEmail = async (req, res, next) => {
   try {

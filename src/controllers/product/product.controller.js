@@ -1,7 +1,5 @@
 import HTTP_STATUS from "../../constant/statusCode.js";
 import renderView from "../../utils/admin/renderView.util.js";
-import cloudinary from "../../config/cloudinary.js";
-import { getPublicId } from "../../utils/partials/cloudinary.util.js";
 
 import {
   getProductsService,
@@ -14,6 +12,9 @@ import {
   addVariantService,
   editVariantService,
   deleteVariantService,
+  getProductByIdService,
+  getVariantByIdService,
+  checkSkuAvailabilityService,
 } from "../../services/product/product.service.js";
 
 import {
@@ -25,6 +26,12 @@ import {
   errorResponse,
   successResponse,
 } from "../../utils/partials/response.util.js";
+
+import {
+  deleteFromCloudinary,
+  uploadToCloudinary,
+} from "../../services/partials/cloudinary.service.js";
+import AppError from "../../utils/partials/AppError.utils.js";
 
 //  PRODUCTS PAGE
 export const productsPage = async (req, res, next) => {
@@ -54,12 +61,15 @@ export const productsPage = async (req, res, next) => {
     }
 
     res.locals.title = "Products Management";
+    const error = req.cookies.toastError || null;
+
     res.status(HTTP_STATUS.OK).render("admin/home/products", {
       products,
       categories,
       brands,
       currentPage,
       totalPages,
+      error,
     });
   } catch (error) {
     next(error);
@@ -67,79 +77,63 @@ export const productsPage = async (req, res, next) => {
 };
 
 //  CREATE PRODUCT
-export const createProduct = async (req, res) => {
+export const createProduct = async (req, res, next) => {
   try {
     const product = await createProductService(req.body);
 
-    res.status(HTTP_STATUS.CREATED).json({
-      success: true,
-      message: "Product created successfully",
+    successResponse(
+      res,
+      "Product created successfully",
+      HTTP_STATUS.CREATED,
       product,
-    });
+    );
   } catch (error) {
-    res.status(HTTP_STATUS.BAD_REQUEST).json({
-      success: false,
-      message: error.message,
-    });
+    console.error("Create product Error:", error);
+    return next(error);
   }
 };
 
 //  UPDATE PRODUCT
-export const updateProduct = async (req, res) => {
+export const updateProduct = async (req, res, next) => {
   try {
     const { id } = req.params;
 
     const product = await updateProductService(id, req.body);
 
-    res.status(HTTP_STATUS.OK).json({
-      success: true,
-      message: "Product updated successfully",
+    successResponse(res, "Product updated successfully", HTTP_STATUS.OK, {
       product,
     });
   } catch (error) {
-    res.status(HTTP_STATUS.BAD_REQUEST).json({
-      success: false,
-      message: error.message,
-    });
+    console.error("Delete Product Error", error);
+    next(error);
   }
 };
 
 //  DELETE PRODUCT
-export const deleteProduct = async (req, res) => {
+export const deleteProduct = async (req, res, next) => {
   try {
     await deleteProductService(req.params.id);
 
-    res.status(HTTP_STATUS.OK).json({
-      success: true,
-      message: "Product deleted successfully",
-    });
+    successResponse(res, "Product deleted successfully");
   } catch (error) {
-    res.status(HTTP_STATUS.BAD_REQUEST).json({
-      success: false,
-      message: error.message,
-    });
+    console.error("Delete Product Error", error);
+    next(error);
   }
 };
 
 //  TOGGLE STATUS
-export const toggleProductStatus = async (req, res) => {
+export const toggleProductStatus = async (req, res, next) => {
   try {
-    const status = await toggleProductStatusService(req.params.id);
+    const action = await toggleProductStatusService(req.params.id);
 
-    res.status(HTTP_STATUS.OK).json({
-      success: true,
-      status,
-    });
+    successResponse(res, "Toggle Updated!", HTTP_STATUS.OK, { action });
   } catch (error) {
-    res.status(HTTP_STATUS.BAD_REQUEST).json({
-      success: false,
-      message: error.message,
-    });
+    next(error);
   }
 };
 
 //  GET ATTRIBUTES
-export const getAttributes = async (req, res) => {
+export const getAttributes = async (req, res, next) => {
   try {
     const attributes = await getProductAttributesService(req.params.id);
 
@@ -148,17 +142,57 @@ export const getAttributes = async (req, res) => {
       productAttributes: attributes,
     });
   } catch (error) {
-    res.status(HTTP_STATUS.BAD_REQUEST).json({
-      success: false,
-      message: error.message,
-    });
+    console.error("Get Attributes Error", error);
+    next(error);
+  }
+};
+
+// GET PRODUCT DATA
+export const getProductById = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+
+    const product = await getProductByIdService(id);
+
+    if (!product) {
+      return errorResponse(res, "Product not found", HTTP_STATUS.NOT_FOUND);
+    }
+
+    return successResponse(
+      res,
+      "Product fetched successfully",
+      HTTP_STATUS.OK,
+      product,
+    );
+  } catch (error) {
+    console.error("Get Product By Id Error", error);
+    next(error);
+  }
+};
+
+//GET VARIANT DATA
+export const getVariantById = async (req, res, next) => {
+  try {
+    const { productId, variantId } = req.params;
+
+    const variant = await getVariantByIdService(productId, variantId);
+
+    return successResponse(
+      res,
+      "Variant fetched successfully",
+      HTTP_STATUS.OK,
+      { variant },
+    );
+  } catch (error) {
+    console.error("Get Variant by id Error", error);
+    next(error);
   }
 };
 
 //  PRODUCT DETAILS
 export const getProductDetails = async (req, res, next) => {
   try {
-    const data = await getProductDetailsService(req.params.id);
+    const data = await getProductDetailsService(req.params.id, res);
 
     res.status(HTTP_STATUS.OK).render("admin/home/productDetails", {
       title: "Product Details",
@@ -171,111 +205,150 @@ export const getProductDetails = async (req, res, next) => {
 };
 
 //  VARIANTS
-export const addVariant = async (req, res) => {
+export const addVariant = async (req, res, next) => {
   try {
-    await addVariantService(req.params.id, req.body);
+    const productId = req.params.id;
 
-    res.status(HTTP_STATUS.CREATED).json({
-      success: true,
-      message: "Variant added successfully",
+    let { sku, price, stock, description, attributes } = req.body;
+
+    if (typeof attributes === "string") {
+      attributes = JSON.parse(attributes);
+    }
+
+    const files = req.files || [];
+
+    const result = await addVariantService({
+      productId,
+      sku,
+      price,
+      stock,
+      description,
+      attributes,
+      files,
+    });
+
+    return successResponse(res, result.message, HTTP_STATUS.CREATED, {
+      variant: result.variant,
     });
   } catch (error) {
-    res.status(HTTP_STATUS.BAD_REQUEST).json({
-      success: false,
-      message: error.message,
-    });
+    console.error("Delete Product Error", error);
+    next(error);
   }
 };
 
-export const editVariant = async (req, res) => {
+export const editVariant = async (req, res, next) => {
   try {
     const { productId, variantId } = req.params;
 
+    let { attributes } = req.body;
+
+    if (typeof attributes === "string") {
+      attributes = JSON.parse(attributes);
+    }
+
+    if (attributes) {
+      req.body.attributes = attributes;
+    }
+
     await editVariantService(productId, variantId, req.body);
 
-    res.status(HTTP_STATUS.OK).json({
-      success: true,
-      message: "Variant updated successfully",
-    });
+    successResponse(res, "Variant updated successfully");
   } catch (error) {
-    res.status(HTTP_STATUS.BAD_REQUEST).json({
-      success: false,
-      message: error.message,
-    });
+    console.error("Delete Product Error", error);
+    next(error);
   }
 };
 
-export const deleteVariant = async (req, res) => {
+export const deleteVariant = async (req, res, next) => {
   try {
     await deleteVariantService(req.params.variantId);
 
-    res.status(HTTP_STATUS.OK).json({
-      success: true,
-      message: "Variant deleted successfully",
-    });
+    successResponse(res, "Variant deleted successfully");
   } catch (error) {
-    res.status(HTTP_STATUS.BAD_REQUEST).json({
-      success: false,
-      message: error.message,
-    });
+    console.error("Delete Product Error", error);
+    next(error);
   }
 };
 
 // Image Adding
-export const addVariantImage = async (req, res) => {
+export const addVariantImage = async (req, res, next) => {
+  let uploadedImage;
+
   try {
     const { productId, variantId } = req.params;
 
     const file = req.file || req.files?.[0];
-
 
     if (!file) {
       return errorResponse(res, "Image required", HTTP_STATUS.BAD_REQUEST);
     }
 
-    const imagePath = file.path;
+    // upload to cloudinary
+    uploadedImage = await uploadToCloudinary(file.buffer, "variants");
 
     const result = await addVariantImageService({
       productId,
       variantId,
-      imagePath,
+      image: uploadedImage.secure_url,
+      imageId: uploadedImage.public_id,
     });
 
-    return successResponse(res, result.message, HTTP_STATUS.OK, {
-      image: result.image,
-    });
+    return successResponse(
+      res,
+      result?.message || "Variant image added",
+      HTTP_STATUS.OK,
+      {
+        image: uploadedImage.secure_url,
+        imageId: uploadedImage.public_id,
+      },
+    );
   } catch (error) {
-    const file = req.file || req.files?.[0];
-
-    if (file) {
-      const publicId = getPublicId(file.path);
-      await cloudinary.uploader.destroy(publicId);
+    // 🔥 rollback (same as createBrand)
+    if (uploadedImage?.public_id) {
+      try {
+        await deleteFromCloudinary(uploadedImage.public_id);
+      } catch (err) {
+        console.error("Cleanup failed:", err);
+      }
     }
 
-    return errorResponse(res, error.message || "Upload failed");
+    console.error("addvariant img error:", error);
+    next(error);
   }
 };
 
 // Delete Image
-export const deleteVariantImage = async (req, res) => {
+export const deleteVariantImage = async (req, res, next) => {
   try {
     const { productId, variantId } = req.params;
-    const { imagePath } = req.body;
+    const { imageId } = req.body;
 
-    if (!imagePath) {
-      return errorResponse(res, "Image path required", HTTP_STATUS.BAD_REQUEST);
+    if (!imageId) {
+      throw new AppError("Image ID is required", HTTP_STATUS.BAD_REQUEST);
     }
-
-    const public_id = getPublicId(imagePath);
 
     const result = await deleteVariantImageService({
       productId,
       variantId,
-      public_id,
+      imageId,
     });
 
     return successResponse(res, result.message);
   } catch (error) {
-    return errorResponse(res, error.message || "Delete failed");
+    next(error); // 🔥 pass to global handler
+  }
+};
+
+//Check SKU
+export const checkSkuAvailability = async (req, res, next) => {
+  try {
+    const { sku } = req.query;
+
+    const available = await checkSkuAvailabilityService(sku);
+    
+    successResponse(res, 'It"s Ok', HTTP_STATUS.OK, { available });
+  } catch (error) {
+    console.error("check sku error:", error);
+    return next(error);
   }
 };

@@ -14,46 +14,73 @@ import {
   editVariant,
   addVariantImage,
   deleteVariantImage,
+  getProductById,
+  getVariantById,
+  checkSkuAvailability,
 } from "../../controllers/product/product.controller.js";
-
 
 import { setUploadFolder } from "../../middlewares/setUploadFolder.middleware.js";
 import upload from "../../middlewares/cloudinaryUpload.middleware.js";
+import { validate } from "../../middlewares/validate.middleware.js";
+import {
+  addVariantSchema,
+  editVariantSchema,
+} from "../../validations/variant.validation.js";
+import { validateVariantImages } from "../../middlewares/imageValidation.middleware.js";
 
 const router = Router();
 
+router.use(isAuth);
+
 // Add and Get Product Hear
-router.route("/").get(isAuth, productsPage).post(isAuth, createProduct);
+router.route("/").get(productsPage).post(createProduct);
 
 // Update and Delete Product & Get Product details page Hear
+
+//Check SKU
+router.get("/check-sku", checkSkuAvailability);
+
 router
   .route("/:id")
-  .get(isAuth, getProductDetails)
-  .patch(isAuth, updateProduct)
-  .delete(isAuth, deleteProduct);
+  .get(getProductDetails)
+  .patch(updateProduct)
+  .delete(deleteProduct);
 
 // Get attributes for Add product hear
-router.get("/:id/attributes", isAuth, getAttributes);
+router.get("/:id/attributes", getAttributes);
+//Get Product Details for edit product
+router.get("/:id/datas", getProductById);
+
+//Products Variant Start hear
 
 // Update Status
-router.patch("/:id/status", isAuth, toggleProductStatus);
+router.patch("/:id/status", toggleProductStatus);
 
 // Add , delete and Edit Variant Hear
-router.post("/:id/variants", isAuth, addVariant);
+router.post(
+  "/:id/variants",
+  setUploadFolder("products"),
+  upload.array("images"),
+  validate(addVariantSchema),
+  validateVariantImages,
+  addVariant,
+);
+
 router
   .route("/:productId/variants/:variantId")
-  .patch(isAuth, editVariant)
-  .delete(isAuth, deleteVariant);
+  .get(getVariantById)
+  .patch(
+    setUploadFolder("products"),
+    upload.array("images"),
+    validate(editVariantSchema),
+    editVariant,
+  )
+  .delete(deleteVariant);
 
 // Img add and delete
 router
   .route("/:productId/variants/:variantId/image")
-  .post(
-    isAuth,
-    setUploadFolder("products"),
-    upload.single("image"),
-    addVariantImage,
-  )
-  .delete(isAuth, deleteVariantImage);
+  .post(setUploadFolder("products"), upload.single("image"), addVariantImage)
+  .delete(deleteVariantImage);
 
 export default router;

@@ -2,6 +2,11 @@ import Products from "../../models/productSchema.model.js";
 import Category from "../../models/CategorySchema.model.js";
 import Brand from "../../models/brandSchema.model.js";
 import mongoose from "mongoose";
+import AppError from "../../utils/partials/AppError.utils.js";
+import HTTP_STATUS from "../../constant/statusCode.js";
+import { uploadToCloudinary } from "../partials/cloudinary.service.js";
+
+import setCookieMSG from "../../utils/partials/setCookieMsg.utils.js";
 
 //  PRODUCTS PAGE
 export const getProductsService = async ({ page, limit, search, status }) => {
@@ -174,7 +179,10 @@ export const updateProductService = async (id, data) => {
   });
 
   if (existingProduct) {
-    throw new Error("Product with this name already exists");
+    throw new AppError(
+      "Product with this name already exists",
+      HTTP_STATUS.CONFLICT,
+    );
   }
 
   const product = await Products.findByIdAndUpdate(id, data, { new: true });
@@ -186,7 +194,7 @@ export const updateProductService = async (id, data) => {
 export const deleteProductService = async (id) => {
   const product = await Products.findById(id);
 
-  if (!product) throw new Error("Product not found");
+  if (!product) throw new AppError("Product not found", HTTP_STATUS.NOT_FOUND);
 
   product.isDeleted = true;
 
@@ -197,13 +205,19 @@ export const deleteProductService = async (id) => {
 export const toggleProductStatusService = async (id) => {
   const product = await Products.findById(id);
 
-  if (!product) throw new Error("Product not found");
+  if (!product) {
+    throw new AppError("Product not found", HTTP_STATUS.NOT_FOUND);
+  }
 
-  product.status = product.status === "listed" ? "unlisted" : "listed";
+  const newStatus = product.status === "listed" ? "unlisted" : "listed";
 
-  await product.save();
+  await Products.findByIdAndUpdate(
+    id,
+    { status: newStatus },
+    { runValidators: false },
+  );
 
-  return product.status;
+  return newStatus;
 };
 
 //  GET ATTRIBUTES
@@ -214,13 +228,58 @@ export const getProductAttributesService = async (id) => {
 
   const product = await Products.findById(id);
 
-  if (!product) throw new Error("Product not found");
+  if (!product) throw new AppError("Product not found", HTTP_STATUS.NOT_FOUND);
 
   return product.attributes || [];
 };
 
+//GET PRODUCTS DATA
+export const getProductByIdService = async (id) => {
+  const product = await Products.findById(id)
+    .populate("category", "_id title")
+    .populate("brand", "_id title")
+    .lean();
+
+  if (!product) return null;
+
+  return {
+    _id: product._id,
+    name: product.name,
+    category: product.category?._id,
+    brand: product.brand?._id,
+    status: product.status,
+    attributes: product.attributes || {},
+  };
+};
+
+//GET VARIANT DATA
+export const getVariantByIdService = async (productId, variantId) => {
+  const product = await Products.findById(productId).select("variants");
+
+  if (!product) {
+    throw new AppError("Product not found", HTTP_STATUS.NOT_FOUND);
+  }
+
+  const variant = product.variants.id(variantId);
+
+  if (!variant) {
+    throw new AppError("Variant not found", HTTP_STATUS.NOT_FOUND);
+  }
+
+  // 🔥 normalize attributes (important if Map)
+  const normalizedAttributes =
+    variant.attributes instanceof Map
+      ? Object.fromEntries(variant.attributes)
+      : variant.attributes;
+
+  return {
+    ...variant.toObject(),
+    attributes: normalizedAttributes,
+  };
+};
+
 //  GET PRODUCT DETAILS
-export const getProductDetailsService = async (id) => {
+export const getProductDetailsService = async (id, res) => {
   const product = await Products.findOne({
     _id: id,
     isDeleted: false,
@@ -228,7 +287,12 @@ export const getProductDetailsService = async (id) => {
     .populate("category", "title")
     .populate("brand", "title");
 
-  if (!product) throw new Error("Product not found");
+  if (!product) {
+    const tostError = "Product not found";
+    setCookieMSG(res, tostError);
+    res.redirect("/admin/products");
+    return;
+  }
 
   const variants = product.variants.filter((v) => !v.isDeleted);
 
@@ -246,30 +310,84 @@ export const getProductDetailsService = async (id) => {
 };
 
 //  ADD VARIANT
-export const addVariantService = async (productId, data) => {
+export const addVariantService = async ({
+  productId,
+  sku,
+  price,
+  stock,
+  description,
+  attributes,
+  files,
+}) => {
   const product = await Products.findById(productId);
 
-  if (!product) throw new Error("Product not found");
+  if (!product) {
+    throw new AppError("Product not found", HTTP_STATUS.NOT_FOUND);
+  }
 
-  const normalizedSku = data.sku.trim().toLowerCase();
+  // ✅ Validate required fields
+  if (!description || description.trim() === "") {
+    throw new AppError("Description is required", HTTP_STATUS.BAD_REQUEST);
+  }
 
-  // 🔥 check globally
-  const skuExists = await Products.findOne({
+  if (!sku || !price || !stock) {
+    throw new AppError(
+      "SKU, price and stock are required",
+      HTTP_STATUS.BAD_REQUEST,
+    );
+  }
+
+  // ✅ Normalize SKU
+  const normalizedSku = sku.trim().toLowerCase();
+
+  const skuExists = await Products.exists({
     "variants.sku": { $regex: `^${normalizedSku}$`, $options: "i" },
   });
 
   if (skuExists) {
-    throw new Error("SKU already exists for another variant");
+    throw new AppError("SKU already exists", HTTP_STATUS.CONFLICT);
   }
 
-  product.variants.push({
-    sku: data.sku,
-    price: data.price,
-    stock: data.stock,
-    attributes: new Map(Object.entries(data.attributes || {})),
-  });
+  // ✅ Fix attributes (FormData case)
+  if (typeof attributes === "string") {
+    attributes = JSON.parse(attributes);
+  }
 
-  await product.save();
+  // ================= IMAGE UPLOAD =================
+  if (!files || files.length < 3) {
+    throw new AppError("At least 3 images required", HTTP_STATUS.BAD_REQUEST);
+  }
+
+  const uploadedImages = [];
+
+  for (const file of files) {
+    const uploaded = await uploadToCloudinary(file.buffer, "products");
+
+    uploadedImages.push({
+      url: uploaded.secure_url,
+      imageId: uploaded.public_id,
+    });
+  }
+
+  // ================= CREATE VARIANT =================
+  const newVariant = {
+    sku: normalizedSku,
+    price,
+    stock,
+    description,
+    attributes: new Map(Object.entries(attributes || {})),
+    product_images: uploadedImages,
+  };
+
+  product.variants.push(newVariant);
+
+  // ✅ Skip full validation (IMPORTANT FIX)
+  await product.save({ validateBeforeSave: false });
+
+  return {
+    message: "Variant added successfully",
+    variant: product.variants.at(-1),
+  };
 };
 
 //  EDIT VARIANT
@@ -305,12 +423,40 @@ export const editVariantService = async (productId, variantId, data) => {
 
 //  DELETE VARIANT
 export const deleteVariantService = async (variantId) => {
-  const result = await Products.updateOne(
-    { "variants._id": variantId },
-    { $pull: { variants: { _id: variantId } } },
-  );
+  const product = await Products.findOne({
+    "variants._id": variantId,
+  });
 
-  if (result.modifiedCount === 0) {
-    throw new Error("Variant not found");
+  if (!product) {
+    throw new AppError("Variant not found", HTTP_STATUS.NOT_FOUND);
   }
+
+  const variant = product.variants.id(variantId);
+
+  if (!variant || variant.isDeleted) {
+    throw new AppError("Variant not found", HTTP_STATUS.NOT_FOUND);
+  }
+
+  // SOFT DELETE
+  variant.isDeleted = true;
+
+  await product.save({ validateBeforeSave: false });
+
+  return {
+    message: "Variant deleted successfully",
+  };
+};
+
+export const checkSkuAvailabilityService = async (sku) => {
+  if (!sku) {
+    return false;
+  }
+
+  const normalizedSku = sku.trim().toLowerCase();
+
+  const exists = await Products.exists({
+    "variants.sku": { $regex: `^${normalizedSku}$`, $options: "i" },
+  });
+
+  return !exists; // true = available
 };
