@@ -27,3 +27,11 @@ export const addVariantSchema = Joi.object({
       "object.base": "Attributes must be an object",
     }),
 });
+
+export const  editVariantSchema = Joi.object({
+  sku: Joi.string().optional(),
+  price: Joi.number().optional(),
+  stock: Joi.number().optional(),
+  description: Joi.string().optional(),
+  attributes: Joi.object().optional()
+});

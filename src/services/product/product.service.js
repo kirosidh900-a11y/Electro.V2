@@ -4,7 +4,10 @@ import Brand from "../../models/brandSchema.model.js";
 import mongoose from "mongoose";
 import AppError from "../../utils/partials/AppError.utils.js";
 import HTTP_STATUS from "../../constant/statusCode.js";
-import { uploadToCloudinary } from "../partials/cloudinary.service.js";
+import {
+  deleteFromCloudinary,
+  uploadToCloudinary,
+} from "../partials/cloudinary.service.js";
 
 //  PRODUCTS PAGE
 export const getProductsService = async ({ page, limit, search, status }) => {
@@ -177,7 +180,10 @@ export const updateProductService = async (id, data) => {
   });
 
   if (existingProduct) {
-    throw new Error("Product with this name already exists");
+    throw new AppError(
+      "Product with this name already exists",
+      HTTP_STATUS.CONFLICT,
+    );
   }
 
   const product = await Products.findByIdAndUpdate(id, data, { new: true });
@@ -189,7 +195,7 @@ export const updateProductService = async (id, data) => {
 export const deleteProductService = async (id) => {
   const product = await Products.findById(id);
 
-  if (!product) throw new Error("Product not found");
+  if (!product) throw new AppError("Product not found", HTTP_STATUS.NOT_FOUND);
 
   product.isDeleted = true;
 
@@ -223,7 +229,7 @@ export const getProductAttributesService = async (id) => {
 
   const product = await Products.findById(id);
 
-  if (!product) throw new Error("Product not found");
+  if (!product) throw new AppError("Product not found", HTTP_STATUS.NOT_FOUND);
 
   return product.attributes || [];
 };
@@ -250,7 +256,7 @@ export const getProductByIdService = async (id) => {
 //GET VARIANT DATA
 export const getVariantByIdService = async (productId, variantId) => {
   const product = await Products.findById(productId).select("variants");
-  console.log(product);
+
   if (!product) {
     throw new AppError("Product not found", HTTP_STATUS.NOT_FOUND);
   }
@@ -413,14 +419,35 @@ export const editVariantService = async (productId, variantId, data) => {
 
 //  DELETE VARIANT
 export const deleteVariantService = async (variantId) => {
-  const result = await Products.updateOne(
-    { "variants._id": variantId },
-    { $pull: { variants: { _id: variantId } } },
-  );
+  const product = await Products.findOne({
+    "variants._id": variantId,
+  });
 
-  if (result.modifiedCount === 0) {
-    throw new Error("Variant not found");
+  if (!product) {
+    throw new AppError("Variant not found", HTTP_STATUS.NOT_FOUND);
   }
+
+  const variant = product.variants.id(variantId);
+
+  if (!variant) {
+    throw new AppError("Variant not found", HTTP_STATUS.NOT_FOUND);
+  }
+
+  // delete images
+  if (variant.product_images?.length) {
+    await Promise.all(
+      variant.product_images.map((img) =>
+        img.imageId ? deleteFromCloudinary(img.imageId) : null,
+      ),
+    );
+  }
+
+  // remove variant
+  variant.deleteOne();
+
+  await product.save({ validateBeforeSave: false });
+
+  return true;
 };
 
 export const checkSkuAvailabilityService = async (sku) => {

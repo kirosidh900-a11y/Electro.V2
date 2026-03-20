@@ -599,6 +599,8 @@
                                 document.getElementById("variantModalTitle").textContent = "Add Variant";
 
                                 loadVariantAttributes();
+                                 skuStatus.textContent=''
+
 
                                 document.getElementById("variantModal").classList.remove("hidden");
                                 document.body.style.overflow = "hidden"; // 🔥 prevent background scroll
@@ -608,6 +610,7 @@
                         window.closeVariantModal = function () {
                                 document.getElementById("variantModal").classList.add("hidden");
                                 document.body.style.overflow = "auto"; // 🔥 restore scroll
+                                skuStatus.textContent=''
                         };
 
                         /* ================= LOAD ATTRIBUTES ================= */
@@ -717,7 +720,7 @@
 
                                         if (skuStatus.textContent.includes("exists")) {
                                                 e.preventDefault();
-                                               return showToast("SKU already exists!", "error");
+                                                return showToast("SKU already exists!", "error");
                                         }
 
 
@@ -727,6 +730,7 @@
                                         if (stock < 0) return showToast("Stock cannot be negative", "warning");
 
                                         const attributes = {};
+
 
                                         document.querySelectorAll("#variantAttributes input").forEach(input => {
                                                 attributes[input.name] = input.value.trim();
@@ -832,7 +836,7 @@
                                                 if (variantCropper) variantCropper.destroy();
 
                                                 variantCropper = new Cropper(variantCropImage, {
-                                                        aspectRatio: 1,
+                                                      //  aspectRatio: 1,
                                                         viewMode: 1,
                                                         autoCropArea: 1,
                                                 });

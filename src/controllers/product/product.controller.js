@@ -1,7 +1,5 @@
 import HTTP_STATUS from "../../constant/statusCode.js";
 import renderView from "../../utils/admin/renderView.util.js";
-import cloudinary from "../../config/cloudinary.js";
-import { getPublicId } from "../../utils/partials/cloudinary.util.js";
 
 import {
   getProductsService,
@@ -86,44 +84,36 @@ export const createProduct = async (req, res, next) => {
       product,
     );
   } catch (error) {
+    console.log("Create product Error:", error);
     return next(error);
   }
 };
 
 //  UPDATE PRODUCT
-export const updateProduct = async (req, res) => {
+export const updateProduct = async (req, res, next) => {
   try {
     const { id } = req.params;
 
     const product = await updateProductService(id, req.body);
 
-    res.status(HTTP_STATUS.OK).json({
-      success: true,
-      message: "Product updated successfully",
+    successResponse(res, "Product updated successfully", HTTP_STATUS.OK, {
       product,
     });
   } catch (error) {
-    res.status(HTTP_STATUS.BAD_REQUEST).json({
-      success: false,
-      message: error.message,
-    });
+    console.error("Delete Product Error", error);
+    next(error);
   }
 };
 
 //  DELETE PRODUCT
-export const deleteProduct = async (req, res) => {
+export const deleteProduct = async (req, res, next) => {
   try {
     await deleteProductService(req.params.id);
 
-    res.status(HTTP_STATUS.OK).json({
-      success: true,
-      message: "Product deleted successfully",
-    });
+    successResponse(res, "Product deleted successfully");
   } catch (error) {
-    res.status(HTTP_STATUS.BAD_REQUEST).json({
-      success: false,
-      message: error.message,
-    });
+    console.error("Delete Product Error", error);
+    next(error);
   }
 };
 
@@ -140,7 +130,7 @@ export const toggleProductStatus = async (req, res, next) => {
 };
 
 //  GET ATTRIBUTES
-export const getAttributes = async (req, res) => {
+export const getAttributes = async (req, res, next) => {
   try {
     const attributes = await getProductAttributesService(req.params.id);
 
@@ -149,15 +139,13 @@ export const getAttributes = async (req, res) => {
       productAttributes: attributes,
     });
   } catch (error) {
-    res.status(HTTP_STATUS.BAD_REQUEST).json({
-      success: false,
-      message: error.message,
-    });
+    console.error("Get Attributes Error", error);
+    next(error);
   }
 };
 
 // GET PRODUCT DATA
-export const getProductById = async (req, res) => {
+export const getProductById = async (req, res, next) => {
   try {
     const { id } = req.params;
     console.log(id);
@@ -175,13 +163,13 @@ export const getProductById = async (req, res) => {
       product,
     );
   } catch (error) {
-    console.error(error);
-    return errorResponse(res, "Failed to fetch product");
+    console.error("Get Product By Id Error", error);
+    next(error);
   }
 };
 
 //GET VARIANT DATA
-export const getVariantById = async (req, res) => {
+export const getVariantById = async (req, res, next) => {
   try {
     const { productId, variantId } = req.params;
 
@@ -194,7 +182,8 @@ export const getVariantById = async (req, res) => {
       { variant },
     );
   } catch (error) {
-    return errorResponse(res, error.message);
+    console.error("Get Variant by id Error", error);
+    next(error);
   }
 };
 
@@ -215,7 +204,7 @@ export const getProductDetails = async (req, res, next) => {
 };
 
 //  VARIANTS
-export const addVariant = async (req, res) => {
+export const addVariant = async (req, res, next) => {
   try {
     const productId = req.params.id;
 
@@ -237,53 +226,51 @@ export const addVariant = async (req, res) => {
       files,
     });
 
-    console.log("Add variant", result);
-
     return successResponse(res, result.message, HTTP_STATUS.CREATED, {
       variant: result.variant,
     });
   } catch (error) {
-    console.log("Add variant Error:", error);
-    return errorResponse(res, error.message, error.statusCode);
+    console.error("Delete Product Error", error);
+    next(error);
   }
 };
 
-export const editVariant = async (req, res) => {
+export const editVariant = async (req, res, next) => {
   try {
     const { productId, variantId } = req.params;
 
+    let { attributes } = req.body;
+
+    if (typeof attributes === "string") {
+      attributes = JSON.parse(attributes);
+    }
+
+    if (attributes) {
+      req.body.attributes = attributes;
+    }
+
     await editVariantService(productId, variantId, req.body);
 
-    res.status(HTTP_STATUS.OK).json({
-      success: true,
-      message: "Variant updated successfully",
-    });
+    successResponse(res, "Variant updated successfully");
   } catch (error) {
-    res.status(HTTP_STATUS.BAD_REQUEST).json({
-      success: false,
-      message: error.message,
-    });
+    console.error("Delete Product Error", error);
+    next(error);
   }
 };
 
-export const deleteVariant = async (req, res) => {
+export const deleteVariant = async (req, res, next) => {
   try {
     await deleteVariantService(req.params.variantId);
 
-    res.status(HTTP_STATUS.OK).json({
-      success: true,
-      message: "Variant deleted successfully",
-    });
+    successResponse(res, "Variant deleted successfully");
   } catch (error) {
-    res.status(HTTP_STATUS.BAD_REQUEST).json({
-      success: false,
-      message: error.message,
-    });
+    console.error("Delete Product Error", error);
+    next(error);
   }
 };
 
 // Image Adding
-export const addVariantImage = async (req, res) => {
+export const addVariantImage = async (req, res, next) => {
   let uploadedImage;
 
   try {
@@ -295,7 +282,7 @@ export const addVariantImage = async (req, res) => {
       return errorResponse(res, "Image required", HTTP_STATUS.BAD_REQUEST);
     }
 
-    // 🔥 upload to cloudinary (same pattern)
+    // upload to cloudinary
     uploadedImage = await uploadToCloudinary(file.buffer, "variants");
 
     const result = await addVariantImageService({
@@ -324,8 +311,8 @@ export const addVariantImage = async (req, res) => {
       }
     }
 
-    console.error(error);
-    return errorResponse(res, error.message || "Upload failed");
+    console.error("addvariant img error:", err);
+    next(err);
   }
 };
 
@@ -358,8 +345,9 @@ export const checkSkuAvailability = async (req, res, next) => {
 
     const available = await checkSkuAvailabilityService(sku);
     console.log(available);
-    successResponse(res, 'It"s Ok', HTTP_STATUS.OK, {available});
+    successResponse(res, 'It"s Ok', HTTP_STATUS.OK, { available });
   } catch (error) {
-    return next(error); // ✅ use middleware
+    console.error("check sku error:", error);
+    return next(error); 
   }
 };

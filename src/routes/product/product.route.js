@@ -22,7 +22,7 @@ import {
 import { setUploadFolder } from "../../middlewares/setUploadFolder.middleware.js";
 import upload from "../../middlewares/cloudinaryUpload.middleware.js";
 import { validate } from "../../middlewares/validate.middleware.js";
-import { addVariantSchema } from "../../validations/variant.validation.js";
+import { addVariantSchema, editVariantSchema } from "../../validations/variant.validation.js";
 import { validateVariantImages } from "../../middlewares/imageValidation.middleware.js";
 
 const router = Router();
@@ -66,7 +66,12 @@ router.post(
 router
   .route("/:productId/variants/:variantId")
   .get(getVariantById)
-  .patch(editVariant)
+  .patch(
+    setUploadFolder("products"),
+    upload.array("images"),
+    validate(editVariantSchema),
+    editVariant,
+  )
   .delete(deleteVariant);
 
 // Img add and delete
