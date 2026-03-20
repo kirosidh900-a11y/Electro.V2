@@ -16,6 +16,7 @@ import {
   deleteVariantService,
   getProductByIdService,
   getVariantByIdService,
+  checkSkuAvailabilityService,
 } from "../../services/product/product.service.js";
 
 import {
@@ -74,20 +75,18 @@ export const productsPage = async (req, res, next) => {
 };
 
 //  CREATE PRODUCT
-export const createProduct = async (req, res) => {
+export const createProduct = async (req, res, next) => {
   try {
     const product = await createProductService(req.body);
 
-    res.status(HTTP_STATUS.CREATED).json({
-      success: true,
-      message: "Product created successfully",
+    successResponse(
+      res,
+      "Product created successfully",
+      HTTP_STATUS.CREATED,
       product,
-    });
+    );
   } catch (error) {
-    res.status(HTTP_STATUS.BAD_REQUEST).json({
-      success: false,
-      message: error.message,
-    });
+    return next(error);
   }
 };
 
@@ -129,19 +128,14 @@ export const deleteProduct = async (req, res) => {
 };
 
 //  TOGGLE STATUS
-export const toggleProductStatus = async (req, res) => {
+export const toggleProductStatus = async (req, res, next) => {
   try {
+    console.log("Toggle");
     const status = await toggleProductStatusService(req.params.id);
 
-    res.status(HTTP_STATUS.OK).json({
-      success: true,
-      status,
-    });
+    successResponse(res, "Toggle Updated!", HTTP_STATUS.OK, status);
   } catch (error) {
-    res.status(HTTP_STATUS.BAD_REQUEST).json({
-      success: false,
-      message: error.message,
-    });
+    next(error);
   }
 };
 
@@ -243,10 +237,13 @@ export const addVariant = async (req, res) => {
       files,
     });
 
+    console.log("Add variant", result);
+
     return successResponse(res, result.message, HTTP_STATUS.CREATED, {
       variant: result.variant,
     });
   } catch (error) {
+    console.log("Add variant Error:", error);
     return errorResponse(res, error.message, error.statusCode);
   }
 };
@@ -351,5 +348,18 @@ export const deleteVariantImage = async (req, res, next) => {
     return successResponse(res, result.message);
   } catch (error) {
     next(error); // 🔥 pass to global handler
+  }
+};
+
+//Check SKU
+export const checkSkuAvailability = async (req, res, next) => {
+  try {
+    const { sku } = req.query;
+
+    const available = await checkSkuAvailabilityService(sku);
+    console.log(available);
+    successResponse(res, 'It"s Ok', HTTP_STATUS.OK, {available});
+  } catch (error) {
+    return next(error); // ✅ use middleware
   }
 };

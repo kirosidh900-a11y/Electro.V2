@@ -1,4 +1,6 @@
 import mongoose from "mongoose";
+import AppError from "../utils/partials/AppError.utils.js";
+import HTTP_STATUS from "../constant/statusCode.js";
 
 const variantSchema = new mongoose.Schema(
   {
@@ -105,16 +107,25 @@ const productSchema = new mongoose.Schema(
   { timestamps: true },
 );
 
-productSchema.pre("save", function (next) {
-  const skus = this.variants.map((v) => v.sku);
+productSchema.pre("save", async function () {
+  const skus = this.variants.map((v) => v.sku.toLowerCase());
 
-  const hasDuplicate = new Set(skus).size !== skus.length;
-
-  if (hasDuplicate) {
-    return next(new Error("Duplicate SKU inside product"));
+  if (new Set(skus).size !== skus.length) {
+    return next(
+      new AppError("Duplicate SKU inside product", HTTP_STATUS.BAD_REQUEST),
+    );
   }
 
-  next();
+  const exists = await this.constructor.exists({
+    _id: { $ne: this._id },
+    "variants.sku": { $in: skus },
+  });
+
+  if (exists) {
+    return next(
+      new AppError("SKU already exists globally", HTTP_STATUS.CONFLICT),
+    );
+  }
 });
 
 productSchema.index({ "variants.sku": 1 });

@@ -16,6 +16,7 @@ import {
   deleteVariantImage,
   getProductById,
   getVariantById,
+  checkSkuAvailability,
 } from "../../controllers/product/product.controller.js";
 
 import { setUploadFolder } from "../../middlewares/setUploadFolder.middleware.js";
@@ -32,6 +33,10 @@ router.use(isAuth);
 router.route("/").get(productsPage).post(createProduct);
 
 // Update and Delete Product & Get Product details page Hear
+
+//Check SKU
+router.get("/check-sku", checkSkuAvailability);
+
 router
   .route("/:id")
   .get(getProductDetails)
@@ -43,6 +48,8 @@ router.get("/:id/attributes", getAttributes);
 //Get Product Details for edit product
 router.get("/:id/datas", getProductById);
 
+//Products Variant Start hear
+
 // Update Status
 router.patch("/:id/status", toggleProductStatus);
 
@@ -51,9 +58,9 @@ router.post(
   "/:id/variants",
   setUploadFolder("products"),
   upload.array("images"),
-  validate(addVariantSchema),   // ✅ now works
-  validateVariantImages,        
-  addVariant
+  validate(addVariantSchema),
+  validateVariantImages,
+  addVariant,
 );
 
 router

@@ -5,6 +5,39 @@
         <%- include('../../partials/head') %>
                 <link rel="stylesheet" href="https://unpkg.com/cropperjs@1.6.2/dist/cropper.min.css">
                 <script src="https://unpkg.com/cropperjs@1.6.2/dist/cropper.min.js"></script>
+                <style>
+                        @keyframes scaleIn {
+                                0% {
+                                        opacity: 0;
+                                        transform: scale(0.9);
+                                }
+
+                                100% {
+                                        opacity: 1;
+                                        transform: scale(1);
+                                }
+                        }
+
+                        .animate-scaleIn {
+                                animation: scaleIn 0.2s ease-out;
+                        }
+
+                        @keyframes fadeIn {
+                                from {
+                                        opacity: 0;
+                                        transform: translateY(-10px);
+                                }
+
+                                to {
+                                        opacity: 1;
+                                        transform: translateY(0);
+                                }
+                        }
+
+                        .animate-fadeIn {
+                                animation: fadeIn 0.3s ease;
+                        }
+                </style>
 
 </head>
 
@@ -13,8 +46,8 @@
         <%- include('../../partials/admin/sidebar') %>
 
                 <div id="mainContent" class="flex-1 flex flex-col min-w-0 transition-all duration-300">
-
                         <%- include('../../partials/admin/header') %>
+
 
                                 <main class="flex-1 p-6">
 
@@ -187,13 +220,12 @@
                                         </div>
 
 
-                                        <!-- ================= VARIANTS ================= -->
+                                        <!--=================VARIANTS=================-->
 
                                         <div class="bg-[#0b1220] border border-white/10 rounded-xl p-6">
 
-                                                <div class="flex items-center justify-between mb-4">
-
-                                                        <h3 class="text-white font-semibold">
+                                                <div class="flex items-center justify-between mb-5">
+                                                        <h3 class="text-white font-semibold text-lg">
                                                                 Variants (<%= variants.length %>)
                                                         </h3>
 
@@ -201,220 +233,191 @@
                                                                 class="bg-blue-600 hover:bg-blue-700 text-white text-sm px-4 py-2 rounded-lg">
                                                                 + Add Variant
                                                         </button>
-
                                                 </div>
 
-                                                <% let attributeKeys=[]; variants.forEach(function(v){ const
-                                                        attrs=v.attributes instanceof Map ?
-                                                        Object.fromEntries(v.attributes) : (v.attributes || {});
-                                                        Object.keys(attrs).forEach(function(key){
-                                                        if(!attributeKeys.includes(key)){ attributeKeys.push(key) } })
-                                                        }) %>
+                                                <% if (variants.length===0) { %>
 
+                                                        <div class="text-center text-gray-400 py-10">
+                                                                <p>No variants added yet</p>
+                                                        </div>
 
-                                                        <% if(variants.length===0){ %>
+                                                        <% } else { %>
 
-                                                                <div class="text-center text-gray-400 py-10">
+                                                                <div class="w-full overflow-x-auto">
 
-                                                                        <p>No variants added yet</p>
+                                                                        <table
+                                                                                class="min-w-[1000px] w-full text-sm text-gray-300">
 
-                                                                        <button onclick="openVariantModal()"
-                                                                                class="mt-3 bg-blue-600 px-4 py-2 rounded-lg text-sm text-white">
-                                                                                Add First Variant
-                                                                        </button>
+                                                                                <!-- HEADER -->
+                                                                                <thead
+                                                                                        class="sticky top-0 bg-[#0b1220] border-b border-white/10 text-gray-400">
+                                                                                        <tr>
+                                                                                                <th
+                                                                                                        class="py-3 px-4 text-left">
+                                                                                                        SKU</th>
+                                                                                                <th
+                                                                                                        class="py-3 px-4 text-left">
+                                                                                                        Attributes</th>
+                                                                                                <th
+                                                                                                        class="py-3 px-4 text-left">
+                                                                                                        Price</th>
+                                                                                                <th
+                                                                                                        class="py-3 px-4 text-left">
+                                                                                                        Stock</th>
+                                                                                                <th
+                                                                                                        class="py-3 px-4 text-left">
+                                                                                                        Description</th>
+                                                                                                <th
+                                                                                                        class="py-3 px-4 text-left">
+                                                                                                        Images</th>
+                                                                                                <th
+                                                                                                        class="py-3 px-4 text-right">
+                                                                                                        Actions</th>
+                                                                                        </tr>
+                                                                                </thead>
+
+                                                                                <tbody>
+
+                                                                                        <% variants.forEach(function(v,
+                                                                                                index) { const
+                                                                                                attrs=v.attributes
+                                                                                                instanceof Map ?
+                                                                                                Object.fromEntries(v.attributes)
+                                                                                                : (v.attributes || {});
+                                                                                                %>
+
+                                                                                                <tr
+                                                                                                        class="border-b border-white/5 hover:bg-[#141a25] hover:rounded-full transition">
+
+                                                                                                        <!-- SKU -->
+                                                                                                        <td
+                                                                                                                class="py-3 px-4 text-white font-medium">
+                                                                                                                <%= v.sku
+                                                                                                                        %>
+                                                                                                        </td>
+
+                                                                                                        <!-- ATTRIBUTES -->
+                                                                                                        <td
+                                                                                                                class="py-3 px-4">
+                                                                                                                <div
+                                                                                                                        class="flex flex-wrap gap-1">
+                                                                                                                        <% Object.keys(attrs).forEach(function(key)
+                                                                                                                                {
+                                                                                                                                %>
+                                                                                                                                <span
+                                                                                                                                        class="bg-blue-500/10 text-blue-300 text-[11px] px-2 py-1 rounded">
+                                                                                                                                        <%= key
+                                                                                                                                                %>
+                                                                                                                                                :
+                                                                                                                                                <%= attrs[key]
+                                                                                                                                                        %>
+                                                                                                                                </span>
+                                                                                                                                <% })
+                                                                                                                                        %>
+                                                                                                                </div>
+                                                                                                        </td>
+
+                                                                                                        <!-- PRICE -->
+                                                                                                        <td
+                                                                                                                class="py-3 px-4 text-green-400 font-semibold">
+                                                                                                                ₹<%= v.price
+                                                                                                                        %>
+                                                                                                        </td>
+
+                                                                                                        <!-- STOCK -->
+                                                                                                        <td
+                                                                                                                class="py-3 px-4">
+                                                                                                                <span
+                                                                                                                        class="<%= v.stock > 0 ? 'text-emerald-400' : 'text-red-400' %>">
+                                                                                                                        <%= v.stock
+                                                                                                                                %>
+                                                                                                                </span>
+                                                                                                        </td>
+
+                                                                                                        <!-- DESCRIPTION -->
+                                                                                                        <td
+                                                                                                                class="py-3 px-4 max-w-[250px] text-xs text-gray-400">
+                                                                                                                <div
+                                                                                                                        class="max-h-[60px] overflow-hidden">
+                                                                                                                        <%= v.description
+                                                                                                                                %>
+                                                                                                                </div>
+                                                                                                        </td>
+
+                                                                                                        <!-- IMAGES -->
+                                                                                                        <td
+                                                                                                                class="py-3 px-4">
+                                                                                                                <div
+                                                                                                                        class="flex flex-wrap gap-2 max-w-[140px]">
+
+                                                                                                                        <% if (v.product_images
+                                                                                                                                &&
+                                                                                                                                v.product_images.length)
+                                                                                                                                {
+                                                                                                                                %>
+
+                                                                                                                                <% v.product_images.forEach(function(img)
+                                                                                                                                        {
+                                                                                                                                        %>
+
+                                                                                                                                        <div
+                                                                                                                                                class="relative group">
+                                                                                                                                                <img src="<%= img.url %>"
+                                                                                                                                                        class="w-12 h-12 object-cover rounded border border-white/10" />
+
+                                                                                                                                                <button onclick="deleteVariantImage('<%= v._id %>', '<%= img.public_id %>')"
+                                                                                                                                                        class="absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-4 h-4 text-[10px] hidden group-hover:flex items-center justify-center">
+                                                                                                                                                        ×
+                                                                                                                                                </button>
+                                                                                                                                        </div>
+
+                                                                                                                                        <% })
+                                                                                                                                                %>
+
+                                                                                                                                                <% }
+                                                                                                                                                        %>
+
+                                                                                                                                                        <!-- ADD IMAGE -->
+                                                                                                                                                        <div onclick="openImageUpload('<%= v._id %>')"
+                                                                                                                                                                class="w-12 h-12 border-2 border-dashed border-gray-500 rounded flex items-center justify-center cursor-pointer hover:border-blue-500">
+                                                                                                                                                                <i
+                                                                                                                                                                        class="fas fa-plus text-xs"></i>
+                                                                                                                                                        </div>
+
+                                                                                                                </div>
+                                                                                                        </td>
+
+                                                                                                        <!-- ACTIONS -->
+                                                                                                        <td
+                                                                                                                class="py-3 px-4 text-right">
+                                                                                                                <div
+                                                                                                                        class="flex justify-end gap-2">
+
+                                                                                                                        <button onclick="editVariant(
+                                '<%= v._id %>'
+                            )" class="text-blue-400 text-xs hover:text-blue-300">
+                                                                                                                                Edit
+                                                                                                                        </button>
+
+                                                                                                                        <button onclick="deleteVariant('<%= v._id %>')"
+                                                                                                                                class="text-red-400 text-xs hover:text-red-300">
+                                                                                                                                Delete
+                                                                                                                        </button>
+
+                                                                                                                </div>
+                                                                                                        </td>
+
+                                                                                                </tr>
+
+                                                                                                <% }) %>
+
+                                                                                </tbody>
+
+                                                                        </table>
 
                                                                 </div>
 
-                                                                <% } else { %>
-
-                                                                        <div class="overflow-x-auto">
-                                                                                <table
-                                                                                        class="min-w-full text-sm text-gray-300">
-
-                                                                                        <thead
-                                                                                                class="border-b border-white/10 text-gray-400">
-                                                                                                <tr>
-
-                                                                                                        <th
-                                                                                                                class="py-3 text-left">
-                                                                                                                SKU
-                                                                                                        </th>
-
-                                                                                                        <%
-                                                                                                                attributeKeys.forEach(key=>
-                                                                                                                {
-                                                                                                                %>
-                                                                                                                <th
-                                                                                                                        class="py-3 text-left">
-                                                                                                                        <%= key.toUpperCase()
-                                                                                                                                %>
-                                                                                                                </th>
-                                                                                                                <% }) %>
-
-                                                                                                                        <th
-                                                                                                                                class="py-3 text-left">
-                                                                                                                                Price
-                                                                                                                        </th>
-                                                                                                                        <th
-                                                                                                                                class="py-3 text-left">
-                                                                                                                                Stock
-                                                                                                                        </th>
-                                                                                                                        <th
-                                                                                                                                class="py-3 text-left">
-                                                                                                                                Images
-                                                                                                                        </th>
-                                                                                                                        <th
-                                                                                                                                class="py-3 text-right">
-                                                                                                                                Actions
-                                                                                                                        </th>
-
-                                                                                                </tr>
-                                                                                        </thead>
-
-                                                                                        <tbody>
-
-                                                                                                <% variants.forEach(v=>
-                                                                                                        { %>
-
-                                                                                                        <tr
-                                                                                                                class="border-b border-white/5">
-
-                                                                                                                <td
-                                                                                                                        class="py-3">
-                                                                                                                        <%= v.sku
-                                                                                                                                %>
-                                                                                                                </td>
-
-                                                                                                                <%
-                                                                                                                        attributeKeys.forEach(key=>
-                                                                                                                        {
-                                                                                                                        %>
-
-                                                                                                                        <td
-                                                                                                                                class="py-3">
-                                                                                                                                <%= v.attributes?.get
-                                                                                                                                        ?
-                                                                                                                                        v.attributes.get(key)
-                                                                                                                                        :
-                                                                                                                                        v.attributes?.[key]
-                                                                                                                                        || "-"
-                                                                                                                                        %>
-                                                                                                                        </td>
-
-                                                                                                                        <% })
-                                                                                                                                %>
-
-                                                                                                                                <td>₹<%= v.price
-                                                                                                                                                %>
-                                                                                                                                </td>
-                                                                                                                                <td>
-                                                                                                                                        <%= v.stock
-                                                                                                                                                %>
-                                                                                                                                </td>
-
-
-                                                                                                                                <!-- IMAGES COLUMN -->
-
-                                                                                                                                <td
-                                                                                                                                        class="py-3">
-
-                                                                                                                                        <div
-                                                                                                                                                class="flex flex-col items-center gap-2">
-
-                                                                                                                                                <% if(v.product_images
-                                                                                                                                                        &&
-                                                                                                                                                        v.product_images.length){
-                                                                                                                                                        %>
-
-                                                                                                                                                        <%
-                                                                                                                                                                v.product_images.forEach(img=>
-                                                                                                                                                                {
-                                                                                                                                                                %>
-
-                                                                                                                                                                <div
-                                                                                                                                                                        class="relative group">
-
-                                                                                                                                                                        <img src="<%= img.url %>"
-                                                                                                                                                                                class="w-12 h-12 object-cover rounded border border-white/10" />
-
-                                                                                                                                                                        <button onclick='deleteVariantImage("<%= v._id %>", <%- JSON.stringify(img) %>)'
-                                                                                                                                                                                class="absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-4 h-4 text-[10px] hidden group-hover:flex items-center justify-center">
-                                                                                                                                                                                ×
-                                                                                                                                                                        </button>
-
-                                                                                                                                                                </div>
-
-                                                                                                                                                                <% })
-                                                                                                                                                                        %>
-
-                                                                                                                                                                        <% }
-                                                                                                                                                                                %>
-
-
-                                                                                                                                                                                <!-- ADD IMAGE BOX -->
-
-                                                                                                                                                                                <div onclick="openImageUpload('<%= v._id %>')"
-                                                                                                                                                                                        class="w-12 h-12 border-2 border-dashed border-gray-500 rounded flex flex-col items-center justify-center cursor-pointer hover:border-blue-500">
-
-                                                                                                                                                                                        <i
-                                                                                                                                                                                                class="fas fa-plus text-xs"></i>
-                                                                                                                                                                                        <span
-                                                                                                                                                                                                class="text-[9px]">Add</span>
-
-                                                                                                                                                                                </div>
-
-                                                                                                                                        </div>
-
-                                                                                                                                </td>
-
-
-                                                                                                                                <td
-                                                                                                                                        class="text-right">
-
-                                                                                                                                        <div
-                                                                                                                                                class="flex justify-end gap-3">
-
-                                                                                                                                                <!-- EDIT -->
-
-                                                                                                                                                <button onclick='editVariant(
-                        "<%= v._id %>",
-                        "<%= v.sku %>",
-                        "<%= v.price %>",
-                        "<%= v.stock %>",
-                        <%- JSON.stringify(v.attributes instanceof Map ? Object.fromEntries(v.attributes) : v.attributes) %>
-                )' class="text-blue-400 text-xs hover:text-blue-300">
-
-                                                                                                                                                        Edit
-
-                                                                                                                                                </button>
-
-
-                                                                                                                                                <!-- DELETE -->
-
-                                                                                                                                                <button onclick="deleteVariant('<%= v._id %>')"
-                                                                                                                                                        class="text-red-400 text-xs hover:text-red-300">
-
-                                                                                                                                                        Delete
-
-                                                                                                                                                </button>
-
-                                                                                                                                        </div>
-
-                                                                                                                                </td>
-                                                                                                                                <input type="file"
-                                                                                                                                        id="variantImageInput"
-                                                                                                                                        class="hidden"
-                                                                                                                                        accept="image/*">
-                                                                                                        </tr>
-
-                                                                                                        <% }) %>
-
-                                                                                        </tbody>
-
-                                                                                </table>
-                                                                        </div>
-
-                                                                        <% } %>
+                                                                <% } %>
 
                                         </div>
 
@@ -423,76 +426,64 @@
                 </div>
 
                 <div id="variantModal"
-                        class="flex flex-col gap-4  inset-0 bg-black/60 hidden z-50 flex items-center justify-center p-4">
+                        class="fixed inset-0 bg-black/60 backdrop-blur-sm hidden z-50 flex items-center justify-center">
 
+                        <!-- MODAL BOX -->
                         <div class="bg-[#0b1220] w-full max-w-lg sm:max-w-xl md:max-w-2xl lg:max-w-3xl 
-    max-h-[90vh] overflow-y-auto rounded-xl border border-white/10 p-6">
+    max-h-[90vh] overflow-y-auto rounded-xl border border-white/10 p-6 
+    shadow-xl animate-scaleIn">
 
-
+                                <!-- HEADER -->
                                 <div class="flex justify-between items-center mb-4">
-
                                         <h2 id="variantModalTitle" class="text-lg font-semibold text-white">
                                                 Add Variant
                                         </h2>
 
-                                        <button onclick="closeVariantModal()" class="text-gray-400 hover:text-white">
-
-                                                <i class="fas fa-times"></i>
-
+                                        <button onclick="closeVariantModal()"
+                                                class="text-gray-400 hover:text-white text-lg">
+                                                ✕
                                         </button>
-
                                 </div>
 
-
+                                <!-- FORM -->
                                 <form id="variantForm" class="flex flex-col gap-4">
 
                                         <input type="hidden" id="variant-id">
 
-
                                         <!-- SKU -->
-
                                         <div>
-
                                                 <label class="text-sm text-gray-400">SKU</label>
 
                                                 <input type="text" id="variant-sku"
                                                         class="w-full mt-1 bg-[#0f172a] border border-white/10 px-3 py-2 rounded-lg text-sm">
 
+                                                <!-- 🔥 STATUS -->
+                                                <p id="skuStatus" class="text-xs mt-1"></p>
                                         </div>
-
 
                                         <!-- PRICE -->
-
                                         <div>
-
                                                 <label class="text-sm text-gray-400">Price</label>
-
                                                 <input type="number" id="variant-price"
-                                                        class="w-full mt-1 bg-[#0f172a] border border-white/10 px-3 py-2 rounded-lg text-sm">
-
+                                                        class="w-full mt-1 bg-[#0f172a] border border-white/10 px-3 py-2 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none">
                                         </div>
 
-
                                         <!-- STOCK -->
-
                                         <div>
-
                                                 <label class="text-sm text-gray-400">Stock</label>
-
                                                 <input type="number" id="variant-stock"
-                                                        class="w-full mt-1 bg-[#0f172a] border border-white/10 px-3 py-2 rounded-lg text-sm">
-
+                                                        class="w-full mt-1 bg-[#0f172a] border border-white/10 px-3 py-2 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none">
                                         </div>
 
                                         <!-- DESCRIPTION -->
                                         <div>
                                                 <label class="text-sm text-gray-400">Description</label>
                                                 <textarea id="variant-description"
-                                                        class="w-full mt-1 bg-[#0f172a] border border-white/10 px-3 py-2 rounded-lg text-sm"
+                                                        class="w-full mt-1 bg-[#0f172a] border border-white/10 px-3 py-2 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none"
                                                         rows="3"></textarea>
                                         </div>
 
-                                        <!-- MULTI IMAGE UPLOAD -->
+                                        <!-- IMAGES -->
                                         <div>
                                                 <label class="text-sm text-gray-400">Images</label>
 
@@ -504,50 +495,33 @@
                                                 </div>
 
                                                 <button type="button" onclick="openImageUploadForForm()"
-                                                        class=" flex flex-col sm:flex-row justify-center gap-3 mt-4 mt-2 px-3 py-1 bg-blue-600 text-white text-xs rounded">
+                                                        class="mt-3 px-3 py-1 bg-blue-600 hover:bg-blue-700 text-white text-xs rounded">
                                                         + Add Images
                                                 </button>
                                         </div>
 
-
-                                        <!-- VARIANT ATTRIBUTES (Dynamic) -->
-
+                                        <!-- ATTRIBUTES -->
                                         <div>
-
-                                                <label class="text-sm text-gray-400">
-                                                        Variant Attributes
-                                                </label>
-
-                                                <div id="variantAttributes" class="flex flex-col gap-2"></div>
-
+                                                <label class="text-sm text-gray-400">Variant Attributes</label>
+                                                <div id="variantAttributes" class="flex flex-col gap-2 mt-2"></div>
                                         </div>
 
-
                                         <!-- BUTTONS -->
-
-                                        <div class="flex justify-center gap-3 mt-4">
-
+                                        <div class="flex justify-end gap-3 mt-4">
                                                 <button type="button" onclick="closeVariantModal()"
-                                                        class="flex flex-col sm:flex-row justify-center gap-3 mt-4 px-4 py-2 bg-gray-600 hover:bg-gray-700 text-white rounded-lg text-sm">
-
+                                                        class="px-4 py-2 bg-gray-600 hover:bg-gray-700 text-white rounded-lg text-sm">
                                                         Cancel
-
                                                 </button>
-
 
                                                 <button type="submit"
-                                                        class="flex flex-col sm:flex-row justify-center gap-3 mt-4 px-4 py-2 bg-cyan-600 hover:bg-cyan-700 text-white rounded-lg text-sm">
-
+                                                        class="px-4 py-2 bg-cyan-600 hover:bg-cyan-700 text-white rounded-lg text-sm">
                                                         Save Variant
-
                                                 </button>
-
                                         </div>
 
                                 </form>
 
                         </div>
-
                 </div>
 
                 <!-- croper modal -->
@@ -627,10 +601,13 @@
                                 loadVariantAttributes();
 
                                 document.getElementById("variantModal").classList.remove("hidden");
+                                document.body.style.overflow = "hidden"; // 🔥 prevent background scroll
+
                         };
 
                         window.closeVariantModal = function () {
                                 document.getElementById("variantModal").classList.add("hidden");
+                                document.body.style.overflow = "auto"; // 🔥 restore scroll
                         };
 
                         /* ================= LOAD ATTRIBUTES ================= */
@@ -736,6 +713,12 @@
                                         const price = parseFloat(document.getElementById("variant-price").value);
                                         const stock = parseInt(document.getElementById("variant-stock").value);
                                         const description = document.getElementById("variant-description").value.trim();
+                                        const skuInput = document.getElementById("variant-sku");
+
+                                        if (skuStatus.textContent.includes("exists")) {
+                                                e.preventDefault();
+                                               return showToast("SKU already exists!", "error");
+                                        }
 
 
                                         if (!sku) return showToast("SKU is required", "warning");
@@ -899,7 +882,7 @@
                                         height: 400,
                                         viewMode: 1,
                                         responsive: true,
-                                        autoCropArea: 1,
+
 
                                         // ✅ Full control to user
                                         movable: true,
@@ -945,7 +928,6 @@
                                         height: 400,
                                         viewMode: 1,
                                         responsive: true,
-                                        autoCropArea: 1,
 
                                         // ✅ Full control to user
                                         movable: true,
@@ -1026,6 +1008,57 @@
                         };
 
                 </script>
+
+                <script>
+                        function debounce(fn, delay) {
+                                let timeout;
+
+                                return function (...args) {
+                                        clearTimeout(timeout);
+                                        timeout = setTimeout(() => fn.apply(this, args), delay);
+                                };
+                        }
+
+                        const skuInput = document.getElementById("variant-sku");
+                        const skuStatus = document.getElementById("skuStatus");
+
+                        const checkSku = debounce(async function () {
+                                const sku = skuInput.value.trim();
+
+                                if (!sku) {
+                                        skuStatus.textContent = "";
+                                        return;
+                                }
+
+                                skuStatus.textContent = "Checking...";
+                                skuStatus.className = "text-xs mt-1 text-gray-400";
+
+                                try {
+                                        const res = await fetch(`/admin/products/check-sku?sku=${sku}`);
+                                        const result = await res.json();
+
+                                        console.log(result)
+
+                                        if (result.data.available) {
+                                                skuStatus.textContent = "✅ SKU available";
+                                                skuStatus.className = "text-xs mt-1 text-emerald-400";
+                                        } else {
+                                                skuStatus.textContent = "❌ SKU already exists";
+                                                skuStatus.className = "text-xs mt-1 text-red-400";
+                                        }
+
+                                } catch (err) {
+                                        skuStatus.textContent = "Error checking SKU";
+                                        skuStatus.className = "text-xs mt-1 text-red-400";
+                                }
+
+                        }, 500);
+
+                        skuInput.addEventListener("input", checkSku);
+
+                </script>
+
+
 </body>
 
 </html>

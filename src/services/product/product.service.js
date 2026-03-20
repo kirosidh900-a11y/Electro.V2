@@ -4,6 +4,7 @@ import Brand from "../../models/brandSchema.model.js";
 import mongoose from "mongoose";
 import AppError from "../../utils/partials/AppError.utils.js";
 import HTTP_STATUS from "../../constant/statusCode.js";
+import { uploadToCloudinary } from "../partials/cloudinary.service.js";
 
 //  PRODUCTS PAGE
 export const getProductsService = async ({ page, limit, search, status }) => {
@@ -199,13 +200,19 @@ export const deleteProductService = async (id) => {
 export const toggleProductStatusService = async (id) => {
   const product = await Products.findById(id);
 
-  if (!product) throw new Error("Product not found");
+  if (!product) {
+    throw new AppError("Product not found", HTTP_STATUS.NOT_FOUND);
+  }
 
-  product.status = product.status === "listed" ? "unlisted" : "listed";
+  const newStatus = product.status === "listed" ? "unlisted" : "listed";
 
-  await product.save();
+  await Products.findByIdAndUpdate(
+    id,
+    { status: newStatus },
+    { runValidators: false },
+  );
 
-  return product.status;
+  return newStatus;
 };
 
 //  GET ATTRIBUTES
@@ -308,30 +315,40 @@ export const addVariantService = async ({
     throw new AppError("Product not found", HTTP_STATUS.NOT_FOUND);
   }
 
+  // ✅ Validate required fields
+  if (!description || description.trim() === "") {
+    throw new AppError("Description is required", HTTP_STATUS.BAD_REQUEST);
+  }
+
+  if (!sku || !price || !stock) {
+    throw new AppError(
+      "SKU, price and stock are required",
+      HTTP_STATUS.BAD_REQUEST,
+    );
+  }
+
+  // ✅ Normalize SKU
   const normalizedSku = sku.trim().toLowerCase();
 
-  // 🔥 check globally
   const skuExists = await Products.exists({
     "variants.sku": { $regex: `^${normalizedSku}$`, $options: "i" },
   });
 
   if (skuExists) {
-    throw new AppError(
-      "SKU already exists for another variant",
-      HTTP_STATUS.CONFLICT,
-    );
+    throw new AppError("SKU already exists", HTTP_STATUS.CONFLICT);
+  }
+
+  // ✅ Fix attributes (FormData case)
+  if (typeof attributes === "string") {
+    attributes = JSON.parse(attributes);
   }
 
   // ================= IMAGE UPLOAD =================
+  if (!files || files.length < 3) {
+    throw new AppError("At least 3 images required", HTTP_STATUS.BAD_REQUEST);
+  }
 
   const uploadedImages = [];
-
-  if (!files || files.length < 3) {
-    throw new AppError(
-      "At least 3 product images are required",
-      HTTP_STATUS.BAD_REQUEST,
-    );
-  }
 
   for (const file of files) {
     const uploaded = await uploadToCloudinary(file.buffer, "products");
@@ -343,9 +360,8 @@ export const addVariantService = async ({
   }
 
   // ================= CREATE VARIANT =================
-
   const newVariant = {
-    sku,
+    sku: normalizedSku,
     price,
     stock,
     description,
@@ -355,11 +371,12 @@ export const addVariantService = async ({
 
   product.variants.push(newVariant);
 
-  await product.save();
+  // ✅ Skip full validation (IMPORTANT FIX)
+  await product.save({ validateBeforeSave: false });
 
   return {
     message: "Variant added successfully",
-    variant: product.variants[product.variants.length - 1],
+    variant: product.variants.at(-1),
   };
 };
 
@@ -404,4 +421,18 @@ export const deleteVariantService = async (variantId) => {
   if (result.modifiedCount === 0) {
     throw new Error("Variant not found");
   }
+};
+
+export const checkSkuAvailabilityService = async (sku) => {
+  if (!sku) {
+    return false;
+  }
+
+  const normalizedSku = sku.trim().toLowerCase();
+
+  const exists = await Products.exists({
+    "variants.sku": { $regex: `^${normalizedSku}$`, $options: "i" },
+  });
+
+  return !exists; // true = available
 };
