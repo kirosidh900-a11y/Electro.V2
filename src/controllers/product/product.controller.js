@@ -31,6 +31,7 @@ import {
   deleteFromCloudinary,
   uploadToCloudinary,
 } from "../../services/partials/cloudinary.service.js";
+import AppError from "../../utils/partials/AppError.utils.js";
 
 //  PRODUCTS PAGE
 export const productsPage = async (req, res, next) => {

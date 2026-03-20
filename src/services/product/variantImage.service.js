@@ -21,7 +21,7 @@ export const addVariantImageService = async ({
     throw new AppError("Variant not found", HTTP_STATUS.NOT_FOUND);
   }
 
-  // ✅ push image (support multiple images)
+  // push image (support multiple images)
   variant.product_images.push({
     url: image,
     imageId: imageId,

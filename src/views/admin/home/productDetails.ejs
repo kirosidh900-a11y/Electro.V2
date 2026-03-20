@@ -362,7 +362,7 @@
                                                                                                                                                 <img src="<%= img.url %>"
                                                                                                                                                         class="w-12 h-12 object-cover rounded border border-white/10" />
 
-                                                                                                                                                <button onclick="deleteVariantImage('<%= v._id %>', '<%= img.public_id %>')"
+                                                                                                                                                <button onclick="deleteVariantImage('<%= v._id %>', '<%= img.imageId %>')"
                                                                                                                                                         class="absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-4 h-4 text-[10px] hidden group-hover:flex items-center justify-center">
                                                                                                                                                         ×
                                                                                                                                                 </button>
@@ -986,7 +986,8 @@
 
                         /* ================= DELETE IMAGE ================= */
 
-                        window.deleteVariantImage = async function (variantId, img) {
+                        window.deleteVariantImage = async function (variantId, imageId) {
+                                console.log(imageId)
                                 const confirmed = await confirmAction("Delete image?");
                                 if (!confirmed) return;
 
@@ -996,7 +997,7 @@
                                                 {
                                                         method: "DELETE",
                                                         headers: { "Content-Type": "application/json" },
-                                                        body: JSON.stringify({ imageId: img.imageId })
+                                                        body: JSON.stringify({ imageId})
                                                 }
                                         );
 
