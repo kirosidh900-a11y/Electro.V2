@@ -330,11 +330,8 @@ export const addVariantService = async ({
     throw new AppError("Description is required", HTTP_STATUS.BAD_REQUEST);
   }
 
-  if (!sku || !price || !stock) {
-    throw new AppError(
-      "SKU, price and stock are required",
-      HTTP_STATUS.BAD_REQUEST,
-    );
+  if (!price) {
+    throw new AppError("Price is required", HTTP_STATUS.BAD_REQUEST);
   }
 
   // ✅ Normalize SKU
@@ -459,4 +456,188 @@ export const checkSkuAvailabilityService = async (sku) => {
   });
 
   return !exists; // true = available
+};
+
+//Product services
+export const getProductsListService = async ({
+  page,
+  limit,
+  sort,
+  search,
+  category,
+  brand,
+  minPrice,
+  maxPrice,
+}) => {
+  const skip = (page - 1) * limit;
+
+  console.log(page, limit, sort, search, category, brand, minPrice, maxPrice);
+
+  /* ================= FILTER ================= */
+  const filter = {
+    status: "listed",
+    isDeleted: false,
+  };
+
+  // 🔍 Search
+  if (search) {
+    filter.name = { $regex: search, $options: "i" };
+  }
+
+  // 📦 Category
+  if (category) {
+    filter.category = category;
+  }
+
+  // 🏷 Brand
+  if (brand) {
+    filter.brand = brand;
+  }
+
+  // 💰 Price (variant level)
+  filter.variants = {
+    $elemMatch: {
+      price: {
+        $gte: minPrice || 0,
+        $lte: maxPrice || 100000,
+      },
+    },
+  };
+
+  /* ================= SORT ================= */
+  let sortOption = {};
+
+  switch (sort) {
+    case "priceLow":
+      sortOption = { "variants.sale_price": 1 };
+      break;
+    case "priceHigh":
+      sortOption = { "variants.sale_price": -1 };
+      break;
+    case "nameAsc":
+      sortOption = { name: 1 };
+      break;
+    case "nameDesc":
+      sortOption = { name: -1 };
+      break;
+    case "newest":
+      sortOption = { createdAt: -1 };
+      break;
+    case "oldest":
+      sortOption = { createdAt: 1 };
+      break;
+    default:
+      sortOption = { createdAt: -1 };
+  }
+
+  /* ================= QUERY ================= */
+  const products = await Products.find(filter)
+    .populate("brand", "title")
+    .populate("category", "title")
+    .sort(sortOption)
+    .skip(skip)
+    .limit(limit)
+    .lean();
+
+  const total = await Products.countDocuments(filter);
+
+  return {
+    products,
+    total,
+    totalPages: Math.ceil(total / limit),
+  };
+};
+
+export const getFilterDataService = async () => {
+  /* ================= CATEGORY COUNTS ================= */
+  const categories = await Category.aggregate([
+    {
+      $match: {
+        status: "listed",
+        isDeleted: false,
+      },
+    },
+    {
+      $lookup: {
+        from: "products",
+        localField: "_id",
+        foreignField: "category",
+        as: "products",
+      },
+    },
+    {
+      $addFields: {
+        productCount: {
+          $size: {
+            $filter: {
+              input: "$products",
+              as: "p",
+              cond: {
+                $and: [
+                  { $eq: ["$$p.status", "listed"] },
+                  { $eq: ["$$p.isDeleted", false] },
+                ],
+              },
+            },
+          },
+        },
+      },
+    },
+    {
+      $project: {
+        title: 1,
+        productCount: 1,
+      },
+    },
+    { $sort: { name: 1 } },
+  ]);
+
+  /* ================= BRAND COUNTS ================= */
+  const brands = await Brand.aggregate([
+    {
+      $match: {
+        status: "listed",
+        isDeleted: false,
+      },
+    },
+    {
+      $lookup: {
+        from: "products",
+        localField: "_id",
+        foreignField: "brand",
+        as: "products",
+      },
+    },
+    {
+      $addFields: {
+        productCount: {
+          $size: {
+            $filter: {
+              input: "$products",
+              as: "p",
+              cond: {
+                $and: [
+                  { $eq: ["$$p.status", "listed"] },
+                  { $eq: ["$$p.isDeleted", false] },
+                ],
+              },
+            },
+          },
+        },
+      },
+    },
+    {
+      $project: {
+        title: 1,
+        logo: 1,
+        productCount: 1,
+      },
+    },
+    { $sort: { name: 1 } },
+  ]);
+
+  return {
+    categories,
+    brands,
+  };
 };

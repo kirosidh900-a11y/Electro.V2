@@ -1,0 +1,27 @@
+<div class="flex flex-wrap justify-center items-center gap-2 mt-8">
+
+        <a data-page="<%= currentPage > 1 ? currentPage - 1 : 1 %>"
+                class="pagination-link px-4 py-2 rounded-lg bg-white/5 hover:bg-white/10 text-sm">
+                Prev
+        </a>
+
+        <% for(let i=1; i <=totalPages; i++) { %>
+
+                <a href="?page=<%= i %>" data-page="<%= i %>" class="pagination-link pagination-number px-4 py-2 rounded-lg text-sm
+<%= currentPage === i
+? 'bg-cyan-600 text-white'
+: 'bg-white/5 hover:bg-white/10 text-gray-300' %>">
+
+                        <%= i %>
+
+                </a>
+
+                <% } %>
+
+                        <a href="?page=<%= currentPage < totalPages ? currentPage + 1 : totalPages %>"
+                                data-page="<%= currentPage < totalPages ? currentPage + 1 : totalPages %>"
+                                class="pagination-link px-4 py-2 rounded-lg bg-white/5 hover:bg-white/10 text-sm">
+                                Next
+                        </a>
+
+</div>

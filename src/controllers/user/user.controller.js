@@ -1,56 +1,44 @@
 import HTTP_STATUS from "../../constant/statusCode.js";
 import sendEmail from "../../constant/transporter.js";
-import Products from "../../models/productSchema.model.js";
 import { sendSMS } from "../../services/partials/sms.service.js";
 
 import { otpExist, saveOTP } from "../../services/partials/otp.service.js";
+
 import {
   findUserByEmail,
   findUserById,
   isUserExist,
 } from "../../services/user/auth.service.js";
 
+import { getHomeProductsService } from "../../services/user/home.service.js";
+
 import AppError from "../../utils/partials/AppError.utils.js";
+
 import {
   hashPassword,
   verifyPassword,
 } from "../../utils/partials/auth/password.utils.js";
+
 import generateOTP from "../../utils/partials/otpGenerater.js";
 import { successResponse } from "../../utils/partials/response.util.js";
+
 import {
   uploadToCloudinary,
   deleteFromCloudinary,
 } from "../../services/partials/cloudinary.service.js";
+import {
+  getFilterDataService,
+  getProductsListService,
+} from "../../services/product/product.service.js";
 
 export const showHomePage = async (req, res) => {
   try {
-    const products = await Products.find({
-      status: "listed",
-      isDeleted: false,
-    })
-      .populate("brand", "title")
-      .populate("category", "title")
-      .lean();
+    const products = await getHomeProductsService();
 
-    const formattedProducts = products.map((product) => {
-      const variant = product.variants?.find((v) => !v.isDeleted);
-
-      return {
-        _id: product._id,
-        name: product.name,
-        brand: product.brand?.title,
-        category: product.category?.title,
-        price: variant?.price || 0,
-        stock: variant?.stock || 0,
-        image: variant?.product_image?.[0] || null,
-      };
-    });
-
-    res.render("user/home/index", {
-      products: formattedProducts,
-    });
+    res.render("user/home/index", { products });
   } catch (error) {
-    console.error("show home page Error:", error);
+    console.error("Home page error:", error);
+
     res
       .status(HTTP_STATUS.INTERNAL_SERVER_ERROR)
       .send("Failed to load homepage");
@@ -64,6 +52,72 @@ export const profilePage = async (req, res, next) => {
   } catch (error) {
     console.error("Profile Page Error:", error);
     next(error);
+  }
+};
+
+export const getProductsListingPage = async (req, res) => {
+  try {
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 8;
+    const sort = req.query.sort || "newest";
+
+    const search = req.query.search || "";
+    const category = req.query.category || "";
+    const brand = req.query.brand || "";
+    const minPrice = parseInt(req.query.minPrice) || 0;
+    const maxPrice = parseInt(req.query.maxPrice) || 100000;
+
+    const productData = await getProductsListService({
+      page,
+      limit,
+      sort,
+      search,
+      category,
+      brand,
+      minPrice,
+      maxPrice,
+    });
+
+    const filterData = await getFilterDataService();
+
+
+    // API response
+    if (req.headers.accept === "application/json") {
+      return res.json({
+        success: true,
+        ...data,
+        currentPage: page,
+      });
+    }
+
+    console.log(filterData)
+    console.log()
+    console.log(productData.products[0].variants[0])
+
+    res.render("user/home/shop", {
+      products: productData.products,
+      totalProducts: productData.total,
+      totalPages: productData.totalPages,
+      currentPage: page,
+      perPage: limit,
+      sort,
+
+      // filters
+      searchQuery: search,
+      selectedCategory: category,
+      selectedBrand: brand,
+      minPrice,
+      maxPrice,
+
+      // sidebar data 
+      categories: filterData.categories,
+      brands: filterData.brands,
+    });
+
+
+  } catch (error) {
+    console.error(error);
+    res.status(500).send("Server Error");
   }
 };
 
@@ -190,8 +244,7 @@ export const updateEamil = async (req, res, next) => {
   }
 };
 
-//Phone Number Update
-
+// Phone Number Update
 export const sendPhoneOtp = async (req, res, next) => {
   try {
     const { phone } = req.body;
@@ -204,7 +257,7 @@ export const sendPhoneOtp = async (req, res, next) => {
 
     await saveOTP(phone, otp, "update-phone");
 
-    // 🔥 Send SMS
+    // Send SMS
     await sendSMS({
       phone,
       message: `Your OTP is ${otp}. Do not share it.`,

@@ -1,6 +1,11 @@
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
 <!-- Tailwind CDN -->
 <script src="https://cdn.tailwindcss.com"></script>
+<style>
+    .product-card {
+        transition: all 0.3s ease;
+    }
+</style>
 <!-- <link rel="stylesheet" href="/user/css/output.css"> -->
 <script>
     tailwind.config = {
@@ -154,7 +159,14 @@
                 </div>
 
                 <!-- Product Grid -->
-                <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6 lg:gap-8">
+                <div class="
+grid 
+grid-cols-2 
+sm:grid-cols-3 
+lg:grid-cols-4 
+xl:grid-cols-5 
+gap-4 md:gap-6 lg:gap-8
+">
 
                     <% products.forEach(product=> {
                         const variant = product;
@@ -163,7 +175,7 @@
                         %>
 
                         <div
-                            class="flex flex-col group relative bg-white rounded-xl overflow-hidden shadow-sm hover:shadow-2xl transition-all duration-300 border border-gray-100">
+                            class="product-card flex flex-col group relative bg-white rounded-xl overflow-hidden shadow-sm hover:shadow-2xl transition-all duration-300 border border-gray-100">
 
                             <!-- IMAGE -->
                             <div
@@ -256,7 +268,31 @@
 
     </main>
 
-  
+
 
     <%- include("../../partials/user/footer") %>
+
+        <script>
+            function getProductLimit() {
+                const width = window.innerWidth;
+
+                if (width >= 1536) return 10; // TV
+                if (width >= 1024) return 8;  // Laptop
+                if (width >= 640) return 6;   // Tablet
+                return 6;                     // Mobile
+            }
+
+            function renderProducts() {
+                const limit = getProductLimit();
+
+                document.querySelectorAll(".product-card").forEach((el, index) => {
+                    el.style.display = index < limit ? "block" : "none";
+                });
+            }
+
+            window.addEventListener("load", renderProducts);
+            window.addEventListener("resize", renderProducts);
+        </script>
+
+        </body>
         <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
