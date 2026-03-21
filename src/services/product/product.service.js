@@ -330,9 +330,9 @@ export const addVariantService = async ({
     throw new AppError("Description is required", HTTP_STATUS.BAD_REQUEST);
   }
 
-  if (!sku || !price || !stock) {
+  if ( !price ) {
     throw new AppError(
-      "SKU, price and stock are required",
+      "Price is required",
       HTTP_STATUS.BAD_REQUEST,
     );
   }
