@@ -11,6 +11,7 @@ import {
   verifyPhoneOtp,
   deleteProfilePhoto,
   updateProfilePhoto,
+  getProductsListingPage,
 } from "../../controllers/user/user.controller.js";
 
 import attachUser from "../../middlewares/attachUser.middleware.js";
@@ -23,7 +24,7 @@ import locationRoutes from "./location.route.js";
 const router = Router();
 
 // Prevent caching of protected pages
- router.use(attachUser);
+router.use(attachUser);
 
 //Routes
 router.use("/address", addresRouter);
@@ -31,10 +32,14 @@ router.use("/location", locationRoutes);
 
 //Home side
 router.get("/", showHomePage);
+//Product List page
+router.get("/productList", getProductsListingPage);
+router.get("/shop", getProductsListingPage);
 
 //Profile Side
 router.get("/myProfile", userAuth, profilePage);
 router.patch("/name", userAuth, editName);
+
 router
   .route("/email")
   .post(userAuth, sendEmailOtp)

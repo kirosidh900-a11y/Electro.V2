@@ -10,9 +10,7 @@ import {
   isUserExist,
 } from "../../services/user/auth.service.js";
 
-import{
-  getHomeProductsService
-} from '../../services/user/home.service.js';
+import { getHomeProductsService } from "../../services/user/home.service.js";
 
 import AppError from "../../utils/partials/AppError.utils.js";
 
@@ -28,6 +26,10 @@ import {
   uploadToCloudinary,
   deleteFromCloudinary,
 } from "../../services/partials/cloudinary.service.js";
+import {
+  getFilterDataService,
+  getProductsListService,
+} from "../../services/product/product.service.js";
 
 export const showHomePage = async (req, res) => {
   try {
@@ -50,6 +52,72 @@ export const profilePage = async (req, res, next) => {
   } catch (error) {
     console.error("Profile Page Error:", error);
     next(error);
+  }
+};
+
+export const getProductsListingPage = async (req, res) => {
+  try {
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 8;
+    const sort = req.query.sort || "newest";
+
+    const search = req.query.search || "";
+    const category = req.query.category || "";
+    const brand = req.query.brand || "";
+    const minPrice = parseInt(req.query.minPrice) || 0;
+    const maxPrice = parseInt(req.query.maxPrice) || 100000;
+
+    const productData = await getProductsListService({
+      page,
+      limit,
+      sort,
+      search,
+      category,
+      brand,
+      minPrice,
+      maxPrice,
+    });
+
+    const filterData = await getFilterDataService();
+
+
+    // API response
+    if (req.headers.accept === "application/json") {
+      return res.json({
+        success: true,
+        ...data,
+        currentPage: page,
+      });
+    }
+
+    console.log(filterData)
+    console.log()
+    console.log(productData.products[0].variants[0])
+
+    res.render("user/home/shop", {
+      products: productData.products,
+      totalProducts: productData.total,
+      totalPages: productData.totalPages,
+      currentPage: page,
+      perPage: limit,
+      sort,
+
+      // filters
+      searchQuery: search,
+      selectedCategory: category,
+      selectedBrand: brand,
+      minPrice,
+      maxPrice,
+
+      // sidebar data 
+      categories: filterData.categories,
+      brands: filterData.brands,
+    });
+
+
+  } catch (error) {
+    console.error(error);
+    res.status(500).send("Server Error");
   }
 };
 

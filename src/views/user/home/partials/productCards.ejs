@@ -1,0 +1,48 @@
+<% if(products.length===0){ %>
+
+        <div class="col-span-full text-center py-20 text-gray-500">
+                <i class="fa fa-box text-3xl mb-2"></i>
+                <p>No products found</p>
+        </div>
+
+        <% } else { %>
+
+                <% products.forEach(product=> {
+                        const variant = product.variants?.[0];
+                        const image = variant?.product_images?.[0]?.url || '/images/placeholder.png';
+                        const price = variant?.price || 0;
+                        const original = price + 2000;
+                        %>
+
+                        <div class="bg-white border rounded-lg hover:shadow-md cursor-pointer"
+                                onclick="location.href='/product/<%= product._id %>'">
+
+                                <div class="bg-gray-100 p-6 flex justify-center items-center relative">
+                                        <img src="<%= image %>" class="h-32 object-contain">
+
+                                        <% if(product.discountPercentage> 0){ %>
+                                                <span
+                                                        class="absolute top-2 left-2 bg-green-600 text-white text-xs px-2 py-1 rounded">
+                                                        <%= product.discountPercentage %>% OFF
+                                                </span>
+                                                <% } %>
+                                </div>
+
+                                <div class="p-3">
+                                        <h4 class="text-sm font-medium line-clamp-2">
+                                                <%= product.name %>
+                                        </h4>
+
+                                        <p class="text-green-600 text-xs">FREE delivery</p>
+
+                                        <div class="mt-2 flex items-center gap-2">
+                                                <span class="font-semibold text-lg">₹<%= price %></span>
+                                                <span class="line-through text-gray-400 text-sm">₹<%= original %></span>
+                                        </div>
+                                </div>
+
+                        </div>
+
+                        <% }) %>
+
+                                <% } %>

@@ -34,7 +34,7 @@ export const isValidEmail = () => {
   const error = document.getElementById("emailError");
 
   const email = input.value.trim().toLowerCase();
-  const regex = /^[a-z0-9._%+-]+@[a-z0-9.-]+\.[a-z]{2,}$/;
+  const regex = /^[a-z0-9._%+-]{5,}@[a-z0-9.-]+\.[a-z]{2,}$/;
 
   if (!email) {
     error.textContent = "Email is required";
