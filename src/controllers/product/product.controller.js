@@ -242,6 +242,8 @@ export const editVariant = async (req, res, next) => {
 
     let { attributes } = req.body;
 
+    console.log(req.body)
+
     if (typeof attributes === "string") {
       attributes = JSON.parse(attributes);
     }

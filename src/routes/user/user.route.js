@@ -32,6 +32,7 @@ router.use("/location", locationRoutes);
 
 //Home side
 router.get("/", showHomePage);
+
 //Product List page
 router.get("/productList", getProductsListingPage);
 router.get("/shop", getProductsListingPage);

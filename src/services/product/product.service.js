@@ -412,6 +412,7 @@ export const editVariantService = async (productId, variantId, data) => {
   variant.sku = data.sku;
   variant.price = data.price;
   variant.stock = data.stock;
+  variant.description = data.description;
 
   variant.attributes = new Map(Object.entries(data.attributes || {}));
 
@@ -481,7 +482,10 @@ export const getProductsListService = async ({
 
   // 🔍 Search
   if (search) {
-    filter.name = { $regex: search, $options: "i" };
+    filter.$or = [
+      { name: { $regex: search, $options: "i" } },
+      { "variants.description": { $regex: search, $options: "i" } },
+    ];
   }
 
   // 📦 Category
@@ -532,11 +536,11 @@ export const getProductsListService = async ({
 
   /* ================= QUERY ================= */
   const products = await Products.find(filter)
-    .populate("brand", "title")
+    .populate("brand", "title logo")
     .populate("category", "title")
     .sort(sortOption)
     .skip(skip)
-    .limit(limit)
+    .limit(Number(limit))
     .lean();
 
   const total = await Products.countDocuments(filter);

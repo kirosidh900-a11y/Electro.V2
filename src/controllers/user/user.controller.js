@@ -31,6 +31,8 @@ import {
   getProductsListService,
 } from "../../services/product/product.service.js";
 
+import renderView from "../../utils/admin/renderView.util.js";
+
 export const showHomePage = async (req, res) => {
   try {
     const products = await getHomeProductsService();
@@ -60,7 +62,6 @@ export const getProductsListingPage = async (req, res) => {
     const page = parseInt(req.query.page) || 1;
     const limit = parseInt(req.query.limit) || 8;
     const sort = req.query.sort || "newest";
-
     const search = req.query.search || "";
     const category = req.query.category || "";
     const brand = req.query.brand || "";
@@ -80,20 +81,31 @@ export const getProductsListingPage = async (req, res) => {
 
     const filterData = await getFilterDataService();
 
+    // --- AJAX / API RESPONSE ---
+    if (req.headers.accept && req.headers.accept.includes("application/json")) {
+      // We render the partials to strings to send back to the frontend
+      const cardsHtml = await renderView(
+        res,
+        "user/home/partials/productCards",
+        { products: productData.products },
+      );
 
-    // API response
-    if (req.headers.accept === "application/json") {
+      const paginationHtml = await renderView(
+        res,
+        "user/home/partials/pagination",
+        { currentPage: page, totalPages: productData.totalPages },
+      );
+    
       return res.json({
         success: true,
-        ...data,
-        currentPage: page,
+        cards: cardsHtml,
+        pagination: paginationHtml,
+        totalProducts: productData.total,
+        currentCount: productData.products.length
       });
     }
 
-    console.log(filterData)
-    console.log()
-    console.log(productData.products[0].variants[0])
-
+    // --- INITIAL PAGE LOAD ---
     res.render("user/home/shop", {
       products: productData.products,
       totalProducts: productData.total,
@@ -101,23 +113,17 @@ export const getProductsListingPage = async (req, res) => {
       currentPage: page,
       perPage: limit,
       sort,
-
-      // filters
       searchQuery: search,
       selectedCategory: category,
       selectedBrand: brand,
       minPrice,
       maxPrice,
-
-      // sidebar data 
       categories: filterData.categories,
       brands: filterData.brands,
     });
-
-
   } catch (error) {
-    console.error(error);
-    res.status(500).send("Server Error");
+    console.error("Shop Controller Error:", error);
+    res.status(500).json({ success: false, message: "Server Error" });
   }
 };
 
