@@ -68,8 +68,8 @@
                                                 Categories</h3>
                                         <ul class="space-y-2 max-h-40 overflow-y-auto custom-scrollbar">
                                                 <% categories.forEach(c=> { %>
-                                                        <li
-                                                                class="flex justify-between text-sm text-gray-600 hover:text-blue-600 cursor-pointer">
+                                                        <li class="category-item flex justify-between text-sm text-gray-600 hover:text-blue-600 cursor-pointer"
+                                                                data-category="<%= c._id %>">
                                                                 <span>
                                                                         <%= c.title %>
                                                                 </span>
@@ -201,6 +201,7 @@
                                 container.appendChild(skeletonTemplate.content.cloneNode(true));
                         }
                 }
+                let selectedCategory = "all"; // global
 
                 // LOAD PRODUCTS
                 async function loadProducts(page = 1) {
@@ -209,7 +210,8 @@
                         const params = new URLSearchParams({
                                 page,
                                 limit: getLimit(),
-                                search: document.getElementById("searchInput").value.trim() || ""
+                                search: document.getElementById("searchInput").value.trim() || "",
+                                category: selectedCategory
                         });
 
                         try {
@@ -253,6 +255,33 @@
                                 loadProducts(1); // reload with search
                         }, 400); // debounce
                 });
+
+                //Category
+                document.querySelector("aside").addEventListener("click", (e) => {
+                        const item = e.target.closest(".category-item");
+
+                        if (item) {
+                                const clickedCategory = item.dataset.category;
+
+                                if (selectedCategory === clickedCategory) {
+                                        selectedCategory = "all";
+
+                                        document.querySelectorAll(".category-item")
+                                                .forEach(i => i.classList.remove("text-blue-600"));
+
+                                } else {
+                                        selectedCategory = clickedCategory;
+
+                                        document.querySelectorAll(".category-item")
+                                                .forEach(i => i.classList.remove("text-blue-600;bg-blue-300"));
+
+                                        item.classList.add("text-blue-600");
+                                }
+
+                                loadProducts(1);
+                        }
+                });
+
 
                 // INIT
                 document.addEventListener("DOMContentLoaded", () => {

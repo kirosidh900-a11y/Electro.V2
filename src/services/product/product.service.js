@@ -472,24 +472,21 @@ export const getProductsListService = async ({
   maxPrice,
 }) => {
   const skip = (page - 1) * limit;
-
   const isSearch = search && search.trim() !== "";
 
-  // ✅ ALWAYS define key outside
   const cacheKey = `shop:category=${category || "all"}:brand=${brand || "all"}:page=${page}:limit=${limit}:sort=${sort}:price=${minPrice}-${maxPrice}`;
 
-  // ✅ CHECK CACHE only if NOT search
   if (!isSearch) {
     const cachedData = await getCache(cacheKey);
 
     if (cachedData && cachedData.products) {
+      console.log("⚡ Cache HIT:", cacheKey);
       return cachedData;
     }
   }
 
   console.log("🐢 DB HIT:", cacheKey);
 
-  /* ================= FILTER ================= */
   const filter = {
     status: "listed",
     isDeleted: false,
@@ -502,27 +499,35 @@ export const getProductsListService = async ({
     ];
   }
 
-  if (category) filter.category = category;
-  if (brand) filter.brand = brand;
+  if (
+    category &&
+    category !== "all" &&
+    mongoose.Types.ObjectId.isValid(category)
+  ) {
+    filter.category = new mongoose.Types.ObjectId(category);
+  }
+
+  if (brand && brand !== "all" && mongoose.Types.ObjectId.isValid(brand)) {
+    filter.brand = new mongoose.Types.ObjectId(brand);
+  }
 
   filter.variants = {
     $elemMatch: {
       price: {
-        $gte: minPrice || 0,
-        $lte: maxPrice || 100000,
+        $gte: Number(minPrice) || 0,
+        $lte: Number(maxPrice) || 100000,
       },
     },
   };
 
-  /* ================= SORT ================= */
   let sortOption = {};
 
   switch (sort) {
     case "priceLow":
-      sortOption = { "variants.sale_price": 1 };
+      sortOption = { createdAt: -1 };
       break;
     case "priceHigh":
-      sortOption = { "variants.sale_price": -1 };
+      sortOption = { createdAt: -1 };
       break;
     case "nameAsc":
       sortOption = { name: 1 };
@@ -537,30 +542,55 @@ export const getProductsListService = async ({
       sortOption = { createdAt: -1 };
   }
 
-  /* ================= QUERY ================= */
-  const products = await Products.find(filter)
-    .populate("brand", "title logo")
-    .populate("category", "title")
-    .sort(sortOption)
-    .skip(skip)
-    .limit(Number(limit))
-    .lean();
+  const result = await Products.aggregate([
+    { $match: filter },
+    {
+      $lookup: {
+        from: "brands",
+        localField: "brand",
+        foreignField: "_id",
+        as: "brand",
+      },
+    },
+    { $unwind: "$brand" },
+    { $match: { "brand.status": "listed" } },
+    {
+      $lookup: {
+        from: "categories",
+        localField: "category",
+        foreignField: "_id",
+        as: "category",
+      },
+    },
+    { $unwind: "$category" },
+    { $match: { "category.status": "listed" } },
+    {
+      $facet: {
+        data: [
+          { $sort: sortOption },
+          { $skip: skip },
+          { $limit: Number(limit) },
+        ],
+        totalCount: [{ $count: "count" }],
+      },
+    },
+  ]);
 
-  const total = await Products.countDocuments(filter);
+  const products = result[0]?.data || [];
+  const total = result[0]?.totalCount?.[0]?.count || 0;
 
-  const result = {
+  const responseData = {
     products,
     total,
     totalPages: Math.ceil(total / limit),
   };
 
-  // ✅ STORE CACHE only if NOT search
   if (!isSearch) {
-    await setCache(cacheKey, result);
+    await setCache(cacheKey, responseData);
     console.log("✅ Cache SET:", cacheKey);
   }
 
-  return result;
+  return responseData;
 };
 
 export const getFilterDataService = async () => {
@@ -575,27 +605,41 @@ export const getFilterDataService = async () => {
     {
       $lookup: {
         from: "products",
-        localField: "_id",
-        foreignField: "category",
+        let: { categoryId: "$_id" },
+        pipeline: [
+          {
+            $match: {
+              $expr: {
+                $and: [
+                  { $eq: ["$category", "$$categoryId"] },
+                  { $eq: ["$status", "listed"] },
+                  { $eq: ["$isDeleted", false] },
+                ],
+              },
+            },
+          },
+          // 🔥 JOIN BRAND
+          {
+            $lookup: {
+              from: "brands",
+              localField: "brand",
+              foreignField: "_id",
+              as: "brand",
+            },
+          },
+          { $unwind: "$brand" },
+          {
+            $match: {
+              "brand.status": "listed",
+            },
+          },
+        ],
         as: "products",
       },
     },
     {
       $addFields: {
-        productCount: {
-          $size: {
-            $filter: {
-              input: "$products",
-              as: "p",
-              cond: {
-                $and: [
-                  { $eq: ["$$p.status", "listed"] },
-                  { $eq: ["$$p.isDeleted", false] },
-                ],
-              },
-            },
-          },
-        },
+        productCount: { $size: "$products" },
       },
     },
     {
@@ -604,7 +648,7 @@ export const getFilterDataService = async () => {
         productCount: 1,
       },
     },
-    { $sort: { name: 1 } },
+    { $sort: { title: 1 } },
   ]);
 
   /* ================= BRAND COUNTS ================= */
@@ -618,27 +662,41 @@ export const getFilterDataService = async () => {
     {
       $lookup: {
         from: "products",
-        localField: "_id",
-        foreignField: "brand",
+        let: { brandId: "$_id" },
+        pipeline: [
+          {
+            $match: {
+              $expr: {
+                $and: [
+                  { $eq: ["$brand", "$$brandId"] },
+                  { $eq: ["$status", "listed"] },
+                  { $eq: ["$isDeleted", false] },
+                ],
+              },
+            },
+          },
+          // 🔥 JOIN CATEGORY
+          {
+            $lookup: {
+              from: "categories",
+              localField: "category",
+              foreignField: "_id",
+              as: "category",
+            },
+          },
+          { $unwind: "$category" },
+          {
+            $match: {
+              "category.status": "listed",
+            },
+          },
+        ],
         as: "products",
       },
     },
     {
       $addFields: {
-        productCount: {
-          $size: {
-            $filter: {
-              input: "$products",
-              as: "p",
-              cond: {
-                $and: [
-                  { $eq: ["$$p.status", "listed"] },
-                  { $eq: ["$$p.isDeleted", false] },
-                ],
-              },
-            },
-          },
-        },
+        productCount: { $size: "$products" },
       },
     },
     {
@@ -648,7 +706,7 @@ export const getFilterDataService = async () => {
         productCount: 1,
       },
     },
-    { $sort: { name: 1 } },
+    { $sort: { title: 1 } },
   ]);
 
   return {
