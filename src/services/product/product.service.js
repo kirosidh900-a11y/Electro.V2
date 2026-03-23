@@ -480,7 +480,6 @@ export const getProductsListService = async ({
     const cachedData = await getCache(cacheKey);
 
     if (cachedData && cachedData.products) {
-      console.log("⚡ Cache HIT:", cacheKey);
       return cachedData;
     }
   }
@@ -507,8 +506,13 @@ export const getProductsListService = async ({
     filter.category = new mongoose.Types.ObjectId(category);
   }
 
-  if (brand && brand !== "all" && mongoose.Types.ObjectId.isValid(brand)) {
-    filter.brand = new mongoose.Types.ObjectId(brand);
+  if (brand && brand !== "all") {
+    const brands = brand
+      .split(",")
+      .filter((id) => mongoose.Types.ObjectId.isValid(id))
+      .map((id) => new mongoose.Types.ObjectId(id));
+
+    filter.brand = { $in: brands };
   }
 
   filter.variants = {
@@ -587,15 +591,45 @@ export const getProductsListService = async ({
 
   if (!isSearch) {
     await setCache(cacheKey, responseData);
-    console.log("✅ Cache SET:", cacheKey);
   }
 
   return responseData;
 };
 
-export const getFilterDataService = async () => {
+export const getFilterDataService = async (filters = {}) => {
+  const {
+    category = "all",
+    brand = "all",
+    minPrice = 0,
+    maxPrice = 100000,
+  } = filters;
+
+  /* ================= COMMON PRODUCT MATCH ================= */
+
+  const buildProductMatch = (extraMatch = []) => {
+    return {
+      $expr: {
+        $and: [
+          { $eq: ["$status", "listed"] },
+          { $eq: ["$isDeleted", false] },
+
+          // 🔥 PRICE FILTER
+          {
+            $gte: [{ $min: "$variants.price" }, Number(minPrice) || 0],
+          },
+          {
+            $lte: [{ $min: "$variants.price" }, Number(maxPrice) || 100000],
+          },
+
+          ...extraMatch,
+        ],
+      },
+    };
+  };
+
   /* ================= CATEGORY COUNTS ================= */
-  const categories = await Category.aggregate([
+
+  const categoriesPipeline = [
     {
       $match: {
         status: "listed",
@@ -608,17 +642,17 @@ export const getFilterDataService = async () => {
         let: { categoryId: "$_id" },
         pipeline: [
           {
-            $match: {
-              $expr: {
-                $and: [
-                  { $eq: ["$category", "$$categoryId"] },
-                  { $eq: ["$status", "listed"] },
-                  { $eq: ["$isDeleted", false] },
-                ],
-              },
-            },
+            $match: buildProductMatch([
+              { $eq: ["$category", "$$categoryId"] },
+
+              // 🔥 APPLY BRAND FILTER (if selected)
+              ...(brand !== "all" && mongoose.Types.ObjectId.isValid(brand)
+                ? [{ $eq: ["$brand", new mongoose.Types.ObjectId(brand)] }]
+                : []),
+            ]),
           },
-          // 🔥 JOIN BRAND
+
+          // 🔥 JOIN BRAND (ensure active)
           {
             $lookup: {
               from: "brands",
@@ -628,18 +662,18 @@ export const getFilterDataService = async () => {
             },
           },
           { $unwind: "$brand" },
-          {
-            $match: {
-              "brand.status": "listed",
-            },
-          },
+          { $match: { "brand.status": "listed" } },
+
+          { $count: "count" }, // ✅ FAST COUNT
         ],
-        as: "products",
+        as: "productData",
       },
     },
     {
       $addFields: {
-        productCount: { $size: "$products" },
+        productCount: {
+          $ifNull: [{ $arrayElemAt: ["$productData.count", 0] }, 0],
+        },
       },
     },
     {
@@ -649,10 +683,11 @@ export const getFilterDataService = async () => {
       },
     },
     { $sort: { title: 1 } },
-  ]);
+  ];
 
   /* ================= BRAND COUNTS ================= */
-  const brands = await Brand.aggregate([
+
+  const brandsPipeline = [
     {
       $match: {
         status: "listed",
@@ -665,17 +700,22 @@ export const getFilterDataService = async () => {
         let: { brandId: "$_id" },
         pipeline: [
           {
-            $match: {
-              $expr: {
-                $and: [
-                  { $eq: ["$brand", "$$brandId"] },
-                  { $eq: ["$status", "listed"] },
-                  { $eq: ["$isDeleted", false] },
-                ],
-              },
-            },
+            $match: buildProductMatch([
+              { $eq: ["$brand", "$$brandId"] },
+
+              // 🔥 APPLY CATEGORY FILTER (if selected)
+              ...(category !== "all" &&
+              mongoose.Types.ObjectId.isValid(category)
+                ? [
+                    {
+                      $eq: ["$category", new mongoose.Types.ObjectId(category)],
+                    },
+                  ]
+                : []),
+            ]),
           },
-          // 🔥 JOIN CATEGORY
+
+          // 🔥 JOIN CATEGORY (ensure active)
           {
             $lookup: {
               from: "categories",
@@ -685,18 +725,18 @@ export const getFilterDataService = async () => {
             },
           },
           { $unwind: "$category" },
-          {
-            $match: {
-              "category.status": "listed",
-            },
-          },
+          { $match: { "category.status": "listed" } },
+
+          { $count: "count" }, // ✅ FAST COUNT
         ],
-        as: "products",
+        as: "productData",
       },
     },
     {
       $addFields: {
-        productCount: { $size: "$products" },
+        productCount: {
+          $ifNull: [{ $arrayElemAt: ["$productData.count", 0] }, 0],
+        },
       },
     },
     {
@@ -707,6 +747,13 @@ export const getFilterDataService = async () => {
       },
     },
     { $sort: { title: 1 } },
+  ];
+
+  /* ================= PARALLEL EXECUTION ================= */
+
+  const [categories, brands] = await Promise.all([
+    Category.aggregate(categoriesPipeline),
+    Brand.aggregate(brandsPipeline),
   ]);
 
   return {

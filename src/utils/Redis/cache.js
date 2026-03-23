@@ -12,7 +12,7 @@ export const getCache = async (key) => {
 
     console.log("⚡ Cache HIT:", key);
 
-    // ✅ SAFE PARSE
+    // SAFE PARSE
     try {
       return JSON.parse(data);
     } catch (err) {

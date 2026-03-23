@@ -86,7 +86,8 @@
                                         </h3>
                                         <div class="space-y-3">
                                                 <% brands.forEach(b=> { %>
-                                                        <label class="flex items-center gap-3 cursor-pointer">
+                                                        <label class="brand-item flex items-center gap-3 cursor-pointer"
+                                                                data-brand="<%=b._id%>">
                                                                 <input type="checkbox" class="brand-checkbox w-4 h-4">
                                                                 <img src="<%= b.logo %>" class="w-5 h-5 object-contain">
                                                                 <span class="text-sm text-gray-600 hover:text-blue-600">
@@ -202,6 +203,7 @@
                         }
                 }
                 let selectedCategory = "all"; // global
+                let selectedBrands = [];
 
                 // LOAD PRODUCTS
                 async function loadProducts(page = 1) {
@@ -211,7 +213,8 @@
                                 page,
                                 limit: getLimit(),
                                 search: document.getElementById("searchInput").value.trim() || "",
-                                category: selectedCategory
+                                category: selectedCategory,
+                                brand: selectedBrands.join(",")
                         });
 
                         try {
@@ -256,10 +259,11 @@
                         }, 400); // debounce
                 });
 
-                //Category
                 document.querySelector("aside").addEventListener("click", (e) => {
                         const item = e.target.closest(".category-item");
+                        const brandItem = e.target.closest(".brand-item");
 
+                        /* ================= CATEGORY ================= */
                         if (item) {
                                 const clickedCategory = item.dataset.category;
 
@@ -267,21 +271,37 @@
                                         selectedCategory = "all";
 
                                         document.querySelectorAll(".category-item")
-                                                .forEach(i => i.classList.remove("text-blue-600"));
+                                                .forEach(i => i.classList.remove("text-blue-600", "bg-blue-300"));
 
                                 } else {
                                         selectedCategory = clickedCategory;
 
                                         document.querySelectorAll(".category-item")
-                                                .forEach(i => i.classList.remove("text-blue-600;bg-blue-300"));
+                                                .forEach(i => i.classList.remove("text-blue-600", "bg-blue-300"));
 
-                                        item.classList.add("text-blue-600");
+                                        item.classList.add("text-blue-600", "bg-blue-300");
                                 }
 
                                 loadProducts(1);
                         }
-                });
 
+                        /* ================= BRAND ================= */
+                        if (brandItem) {
+                                const clickedBrand = brandItem.dataset.brand;
+                                const checkbox = brandItem.querySelector(".brand-checkbox");
+
+                                checkbox.checked = !checkbox.checked;
+
+                                if (checkbox.checked) {
+                                        selectedBrands.push(clickedBrand);
+                                } else {
+                                        selectedBrands = selectedBrands.filter(b => b !== clickedBrand);
+                                }
+
+
+                                loadProducts(1);
+                        }
+                });
 
                 // INIT
                 document.addEventListener("DOMContentLoaded", () => {
