@@ -12,7 +12,7 @@ export const getCache = async (key) => {
 
     console.log("⚡ Cache HIT:", key);
 
-    // ✅ SAFE PARSE
+    // SAFE PARSE
     try {
       return JSON.parse(data);
     } catch (err) {
@@ -57,16 +57,25 @@ export const deleteCacheByPattern = async (pattern) => {
     })) {
       if (Array.isArray(key)) {
         keys.push(...key);
-      } else {
+      } else if (key) {
         keys.push(key);
       }
     }
 
-    console.log("🔍 Keys found:", keys);
+    console.log("🔍 Clean Keys:", keys);
 
     if (keys.length > 0) {
-      const deletedCount = await redisClient.del(...keys);
-      console.log(`🗑️ Deleted ${deletedCount} keys`);
+      const pipeline = redisClient.multi();
+
+      for (const key of keys) {
+        pipeline.del(key);
+      }
+
+      await pipeline.exec();
+
+      console.log(`🗑️ Deleted ${keys.length} keys`);
+    } else {
+      console.log("⚠️ No valid keys to delete");
     }
   } catch (error) {
     console.error("Cache Pattern Delete Error:", error);
