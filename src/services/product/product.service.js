@@ -7,6 +7,7 @@ import HTTP_STATUS from "../../constant/statusCode.js";
 import { uploadToCloudinary } from "../partials/cloudinary.service.js";
 
 import setCookieMSG from "../../utils/partials/setCookieMsg.utils.js";
+import { getCache, setCache } from "../../utils/Redis/cache.js";
 
 //  PRODUCTS PAGE
 export const getProductsService = async ({ page, limit, search, status }) => {
@@ -412,6 +413,7 @@ export const editVariantService = async (productId, variantId, data) => {
   variant.sku = data.sku;
   variant.price = data.price;
   variant.stock = data.stock;
+  variant.description = data.description;
 
   variant.attributes = new Map(Object.entries(data.attributes || {}));
 
@@ -471,7 +473,21 @@ export const getProductsListService = async ({
 }) => {
   const skip = (page - 1) * limit;
 
-  console.log(page, limit, sort, search, category, brand, minPrice, maxPrice);
+  const isSearch = search && search.trim() !== "";
+
+  // ✅ ALWAYS define key outside
+  const cacheKey = `shop:category=${category || "all"}:brand=${brand || "all"}:page=${page}:limit=${limit}:sort=${sort}:price=${minPrice}-${maxPrice}`;
+
+  // ✅ CHECK CACHE only if NOT search
+  if (!isSearch) {
+    const cachedData = await getCache(cacheKey);
+
+    if (cachedData && cachedData.products) {
+      return cachedData;
+    }
+  }
+
+  console.log("🐢 DB HIT:", cacheKey);
 
   /* ================= FILTER ================= */
   const filter = {
@@ -479,22 +495,16 @@ export const getProductsListService = async ({
     isDeleted: false,
   };
 
-  // 🔍 Search
-  if (search) {
-    filter.name = { $regex: search, $options: "i" };
+  if (isSearch) {
+    filter.$or = [
+      { name: { $regex: search, $options: "i" } },
+      { "variants.description": { $regex: search, $options: "i" } },
+    ];
   }
 
-  // 📦 Category
-  if (category) {
-    filter.category = category;
-  }
+  if (category) filter.category = category;
+  if (brand) filter.brand = brand;
 
-  // 🏷 Brand
-  if (brand) {
-    filter.brand = brand;
-  }
-
-  // 💰 Price (variant level)
   filter.variants = {
     $elemMatch: {
       price: {
@@ -520,9 +530,6 @@ export const getProductsListService = async ({
     case "nameDesc":
       sortOption = { name: -1 };
       break;
-    case "newest":
-      sortOption = { createdAt: -1 };
-      break;
     case "oldest":
       sortOption = { createdAt: 1 };
       break;
@@ -532,20 +539,28 @@ export const getProductsListService = async ({
 
   /* ================= QUERY ================= */
   const products = await Products.find(filter)
-    .populate("brand", "title")
+    .populate("brand", "title logo")
     .populate("category", "title")
     .sort(sortOption)
     .skip(skip)
-    .limit(limit)
+    .limit(Number(limit))
     .lean();
 
   const total = await Products.countDocuments(filter);
 
-  return {
+  const result = {
     products,
     total,
     totalPages: Math.ceil(total / limit),
   };
+
+  // ✅ STORE CACHE only if NOT search
+  if (!isSearch) {
+    await setCache(cacheKey, result);
+    console.log("✅ Cache SET:", cacheKey);
+  }
+
+  return result;
 };
 
 export const getFilterDataService = async () => {

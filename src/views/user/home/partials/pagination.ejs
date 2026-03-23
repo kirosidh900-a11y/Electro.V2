@@ -1,27 +1,50 @@
-<div class="flex flex-wrap justify-center items-center gap-2 mt-8">
+<% if (totalPages > 1) { %>
 
-        <a data-page="<%= currentPage > 1 ? currentPage - 1 : 1 %>"
-                class="pagination-link px-4 py-2 rounded-lg bg-white/5 hover:bg-white/10 text-sm">
-                Prev
-        </a>
+<nav class="flex items-center justify-center gap-2 mt-6" aria-label="Pagination">
 
-        <% for(let i=1; i <=totalPages; i++) { %>
+<!-- PREV -->
+<% if (currentPage > 1) { %>
+    <button data-page="<%= currentPage - 1 %>"
+        class="pagination-link flex items-center gap-1 px-3 h-9 border border-gray-300 rounded-md text-gray-600 hover:bg-gray-100 transition">
+        <i class="fa-solid fa-chevron-left text-xs"></i>
+        <span class="hidden sm:inline">Prev</span>
+    </button>
+<% } %>
 
-                <a href="?page=<%= i %>" data-page="<%= i %>" class="pagination-link pagination-number px-4 py-2 rounded-lg text-sm
-<%= currentPage === i
-? 'bg-cyan-600 text-white'
-: 'bg-white/5 hover:bg-white/10 text-gray-300' %>">
+<!-- PAGE NUMBERS -->
+<div class="flex items-center gap-1">
 
-                        <%= i %>
+    <% for(let i = 1; i <= totalPages; i++) { %>
 
-                </a>
+        <% if (i === 1 || i === totalPages || (i >= currentPage - 1 && i <= currentPage + 1)) { %>
 
-                <% } %>
+            <button data-page="<%= i %>"
+                class="pagination-link min-w-[36px] h-9 px-3 flex items-center justify-center rounded-md text-sm font-medium transition
+                <%= currentPage == i 
+                    ? 'bg-blue-600 text-white shadow-lg scale-105' 
+                    : 'bg-white border border-gray-300 text-gray-700 hover:bg-blue-50 hover:border-blue-400' %>">
+                <%= i %>
+            </button>
 
-                        <a href="?page=<%= currentPage < totalPages ? currentPage + 1 : totalPages %>"
-                                data-page="<%= currentPage < totalPages ? currentPage + 1 : totalPages %>"
-                                class="pagination-link px-4 py-2 rounded-lg bg-white/5 hover:bg-white/10 text-sm">
-                                Next
-                        </a>
+        <% } else if (i === currentPage - 2 || i === currentPage + 2) { %>
+
+            <span class="px-2 text-gray-400">...</span>
+
+        <% } %>
+
+    <% } %>
 
 </div>
+
+<!-- NEXT -->
+<% if (currentPage < totalPages) { %>
+    <button data-page="<%= currentPage + 1 %>"
+        class="pagination-link flex items-center gap-1 px-3 h-9 border border-gray-300 rounded-md text-gray-600 hover:bg-gray-100 transition">
+        <span class="hidden sm:inline">Next</span>
+        <i class="fa-solid fa-chevron-right text-xs"></i>
+    </button>
+<% } %>
+
+
+</nav>
+<% } %>

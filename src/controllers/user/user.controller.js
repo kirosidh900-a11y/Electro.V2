@@ -31,11 +31,29 @@ import {
   getProductsListService,
 } from "../../services/product/product.service.js";
 
+import renderView from "../../utils/admin/renderView.util.js";
+
 export const showHomePage = async (req, res) => {
   try {
-    const products = await getHomeProductsService();
+    const limit = parseInt(req.query.limit) || 8;
 
-    res.render("user/home/index", { products });
+    // --- AJAX / API RESPONSE ---
+    if (req.headers.accept && req.headers.accept.includes("application/json")) {
+      const products = await getHomeProductsService(limit);
+
+      const cardsHtml = await renderView(
+        res,
+        "user/home/partials/homeProductCards",
+        { products },
+      );
+
+      return res.json({
+        success: true,
+        cards: cardsHtml,
+      });
+    }
+
+    res.render("user/home/index", { products: undefined });
   } catch (error) {
     console.error("Home page error:", error);
 
@@ -60,64 +78,68 @@ export const getProductsListingPage = async (req, res) => {
     const page = parseInt(req.query.page) || 1;
     const limit = parseInt(req.query.limit) || 8;
     const sort = req.query.sort || "newest";
-
     const search = req.query.search || "";
     const category = req.query.category || "";
     const brand = req.query.brand || "";
     const minPrice = parseInt(req.query.minPrice) || 0;
     const maxPrice = parseInt(req.query.maxPrice) || 100000;
 
-    const productData = await getProductsListService({
-      page,
-      limit,
-      sort,
-      search,
-      category,
-      brand,
-      minPrice,
-      maxPrice,
-    });
-
     const filterData = await getFilterDataService();
 
+    // --- AJAX / API RESPONSE ---
+    if (req.headers.accept && req.headers.accept.includes("application/json")) {
+      const productData = await getProductsListService({
+        page,
+        limit,
+        sort,
+        search,
+        category,
+        brand,
+        minPrice,
+        maxPrice,
+      });
 
-    // API response
-    if (req.headers.accept === "application/json") {
+      // We render the partials to strings to send back to the frontend
+      const cardsHtml = await renderView(
+        res,
+        "user/home/partials/productCards",
+        { products: productData.products },
+      );
+
+      const paginationHtml = await renderView(
+        res,
+        "user/home/partials/pagination",
+        { currentPage: page, totalPages: productData.totalPages },
+      );
+
       return res.json({
         success: true,
-        ...data,
-        currentPage: page,
+        cards: cardsHtml,
+        pagination: paginationHtml,
+        totalProducts: productData.total,
+        currentCount: productData.products.length,
       });
     }
 
-    console.log(filterData)
-    console.log()
-    console.log(productData.products[0].variants[0])
-
+    // --- INITIAL PAGE LOAD ---
     res.render("user/home/shop", {
-      products: productData.products,
-      totalProducts: productData.total,
-      totalPages: productData.totalPages,
+      products: undefined,
+      totalProducts: undefined,
+      totalPages: undefined,
       currentPage: page,
       perPage: limit,
       sort,
-
-      // filters
       searchQuery: search,
       selectedCategory: category,
       selectedBrand: brand,
       minPrice,
       maxPrice,
-
-      // sidebar data 
       categories: filterData.categories,
       brands: filterData.brands,
     });
-
-
   } catch (error) {
-    console.error(error);
-    res.status(500).send("Server Error");
+    console.error("Shop Controller Error:", error);
+    res.status(500).json({ success: false, message: "Server Error" });
   }
 };
 
