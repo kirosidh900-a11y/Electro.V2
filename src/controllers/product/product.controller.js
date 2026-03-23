@@ -32,6 +32,8 @@ import {
   uploadToCloudinary,
 } from "../../services/partials/cloudinary.service.js";
 import AppError from "../../utils/partials/AppError.utils.js";
+import { deleteCacheByPattern } from "../../utils/Redis/cache.js";
+import redisClient from "../../utils/partials/redisClient.util.js";
 
 //  PRODUCTS PAGE
 export const productsPage = async (req, res, next) => {
@@ -126,7 +128,12 @@ export const toggleProductStatus = async (req, res, next) => {
   try {
     const action = await toggleProductStatusService(req.params.id);
 
-    successResponse(res, "Toggle Updated!", HTTP_STATUS.OK, { action });
+    await deleteCacheByPattern("home_products:*");
+    await deleteCacheByPattern("shop:*");
+
+    successResponse(res, "Toggle Updated!", HTTP_STATUS.OK, {
+      action,
+    });
   } catch (error) {
     next(error);
   }
@@ -242,7 +249,7 @@ export const editVariant = async (req, res, next) => {
 
     let { attributes } = req.body;
 
-    console.log(req.body)
+    console.log(req.body);
 
     if (typeof attributes === "string") {
       attributes = JSON.parse(attributes);
@@ -347,7 +354,7 @@ export const checkSkuAvailability = async (req, res, next) => {
     const { sku } = req.query;
 
     const available = await checkSkuAvailabilityService(sku);
-    
+
     successResponse(res, 'It"s Ok', HTTP_STATUS.OK, { available });
   } catch (error) {
     console.error("check sku error:", error);
