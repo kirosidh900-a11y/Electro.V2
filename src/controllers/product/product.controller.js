@@ -131,6 +131,12 @@ export const toggleProductStatus = async (req, res, next) => {
     await deleteCacheByPattern("home_products:*");
     await deleteCacheByPattern("shop:*");
 
+    // TEMP TEST
+    await new Promise((res) => setTimeout(res, 100));
+
+    const allKeys = await redisClient.keys("shop:*");
+    console.log(allKeys);
+
     successResponse(res, "Toggle Updated!", HTTP_STATUS.OK, {
       action,
     });
