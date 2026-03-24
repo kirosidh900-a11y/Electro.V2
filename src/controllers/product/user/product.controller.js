@@ -1,5 +1,10 @@
-import { getFilterDataService, getProductsListService } from "../../../services/product/product.service.js";
+import Wishlist from "../../../models/wishlistSchema.model.js";
+import {
+  getFilterDataService,
+  getProductsListService,
+} from "../../../services/product/product.service.js";
 import renderView from "../../../utils/admin/renderView.util.js";
+import mongoose from "mongoose";
 
 //Product
 export const getProductsListingPage = async (req, res) => {
@@ -86,10 +91,52 @@ export const getProductsListingPage = async (req, res) => {
 
 export const updateWishlist = async (req, res) => {
   try {
-    const { variant_id } = req.body;
+    const { productId, variantId } = req.body;
+    const userId = req.user._id;
 
-    // dummy toggle logic
-    const added = true;
+    console.log(userId, productId, variantId);
+
+    const productObjId = new mongoose.Types.ObjectId(productId);
+    const variantObjId = new mongoose.Types.ObjectId(variantId);
+
+    const wishlist = await Wishlist.findOne({ userId });
+
+    const exists = wishlist?.items?.some(
+      (item) =>
+        item.productId.equals(productObjId) &&
+        item.variantId.equals(variantObjId),
+    );
+
+    let added;
+
+    if (exists) {
+      await Wishlist.updateOne(
+        { userId },
+        {
+          $pull: {
+            items: {
+              productId: productObjId,
+              variantId: variantObjId,
+            },
+          },
+        },
+      );
+      added = false;
+    } else {
+      await Wishlist.updateOne(
+        { userId },
+        {
+          $addToSet: {
+            items: {
+              productId: productObjId,
+              variantId: variantObjId,
+            },
+          },
+        },
+        { upsert: true },
+      );
+      added = true;
+    }
 
     return res.json({
       success: true,
@@ -97,6 +144,7 @@ export const updateWishlist = async (req, res) => {
       message: added ? "Added to wishlist" : "Removed from wishlist",
     });
   } catch (err) {
+    console.error(err);
     return res.status(500).json({
       success: false,
       message: "Server error",

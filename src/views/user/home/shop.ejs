@@ -365,7 +365,8 @@
                         if (link.classList.contains("loading")) return;
                         link.classList.add("loading");
 
-                        const variant_id = link.dataset.variant_id;
+                        const variantId = link.dataset.variantId;
+                        const productId = link.dataset.productId;
 
                         try {
                                 const res = await fetch('/wishlist', {
@@ -374,7 +375,10 @@
                                                 'Content-Type': 'application/json',
                                                 'Accept': 'application/json'
                                         },
-                                        body: JSON.stringify({ variant_id })
+                                        body: JSON.stringify({
+                                                productId,
+                                                variantId
+                                        })
                                 });
 
                                 const data = await res.json();
@@ -392,6 +396,10 @@
                                         }
 
                                         showToast(data.message || "Updated wishlist", "success");
+                                        return
+                                } else {
+                                        showToast(data.message, 'error');
+                                        return
                                 }
 
                         } catch (err) {

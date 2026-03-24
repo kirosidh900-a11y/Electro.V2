@@ -9,6 +9,7 @@ const wishlistSchema = new mongoose.Schema({
 
   items: [
     {
+      _id: false,
       productId: {
         type: mongoose.Schema.Types.ObjectId,
         ref: "Product",
@@ -19,6 +20,9 @@ const wishlistSchema = new mongoose.Schema({
     },
   ],
 });
+
+// Indexes
+wishlistSchema.index({ userId: 1 });
 
 wishlistSchema.index(
   {

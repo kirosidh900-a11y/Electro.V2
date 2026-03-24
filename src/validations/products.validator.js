@@ -49,3 +49,32 @@ export const validateProductImages = (files) => {
     throw new Error("Maximum 6 images allowed");
   }
 };
+
+const idMessages = (name) => ({
+  "any.required": `${name} is required`,
+  "string.empty": `${name} cannot be empty`,
+  "string.hex": `${name} must be a valid ID`,
+  "string.length": `${name} must be 24 characters`,
+});
+
+const objectId = Joi.string().hex().length(24);
+
+/* ================= WISHLIST ================= */
+export const wishlistSchema = Joi.object({
+  productId: objectId.required().messages(idMessages("Product ID")),
+  variantId: objectId.required().messages(idMessages("Variant ID")),
+});
+
+/* ================= CART ================= */
+export const cartSchema = Joi.object({
+  productId: objectId.required().messages(idMessages("Product ID")),
+
+  variantId: objectId.required().messages(idMessages("Variant ID")),
+
+  quantity: Joi.number().integer().min(1).required().messages({
+    "any.required": "Quantity is required",
+    "number.base": "Quantity must be a number",
+    "number.integer": "Quantity must be an integer",
+    "number.min": "Quantity must be at least 1",
+  }),
+});

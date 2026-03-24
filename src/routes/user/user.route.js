@@ -25,6 +25,8 @@ import userAuth from "../../middlewares/user/userAuth.middleware.js";
 import addresRouter from "./addres.route.js";
 import upload from "../../middlewares/cloudinaryUpload.middleware.js";
 import locationRoutes from "./location.route.js";
+import { validate } from "../../middlewares/validate.middleware.js";
+import { wishlistSchema } from "../../validations/products.validator.js";
 
 const router = Router();
 
@@ -39,7 +41,7 @@ router.use("/location", locationRoutes);
 router.get("/", showHomePage);
 
 //Product List page
-router.post("/wishlist", updateWishlist);
+router.post("/wishlist", validate(wishlistSchema), updateWishlist);
 router.get("/productList", getProductsListingPage);
 router.get("/shop", getProductsListingPage);
 
