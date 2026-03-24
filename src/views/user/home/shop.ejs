@@ -24,13 +24,12 @@
         </style>
 
         <!-- MOBILE FILTER BUTTON -->
-
         <button onclick="toggleSidebar()"
                 class="lg:hidden fixed top-4 left-4 z-[60] bg-blue-600 text-white p-2 rounded shadow"> <i
-                        class="fa fa-filter"></i> </button>
+                        class="fa fa-filter"></i>
+        </button>
 
         <!-- OVERLAY -->
-
         <div id="sidebarOverlay" class="fixed inset-0 bg-black/40 hidden z-40" onclick="toggleSidebar()"></div>
 
         <main class="bg-[#F1F3F6] min-h-screen py-6">
@@ -100,13 +99,35 @@
 
                                 <!-- PRICE -->
                                 <div class="mb-6">
-                                        <h3 class="text-xs font-semibold text-gray-500 uppercase mb-3">Price
-                                        </h3>
-                                        <div class="flex gap-2">
-                                                <input id="minPrice" placeholder="Min"
-                                                        class="w-full border p-2 text-sm rounded">
-                                                <input id="maxPrice" placeholder="Max"
-                                                        class="w-full border p-2 text-sm rounded">
+                                        <h3 class="text-xs font-semibold text-gray-500 uppercase mb-3">Price</h3>
+
+                                        <div class="flex gap-2 items-center">
+
+                                                <!-- MIN -->
+                                                <select id="minPriceSelect"
+                                                        class="w-full border p-2 text-sm rounded focus:ring-2 focus:ring-blue-500">
+                                                        <option value="0">Min</option>
+                                                        <option value="500">₹500</option>
+                                                        <option value="1000">₹1000</option>
+                                                        <option value="2000">₹2000</option>
+                                                        <option value="5000">₹5000</option>
+                                                        <option value="10000">₹10000</option>
+                                                </select>
+
+                                                <span class="text-gray-400 text-sm">to</span>
+
+                                                <!-- MAX -->
+                                                <select id="maxPriceSelect"
+                                                        class="w-full border p-2 text-sm rounded focus:ring-2 focus:ring-blue-500">
+                                                        <option value="100000">Max</option>
+                                                        <option value="1000">₹1000</option>
+                                                        <option value="2000">₹2000</option>
+                                                        <option value="5000">₹5000</option>
+                                                        <option value="10000">₹10000</option>
+                                                        <option value="20000">₹20000</option>
+                                                        <option value="50000">₹50000</option>
+                                                </select>
+
                                         </div>
                                 </div>
 
@@ -116,7 +137,7 @@
                                                 class="w-full bg-blue-600 text-white py-2 rounded text-sm font-semibold hover:bg-blue-700">
                                                 Apply Filters
                                         </button>
-                                        <button onclick="window.location='/shop'"
+                                        <button id="clearFiltersBtn1"
                                                 class="w-full border py-2 rounded text-sm hover:bg-gray-50">
                                                 Clear All
                                         </button>
@@ -195,7 +216,14 @@
                 const container = document.getElementById("productContainer");
                 const skeletonTemplate = document.getElementById("skeleton-card");
 
-                // SIDEBAR
+                /* ================= GLOBAL STATE ================= */
+                let selectedCategory = "all";
+                let selectedBrands = [];
+                let currentSort = "newest";
+                let selectedMinPrice = 0;
+                let selectedMaxPrice = 100000;
+
+                /* ================= SIDEBAR ================= */
                 function toggleSidebar() {
                         const sidebar = document.getElementById("sidebar");
                         const overlay = document.getElementById("sidebarOverlay");
@@ -204,33 +232,22 @@
                         overlay.classList.toggle("hidden");
                 }
 
-                // FIX DESKTOP
-                window.addEventListener("resize", () => {
-                        if (window.innerWidth >= 1024) {
-                                document.getElementById("sidebar").classList.remove("-translate-x-full");
-                                document.getElementById("sidebarOverlay").classList.add("hidden");
-                        }
-                });
-
-                // LIMIT
+                /* ================= LIMIT ================= */
                 function getLimit() {
                         const cardWidth = 250;
                         const columns = Math.floor(container.clientWidth / cardWidth) || 1;
                         return columns * 2;
                 }
 
-                // SKELETON
+                /* ================= SKELETON ================= */
                 function showSkeletons() {
                         container.innerHTML = "";
                         for (let i = 0; i < getLimit(); i++) {
                                 container.appendChild(skeletonTemplate.content.cloneNode(true));
                         }
                 }
-                let selectedCategory = "all"; // global
-                let selectedBrands = [];
-                let currentSort = "newest";
 
-                // LOAD PRODUCTS
+                /* ================= LOAD PRODUCTS ================= */
                 async function loadProducts(page = 1) {
                         showSkeletons();
 
@@ -240,7 +257,9 @@
                                 search: document.getElementById("searchInput").value.trim() || "",
                                 category: selectedCategory,
                                 brand: selectedBrands.join(","),
-                                sort: currentSort
+                                sort: currentSort,
+                                minPrice: selectedMinPrice,
+                                maxPrice: selectedMaxPrice
                         });
 
                         try {
@@ -255,68 +274,71 @@
                                 container.replaceChildren(...temp.children);
 
                                 document.getElementById("pagination").innerHTML = data.pagination;
-                                updateTopBar(data)
+
+                                updateTopBar(data);
+                                updateClearButtonState();
+
                         } catch (err) {
                                 container.innerHTML = "<p class='text-center text-red-500'>Error loading</p>";
                         }
                 }
 
+                /* ================= TOP BAR ================= */
                 function updateTopBar(data) {
                         document.getElementById("currentCount").innerText = data.currentCount;
                         document.getElementById("totalProduct").innerText = data.totalProducts;
-
                 }
 
-                // FILTER
-                function applyFilters() {
-                        loadProducts(1);
+                /* ================= CLEAR BUTTON STATE ================= */
+                function updateClearButtonState() {
+                        const hasFilters =
+                                selectedCategory !== "all" ||
+                                selectedBrands.length > 0 ||
+                                selectedMinPrice !== 0 ||
+                                selectedMaxPrice !== 100000 ||
+                                document.getElementById("searchInput").value.trim() !== "" ||
+                                currentSort !== "newest";
+
+                        document.getElementById("clearFiltersBtn").disabled = !hasFilters;
                 }
 
-                // PAGINATION
+                /* ================= PAGINATION ================= */
                 document.getElementById("pagination").addEventListener("click", (e) => {
                         const link = e.target.closest(".pagination-link");
-                        if (link) {
-                                loadProducts(parseInt(link.dataset.page));
-                        }
+                        if (link) loadProducts(parseInt(link.dataset.page));
                 });
 
-
+                /* ================= SEARCH ================= */
                 let searchTimer;
                 document.getElementById("searchInput").addEventListener("input", () => {
                         clearTimeout(searchTimer);
-
-                        searchTimer = setTimeout(() => {
-                                loadProducts(1); // reload with search
-                        }, 400); // debounce
+                        searchTimer = setTimeout(() => loadProducts(1), 400);
                 });
 
+                /* ================= CATEGORY + BRAND ================= */
                 document.querySelector("aside").addEventListener("click", (e) => {
                         const item = e.target.closest(".category-item");
                         const brandItem = e.target.closest(".brand-item");
 
-                        /* ================= CATEGORY ================= */
+                        // CATEGORY
                         if (item) {
                                 const clickedCategory = item.dataset.category;
 
                                 if (selectedCategory === clickedCategory) {
                                         selectedCategory = "all";
-
                                         document.querySelectorAll(".category-item")
                                                 .forEach(i => i.classList.remove("text-blue-600", "bg-blue-300"));
-
                                 } else {
                                         selectedCategory = clickedCategory;
-
                                         document.querySelectorAll(".category-item")
                                                 .forEach(i => i.classList.remove("text-blue-600", "bg-blue-300"));
-
                                         item.classList.add("text-blue-600", "bg-blue-300");
                                 }
 
                                 loadProducts(1);
                         }
 
-                        /* ================= BRAND ================= */
+                        // BRAND
                         if (brandItem) {
                                 const clickedBrand = brandItem.dataset.brand;
                                 const checkbox = brandItem.querySelector(".brand-checkbox");
@@ -329,42 +351,89 @@
                                         selectedBrands = selectedBrands.filter(b => b !== clickedBrand);
                                 }
 
-
                                 loadProducts(1);
                         }
                 });
 
-                document.getElementById('sortSelect').addEventListener('change', (e) => {
-                        const selectedSort = e.target.value;
-
-                        // store globally (IMPORTANT)
-                        currentSort = selectedSort;
-
-                        loadProducts(1); // reload with new sort
-                });
-
-                document.getElementById('clearFiltersBtn').addEventListener('click', () => {
-
-                        // optional: reset sort also
-                        currentSort = 'newest';
-                        document.getElementById('sortSelect').value = currentSort;
-
-                        // reload
+                /* ================= SORT ================= */
+                document.getElementById("sortSelect").addEventListener("change", (e) => {
+                        currentSort = e.target.value;
                         loadProducts(1);
                 });
 
+                /* ================= PRICE ================= */
+                document.getElementById("minPriceSelect").addEventListener("change", () => {
+                        selectedMinPrice = document.getElementById("minPriceSelect").value;
+                        updateClearButtonState();
+                });
 
-                // INIT
+                document.getElementById("maxPriceSelect").addEventListener("change", () => {
+                        selectedMaxPrice = document.getElementById("maxPriceSelect").value;
+                        updateClearButtonState();
+                });
+
+                /* ================= APPLY FILTER ================= */
+                function applyFilters() {
+                        if (Number(selectedMinPrice) > Number(selectedMaxPrice)) {
+                                showToast("Min price cannot be greater than Max price", "warning");
+                                return;
+                        }
+                        loadProducts(1);
+                }
+
+                /* ================= CLEAR (TOP BUTTON) ================= */
+                document.getElementById("clearFiltersBtn").addEventListener("click", () => {
+                        currentSort = "newest";
+                        document.getElementById("sortSelect").value = currentSort;
+                        loadProducts(1);
+                });
+
+                /* ================= CLEAR ALL ================= */
+                document.getElementById("clearFiltersBtn1").addEventListener("click", () => {
+
+                        selectedCategory = "all";
+                        selectedBrands = [];
+                        selectedMinPrice = 0;
+                        selectedMaxPrice = 100000;
+                        currentSort = "newest";
+
+                        document.querySelectorAll(".category-item")
+                                .forEach(i => i.classList.remove("text-blue-600", "bg-blue-300"));
+
+                        document.querySelectorAll(".brand-checkbox")
+                                .forEach(cb => cb.checked = false);
+
+                        document.getElementById("minPriceSelect").value = "0";
+                        document.getElementById("maxPriceSelect").value = "100000";
+
+                        document.getElementById("sortSelect").value = "newest";
+                        document.getElementById("searchInput").value = "";
+
+                        loadProducts(1);
+
+                        showToast("Filters cleared", "success");
+                });
+
+                /* ================= INIT ================= */
                 document.addEventListener("DOMContentLoaded", () => {
                         loadProducts(1);
-                        window.addEventListener("resize", () => {
-                                if (window.innerWidth >= 1024) {
-                                        document.getElementById("sidebar").classList.remove("-translate-x-full");
-                                        document.getElementById("sidebarOverlay").classList.add("hidden");
-                                }
-                        });
-
+                        updateClearButtonState();
                 });
+                
         </script>
 
+        <script type="module">
+                import { showToast } from "/partials/errorMsg.utils.js";
+
+                function applyFilters() {
+                        if (Number(selectedMinPrice) > Number(selectedMaxPrice)) {
+                                showToast("Min price cannot be greater than Max price", 'warning');
+                                return;
+                        }
+                    loadProducts(1);
+                }
+
+                window.applyFilters = applyFilters;
+        </script>
+        
         <%- include("../../partials/user/footer.ejs") %>
