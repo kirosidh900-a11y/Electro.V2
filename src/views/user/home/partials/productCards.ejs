@@ -1,4 +1,5 @@
 <% products.forEach(product => {
+    
 const variant = product.variants?.[0];
 const image = variant?.product_images?.[0]?.url || '/images/placeholder.png';
 const price = variant?.price || 0;

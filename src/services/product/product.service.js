@@ -210,15 +210,16 @@ export const toggleProductStatusService = async (id) => {
     throw new AppError("Product not found", HTTP_STATUS.NOT_FOUND);
   }
 
-  const newStatus = product.status === "listed" ? "unlisted" : "listed";
+  // toggle manually
+  product.status = product.status === "listed" ? "unlisted" : "listed";
 
-  await Products.findByIdAndUpdate(
-    id,
-    { status: newStatus },
-    { runValidators: false },
-  );
+  await product.save();
 
-  return newStatus;
+  return {
+    category: product.category,
+    brand: product.brand,
+    status: product.status,
+  };
 };
 
 //  GET ATTRIBUTES
@@ -474,23 +475,33 @@ export const getProductsListService = async ({
   const skip = (page - 1) * limit;
   const isSearch = search && search.trim() !== "";
 
-  const cacheKey = `shop:category=${category || "all"}:brand=${brand || "all"}:page=${page}:limit=${limit}:sort=${sort}:price=${minPrice}-${maxPrice}`;
+  // SAFE PRICE
+  const safeMin = Number(minPrice) || 0;
+  const safeMax = Number(maxPrice) || 100000;
 
+  // NORMALIZE BRAND
+  const normalizedBrand = brand ? brand.split(",").sort().join(",") : "all";
+
+  const cacheKey = `shop:category=${category || "all"}:brand=${normalizedBrand}:page=${page}:limit=${limit}:sort=${sort}:price=${safeMin}-${safeMax}`;
+
+  // CACHE HIT
   if (!isSearch) {
     const cachedData = await getCache(cacheKey);
-
     if (cachedData && cachedData.products) {
+      console.log("⚡ Cache HIT:", cacheKey);
       return cachedData;
     }
   }
 
   console.log("🐢 DB HIT:", cacheKey);
 
+  // BASE FILTER
   const filter = {
     status: "listed",
     isDeleted: false,
   };
 
+  // SEARCH
   if (isSearch) {
     filter.$or = [
       { name: { $regex: search, $options: "i" } },
@@ -498,6 +509,7 @@ export const getProductsListService = async ({
     ];
   }
 
+  // CATEGORY
   if (
     category &&
     category !== "all" &&
@@ -506,6 +518,7 @@ export const getProductsListService = async ({
     filter.category = new mongoose.Types.ObjectId(category);
   }
 
+  // BRAND (MULTI SELECT)
   if (brand && brand !== "all") {
     const brands = brand
       .split(",")
@@ -515,39 +528,58 @@ export const getProductsListService = async ({
     filter.brand = { $in: brands };
   }
 
+  // PRICE FILTER
   filter.variants = {
     $elemMatch: {
       price: {
-        $gte: Number(minPrice) || 0,
-        $lte: Number(maxPrice) || 100000,
+        $gte: safeMin,
+        $lte: safeMax,
       },
     },
   };
 
+  // SORT LOGIC
   let sortOption = {};
 
   switch (sort) {
     case "priceLow":
-      sortOption = { createdAt: -1 };
+      sortOption = { minPrice: 1 };
       break;
+
     case "priceHigh":
-      sortOption = { createdAt: -1 };
+      sortOption = { minPrice: -1 };
       break;
+
     case "nameAsc":
-      sortOption = { name: 1 };
+      sortOption = { lowerName: 1 };
       break;
+
     case "nameDesc":
-      sortOption = { name: -1 };
+      sortOption = { lowerName: -1 };
       break;
+
     case "oldest":
       sortOption = { createdAt: 1 };
       break;
+
+    case "newest":
     default:
       sortOption = { createdAt: -1 };
   }
 
+  // AGGREGATION PIPELINE
   const result = await Products.aggregate([
     { $match: filter },
+
+    // COMPUTED FIELDS
+    {
+      $addFields: {
+        minPrice: { $min: "$variants.price" },
+        lowerName: { $toLower: "$name" },
+      },
+    },
+
+    // BRAND JOIN
     {
       $lookup: {
         from: "brands",
@@ -558,6 +590,8 @@ export const getProductsListService = async ({
     },
     { $unwind: "$brand" },
     { $match: { "brand.status": "listed" } },
+
+    // CATEGORY JOIN
     {
       $lookup: {
         from: "categories",
@@ -568,6 +602,8 @@ export const getProductsListService = async ({
     },
     { $unwind: "$category" },
     { $match: { "category.status": "listed" } },
+
+    // PAGINATION + COUNT
     {
       $facet: {
         data: [
@@ -589,8 +625,10 @@ export const getProductsListService = async ({
     totalPages: Math.ceil(total / limit),
   };
 
+  // ✅ CACHE SET
   if (!isSearch) {
     await setCache(cacheKey, responseData);
+    console.log("✅ Cache SET:", cacheKey);
   }
 
   return responseData;

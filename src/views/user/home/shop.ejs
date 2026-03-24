@@ -128,17 +128,41 @@
                         <div class="flex-grow">
 
                                 <!-- TOP BAR -->
-                                <div class="bg-white border p-4 mb-4 flex justify-between items-center rounded">
+                                <div
+                                        class="bg-white border p-4 mb-4 flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3 rounded shadow-sm">
+
+                                        <!-- LEFT: RESULT INFO -->
                                         <p class="text-sm text-gray-600">
-                                                Showing <span id="currentCount" class="font-bold">0</span>
+                                                Showing
+                                                <span id="currentCount" class="font-semibold text-gray-900">0</span>
+                                                of
+                                                <span id="totalProduct" class="font-semibold text-gray-900">0</span>
                                                 products
+                                                <span id="activeFilters"
+                                                        class="ml-2 text-blue-600 text-xs font-medium"></span>
                                         </p>
 
-                                        <select id="sortSelect" class="border p-2 text-sm rounded">
-                                                <option value="newest">Relevance</option>
-                                                <option value="priceLow">Price: Low to High</option>
-                                                <option value="priceHigh">Price: High to Low</option>
-                                        </select>
+                                        <!-- RIGHT: CONTROLS -->
+                                        <div class="flex items-center gap-2">
+
+                                                <!-- SORT -->
+                                                <select id="sortSelect"
+                                                        class="border px-3 py-2 text-sm rounded focus:outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer">
+                                                        <option value="newest">Relevance</option>
+                                                        <option value="priceLow">Price: Low → High</option>
+                                                        <option value="priceHigh">Price: High → Low</option>
+                                                        <option value="nameAsc">Name A → Z</option>
+                                                        <option value="nameDesc">Name Z → A</option>
+                                                </select>
+
+                                                <!-- CLEAR FILTER -->
+                                                <button id="clearFiltersBtn"
+                                                        class="text-xs px-3 py-2 border rounded hover:bg-gray-100 transition">
+                                                        Clear
+                                                </button>
+
+                                        </div>
+
                                 </div>
 
                                 <!-- GRID -->
@@ -150,7 +174,7 @@
                                 <div id="pagination" class="flex justify-center mt-10"></div>
 
                         </div>
-                        ```
+
 
                 </div>
         </main>
@@ -204,6 +228,7 @@
                 }
                 let selectedCategory = "all"; // global
                 let selectedBrands = [];
+                let currentSort = "newest";
 
                 // LOAD PRODUCTS
                 async function loadProducts(page = 1) {
@@ -214,7 +239,8 @@
                                 limit: getLimit(),
                                 search: document.getElementById("searchInput").value.trim() || "",
                                 category: selectedCategory,
-                                brand: selectedBrands.join(",")
+                                brand: selectedBrands.join(","),
+                                sort: currentSort
                         });
 
                         try {
@@ -229,11 +255,16 @@
                                 container.replaceChildren(...temp.children);
 
                                 document.getElementById("pagination").innerHTML = data.pagination;
-                                document.getElementById("currentCount").innerText = data.currentCount;
-
+                                updateTopBar(data)
                         } catch (err) {
                                 container.innerHTML = "<p class='text-center text-red-500'>Error loading</p>";
                         }
+                }
+
+                function updateTopBar(data) {
+                        document.getElementById("currentCount").innerText = data.currentCount;
+                        document.getElementById("totalProduct").innerText = data.totalProducts;
+
                 }
 
                 // FILTER
@@ -302,6 +333,26 @@
                                 loadProducts(1);
                         }
                 });
+
+                document.getElementById('sortSelect').addEventListener('change', (e) => {
+                        const selectedSort = e.target.value;
+
+                        // store globally (IMPORTANT)
+                        currentSort = selectedSort;
+
+                        loadProducts(1); // reload with new sort
+                });
+
+                document.getElementById('clearFiltersBtn').addEventListener('click', () => {
+
+                        // optional: reset sort also
+                        currentSort = 'newest';
+                        document.getElementById('sortSelect').value = currentSort;
+
+                        // reload
+                        loadProducts(1);
+                });
+
 
                 // INIT
                 document.addEventListener("DOMContentLoaded", () => {
