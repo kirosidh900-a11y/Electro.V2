@@ -1,103 +1,137 @@
-<% products.forEach(product => {
-const variant = product.variants?.[0];
-const image = variant?.product_images?.[0]?.url || '/images/placeholder.png';
-const price = variant?.price || 0;
-const original = product.regularPrice || (price + 2000);
-const discount = product.discountPercentage || Math.round(((original - price) / original) * 100);
+<% if (!products || products.length===0) { %>
+
+    <div class="col-span-full flex flex-col items-center justify-center py-16 text-center">
+
+        <!-- ICON -->
+        <div class="w-20 h-20 mb-4 flex items-center justify-center rounded-full bg-gray-100">
+            <i class="fa fa-box-open text-3xl text-gray-400"></i>
+        </div>
+
+        <!-- TITLE -->
+        <h3 class="text-lg font-semibold text-gray-800 mb-1">
+            No products found
+        </h3>
+
+        <!-- DESCRIPTION -->
+        <p class="text-sm text-gray-500 mb-4">
+            Try adjusting your filters or search to find what you're looking for.
+        </p>
+
+        <!-- ACTION BUTTON -->
+        <button onclick="clearFilters()"
+            class="px-4 py-2 bg-blue-600 text-white text-sm rounded hover:bg-blue-700 transition">
+            Clear Filters
+        </button>
+
+    </div>
+
+    <% } else { %>
+
+        <% products.forEach(product=> {
+
+            const variant = product.variants?.[0];
+            const image = variant?.product_images?.[0]?.url || '/images/placeholder.png';
+            const price = variant?.price || 0;
+            const original = product.regularPrice || (price + 2000);
+            const discount = product.discountPercentage || Math.round(((original - price) / original) * 100);
 
 
-const rating = product.rating || (Math.random() * (5 - 3.8) + 3.8).toFixed(1);
-const reviews = product.numReviews || Math.floor(Math.random() * 5000) + 10;
+            const rating = product.rating || (Math.random() * (5 - 3.8) + 3.8).toFixed(1);
+            const reviews = product.numReviews || Math.floor(Math.random() * 5000) + 10;
 
-const brand = product.brand?.title || "Brand";
-const brandLogo = product.brand?.logo || "/images/placeholder.png";
+            const brand = product.brand?.title || "Brand";
+            const brandLogo = product.brand?.logo || "/images/placeholder.png";
 
 
-%>
+            %>
 
-<div class="bg-white border border-gray-200 rounded-xl overflow-hidden 
+            <div class="bg-white border border-gray-200 rounded-xl overflow-hidden 
     shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300 
     cursor-pointer group relative">
 
 
-<!-- RIGHT SIDE ACTIONS -->
-<div class="absolute right-2 top-3 flex flex-col gap-2 
+                <!-- RIGHT SIDE ACTIONS -->
+                <div class="absolute right-2 top-3 flex flex-col gap-2 
     opacity-0 group-hover:opacity-100 translate-x-2 group-hover:translate-x-0 
     transition-all duration-300 z-10">
 
-    <!-- WISHLIST -->
-    <button class="bg-white/90 backdrop-blur p-2 rounded-full shadow hover:bg-red-50 transition">
-        <i class="fa-regular fa-heart text-gray-600 hover:text-red-500"></i>
-    </button>
+                    <!-- WISHLIST -->
+                    <button id="wishlist" data-variant_id="<%= variant._id %>"
+                        class="bg-white/90 backdrop-blur p-2 rounded-full shadow hover:bg-red-50 transition">
+                        <i class="fa-regular fa-heart text-gray-600 hover:text-red-500"></i>
+                    </button>
 
-    <!-- CART -->
-    <button class="bg-white/90 backdrop-blur p-2 rounded-full shadow hover:bg-blue-50 transition">
-        <i class="fa-solid fa-cart-shopping text-gray-600 hover:text-blue-600"></i>
-    </button>
-</div>
+                    <!-- CART -->
+                    <button id="cartlist" data-variant_id="<%= variant._id %>"
+                        class="bg-white/90 backdrop-blur p-2 rounded-full shadow hover:bg-blue-50 transition">
+                        <i class="fa-solid fa-cart-shopping text-gray-600 hover:text-blue-600"></i>
+                    </button>
+                </div>
 
-<!-- IMAGE -->
-<div class="relative h-56 flex items-center justify-center p-4 bg-white overflow-hidden"
-     onclick="window.location.href='/product/<%= product._id %>'">
+                <!-- IMAGE -->
+                <div class="relative h-56 flex items-center justify-center p-4 bg-white overflow-hidden"
+                    onclick="window.location.href='/product/<%= product._id %>'">
 
-    <img src="<%= image %>" 
-         class="max-h-full max-w-full object-contain 
+                    <img src="<%= image %>" class="max-h-full max-w-full object-contain 
                 group-hover:scale-110 transition duration-500 ease-in-out">
 
-    <!-- DISCOUNT -->
-    <% if(discount > 0) { %>
-    <span class="absolute bottom-2 left-2 bg-green-600 text-white text-[10px] px-2 py-0.5 rounded">
-        <%= discount %>% OFF
-    </span>
-    <% } %>
-</div>
+                    <!-- DISCOUNT -->
+                    <% if(discount> 0) { %>
+                        <span class="absolute bottom-2 left-2 bg-green-600 text-white text-[10px] px-2 py-0.5 rounded">
+                            <%= discount %>% OFF
+                        </span>
+                        <% } %>
+                </div>
 
-<!-- CONTENT -->
-<div class="p-4 flex flex-col">
-
-
-    <!-- TITLE -->
-    <h4 class="text-[14px] font-semibold text-gray-800 line-clamp-2 min-h-[42px] group-hover:text-blue-600 transition">
-        <%= product.name %>
-    </h4>
-
-    
-    <!-- BRAND -->
-    <div class="flex items-center gap-2 mb-1">
-        <img src="<%= brandLogo %>" class="w-5 h-5 object-contain">
-        <span class="text-[12px] text-gray-500 font-medium">
-            <%= brand %>
-        </span>
-    </div>
-
-    <!-- RATING -->
-    <div class="flex items-center gap-2 mt-2">
-        <span class="bg-green-600 text-white text-[10px] px-1.5 py-0.5 rounded flex items-center gap-1">
-            <%= rating %> <i class="fa fa-star text-[8px]"></i>
-        </span>
-        <span class="text-[11px] text-gray-400">
-            (<%= reviews.toLocaleString() %>)
-        </span>
-    </div>
-
-    <!-- PRICE -->
-    <div class="mt-3 flex items-center gap-2">
-        <span class="text-lg font-bold text-gray-900">
-            ₹<%= price.toLocaleString('en-IN') %>
-        </span>
-        <span class="text-xs text-gray-400 line-through">
-            ₹<%= original.toLocaleString('en-IN') %>
-        </span>
-    </div>
-
-    <!-- SAVE -->
-    <p class="text-[11px] text-green-600 font-medium">
-        You save ₹<%= (original - price).toLocaleString('en-IN') %>
-    </p>
-
-</div>
+                <!-- CONTENT -->
+                <div class="p-4 flex flex-col">
 
 
-</div>
+                    <!-- TITLE -->
+                    <h4
+                        class="text-[14px] font-semibold text-gray-800 line-clamp-2 min-h-[42px] group-hover:text-blue-600 transition">
+                        <%= product.name %>
+                    </h4>
 
-<% }) %>
+
+                    <!-- BRAND -->
+                    <div class="flex items-center gap-2 mb-1">
+                        <img src="<%= brandLogo %>" class="w-5 h-5 object-contain">
+                        <span class="text-[12px] text-gray-500 font-medium">
+                            <%= brand %>
+                        </span>
+                    </div>
+
+                    <!-- RATING -->
+                    <div class="flex items-center gap-2 mt-2">
+                        <span class="bg-green-600 text-white text-[10px] px-1.5 py-0.5 rounded flex items-center gap-1">
+                            <%= rating %> <i class="fa fa-star text-[8px]"></i>
+                        </span>
+                        <span class="text-[11px] text-gray-400">
+                            (<%= reviews.toLocaleString() %>)
+                        </span>
+                    </div>
+
+                    <!-- PRICE -->
+                    <div class="mt-3 flex items-center gap-2">
+                        <span class="text-lg font-bold text-gray-900">
+                            ₹<%= price.toLocaleString('en-IN') %>
+                        </span>
+                        <span class="text-xs text-gray-400 line-through">
+                            ₹<%= original.toLocaleString('en-IN') %>
+                        </span>
+                    </div>
+
+                    <!-- SAVE -->
+                    <p class="text-[11px] text-green-600 font-medium">
+                        You save ₹<%= (original - price).toLocaleString('en-IN') %>
+                    </p>
+
+                </div>
+
+
+            </div>
+
+            <% }) %>
+
+                <% } %>

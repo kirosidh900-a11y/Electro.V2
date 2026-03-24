@@ -292,11 +292,9 @@
                                 if (!cropper) return;
 
                                 const canvas = cropper.getCroppedCanvas({
-                                        width: 300,
-                                        height: 300,
                                         viewMode: 1,
                                         responsive: true,
-                                        autoCropArea: 1,
+                                        autoCropArea: NaN,
 
                                         // ✅ Full control to user
                                         movable: true,

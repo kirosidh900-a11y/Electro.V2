@@ -126,19 +126,29 @@ export const deleteProduct = async (req, res, next) => {
 //  TOGGLE STATUS
 export const toggleProductStatus = async (req, res, next) => {
   try {
-    const action = await toggleProductStatusService(req.params.id);
+    const { status, category, brand } = await toggleProductStatusService(
+      req.params.id,
+    );
 
-    await deleteCacheByPattern("home_products:*");
+    // SMART CACHE INVALIDATION
+
+    // Category related
+    await deleteCacheByPattern(`shop:category=${category}:*`);
+    // Brand related
+    await deleteCacheByPattern(`shop:*brand=${brand}*`);
+    //  Global listing (IMPORTANT)
+    await deleteCacheByPattern(`shop:category=all:brand=all:*`);
+
+    // Home cache (FIXED)
+    await deleteCacheByPattern("home_products_*");
+    
     await deleteCacheByPattern("shop:*");
 
-    // TEMP TEST
-    await new Promise((res) => setTimeout(res, 100));
-
     const allKeys = await redisClient.keys("shop:*");
-    console.log(allKeys);
+    console.log("exits:", allKeys);
 
     successResponse(res, "Toggle Updated!", HTTP_STATUS.OK, {
-      action,
+      action: status,
     });
   } catch (error) {
     next(error);
