@@ -8,7 +8,7 @@ const variantSchema = new mongoose.Schema(
       type: String,
       required: true,
       trim: true,
-      uppercase: true, // 🔥 normalize automatically
+      uppercase: true, // normalize automatically
     },
 
     price: {
@@ -53,7 +53,7 @@ const variantSchema = new mongoose.Schema(
       default: false,
     },
   },
-  { timestamps: true }, // 🔥 IMPORTANT
+  { timestamps: true }, // IMPORTANT
 );
 
 const productSchema = new mongoose.Schema(

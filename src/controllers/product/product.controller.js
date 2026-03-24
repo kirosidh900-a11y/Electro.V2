@@ -9,7 +9,7 @@ import {
   toggleProductStatusService,
   getProductAttributesService,
   getProductDetailsService,
-  addVariantService,
+  addVariantService, 
   editVariantService,
   deleteVariantService,
   getProductByIdService,
@@ -212,7 +212,7 @@ export const getVariantById = async (req, res, next) => {
   }
 };
 
-//  PRODUCT DETAILS
+//  PRODUCT DETAILS 
 export const getProductDetails = async (req, res, next) => {
   try {
     const data = await getProductDetailsService(req.params.id, res);

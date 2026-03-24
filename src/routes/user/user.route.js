@@ -11,16 +11,21 @@ import {
   verifyPhoneOtp,
   deleteProfilePhoto,
   updateProfilePhoto,
-  getProductsListingPage,
 } from "../../controllers/user/user.controller.js";
+
+import {
+  getProductsListingPage,
+  updateWishlist,
+} from "../../controllers/product/user/product.controller.js";
+import { resendOtp } from "../../controllers/user/auth.controller.js";
+import { setUploadFolder } from "../../middlewares/setUploadFolder.middleware.js";
 
 import attachUser from "../../middlewares/attachUser.middleware.js";
 import userAuth from "../../middlewares/user/userAuth.middleware.js";
 import addresRouter from "./addres.route.js";
-import { resendOtp } from "../../controllers/user/auth.controller.js";
 import upload from "../../middlewares/cloudinaryUpload.middleware.js";
-import { setUploadFolder } from "../../middlewares/setUploadFolder.middleware.js";
 import locationRoutes from "./location.route.js";
+
 const router = Router();
 
 // Prevent caching of protected pages
@@ -34,6 +39,7 @@ router.use("/location", locationRoutes);
 router.get("/", showHomePage);
 
 //Product List page
+router.post("/wishlist", updateWishlist);
 router.get("/productList", getProductsListingPage);
 router.get("/shop", getProductsListingPage);
 

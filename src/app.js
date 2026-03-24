@@ -12,6 +12,8 @@ import userRouter from "./routes/user/user.route.js";
 import adminRouter from "./routes/admin/admin.route.js";
 import errorMiddleware from "./middlewares/error.middleware.js";
 import AppError from "./utils/partials/AppError.utils.js";
+import { errorResponse } from "./utils/partials/response.util.js";
+import HTTP_STATUS from "./constant/statusCode.js";
 
 const app = express();
 
@@ -53,10 +55,15 @@ app.use((req, res) => {
     req.originalUrl.startsWith("/admin") ||
     req.originalUrl.startsWith("/auth")
   ) {
-    return res.status(404).json({
-      success: false,
-      message: err.message,
-    });
+    errorResponse(res, err.message, HTTP_STATUS.NOT_FOUND);
+  }
+
+  if (req.headers.accept?.includes("application/json")) {
+    errorResponse(
+      res,
+      err.message || "Internal Server Error",
+      HTTP_STATUS.INTERNAL_SERVER_ERROR,
+    );
   }
 
   return res.status(404).render("404", {
