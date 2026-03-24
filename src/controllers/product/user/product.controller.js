@@ -1,9 +1,12 @@
+import Cart from "../../../models/cartSchema.models.js";
 import Wishlist from "../../../models/wishlistSchema.model.js";
+
 import {
   getFilterDataService,
   getProductsListService,
 } from "../../../services/product/product.service.js";
 import renderView from "../../../utils/admin/renderView.util.js";
+
 import mongoose from "mongoose";
 
 //Product
@@ -145,6 +148,67 @@ export const updateWishlist = async (req, res) => {
     });
   } catch (err) {
     console.error(err);
+    return res.status(500).json({
+      success: false,
+      message: "Server error",
+    });
+  }
+};
+
+export const updateCart = async (req, res) => {
+  try {
+    const { productId, variantId, quantity } = req.body;
+    const userId = req.user._id;
+
+    const productObjId = new mongoose.Types.ObjectId(productId);
+    const variantObjId = new mongoose.Types.ObjectId(variantId);
+
+    let cart = await Cart.findOne({ userId });
+
+    if (!cart) {
+      cart = await Cart.create({
+        userId,
+        items: [
+          {
+            productId: productObjId,
+            variantId: variantObjId,
+            quantity,
+          },
+        ],
+      });
+
+      return res.json({
+        success: true,
+        message: "Added to cart",
+      });
+    }
+
+    const existingItem = cart.items.find(
+      (item) =>
+        item.productId.equals(productObjId) &&
+        item.variantId.equals(variantObjId),
+    );
+
+    if (existingItem) {
+      // ✅ Update quantity
+      existingItem.quantity += quantity;
+    } else {
+      // ✅ Add new item
+      cart.items.push({
+        productId: productObjId,
+        variantId: variantObjId,
+        quantity,
+      });
+    }
+
+    await cart.save();
+
+    return res.json({
+      success: true,
+      message: "Cart updated",
+    });
+  } catch (err) {
+    console.error("Cart Error:", err);
     return res.status(500).json({
       success: false,
       message: "Server error",

@@ -15,6 +15,7 @@ import {
 
 import {
   getProductsListingPage,
+  updateCart,
   updateWishlist,
 } from "../../controllers/product/user/product.controller.js";
 import { resendOtp } from "../../controllers/user/auth.controller.js";
@@ -26,7 +27,10 @@ import addresRouter from "./addres.route.js";
 import upload from "../../middlewares/cloudinaryUpload.middleware.js";
 import locationRoutes from "./location.route.js";
 import { validate } from "../../middlewares/validate.middleware.js";
-import { wishlistSchema } from "../../validations/products.validator.js";
+import {
+  cartSchema,
+  wishlistSchema,
+} from "../../validations/products.validator.js";
 
 const router = Router();
 
@@ -42,6 +46,7 @@ router.get("/", showHomePage);
 
 //Product List page
 router.post("/wishlist", validate(wishlistSchema), updateWishlist);
+router.post("/cart", validate(cartSchema), updateCart);
 router.get("/productList", getProductsListingPage);
 router.get("/shop", getProductsListingPage);
 
