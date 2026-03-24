@@ -141,6 +141,8 @@ export const toggleProductStatus = async (req, res, next) => {
 
     // Home cache (FIXED)
     await deleteCacheByPattern("home_products_*");
+    
+    await deleteCacheByPattern("shop:*");
 
     const allKeys = await redisClient.keys("shop:*");
     console.log("exits:", allKeys);

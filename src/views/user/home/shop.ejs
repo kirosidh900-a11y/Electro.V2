@@ -36,165 +36,61 @@
                 <div class="max-w-[1280px] mx-auto px-4 flex flex-col lg:flex-row gap-4">
 
 
-                        <aside id="sidebar" class="fixed lg:static top-0 left-0 h-full lg:h-auto w-[280px] bg-white 
-  border-r border-gray-200 p-6 
-  z-50  lg:z-0
-  transform -translate-x-full lg:translate-x-0 
-  transition-transform duration-300 shadow-xl lg:shadow-sm overflow-y-auto">
+                        <%- include("./partials/productSidebar") %>
 
-                                <div class="flex justify-between items-center mb-6 lg:hidden">
-                                        <h2 class="font-bold text-lg">Filters</h2>
-                                        <button onclick="toggleSidebar()">
-                                                <i class="fa fa-times text-xl"></i>
-                                        </button>
-                                </div>
 
-                                <!-- SEARCH -->
-                                <div class="mb-6">
-                                        <h3 class="text-xs font-semibold text-gray-500 uppercase mb-2">Search
-                                        </h3>
-                                        <div class="relative">
-                                                <input id="searchInput" placeholder="Search..."
-                                                        class="w-full border pl-9 pr-3 py-2 text-sm rounded focus:border-blue-500">
-                                                <i
-                                                        class="fa fa-search absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-xs"></i>
-                                        </div>
-                                </div>
+                                <!-- PRODUCTS -->
+                                <div class="flex-grow">
 
-                                <!-- CATEGORIES -->
-                                <div class="mb-6">
-                                        <h3 class="text-xs font-semibold text-gray-500 uppercase mb-3">
-                                                Categories</h3>
-                                        <ul class="space-y-2 max-h-40 overflow-y-auto custom-scrollbar">
-                                                <% categories.forEach(c=> { %>
-                                                        <li class="category-item flex justify-between text-sm text-gray-600 hover:text-blue-600 cursor-pointer"
-                                                                data-category="<%= c._id %>">
-                                                                <span>
-                                                                        <%= c.title %>
-                                                                </span>
-                                                                <span class="text-xs text-gray-400">(<%= c.productCount
-                                                                                %>)</span>
-                                                        </li>
-                                                        <% }) %>
-                                        </ul>
-                                </div>
+                                        <!-- TOP BAR -->
+                                        <div
+                                                class="bg-white border p-4 mb-4 flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3 rounded shadow-sm">
 
-                                <!-- BRANDS -->
-                                <div class="mb-6">
-                                        <h3 class="text-xs font-semibold text-gray-500 uppercase mb-3">Brands
-                                        </h3>
-                                        <div class="space-y-3">
-                                                <% brands.forEach(b=> { %>
-                                                        <label class="brand-item flex items-center gap-3 cursor-pointer"
-                                                                data-brand="<%=b._id%>">
-                                                                <input type="checkbox" class="brand-checkbox w-4 h-4">
-                                                                <img src="<%= b.logo %>" class="w-5 h-5 object-contain">
-                                                                <span class="text-sm text-gray-600 hover:text-blue-600">
-                                                                        <%= b.title %>
-                                                                </span>
-                                                        </label>
-                                                        <% }) %>
-                                        </div>
-                                </div>
+                                                <!-- LEFT: RESULT INFO -->
+                                                <p class="text-sm text-gray-600">
+                                                        Showing
+                                                        <span id="currentCount"
+                                                                class="font-semibold text-gray-900">0</span>
+                                                        of
+                                                        <span id="totalProduct"
+                                                                class="font-semibold text-gray-900">0</span>
+                                                        products
+                                                        <span id="activeFilters"
+                                                                class="ml-2 text-blue-600 text-xs font-medium"></span>
+                                                </p>
 
-                                <!-- PRICE -->
-                                <div class="mb-6">
-                                        <h3 class="text-xs font-semibold text-gray-500 uppercase mb-3">Price</h3>
+                                                <!-- RIGHT: CONTROLS -->
+                                                <div class="flex items-center gap-2">
 
-                                        <div class="flex gap-2 items-center">
+                                                        <!-- SORT -->
+                                                        <select id="sortSelect"
+                                                                class="border px-3 py-2 text-sm rounded focus:outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer">
+                                                                <option value="newest">Relevance</option>
+                                                                <option value="priceLow">Price: Low → High</option>
+                                                                <option value="priceHigh">Price: High → Low</option>
+                                                                <option value="nameAsc">Name A → Z</option>
+                                                                <option value="nameDesc">Name Z → A</option>
+                                                        </select>
 
-                                                <!-- MIN -->
-                                                <select id="minPriceSelect"
-                                                        class="w-full border p-2 text-sm rounded focus:ring-2 focus:ring-blue-500">
-                                                        <option value="0">Min</option>
-                                                        <option value="500">₹500</option>
-                                                        <option value="1000">₹1000</option>
-                                                        <option value="2000">₹2000</option>
-                                                        <option value="5000">₹5000</option>
-                                                        <option value="10000">₹10000</option>
-                                                </select>
+                                                        <!-- CLEAR FILTER -->
+                                                        <button id="clearFiltersBtn"
+                                                                class="text-xs px-3 py-2 border rounded hover:bg-gray-100 transition">
+                                                                Clear
+                                                        </button>
 
-                                                <span class="text-gray-400 text-sm">to</span>
-
-                                                <!-- MAX -->
-                                                <select id="maxPriceSelect"
-                                                        class="w-full border p-2 text-sm rounded focus:ring-2 focus:ring-blue-500">
-                                                        <option value="100000">Max</option>
-                                                        <option value="1000">₹1000</option>
-                                                        <option value="2000">₹2000</option>
-                                                        <option value="5000">₹5000</option>
-                                                        <option value="10000">₹10000</option>
-                                                        <option value="20000">₹20000</option>
-                                                        <option value="50000">₹50000</option>
-                                                </select>
-
-                                        </div>
-                                </div>
-
-                                <!-- BUTTONS -->
-                                <div class="space-y-2">
-                                        <button onclick="applyFilters()"
-                                                class="w-full bg-blue-600 text-white py-2 rounded text-sm font-semibold hover:bg-blue-700">
-                                                Apply Filters
-                                        </button>
-                                        <button id="clearFiltersBtn1"
-                                                class="w-full border py-2 rounded text-sm hover:bg-gray-50">
-                                                Clear All
-                                        </button>
-                                </div>
-
-                        </aside>
-
-                        <!-- PRODUCTS -->
-                        <div class="flex-grow">
-
-                                <!-- TOP BAR -->
-                                <div
-                                        class="bg-white border p-4 mb-4 flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3 rounded shadow-sm">
-
-                                        <!-- LEFT: RESULT INFO -->
-                                        <p class="text-sm text-gray-600">
-                                                Showing
-                                                <span id="currentCount" class="font-semibold text-gray-900">0</span>
-                                                of
-                                                <span id="totalProduct" class="font-semibold text-gray-900">0</span>
-                                                products
-                                                <span id="activeFilters"
-                                                        class="ml-2 text-blue-600 text-xs font-medium"></span>
-                                        </p>
-
-                                        <!-- RIGHT: CONTROLS -->
-                                        <div class="flex items-center gap-2">
-
-                                                <!-- SORT -->
-                                                <select id="sortSelect"
-                                                        class="border px-3 py-2 text-sm rounded focus:outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer">
-                                                        <option value="newest">Relevance</option>
-                                                        <option value="priceLow">Price: Low → High</option>
-                                                        <option value="priceHigh">Price: High → Low</option>
-                                                        <option value="nameAsc">Name A → Z</option>
-                                                        <option value="nameDesc">Name Z → A</option>
-                                                </select>
-
-                                                <!-- CLEAR FILTER -->
-                                                <button id="clearFiltersBtn"
-                                                        class="text-xs px-3 py-2 border rounded hover:bg-gray-100 transition">
-                                                        Clear
-                                                </button>
+                                                </div>
 
                                         </div>
 
+                                        <!-- GRID -->
+                                        <div id="productContainer" class="grid gap-4"
+                                                style="grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));">
+                                        </div>
+
+                                        <!-- PAGINATION -->
+                                        <div id="pagination" class="flex justify-center mt-10"></div>
+
                                 </div>
-
-                                <!-- GRID -->
-                                <div id="productContainer" class="grid gap-4"
-                                        style="grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));">
-                                </div>
-
-                                <!-- PAGINATION -->
-                                <div id="pagination" class="flex justify-center mt-10"></div>
-
-                        </div>
 
 
                 </div>
@@ -413,13 +309,34 @@
 
                         showToast("Filters cleared", "success");
                 });
+              
+               
+                function clearFilters() {
+                        selectedCategory = "all";
+                        selectedBrands = [];
+                        selectedMinPrice = 0;
+                        selectedMaxPrice = 100000;
+                        currentSort = "newest";
 
+                        document.getElementById("searchInput").value = "";
+                        document.getElementById("sortSelect").value = "newest";
+                        document.getElementById("minPriceSelect").value = "0";
+                        document.getElementById("maxPriceSelect").value = "100000";
+
+                        document.querySelectorAll(".brand-checkbox")
+                                .forEach(cb => cb.checked = false);
+
+                        document.querySelectorAll(".category-item")
+                                .forEach(i => i.classList.remove("text-blue-600", "bg-blue-300"));
+
+                        loadProducts(1);
+                }
                 /* ================= INIT ================= */
                 document.addEventListener("DOMContentLoaded", () => {
                         loadProducts(1);
                         updateClearButtonState();
                 });
-                
+
         </script>
 
         <script type="module">
@@ -430,10 +347,10 @@
                                 showToast("Min price cannot be greater than Max price", 'warning');
                                 return;
                         }
-                    loadProducts(1);
+                        loadProducts(1);
                 }
 
                 window.applyFilters = applyFilters;
         </script>
-        
+
         <%- include("../../partials/user/footer.ejs") %>

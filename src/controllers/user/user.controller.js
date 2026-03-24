@@ -84,7 +84,7 @@ export const getProductsListingPage = async (req, res) => {
     const minPrice = parseInt(req.query.minPrice) || 0;
     const maxPrice = parseInt(req.query.maxPrice) || 100000;
 
-    const filterData = await getFilterDataService();
+    const { categories, brands } = await getFilterDataService();
 
     // --- AJAX / API RESPONSE ---
     if (req.headers.accept && req.headers.accept.includes("application/json")) {
@@ -112,9 +112,21 @@ export const getProductsListingPage = async (req, res) => {
         { currentPage: page, totalPages: productData.totalPages },
       );
 
+      const sidebar = await renderView(
+        res,
+        "user/home/partials/productSidebar",
+        {
+          categories,
+          brands,
+          minPrice,
+          maxPrice,
+        },
+      );
+
       return res.json({
         success: true,
         cards: cardsHtml,
+        sidebar,
         pagination: paginationHtml,
         totalProducts: productData.total,
         currentCount: productData.products.length,
@@ -134,8 +146,8 @@ export const getProductsListingPage = async (req, res) => {
       selectedBrand: brand,
       minPrice,
       maxPrice,
-      categories: filterData.categories,
-      brands: filterData.brands,
+      categories: categories,
+      brands: brands,
     });
   } catch (error) {
     console.error("Shop Controller Error:", error);
