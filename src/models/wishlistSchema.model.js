@@ -1,29 +1,30 @@
 import mongoose from "mongoose";
 
-const wishlistSchema = new mongoose.Schema({
-  userId: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: "User",
-    unique: true,
-  },
-
-  items: [
-    {
-      _id: false,
-      productId: {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: "Product",
-      },
-      variantId: {
-        type: mongoose.Schema.Types.ObjectId,
-      },
+const wishlistSchema = new mongoose.Schema(
+  {
+    userId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
+      unique: true,
     },
-  ],
-});
+
+    items: [
+      {
+        _id: false,
+        productId: {
+          type: mongoose.Schema.Types.ObjectId,
+          ref: "Product",
+        },
+        variantId: {
+          type: mongoose.Schema.Types.ObjectId,
+        },
+      },
+    ],
+  },
+  { timestamps: true },
+);
 
 // Indexes
-wishlistSchema.index({ userId: 1 });
-
 wishlistSchema.index(
   {
     userId: 1,
