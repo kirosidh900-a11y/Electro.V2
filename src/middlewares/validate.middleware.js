@@ -3,12 +3,12 @@ import { errorResponse } from "../utils/partials/response.util.js";
 
 export const validate = (schema) => (req, res, next) => {
   try {
-    // 🔥 FIX: parse attributes BEFORE Joi
+    // ✅ Parse attributes safely
     if (typeof req.body.attributes === "string") {
       try {
         req.body.attributes = JSON.parse(req.body.attributes);
       } catch {
-        errorResponse(
+        return errorResponse(
           res,
           "Invalid attributes format",
           HTTP_STATUS.BAD_REQUEST,
@@ -18,14 +18,18 @@ export const validate = (schema) => (req, res, next) => {
 
     const { error, value } = schema.validate(req.body, {
       abortEarly: false,
+      errors: { wrap: { label: "" } }, // ✅ remove quotes
     });
 
     if (error) {
       const message = error.details.map((e) => e.message).join(", ");
-      errorResponse(res, message, HTTP_STATUS.BAD_REQUEST);
+
+      return errorResponse(res, message, HTTP_STATUS.BAD_REQUEST);
     }
 
+    // ✅ assign validated data
     req.body = value;
+
     next();
   } catch (err) {
     next(err);

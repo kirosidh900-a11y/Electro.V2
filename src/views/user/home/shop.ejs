@@ -21,6 +21,11 @@
                         background: #d1d5db;
                         border-radius: 4px;
                 }
+
+                .loading {
+                        pointer-events: none;
+                        opacity: 0.6;
+                }
         </style>
 
         <!-- MOBILE FILTER BUTTON -->
@@ -309,8 +314,8 @@
 
                         showToast("Filters cleared", "success");
                 });
-              
-               
+
+
                 function clearFilters() {
                         selectedCategory = "all";
                         selectedBrands = [];
@@ -351,6 +356,60 @@
                 }
 
                 window.applyFilters = applyFilters;
+
+                document.addEventListener('click', async (e) => {
+                        const link = e.target.closest('.wishlist');
+
+                        if (!link) return;
+
+                        if (link.classList.contains("loading")) return;
+                        link.classList.add("loading");
+
+                        const variantId = link.dataset.variantId;
+                        const productId = link.dataset.productId;
+
+                        try {
+                                const res = await fetch('/wishlist', {
+                                        method: "POST",
+                                        headers: {
+                                                'Content-Type': 'application/json',
+                                                'Accept': 'application/json'
+                                        },
+                                        body: JSON.stringify({
+                                                productId,
+                                                variantId
+                                        })
+                                });
+
+                                const data = await res.json();
+
+                                if (data.success) {
+
+                                        const icon = link.querySelector("i"); // ✅ target icon
+
+                                        if (data.added) {
+                                                icon.classList.remove("fa-regular");
+                                                icon.classList.add("fa-solid", "text-red-500"); // ❤️ filled
+                                        } else {
+                                                icon.classList.remove("fa-solid", "text-red-500");
+                                                icon.classList.add("fa-regular"); // 🤍 outline
+                                        }
+
+                                        showToast(data.message || "Updated wishlist", "success");
+                                        return
+                                } else {
+                                        showToast(data.message, 'error');
+                                        return
+                                }
+
+                        } catch (err) {
+                                console.error(err);
+                                showToast(err.message || "Failed", "error");
+                        } finally {
+                                link.classList.remove("loading");
+                        }
+                });
+
         </script>
 
         <%- include("../../partials/user/footer.ejs") %>
