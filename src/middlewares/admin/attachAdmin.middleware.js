@@ -1,6 +1,6 @@
 import { adminMenu } from "../../config/adminMenu.js";
 import clearAuthCookie from "../../utils/partials/clearCookie.js";
-import verifyUser from "../../utils/partials/verifyToken.utils.js";
+import { verifyAdmin } from "../../utils/partials/verifyToken.utils.js";
 
 const adminAuth = async (req, res, next) => {
   const token = req.cookies.adminToken;
@@ -10,7 +10,7 @@ const adminAuth = async (req, res, next) => {
   }
 
   try {
-    const admin = await verifyUser(token);
+    const admin = await verifyAdmin(token);
 
     if (!admin || !admin.isAdmin || admin.isBlock) {
       res.locals.admin = null;
