@@ -26,10 +26,6 @@ import {
   uploadToCloudinary,
   deleteFromCloudinary,
 } from "../../services/partials/cloudinary.service.js";
-import {
-  getFilterDataService,
-  getProductsListService,
-} from "../../services/product/product.service.js";
 
 import renderView from "../../utils/admin/renderView.util.js";
 

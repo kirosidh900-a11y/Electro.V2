@@ -12,6 +12,7 @@ const attachUser = async (req, res, next) => {
     res.locals.cart = null;
     res.locals.wishlist = null;
     res.locals.wishlistSet = null;
+    res.locals.cartSet = null;
 
     return next();
   }
@@ -33,8 +34,9 @@ const attachUser = async (req, res, next) => {
       res.locals.cart = null;
       res.locals.wishlist = null;
       res.locals.wishlistSet = null;
+      res.locals.cartSet = null;
 
-      // ✅ only redirect for views (not APIs)
+      // only redirect for views (not APIs)
       if (!req.originalUrl.startsWith("/api")) {
         return res.redirect("/auth/login");
       }
@@ -52,6 +54,10 @@ const attachUser = async (req, res, next) => {
       wishlist.items.map((i) => `${i.productId}_${i.variantId}`),
     );
 
+    res.locals.cartSet = new Set(
+      cart.items.map((i) => `${i.productId}_${i.variantId}`),
+    );
+
     res.locals.currentRoute = req.path;
   } catch (err) {
     console.error("attachUser Error:", err.message);
@@ -63,6 +69,7 @@ const attachUser = async (req, res, next) => {
     res.locals.cart = null;
     res.locals.wishlist = null;
     res.locals.wishlistSet = null;
+    res.locals.cartSet = null;
   }
 
   next();

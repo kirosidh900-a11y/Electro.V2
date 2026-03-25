@@ -390,22 +390,28 @@
                                         throw new Error("Invalid response");
                                 }
 
-                                const data = await res.json();
-
+                                const { data } = await res.json();
+                                console.log(data)
                                 if (!data.success) {
                                         showToast(data.message, "error");
                                         return;
                                 }
 
                                 const icon = link.querySelector("i");
+                                const countEl = document.getElementById('wishlistCount');
+                                let current = +countEl.textContent || 0;
 
                                 if (data.added) {
                                         icon.classList.remove("fa-regular");
                                         icon.classList.add("fa-solid", "text-red-500");
+                                        current += 1;
                                 } else {
                                         icon.classList.remove("fa-solid", "text-red-500");
                                         icon.classList.add("fa-regular");
+                                        current = Math.max(0, current - 1);
                                 }
+                                
+                                countEl.textContent = current;
 
                                 // small animation
                                 icon.classList.add("scale-110");
