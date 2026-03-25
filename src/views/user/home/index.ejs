@@ -270,5 +270,157 @@
 
         </script>
 
+        <script type="module">
+            import { showToast } from "/partials/errorMsg.utils.js";
+
+            function applyFilters() {
+                if (Number(selectedMinPrice) > Number(selectedMaxPrice)) {
+                    showToast("Min price cannot be greater than Max price", 'warning');
+                    return;
+                }
+                loadProducts(1);
+            }
+
+            window.applyFilters = applyFilters;
+
+            document.addEventListener('click', async (e) => {
+                const link = e.target.closest('.wishlist');
+                if (!link) return;
+
+                if (link.classList.contains("loading")) return;
+                link.classList.add("loading");
+
+                const productId = link.dataset.productId;
+                const variantId = link.dataset.variantId;
+
+                // safety check
+                if (!productId || !variantId) {
+                    showToast("Invalid product data", "error");
+                    link.classList.remove("loading");
+                    return;
+                }
+
+                try {
+                    const res = await fetch('/wishlist', {
+                        method: "POST",
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Accept': 'application/json'
+                        },
+                        body: JSON.stringify({ productId, variantId })
+                    });
+
+                    const contentType = res.headers.get("content-type");
+
+                    if (!contentType || !contentType.includes("application/json")) {
+                        throw new Error("Invalid response");
+                    }
+
+                    const { data } = await res.json();
+                    console.log(data)
+                    if (!data.success) {
+                        showToast(data.message, "error");
+                        return;
+                    }
+
+                    const icon = link.querySelector("i");
+                    const countEl = document.getElementById('wishlistCount');
+                    let current = +countEl.textContent || 0;
+
+                    if (data.added) {
+                        icon.classList.remove("fa-regular");
+                        icon.classList.add("fa-solid", "text-red-500");
+                        current += 1;
+                    } else {
+                        icon.classList.remove("fa-solid", "text-red-500");
+                        icon.classList.add("fa-regular");
+                        current = Math.max(0, current - 1);
+                    }
+
+                    countEl.textContent = current;
+
+                    // small animation
+                    icon.classList.add("scale-110");
+                    setTimeout(() => icon.classList.remove("scale-110"), 150);
+
+                    showToast(data.message || "Updated wishlist", "success");
+
+                } catch (err) {
+                    console.error(err);
+                    showToast(err.message || "Failed", "error");
+                } finally {
+                    link.classList.remove("loading");
+                }
+            });
+
+
+            document.addEventListener('click', async (e) => {
+                const btn = e.target.closest('.add-to-cart');
+                if (!btn) return;
+
+                if (btn.classList.contains("loading")) return;
+                btn.classList.add("loading");
+
+                const productId = btn.dataset.productId;
+                const variantId = btn.dataset.variantId;
+
+                // safety
+                if (!productId || !variantId) {
+                    showToast("Invalid product", "error");
+                    btn.classList.remove("loading");
+                    return;
+                }
+
+                try {
+                    const res = await fetch('/cart', {
+                        method: "POST",
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Accept': 'application/json'
+                        },
+                        body: JSON.stringify({
+                            productId,
+                            variantId,
+                            quantity: 1 // default add
+                        })
+                    });
+
+                    const contentType = res.headers.get("content-type");
+
+                    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+                    if (!contentType || !contentType.includes("application/json")) {
+                        throw new Error("Invalid response");
+                    }
+
+                    const data = await res.json();
+
+                    if (!data.success) {
+                        showToast(data.message, "error");
+                        return;
+                    }
+
+                    //  UI update
+                    btn.textContent = "Added ✓";
+                    btn.classList.remove("bg-blue-600");
+                    btn.classList.add("bg-green-600");
+
+                    setTimeout(() => {
+                        btn.textContent = "Add to Cart";
+                        btn.classList.remove("bg-green-600");
+                        btn.classList.add("bg-blue-600");
+                    }, 1500);
+
+                    showToast(data.message || "Added to cart", "success");
+
+                } catch (err) {
+                    console.error(err);
+                    showToast(err.message || "Failed", "error");
+                } finally {
+                    btn.classList.remove("loading");
+                }
+            });
+
+        </script>
+
         </body>
         <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>

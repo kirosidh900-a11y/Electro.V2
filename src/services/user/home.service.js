@@ -5,12 +5,9 @@ export const getHomeProductsService = async (limit) => {
   const cacheKey = `home_products_${limit}`;
 
   try {
-    // CHECK CACHE
     const cachedData = await getCache(cacheKey);
-
     if (cachedData) {
       console.log("⚡ Redis Cache Hit");
-
       return cachedData;
     }
 
@@ -33,7 +30,6 @@ export const getHomeProductsService = async (limit) => {
         },
       },
 
-      // LOOKUP Brand
       {
         $lookup: {
           from: "brands",
@@ -42,7 +38,6 @@ export const getHomeProductsService = async (limit) => {
           as: "brand",
         },
       },
-
       { $unwind: "$brand" },
 
       {
@@ -52,7 +47,6 @@ export const getHomeProductsService = async (limit) => {
         },
       },
 
-      // LOOKUP CATEGORY
       {
         $lookup: {
           from: "categories",
@@ -70,43 +64,30 @@ export const getHomeProductsService = async (limit) => {
         },
       },
 
-      // SORT
       { $sort: { createdAt: -1 } },
-
-      // LIMIT (IMPORTANT 🔥)
       { $limit: limit },
 
-      // FINAL SHAPE
       {
         $project: {
           _id: 1,
           name: 1,
-
-          // BRAND
           brand: "$brand.title",
           brandLogo: "$brand.logo",
-
-          // CATEGORY
           category: "$category.title",
-
-          // VARIANT
           price: "$variants.price",
           stock: "$variants.stock",
-
-          // IMAGE
+          variantId: "$variants._id", // ✅ FIX
           image: { $arrayElemAt: ["$variants.product_images.url", 0] },
         },
       },
     ]);
 
-    // STORE IN REDIS (10 min)
-    await setCache(cacheKey,products);
+    await setCache(cacheKey, products);
 
     return products;
   } catch (error) {
     console.error("Redis Error:", error);
 
-    //  fallback → DB only
     return await Products.find({ status: "listed", isDeleted: false })
       .limit(limit)
       .lean();
