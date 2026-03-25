@@ -1,4 +1,5 @@
 import Cart from "../../../models/cartSchema.models.js";
+import Product from "../../../models/productSchema.model.js";
 import Wishlist from "../../../models/wishlistSchema.model.js";
 
 import {
@@ -97,8 +98,6 @@ export const updateWishlist = async (req, res) => {
     const { productId, variantId } = req.body;
     const userId = req.user._id;
 
-    console.log(userId, productId, variantId);
-
     const productObjId = new mongoose.Types.ObjectId(productId);
     const variantObjId = new mongoose.Types.ObjectId(variantId);
 
@@ -110,8 +109,7 @@ export const updateWishlist = async (req, res) => {
         item.variantId.equals(variantObjId),
     );
 
-    let added;
-
+    /* ================= REMOVE ================= */
     if (exists) {
       await Wishlist.updateOne(
         { userId },
@@ -124,27 +122,102 @@ export const updateWishlist = async (req, res) => {
           },
         },
       );
-      added = false;
-    } else {
-      await Wishlist.updateOne(
-        { userId },
-        {
-          $addToSet: {
-            items: {
-              productId: productObjId,
-              variantId: variantObjId,
-            },
+
+      return res.json({
+        success: true,
+        added: false,
+        message: "Removed from wishlist",
+      });
+    }
+
+    /* ================= ADD (VALIDATION) ================= */
+
+    const product = await Product.aggregate([
+      {
+        $match: {
+          _id: productObjId,
+          isDeleted: false,
+          status: "listed",
+        },
+      },
+      {
+        $lookup: {
+          from: "categories",
+          localField: "category",
+          foreignField: "_id",
+          as: "category",
+        },
+      },
+      { $unwind: "$category" },
+      {
+        $match: {
+          "category.status": "listed",
+          "category.isDeleted": false,
+        },
+      },
+      {
+        $lookup: {
+          from: "brands",
+          localField: "brand",
+          foreignField: "_id",
+          as: "brand",
+        },
+      },
+      { $unwind: "$brand" },
+      {
+        $match: {
+          "brand.status": "listed",
+          "brand.isDeleted": false,
+        },
+      },
+      {
+        $project: {
+          variants: 1, // ✅ only needed field
+        },
+      },
+    ]);
+
+    // ✅ FIXED
+    if (!product.length) {
+      return res.status(400).json({
+        success: false,
+        message: "Product not available now!",
+      });
+    }
+
+    const productData = product[0];
+
+    // ✅ FIXED
+    const variant = productData.variants.find(
+      (v) => v._id.toString() === variantObjId.toString() && !v.isDeleted,
+    );
+
+    if (!variant) {
+      return res.status(400).json({
+        success: false,
+        message: "Variant not available!",
+      });
+    }
+
+    /* ================= ADD ================= */
+
+    await Wishlist.updateOne(
+      { userId },
+      {
+        $addToSet: {
+          items: {
+            productId: productObjId,
+            variantId: variantObjId,
           },
         },
-        { upsert: true },
-      );
-      added = true;
-    }
+      },
+      { upsert: true },
+    );
 
     return res.json({
       success: true,
-      added,
-      message: added ? "Added to wishlist" : "Removed from wishlist",
+      added: true,
+      message: "Added to wishlist",
     });
   } catch (err) {
     console.error(err);

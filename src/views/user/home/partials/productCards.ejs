@@ -41,7 +41,9 @@
 
             const brand = product.brand?.title || "Brand";
             const brandLogo = product.brand?.logo || "/images/placeholder.png";
-
+            
+            const key = `${product._id}_${variant._id}`;
+            const isWishlisted = wishlistSet?.has(key);
 
             %>
 
@@ -59,11 +61,12 @@
                     <button data-product-id="<%= product._id %>" data-variant-id="<%= variant._id %>"
                         class="wishlist bg-white/90 backdrop-blur p-2 rounded-full shadow hover:bg-red-50 transition">
 
-                        <i class="fa-regular fa-heart text-gray-600 hover:text-red-500"></i>
+                        <i
+                            class="<%= isWishlisted ? 'fa-solid text-red-500' : 'fa-regular text-gray-600' %> fa-heart hover:text-red-500"></i>
                     </button>
 
                     <!-- CART -->
-                    <button data-product-id="<%= product._id %>" data-variant-id="<%= variant._id %>" 
+                    <button data-product-id="<%= product._id %>" data-variant-id="<%= variant._id %>"
                         class="add-to-cart bg-white/90 backdrop-blur p-2 rounded-full shadow hover:bg-blue-50 transition">
                         <i class="fa-solid fa-cart-shopping text-gray-600 hover:text-blue-600"></i>
                     </button>

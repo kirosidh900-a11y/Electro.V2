@@ -26,7 +26,7 @@
     </div>
 
     <div class="flex-1 max-w-2xl hidden md:block">
-      <form  action="/search" method="GET" class="relative">
+      <form action="/search" method="GET" class="relative">
         <span class="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400">
           <i class="fas fa-search text-sm"></i>
         </span>
@@ -100,8 +100,8 @@
                 <span class="flex items-center gap-3">
                   <i class="fas fa-heart text-gray-500"></i> Wishlist
                 </span>
-                <span class="text-xs bg-red-500 text-white px-2 py-0.5 rounded-full">
-                  <%= user?.wishlists?.products?.length || 0 %>
+                <span id="wishlistCount" class="text-xs bg-red-500 text-white px-2 py-0.5 rounded-full">
+                  <%= wishlist?.count || 0 %>
                 </span>
               </a>
             </li>
@@ -111,8 +111,8 @@
                 <span class="flex items-center gap-3">
                   <i class="fas fa-shopping-cart text-gray-500"></i> Cart
                 </span>
-                <span class="text-xs bg-black text-white px-2 py-0.5 rounded-full">
-                  <%= user?.cart?.products?.length || 0 %>
+                <span id="cartCount" class="text-xs bg-black text-white px-2 py-0.5 rounded-full">
+                  <%= cart?.count || 0 %>
                 </span>
               </a>
             </li>

@@ -1,6 +1,6 @@
 import asyncHandler from "../../utils/partials/asyncHandler.js";
 import clearAuthCookie from "../../utils/partials/clearCookie.js";
-import verifyUser from "../../utils/partials/verifyToken.utils.js";
+import {verifyUser} from "../../utils/partials/verifyToken.utils.js";
 
 const authMiddleware = asyncHandler(async (req, res, next) => {
   const token = req.cookies.token;
