@@ -28,8 +28,9 @@
     <% } else { %>
 
         <% products.forEach(product=> {
-
+            // Variant (safe)
             const variant = product.variants?.[0];
+
             const image = variant?.product_images?.[0]?.url || '/images/placeholder.png';
             const price = variant?.price || 0;
             const original = product.regularPrice || (price + 2000);
@@ -59,8 +60,8 @@
     transition-all duration-300 z-10">
 
                     <!-- WISHLIST -->
-                    <button data-product-id="<%= product._id %>" data-variant-id="<%= variant._id %>" <%=isCarted
-                        ? 'disabled' : '' %>
+                    <button id="wishlist-<%= variant._id %>" data-product-id="<%= product._id %>"
+                        data-variant-id="<%= variant._id %>" <%=isCarted ? 'disabled' : '' %>
                         class="wishlist bg-white/90 backdrop-blur p-2 rounded-full shadow
                         <%= isCarted ? 'opacity-50 cursor-not-allowed' : 'hover:bg-red-50' %> transition">
 
