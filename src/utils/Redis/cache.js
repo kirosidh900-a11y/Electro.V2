@@ -6,17 +6,15 @@ export const getCache = async (key) => {
     const data = await redisClient.get(key);
 
     if (!data) {
-      console.log("❌ Cache MISS:", key);
+      console.warn("❌ Cache MISS:", key);
       return null;
     }
-
-    console.log("⚡ Cache HIT:", key);
 
     // SAFE PARSE
     try {
       return JSON.parse(data);
     } catch (err) {
-      console.log("⚠️ Invalid cache detected, deleting:", key);
+      console.error("⚠️ Invalid cache detected, deleting:", key, err);
       await redisClient.del(key);
       return null;
     }
@@ -30,7 +28,7 @@ export const getCache = async (key) => {
 export const setCache = async (key, value, ttl = 600) => {
   try {
     await redisClient.setEx(key, ttl, JSON.stringify(value));
-    console.log("✅ Cache SET:", key);
+    console.warn("✅ Cache SET:", key);
   } catch (error) {
     console.error("Cache SET Error:", error);
   }
@@ -40,7 +38,7 @@ export const setCache = async (key, value, ttl = 600) => {
 export const deleteCache = async (key) => {
   try {
     await redisClient.del(key);
-    console.log("🗑️ Cache DELETED:", key);
+    console.warn("🗑️ Cache DELETED:", key);
   } catch (error) {
     console.error("Cache DELETE Error:", error);
   }
@@ -62,7 +60,7 @@ export const deleteCacheByPattern = async (pattern) => {
       }
     }
 
-    console.log("🔍 Clean Keys:", keys);
+    console.warn("🔍 Clean Keys:", keys);
 
     if (keys.length > 0) {
       const pipeline = redisClient.multi();
@@ -73,9 +71,9 @@ export const deleteCacheByPattern = async (pattern) => {
 
       await pipeline.exec();
 
-      console.log(`🗑️ Deleted ${keys.length} keys`);
+      console.warn(`🗑️ Deleted ${keys.length} keys`);
     } else {
-      console.log("⚠️ No valid keys to delete");
+      console.warn("⚠️ No valid keys to delete");
     }
   } catch (error) {
     console.error("Cache Pattern Delete Error:", error);

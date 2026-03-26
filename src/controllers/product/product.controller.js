@@ -33,7 +33,6 @@ import {
 } from "../../services/partials/cloudinary.service.js";
 import AppError from "../../utils/partials/AppError.utils.js";
 import { deleteCacheByPattern } from "../../utils/Redis/cache.js";
-import redisClient from "../../utils/partials/redisClient.util.js";
 
 //  PRODUCTS PAGE
 export const productsPage = async (req, res, next) => {
@@ -141,10 +140,6 @@ export const toggleProductStatus = async (req, res, next) => {
 
     // Home cache (FIXED)
     await deleteCacheByPattern("home_products_*");
-    
-    
-    const allKeys = await redisClient.keys("shop:*");
-    console.log("exits:", allKeys);
 
     successResponse(res, "Toggle Updated!", HTTP_STATUS.OK, {
       action: status,
@@ -263,8 +258,6 @@ export const editVariant = async (req, res, next) => {
     const { productId, variantId } = req.params;
 
     let { attributes } = req.body;
-
-    console.log(req.body);
 
     if (typeof attributes === "string") {
       attributes = JSON.parse(attributes);

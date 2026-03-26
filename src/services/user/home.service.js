@@ -7,11 +7,11 @@ export const getHomeProductsService = async (limit) => {
   try {
     const cachedData = await getCache(cacheKey);
     if (cachedData) {
-      console.log("⚡ Redis Cache Hit");
+      console.warn("⚡ Redis Cache Hit");
       return cachedData;
     }
 
-    console.log("🐢 DB Hit");
+    console.warn("🐢 DB Hit");
 
     const products = await Products.aggregate([
       {

@@ -488,12 +488,12 @@ export const getProductsListService = async ({
   if (!isSearch) {
     const cachedData = await getCache(cacheKey);
     if (cachedData && cachedData.products) {
-      console.log("⚡ Cache HIT:", cacheKey);
+      console.warn("⚡ Cache HIT:", cacheKey);
       return cachedData;
     }
   }
 
-  console.log("🐢 DB HIT:", cacheKey);
+  console.warn("🐢 DB HIT:", cacheKey);
 
   // BASE FILTER
   const filter = {
@@ -628,7 +628,6 @@ export const getProductsListService = async ({
   // ✅ CACHE SET
   if (!isSearch) {
     await setCache(cacheKey, responseData);
-    console.log("✅ Cache SET:", cacheKey);
   }
 
   return responseData;

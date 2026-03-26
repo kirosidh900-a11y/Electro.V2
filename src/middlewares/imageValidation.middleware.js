@@ -5,7 +5,7 @@ export const validateVariantImages = (req, res, next) => {
   const files = req.files || [];
 
   // optional: require at least 3 image
-  console.log(files.length)
+  
   if (files.length < 3) {
     return next(
       new AppError("At least three image is required", HTTP_STATUS.BAD_REQUEST),
