@@ -1,6 +1,3 @@
-import Cart from "../../../models/cartSchema.models.js";
-import mongoose from "mongoose";
-
 import {
   getFilterDataService,
   getProductsListService,
@@ -14,6 +11,7 @@ import { successResponse } from "../../../utils/partials/response.util.js";
 
 import AppError from "../../../utils/partials/AppError.utils.js";
 import HTTP_STATUS from "../../../constant/statusCode.js";
+import { updateCartService } from "../../../services/product/cart.service.js";
 
 //Product
 export const getProductsListingPage = async (req, res) => {
@@ -123,63 +121,25 @@ export const updateWishlist = async (req, res, next) => {
   }
 };
 
-export const updateCart = async (req, res) => {
+export const updateCart = async (req, res, next) => {
   try {
     const { productId, variantId, quantity } = req.body;
-    const userId = req.user._id;
+    const userId = req.user?._id;
 
-    const productObjId = new mongoose.Types.ObjectId(productId);
-    const variantObjId = new mongoose.Types.ObjectId(variantId);
-
-    let cart = await Cart.findOne({ userId });
-
-    if (!cart) {
-      cart = await Cart.create({
-        userId,
-        items: [
-          {
-            productId: productObjId,
-            variantId: variantObjId,
-            quantity,
-          },
-        ],
-      });
-
-      return res.json({
-        success: true,
-        message: "Added to cart",
-      });
+    if (!userId) {
+      return next(new AppError("User not found", HTTP_STATUS.UNAUTHORIZED));
     }
 
-    const existingItem = cart.items.find(
-      (item) =>
-        item.productId.equals(productObjId) &&
-        item.variantId.equals(variantObjId),
-    );
-
-    if (existingItem) {
-      // ✅ Update quantity
-      existingItem.quantity += quantity;
-    } else {
-      // ✅ Add new item
-      cart.items.push({
-        productId: productObjId,
-        variantId: variantObjId,
+    const { sataus, added, message, removedFromWishlist } =
+      await updateCartService({
+        userId,
+        productId,
+        variantId,
         quantity,
       });
-    }
 
-    await cart.save();
-
-    return res.json({
-      success: true,
-      message: "Cart updated",
-    });
-  } catch (err) {
-    console.error("Cart Error:", err);
-    return res.status(500).json({
-      success: false,
-      message: "Server error",
-    });
+    successResponse(res, message, sataus, { added, removedFromWishlist });
+  } catch (error) {
+    return next(error); // ONLY this
   }
 };

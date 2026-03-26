@@ -410,7 +410,7 @@
                                         icon.classList.add("fa-regular");
                                         current = Math.max(0, current - 1);
                                 }
-                                
+
                                 countEl.textContent = current;
 
                                 // small animation
@@ -430,7 +430,7 @@
 
                 document.addEventListener('click', async (e) => {
                         const btn = e.target.closest('.add-to-cart');
-                        if (!btn) return;
+
 
                         if (btn.classList.contains("loading")) return;
                         btn.classList.add("loading");
@@ -438,7 +438,8 @@
                         const productId = btn.dataset.productId;
                         const variantId = btn.dataset.variantId;
 
-                        // safety
+                        const btnW = document.getElementById(`wishlist-${variantId}`)
+
                         if (!productId || !variantId) {
                                 showToast("Invalid product", "error");
                                 btn.classList.remove("loading");
@@ -455,25 +456,29 @@
                                         body: JSON.stringify({
                                                 productId,
                                                 variantId,
-                                                quantity: 1 // default add
+                                                quantity: 1
                                         })
                                 });
 
                                 const contentType = res.headers.get("content-type");
 
-                                if (!res.ok) throw new Error(`HTTP ${res.status}`);
                                 if (!contentType || !contentType.includes("application/json")) {
                                         throw new Error("Invalid response");
                                 }
 
-                                const data = await res.json();
+                                const result = await res.json();
 
-                                if (!data.success) {
-                                        showToast(data.message, "error");
+                                console.log(result)
+
+                                const { data } = result;
+
+                                // ❗ FIXED
+                                if (!result.success) {
+                                        showToast(result.message, "error");
                                         return;
                                 }
 
-                                //  UI update
+                                // ✅ UI update
                                 btn.textContent = "Added ✓";
                                 btn.classList.remove("bg-blue-600");
                                 btn.classList.add("bg-green-600");
@@ -484,7 +489,24 @@
                                         btn.classList.add("bg-blue-600");
                                 }, 1500);
 
-                                showToast(data.message || "Added to cart", "success");
+                                if (data.added) {
+                                        const cartCountId = document.getElementById('cartCount');
+                                        cartCountId.textContent = (+cartCountId.textContent || 0) + 1;
+                                        btnW.disabled = true;
+                                        btnW.classList.add("opacity-50", "cursor-not-allowed");
+                                }
+
+                                const icon = btnW.querySelector("i");
+
+                                if (data.removedFromWishlist) {
+                                        icon.classList.remove("fa-solid", "text-red-500");
+                                        icon.classList.add("fa-regular", "text-gray-600");
+
+                                        const countEl = document.getElementById("wishlistCount");
+                                        countEl.textContent = Math.max(0, (countEl.textContent || 1) - 1);
+                                }
+
+                                showToast(result.message || "Added to cart", "success");
 
                         } catch (err) {
                                 console.error(err);
@@ -493,6 +515,7 @@
                                 btn.classList.remove("loading");
                         }
                 });
+
 
         </script>
 

@@ -14,7 +14,8 @@ const errorMiddleware = (err, req, res, _next) => {
   if (
     req.originalUrl.startsWith("/auth") ||
     req.originalUrl.startsWith("/admin") ||
-    req.originalUrl.startsWith("/name")
+    req.originalUrl.startsWith("/name") ||
+    req.originalUrl.startsWith("/cart")
   ) {
     errorResponse(res, err.message || "Internal Server Error", statusCode);
   }

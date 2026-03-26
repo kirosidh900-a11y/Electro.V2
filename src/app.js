@@ -47,6 +47,8 @@ app.use("/auth", authRouter);
 app.use("/admin", adminRouter);
 app.use("/", userRouter);
 
+// app.use('/api/v1/auth')
+
 // ❌ 404 Handler
 app.use((req, res) => {
   const err = new AppError("Route not found", 404);
