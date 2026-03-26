@@ -8,12 +8,20 @@ import {
   setDefaultAddressService,
 } from "../../services/user/address.service.js";
 
-import { successResponse } from "../../utils/partials/response.util.js";
+import {
+  errorResponse,
+  successResponse,
+} from "../../utils/partials/response.util.js";
 
 // CREATE
 export const createAddress = async (req, res, next) => {
   try {
-    const userId = res.locals.user._id;
+    const userId = res.locals.user?._id;
+
+    if (!userId) {
+      console.log("user not found!");
+      errorResponse(res, "User not logged in!", HTTP_STATUS.CONFLICT);
+    }
 
     const address = await createAddressService(userId, req.body);
 
@@ -32,6 +40,8 @@ export const createAddress = async (req, res, next) => {
 export const getUserAddresses = async (req, res, next) => {
   try {
     const userId = res.locals.user._id;
+
+    
 
     const addresses = await getUserAddressesService(userId);
 
@@ -84,7 +94,7 @@ export const deleteAddress = async (req, res, next) => {
 
     await deleteAddressService(userId, req.params.id);
 
-    return successResponse(res,"Address deleted successfully");
+    return successResponse(res, "Address deleted successfully");
   } catch (error) {
     next(error);
   }

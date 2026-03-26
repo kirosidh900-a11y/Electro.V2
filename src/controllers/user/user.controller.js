@@ -62,13 +62,13 @@ export const showHomePage = async (req, res) => {
 //Profile page loder
 export const profilePage = async (req, res, next) => {
   try {
+    console.log(res.locals.user);
     res.render("user/home/profile");
   } catch (error) {
     console.error("Profile Page Error:", error);
     next(error);
   }
 };
-
 
 //Name Update
 export const editName = async (req, res, next) => {

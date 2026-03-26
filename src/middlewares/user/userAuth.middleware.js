@@ -23,6 +23,7 @@ const authMiddleware = asyncHandler(async (req, res, next) => {
     return res.redirect("/auth/login");
   }
 
+  console.log(user)
   req.user = user;
   res.locals.user = user;
 

@@ -5,12 +5,13 @@ import HTTP_STATUS from "../../constant/statusCode.js";
 // CREATE
 export const createAddressService = async (userId, data) => {
   const address = await Address.create({ ...data, userId });
+  console.log(userId);
 
   // ensure single default
   if (data.isDefault) {
     await Address.updateMany(
       { userId, _id: { $ne: address._id } },
-      { isDefault: false }
+      { isDefault: false },
     );
   }
 
@@ -52,7 +53,7 @@ export const updateAddressService = async (userId, addressId, data) => {
   const address = await Address.findOneAndUpdate(
     { _id: addressId, userId },
     { $set: data },
-    { new: true, runValidators: true }
+    { new: true, runValidators: true },
   );
 
   if (!address) {
