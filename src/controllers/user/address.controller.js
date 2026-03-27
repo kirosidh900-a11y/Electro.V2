@@ -16,7 +16,7 @@ import {
 // CREATE
 export const createAddress = async (req, res, next) => {
   try {
-    const userId = res.locals.user?._id;
+    const { _id: userId } = res.locals.user;
 
     if (!userId) {
       console.log("user not found!");
@@ -39,9 +39,7 @@ export const createAddress = async (req, res, next) => {
 // GET ALL
 export const getUserAddresses = async (req, res, next) => {
   try {
-    const userId = res.locals.user._id;
-
-    
+    const { _id: userId } = res.locals.user;
 
     const addresses = await getUserAddressesService(userId);
 
@@ -54,7 +52,7 @@ export const getUserAddresses = async (req, res, next) => {
 // GET ONE
 export const getSingleAddress = async (req, res, next) => {
   try {
-    const userId = res.locals.user._id;
+    const { _id: userId } = res.locals.user;
 
     const address = await getSingleAddressService(userId, req.params.id);
 
@@ -72,7 +70,7 @@ export const getSingleAddress = async (req, res, next) => {
 // UPDATE
 export const updateAddress = async (req, res, next) => {
   try {
-    const userId = res.locals.user._id;
+    const { _id: userId } = res.locals.user;
 
     const address = await updateAddressService(userId, req.params.id, req.body);
 
@@ -90,7 +88,7 @@ export const updateAddress = async (req, res, next) => {
 // DELETE
 export const deleteAddress = async (req, res, next) => {
   try {
-    const userId = res.locals.user._id;
+    const { _id: userId } = res.locals.user;
 
     await deleteAddressService(userId, req.params.id);
 
@@ -103,7 +101,7 @@ export const deleteAddress = async (req, res, next) => {
 // SET DEFAULT
 export const setDefaultAddress = async (req, res, next) => {
   try {
-    const userId = res.locals.user._id;
+    const { _id: userId } = res.locals.user;
 
     await setDefaultAddressService(userId, req.params.id);
 

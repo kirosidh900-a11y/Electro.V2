@@ -62,8 +62,8 @@ export const showHomePage = async (req, res) => {
 //Profile page loder
 export const profilePage = async (req, res, next) => {
   try {
-    console.log(res.locals.user);
-    res.render("user/home/profile");
+    const { user } = res.locals;
+    res.render("user/home/profile", { user });
   } catch (error) {
     console.error("Profile Page Error:", error);
     next(error);
@@ -74,15 +74,24 @@ export const profilePage = async (req, res, next) => {
 export const editName = async (req, res, next) => {
   try {
     const { name } = req.body;
-    const user = await findUserById(res.locals.user._id);
+    const { _id: userId } = res.locals.user;
 
-    if (!user) {
-      throw new AppError("User not found", HTTP_STATUS.NOT_FOUND);
-    }
     const namePattern = /^[A-Za-z]+(?: [A-Za-z]+)*$/;
 
     if (!namePattern.test(name)) {
       throw new AppError("Name is invalid format!", HTTP_STATUS.BAD_REQUEST);
+    }
+
+    if (!userId) {
+      return next(
+        new AppError("Unauthorized: Please log in", HTTP_STATUS.UNAUTHORIZED),
+      );
+    }
+
+    const user = await findUserById(userId);
+
+    if (!user) {
+      throw new AppError("User not found", HTTP_STATUS.NOT_FOUND);
     }
 
     user.name = name;
@@ -111,7 +120,9 @@ export const editPassword = async (req, res, next) => {
       );
     }
 
-    const user = await findUserById(res.locals.user._id, true);
+    const { _id: userId } = res.locals.user;
+
+    const user = await findUserById(userId, true);
 
     if (!user) {
       throw new AppError("User not found", HTTP_STATUS.NOT_FOUND);
@@ -148,7 +159,9 @@ export const sendEmailOtp = async (req, res, next) => {
     const existing = await findUserByEmail(newEmail);
 
     if (existing) {
-      throw new AppError("Email already in use", 400);
+      return next(
+        new AppError("Email already in use", HTTP_STATUS.BAD_REQUEST),
+      );
     }
 
     const otp = generateOTP();
@@ -156,7 +169,7 @@ export const sendEmailOtp = async (req, res, next) => {
     // Save OTP Redis
     await saveOTP(newEmail, otp, "reset-email");
 
-    const name = res.locals.user?.name;
+    const { name } = res.locals.user;
 
     // send mail
     await sendEmail({ email: newEmail, name, otp });
@@ -171,10 +184,12 @@ export const updateEamil = async (req, res, next) => {
   try {
     const { newEmail, otp } = req.body;
 
+    const { _id } = res.locals.user;
+
     const [userData, , user] = await Promise.all([
       otpExist(newEmail, otp, "reset-email"),
       isUserExist(newEmail),
-      findUserById(res.locals.user._id),
+      findUserById(_id),
     ]);
 
     if (!userData) {
@@ -204,7 +219,7 @@ export const sendPhoneOtp = async (req, res, next) => {
 
     const otp = generateOTP();
 
-    await saveOTP(phone, otp, "update-phone");
+    await saveOTP(phone, otp, "reset-phone");
 
     // Send SMS
     await sendSMS({
@@ -226,22 +241,24 @@ export const verifyPhoneOtp = async (req, res, next) => {
     const { phone, otp } = req.body;
 
     if (!phone || !otp) {
-      throw new AppError("Phone and OTP required", 400);
+      throw new AppError("Phone and OTP required", HTTP_STATUS.BAD_REQUEST);
     }
 
-    const isValid = await otpExist(phone, otp, "update-phone");
+    const isValid = await otpExist(phone, otp, "reset-phone");
 
     if (!isValid) {
-      throw new AppError("Invalid or expired OTP", 400);
+      throw new AppError("Invalid or expired OTP", HTTP_STATUS.BAD_REQUEST);
     }
 
-    const user = await findUserById(res.locals.user._id);
+    const { _id: userId } = res.locals.user;
+
+    const user = await findUserById(userId);
 
     if (!user) {
       throw new AppError("User not found", 404);
     }
 
-    // ✅ NOW update phone (after OTP)
+    // NOW update phone (after OTP)
     user.phone = phone;
     await user.save();
 
@@ -261,14 +278,16 @@ export const updateProfilePhoto = async (req, res, next) => {
       return res.status(400).json({ message: "No file uploaded" });
     }
 
-    const user = await findUserById(res.locals.user._id);
+    const { _id: userId } = res.locals.user;
 
-    // 🔥 DELETE OLD PHOTO IF EXISTS
+    const user = await findUserById(userId);
+
+    // DELETE OLD PHOTO IF EXISTS
     if (user?.photoId) {
       await deleteFromCloudinary(user?.photoId);
     }
 
-    // 🔥 Upload using stream
+    // Upload using stream
     const result = await uploadToCloudinary(req.file.buffer, "profile");
 
     // Save URL to DB
@@ -288,7 +307,13 @@ export const updateProfilePhoto = async (req, res, next) => {
 
 export const deleteProfilePhoto = async (req, res, next) => {
   try {
-    const user = await findUserById(res.locals.user._id);
+    const { _id: userId } = res.locals.user;
+
+    if (!userId) {
+      return next(new AppError("User not found", 401));
+    }
+
+    const user = await findUserById(userId);
 
     if (!user || !user.photoId) {
       throw new AppError("No photo found", HTTP_STATUS.BAD_REQUEST);

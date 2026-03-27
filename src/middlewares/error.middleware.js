@@ -5,9 +5,13 @@ const errorMiddleware = (err, req, res, _next) => {
 
   const statusCode = err.statusCode || 500;
 
-  // Detect API request automatically
+  // API request (JSON)
   if (req.headers.accept?.includes("application/json")) {
-    errorResponse(res, err.message || "Internal Server Error", statusCode);
+    return errorResponse(
+      res,
+      err.message || "Internal Server Error",
+      statusCode,
+    );
   }
 
   // API routes
@@ -17,7 +21,11 @@ const errorMiddleware = (err, req, res, _next) => {
     req.originalUrl.startsWith("/name") ||
     req.originalUrl.startsWith("/cart")
   ) {
-    errorResponse(res, err.message || "Internal Server Error", statusCode);
+    return errorResponse(
+      res,
+      err.message || "Internal Server Error",
+      statusCode,
+    );
   }
 
   // Normal page errors

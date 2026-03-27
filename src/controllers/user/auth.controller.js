@@ -40,6 +40,7 @@ import {
   errorResponse,
   successResponse,
 } from "../../utils/partials/response.util.js";
+import { sendSMS } from "../../services/partials/sms.service.js";
 
 /* ================= LOGIN ================= */
 
@@ -84,7 +85,7 @@ export const showSignUpPage = (req, res) => {
   if (token) {
     return res.redirect("/");
   }
-  
+
   res.render("user/auth/signup");
 };
 
@@ -138,23 +139,35 @@ export const verifySignupOtp = async (req, res, next) => {
 
 export const resendOtp = async (req, res, next) => {
   try {
-    const { email, purpose } = req.body;
+    const { email, purpose, phone } = req.body;
+
+    console.log(req.body)
 
     const otpDoc = await findOtp(email, purpose);
+    const otpDoc2 = await findOtp(phone, purpose);
 
-    if (!otpDoc) {
+    if (!otpDoc && !otpDoc2) {
       return errorResponse(res, "OTP session expired", HTTP_STATUS.GONE);
     }
 
     const newOtp = generateOTP();
 
-    await saveOTP(email, newOtp, purpose);
+    if (email) {
+      await saveOTP(email, newOtp, purpose);
+      await sendEmail({
+        email,
+        name: (otpDoc?.tempUserData?.name || res.locals.user?.name) ?? "User",
+        otp: newOtp,
+      });
+    }
 
-    await sendEmail({
-      email,
-      name: (otpDoc?.tempUserData?.name || res.locals.user?.name) ?? "User",
-      otp: newOtp,
-    });
+    if (phone) {
+      await saveOTP(phone, newOtp, purpose);
+      await sendSMS({
+        phone,
+        message: `Your OTP is ${newOtp}. Do not share it.`,
+      });
+    }
 
     return successResponse(res, "OTP resent successfully");
   } catch (err) {
@@ -166,7 +179,7 @@ export const resendOtp = async (req, res, next) => {
 
 export const showForgotPasswordPage = (req, res) => {
   res.render("user/auth/forgot");
-}
+};
 
 export const verifyEmail = async (req, res, next) => {
   try {

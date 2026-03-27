@@ -16,9 +16,8 @@ import { checkGoogleAuth } from "../../utils/partials/auth/auth.util.js";
 
 // Check if user already exists
 export const isUserExist = async (email) => {
-  const existingUser = await User.findOne({
-    email: email.trim().toLowerCase(),
-  });
+  const existingUser = await findUserByEmail(email);
+
   if (existingUser) {
     throw new AppError("Email already exists", HTTP_STATUS.BAD_REQUEST);
   }
