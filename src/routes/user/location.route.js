@@ -13,7 +13,6 @@ router.get("/states", (req, res) => {
   res.json(states);
 });
 
-
 // GET DISTRICTS BY STATE
 router.get("/districts/:code", (req, res) => {
   const code = req.params.code.toUpperCase();

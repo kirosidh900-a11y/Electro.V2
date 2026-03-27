@@ -210,10 +210,38 @@
                 });
 
                 /* ================= SEARCH ================= */
+                const input = document.getElementById("searchInput");
+                const clearBtn = document.getElementById("clearBtn");
+
                 let searchTimer;
-                document.getElementById("searchInput").addEventListener("input", () => {
+
+                // ONE event listener (clean + optimized)
+                input.addEventListener("input", () => {
+                        const value = input.value.trim();
+
+                        // Show / hide clear button
+                        if (value !== "") {
+                                clearBtn.classList.remove("hidden");
+                        } else {
+                                clearBtn.classList.add("hidden");
+                        }
+
+                        // Debounce search
                         clearTimeout(searchTimer);
-                        searchTimer = setTimeout(() => loadProducts(1), 400);
+                        searchTimer = setTimeout(() => {
+                                loadProducts(1);
+                        }, 400);
+                });
+
+                // Clear button click
+                clearBtn.addEventListener("click", () => {
+                        input.value = "";
+                        clearBtn.classList.add("hidden");
+
+                        // Trigger search again after clearing
+                        loadProducts(1);
+
+                        input.focus();
                 });
 
                 /* ================= CATEGORY + BRAND ================= */
