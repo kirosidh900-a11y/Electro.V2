@@ -19,7 +19,8 @@ const errorMiddleware = (err, req, res, _next) => {
     req.originalUrl.startsWith("/auth") ||
     req.originalUrl.startsWith("/admin") ||
     req.originalUrl.startsWith("/name") ||
-    req.originalUrl.startsWith("/cart")
+    req.originalUrl.startsWith("/cart") ||
+    req.originalUrl.startsWith('/product')
   ) {
     return errorResponse(
       res,

@@ -113,6 +113,34 @@
                 </div>
         </template>
 
+        <script type="module">
+                import { showToast } from "/partials/errorMsg.utils.js";
+                function getToastFromCookie() {
+                        const cookies = document.cookie.split("; ");
+
+                        const toastCookie = cookies.find(c => c.startsWith("toast="));
+                        if (!toastCookie) return;
+
+                        const value = decodeURIComponent(toastCookie.split("=")[1]);
+
+                        try {
+                                const { message, type } = JSON.parse(value);
+
+                                showToast(message, type);
+
+                                document.cookie = "toast=; max-age=0; path=/";
+
+                        } catch (err) {
+                                console.error("Invalid toast cookie");
+                        }
+                }
+
+                document.addEventListener("DOMContentLoaded", () => {
+                        getToastFromCookie();
+                });
+
+        </script>
+
         <script>
                 const container = document.getElementById("productContainer");
                 const skeletonTemplate = document.getElementById("skeleton-card");
@@ -364,11 +392,36 @@
 
                         loadProducts(1);
                 }
+
+                //Check msgs 
+                function getToastFromCookie() {
+                        const cookies = document.cookie.split("; ");
+
+                        const toastCookie = cookies.find(c => c.startsWith("toast="));
+                        if (!toastCookie) return;
+
+                        const value = decodeURIComponent(toastCookie.split("=")[1]);
+
+                        try {
+                                const { message, type } = JSON.parse(value);
+
+                                showToast(message, type);
+
+                                // ❗ clear cookie after reading
+                                document.cookie = "toast=; max-age=0; path=/";
+
+                        } catch (err) {
+                                console.error("Invalid toast cookie");
+                        }
+                }
+
                 /* ================= INIT ================= */
                 document.addEventListener("DOMContentLoaded", () => {
                         loadProducts(1);
                         updateClearButtonState();
+                        getToastFromCookie()
                 });
+
 
         </script>
 
@@ -546,5 +599,7 @@
 
 
         </script>
+
+
 
         <%- include("../../partials/user/footer.ejs") %>

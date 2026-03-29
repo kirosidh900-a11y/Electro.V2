@@ -211,6 +211,7 @@ export const getProductDetails = async (req, res, next) => {
   try {
     const data = await getProductDetailsService(req.params.id, res);
 
+
     res.status(HTTP_STATUS.OK).render("admin/home/productDetails", {
       title: "Product Details",
       ...data,

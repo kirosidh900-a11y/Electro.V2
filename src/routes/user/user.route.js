@@ -17,6 +17,8 @@ import {
   getProductsListingPage,
   updateCart,
   updateWishlist,
+  getCartStatus,
+  getWishlistStatus,
 } from "../../controllers/product/user/product.controller.js";
 import { resendOtp } from "../../controllers/user/auth.controller.js";
 import { setUploadFolder } from "../../middlewares/setUploadFolder.middleware.js";
@@ -26,6 +28,7 @@ import userAuth from "../../middlewares/user/userAuth.middleware.js";
 import addresRouter from "./addres.route.js";
 import upload from "../../middlewares/cloudinaryUpload.middleware.js";
 import locationRoutes from "./location.route.js";
+import productRouter from "../../routes/product/user/product.route.js";
 import { validate } from "../../middlewares/validate.middleware.js";
 import {
   cartSchema,
@@ -38,6 +41,7 @@ const router = Router();
 router.use(attachUser);
 
 //Routes
+router.use("/product", productRouter);
 router.use("/address", addresRouter);
 router.use("/location", locationRoutes);
 
@@ -45,6 +49,8 @@ router.use("/location", locationRoutes);
 router.get("/", showHomePage);
 
 //Product List page
+router.get("/wishlist/status", getWishlistStatus);
+router.get("/cart/status", getCartStatus);
 router.post("/wishlist", validate(wishlistSchema), updateWishlist);
 router.post("/cart", validate(cartSchema), updateCart);
 router.get("/productList", getProductsListingPage);

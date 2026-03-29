@@ -1,6 +1,7 @@
 import {
   getFilterDataService,
   getProductsListService,
+  getProductDetailsServiceUser,
 } from "../../../services/product/product.service.js";
 
 import { updateWishlistService } from "../../../services/product/wishlist.service.js";
@@ -12,6 +13,9 @@ import { successResponse } from "../../../utils/partials/response.util.js";
 import AppError from "../../../utils/partials/AppError.utils.js";
 import HTTP_STATUS from "../../../constant/statusCode.js";
 import { updateCartService } from "../../../services/product/cart.service.js";
+import setCookieMSG from "../../../utils/partials/setCookieMsg.utils.js";
+import Wishlist from "../../../models/wishlistSchema.model.js";
+import Cart from "../../../models/cartSchema.models.js";
 
 //Product
 export const getProductsListingPage = async (req, res) => {
@@ -117,7 +121,62 @@ export const updateWishlist = async (req, res, next) => {
 
     return successResponse(res, result.message, HTTP_STATUS.OK, result);
   } catch (err) {
-    next(err); // 🔥 clean
+    next(err); // clean
+  }
+};
+
+export const getWishlistStatus = async (req, res) => {
+  try {
+    const { productId, variantId } = req.query;
+    const userId = res.locals.user?._id;
+
+    if (!userId) {
+      return res.json({ inWishlist: false });
+    }
+
+    const wishlist = await Wishlist.findOne({ userId });
+
+    if (!wishlist) {
+      return res.json({ inWishlist: false });
+    }
+
+    const exists = wishlist.items.some(
+      (item) =>
+        item.productId.toString() === productId &&
+        item.variantId.toString() === variantId,
+    );
+
+    return res.json({ inWishlist: exists });
+  } catch (err) {
+    console.error(err);
+    return res.status(500).json({ inWishlist: false });
+  }
+};
+
+export const getCartStatus = async (req, res, next) => {
+  try {
+    const { productId, variantId } = req.query;
+    const userId = res.locals.user?._id;
+
+    if (!userId) {
+      return res.json({ inCart: false });
+    }
+
+    const cart = await Cart.findOne({ userId });
+
+    if (!cart) {
+      return res.json({ inCart: false });
+    }
+
+    const exists = cart.items.some(
+      (item) =>
+        item.productId.toString() === productId &&
+        item.variantId.toString() === variantId,
+    );
+
+    return res.json({ inCart: exists });
+  } catch (error) {
+    next(error);
   }
 };
 
@@ -141,5 +200,21 @@ export const updateCart = async (req, res, next) => {
     successResponse(res, message, sataus, { added, removedFromWishlist });
   } catch (error) {
     return next(error); // ONLY this
+  }
+};
+
+export const getProductDetailsUser = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const datas = await getProductDetailsServiceUser(id);
+
+    console.log(datas);
+
+    res.render("user/home/productDetails", { ...datas });
+  } catch (error) {
+    setCookieMSG(res, error.message);
+
+    res.redirect("/shop");
   }
 };

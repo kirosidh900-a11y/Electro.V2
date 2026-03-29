@@ -1,0 +1,997 @@
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&display=swap"
+  rel="stylesheet">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/toastify-js/src/toastify.min.css">
+<script src="https://cdn.jsdelivr.net/npm/toastify-js"></script>
+<script src="https://cdn.tailwindcss.com"></script>
+<link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.15.4/css/all.css" />
+
+<script>
+  tailwind.config = {
+    theme: {
+      extend: {
+        fontFamily: {
+          sans: ['Outfit', 'sans-serif'],
+        },
+        colors: {
+          brand: {
+            50: '#eff6ff',
+            100: '#dbeafe',
+            500: '#3b82f6',
+            600: '#2563eb',
+            900: '#1e3a8a',
+          }
+        }
+      }
+    }
+  }
+</script>
+
+<style>
+  body {
+    font-family: 'Outfit', sans-serif;
+    background-color: #fafcff;
+  }
+
+  .hide-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+
+  .hide-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+
+  #mainImage {
+    will-change: transform;
+    transform-origin: center center;
+    transition: transform 180ms ease-out, transform-origin 0ms linear;
+  }
+
+  .variant-option.active {
+    border-color: #2563eb;
+    background-color: #eff6ff;
+    box-shadow: 0 4px 15px rgba(37, 99, 235, 0.15);
+  }
+
+  .thumb.active {
+    border-color: #2563eb;
+    box-shadow: 0 4px 10px rgba(37, 99, 235, 0.2);
+  }
+
+  .variant-out-of-stock img {
+    filter: grayscale(1);
+    opacity: 0.5;
+  }
+
+  .glass-panel {
+    background: rgba(255, 255, 255, 0.7);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+  }
+</style>
+
+<%- include("../../partials/user/header.ejs") %>
+
+  <section class="text-slate-900 font-sans antialiased pb-20 pt-6">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+
+      <!-- Breadcrumb -->
+      <nav class="flex text-sm text-slate-500 mb-8 items-center space-x-2 font-medium">
+        <a href="/" class="hover:text-brand-600 transition">Home</a>
+        <span><i class="fas fa-chevron-right text-[10px] text-slate-300"></i></span>
+        <a href="/shop" class="hover:text-brand-600 transition">Products</a>
+        <span><i class="fas fa-chevron-right text-[10px] text-slate-300"></i></span>
+        <span class="text-slate-900 font-bold truncate">
+          <%= product.name %>
+        </span>
+      </nav>
+
+      <!-- Main Product Section -->
+      <div class="lg:grid lg:grid-cols-12 lg:gap-12">
+
+        <!-- Left Column: Images -->
+        <div class="lg:col-span-5 mb-10 lg:mb-0">
+          <div class="sticky top-28">
+            <div class="flex gap-4">
+              <div id="thumbnailList"
+                class="flex lg:flex-col gap-4 overflow-x-auto lg:overflow-y-auto max-h-[550px] w-[90px] hide-scrollbar py-1">
+                <!-- Rendered via JS -->
+              </div>
+
+              <div id="mainImageContainer"
+                class="flex-1 bg-white border border-slate-100 rounded-[2rem] flex items-center justify-center relative overflow-hidden h-[550px] shadow-xl shadow-slate-200/40 group">
+                <div class="absolute inset-0 bg-gradient-to-tr from-slate-50 to-transparent z-0 pointer-events-none">
+                </div>
+                <img id="mainImage"
+                  src="<%= product.variants?.[0]?.product_images?.[0]?.url || '/images/placeholder.png' %>"
+                  alt="<%= product.name %>"
+                  class="relative z-10 max-h-[80%] max-w-[80%] object-contain select-none transition-transform duration-500 group-hover:scale-105">
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Right Column: Details -->
+        <div class="lg:col-span-7">
+          <div class="flex flex-col h-full pt-2">
+
+            <div class="mb-5 flex flex-col items-start gap-2">
+              <span
+                class="bg-brand-50 text-brand-600 font-bold tracking-wide uppercase text-[10px] px-3 py-1.5 rounded-full border border-brand-100 shadow-sm">
+                <%= product.category?.title || 'Electronics' %>
+              </span>
+              <h1 class="product-title text-3xl lg:text-4xl font-black text-slate-900 leading-tight tracking-tight">
+                <%= product.brand?.title ? product.brand.title + " " : "" %>
+                  <%= product.name %>
+              </h1>
+            </div>
+
+            <!-- Rating & Brand Row -->
+            <div class="flex items-center gap-6 flex-wrap mb-8">
+              <div class="flex items-center gap-3 bg-white border border-slate-100 rounded-2xl p-1.5 pr-4 shadow-sm">
+                <div
+                  class="flex items-center bg-slate-900 text-white px-3 py-1.5 rounded-xl text-sm font-black shadow-lg shadow-slate-900/20">
+                  <%= (product.rating || 5).toFixed(1) %> <i class="fas fa-star ml-1.5 text-[10px] text-yellow-400"></i>
+                </div>
+                <a href="#reviews" class="text-slate-500 text-sm font-bold hover:text-brand-600 transition">
+                  <%= product.reviewCount || 0 %> Reviews
+                </a>
+              </div>
+
+              <% if (product.brand) { %>
+                <div class="h-6 w-[1px] bg-slate-200"></div>
+                <div class="flex items-center gap-3">
+                  <img class="h-8 w-8 object-contain rounded-full bg-white shadow-sm border border-slate-100 p-1"
+                    src="<%= product.brand.logo || '/images/placeholder.png' %>" alt="Brand">
+                  <span class="text-slate-700 font-extrabold text-sm">
+                    <%= product.brand.title %>
+                  </span>
+                </div>
+                <% } %>
+            </div>
+
+            <!-- Price & Stock Card -->
+            <div
+              class="bg-white p-6 rounded-[2rem] border border-slate-100 shadow-xl shadow-slate-200/50 mb-8 relative overflow-hidden">
+              <div id="stockTopBar"
+                class="absolute top-0 left-0 h-[4px] w-full bg-emerald-500 transition-colors duration-500"></div>
+
+              <div class="flex justify-between items-start mb-4">
+                <div id="priceContainer" class="flex items-end gap-3 flex-wrap"></div>
+                <button
+                  class="w-10 h-10 rounded-full bg-slate-50 text-slate-400 hover:text-brand-600 hover:bg-brand-50 flex items-center justify-center transition focus:outline-none">
+                  <i class="fas fa-share-alt"></i>
+                </button>
+              </div>
+
+              <div
+                class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mt-4 pt-4 border-t border-slate-50">
+                <div id="stockWrapper" class="flex items-center gap-2">
+                  <!-- JS will inject stock text here -->
+                </div>
+
+                <div id="deliveryText"
+                  class="flex items-center gap-2 text-sm font-bold text-slate-700 bg-slate-50 px-3 py-1.5 rounded-xl">
+                  <i class="fas fa-truck-fast text-brand-500"></i> Free Delivery
+                </div>
+              </div>
+            </div>
+
+            <!-- Promo/Coupon Code Card -->
+            <div
+              class="relative overflow-hidden bg-slate-900 rounded-[2rem] p-6 mb-10 shadow-2xl shadow-brand-900/20 group">
+              <div
+                class="absolute -top-24 -right-10 w-48 h-48 bg-brand-500/30 rounded-full blur-3xl group-hover:bg-brand-400/40 transition-all duration-700 pointer-events-none">
+              </div>
+              <div
+                class="absolute -bottom-24 -left-10 w-48 h-48 bg-purple-500/20 rounded-full blur-3xl pointer-events-none">
+              </div>
+
+              <div class="relative z-10">
+                <div class="flex items-center gap-3 mb-5">
+                  <div
+                    class="bg-gradient-to-br from-brand-400 to-brand-600 p-2.5 rounded-xl shadow-lg shadow-brand-500/30">
+                    <i class="fas fa-bolt text-white"></i>
+                  </div>
+                  <h3 class="text-white font-black text-lg tracking-tight">Unlock Secret Offers</h3>
+                </div>
+
+                <div class="flex flex-col sm:flex-row gap-3">
+                  <div class="relative flex-1">
+                    <input type="text" id="couponCode" placeholder="Enter Promo Code"
+                      class="w-full bg-white/10 border border-white/20 text-white placeholder-slate-400 rounded-2xl px-5 py-3.5 text-sm font-bold focus:outline-none focus:ring-2 focus:ring-brand-500 focus:bg-white/20 uppercase tracking-widest backdrop-blur-md transition-all">
+                  </div>
+                  <button type="button" id="applyCouponBtn"
+                    class="bg-white text-slate-900 hover:bg-brand-50 px-8 py-3.5 rounded-2xl text-sm font-black transition-all active:scale-95 shadow-lg shadow-white/10 flex items-center justify-center gap-2">
+                    REDEEM <i class="fas fa-arrow-right text-[10px]"></i>
+                  </button>
+                </div>
+
+                <div id="couponMessage" class="mt-4 text-sm font-bold hidden px-4 py-2 rounded-xl backdrop-blur-sm">
+                </div>
+
+                <div class="mt-5 flex items-center gap-3">
+                  <span class="text-[10px] text-slate-400 uppercase font-bold">Trending:</span>
+                  <button onclick="document.getElementById('couponCode').value='SAVE10'"
+                    class="text-xs bg-white/5 border border-white/10 text-brand-300 px-3 py-1.5 rounded-lg hover:bg-white/10 hover:border-brand-400 transition cursor-pointer font-bold tracking-wider">SAVE10</button>
+                  <button onclick="document.getElementById('couponCode').value='MEGAOFF'"
+                    class="text-xs bg-white/5 border border-white/10 text-brand-300 px-3 py-1.5 rounded-lg hover:bg-white/10 hover:border-brand-400 transition cursor-pointer font-bold tracking-wider">MEGAOFF</button>
+                </div>
+              </div>
+            </div>
+
+            <!-- Variants -->
+            <% if (product.variants && product.variants.length> 0) { %>
+              <div class="mb-10 bg-white p-6 rounded-[2rem] border border-slate-100 shadow-sm">
+                <h3 class="text-slate-900 font-extrabold mb-5 flex items-center gap-2">
+                  <div class="w-1.5 h-4 bg-brand-500 rounded-full"></div> Choose Variant
+                </h3>
+                <div class="flex flex-wrap gap-4" id="variantOptions">
+                  <% product.variants.forEach((variant, index)=> {
+                    const attrs = variant.attributes || {};
+                    const primary = attrs.color || attrs.ram || Object.values(attrs)[0] || "Variant";
+                    const isOutOfStock = (variant.stock <= 0); %>
+                      <button type="button"
+                        class="variant-option border-2 relative <%= index === 0 ? 'active border-brand-600' : 'border-slate-100' %> <%= isOutOfStock ? 'variant-out-of-stock cursor-not-allowed opacity-60' : 'cursor-pointer hover:border-brand-300 hover:shadow-lg hover:-translate-y-1' %> group flex flex-col items-center justify-center rounded-[1.5rem] p-3 transition-all duration-300 bg-white w-[100px]"
+                        data-index="<%= index %>">
+
+                        <% if (isOutOfStock) { %>
+                          <span
+                            class="absolute -top-3 left-1/2 -translate-x-1/2 bg-slate-800 text-white text-[9px] font-black px-2 py-0.5 rounded-full z-10 uppercase tracking-widest whitespace-nowrap shadow-md">Sold
+                            Out</span>
+                          <% } else { %>
+                            <!-- Selecetd Checkmark -->
+                            <div
+                              class="check-icon absolute -top-2 -right-2 h-6 w-6 bg-brand-600 text-white rounded-full flex items-center justify-center shadow-md scale-0 transition-transform duration-300 <%= index === 0 ? 'scale-100' : '' %>">
+                              <i class="fas fa-check text-[10px]"></i>
+                            </div>
+                            <% } %>
+
+                              <img class="h-14 w-14 object-contain rounded-xl drop-shadow-sm mb-2"
+                                src="<%= variant.product_images?.[0]?.url || '/images/no-image.png' %>" alt="variant">
+                              <p class="text-xs font-bold text-slate-800">
+                                <%= primary %>
+                              </p>
+                      </button>
+                      <% }) %>
+                </div>
+              </div>
+              <% } %>
+
+                <!-- Action Buttons -->
+                <div class="flex flex-wrap gap-4 mb-10">
+                  <div id="purchaseActions" class="flex flex-1 gap-4 flex-wrap">
+                    <form id="cartForm" action="/cart/add" method="POST" class="flex-1 min-w-[200px]">
+                      <input type="hidden" name="productId" value="<%= product._id %>">
+                      <input type="hidden" name="variantId" id="cartVariantId" value="">
+                      <input type="hidden" name="quantity" value="1">
+                      <button type="submit"
+                        class="w-full h-16 bg-slate-100 text-slate-900 font-black rounded-2xl transition hover:bg-slate-200 active:scale-95 flex items-center justify-center gap-3">
+                        <i class="fas fa-shopping-bag text-lg"></i> ADD TO CART
+                      </button>
+                    </form>
+
+                    <form id="buyNowForm" action="/checkout" method="GET" class="flex-1 min-w-[200px]">
+                      <input type="hidden" name="productId" value="<%= product._id %>">
+                      <input type="hidden" name="variantId" id="checkoutVariantId" value="">
+                      <input type="hidden" name="qty" value="1">
+                      <button type="submit"
+                        class="w-full h-16 bg-brand-600 text-white font-black rounded-2xl transition hover:bg-brand-700 active:scale-95 flex items-center justify-center gap-3 shadow-xl shadow-brand-500/30">
+                        <i class="fas fa-bolt text-lg text-yellow-300"></i> BUY NOW
+                      </button>
+                    </form>
+                  </div>
+
+                  <!-- Notify Me State -->
+                  <div id="notifyAction" class="hidden flex-1 min-w-[100%]">
+                    <form id="notifyForm" action="/product/notify" method="POST">
+                      <input type="hidden" name="productId" value="<%= product._id %>">
+                      <input type="hidden" name="variantId" id="notifyVariantId" value="">
+                      <button type="submit"
+                        class="w-full h-16 bg-slate-900 text-white font-black rounded-2xl transition hover:bg-slate-800 active:scale-95 flex items-center justify-center gap-3 shadow-xl shadow-slate-900/20">
+                        <i class="fas fa-bell animate-pulse mr-1"></i> ALERT ME WHEN BACK IN STOCK
+                      </button>
+                    </form>
+                  </div>
+
+                  <div id="wishlistWrapper">
+                    <input type="hidden" id="wishProductId" value="<%= product._id %>">
+                    <input type="hidden" id="wishVariantId" value="">
+
+                    <button
+                      id="wishlistBtn"
+                      data-product-id="<%= product._id %>"
+                      data-variant-id=""
+                      type="button"
+                      class="w-16 h-16 bg-white border-2 border-slate-100 rounded-2xl flex items-center justify-center text-slate-400 hover:text-red-500 hover:border-red-200 hover:bg-red-50 transition drop-shadow-sm group">
+                      <i id="heartIcon" class="fa-regular fa-heart text-2xl group-hover:scale-110 transition-transform"></i>
+                    </button>
+                  </div>
+                </div>
+
+                <!-- Features Grid -->
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div class="glass-panel border border-slate-100 p-4 rounded-2xl flex items-start gap-4">
+                    <div
+                      class="w-10 h-10 rounded-full bg-brand-50 text-brand-600 flex items-center justify-center flex-shrink-0">
+                      <i class="fas fa-truck-fast"></i>
+                    </div>
+                    <div>
+                      <h4 class="text-sm font-black text-slate-800">Swift Delivery</h4>
+                      <p class="text-xs text-slate-500 font-medium mt-1">Doorstep in 24hrs</p>
+                    </div>
+                  </div>
+                  <div class="glass-panel border border-slate-100 p-4 rounded-2xl flex items-start gap-4">
+                    <div
+                      class="w-10 h-10 rounded-full bg-brand-50 text-brand-600 flex items-center justify-center flex-shrink-0">
+                      <i class="fas fa-undo"></i>
+                    </div>
+                    <div>
+                      <h4 class="text-sm font-black text-slate-800">Easy Returns</h4>
+                      <p class="text-xs text-slate-500 font-medium mt-1">7 Days guaranteed</p>
+                    </div>
+                  </div>
+                  <div class="glass-panel border border-slate-100 p-4 rounded-2xl flex items-start gap-4">
+                    <div
+                      class="w-10 h-10 rounded-full bg-brand-50 text-brand-600 flex items-center justify-center flex-shrink-0">
+                      <i class="fas fa-shield-check"></i>
+                    </div>
+                    <div>
+                      <h4 class="text-sm font-black text-slate-800">Secure Warranty</h4>
+                      <p class="text-xs text-slate-500 font-medium mt-1">100% Brand backed</p>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Specifications Section Inserted dynamically -->
+                <div class="mt-12 specifications-section space-y-4"></div>
+
+          </div>
+        </div>
+      </div>
+
+      <!-- SIMILAR PRODUCTS SECTION -->
+      <% if (typeof similarProducts !=='undefined' && similarProducts.length> 0) { %>
+        <div class="mt-24 pt-10 border-t border-slate-200">
+          <div class="flex items-center justify-between mb-10">
+            <div>
+              <h3 class="text-3xl font-black text-slate-900 tracking-tight">You Might Also Like</h3>
+              <p class="text-sm text-slate-500 font-medium mt-1">Customers who viewed this item also bought.</p>
+            </div>
+            <a href="/shop"
+              class="hidden sm:flex items-center justify-center gap-2 px-5 py-2.5 bg-white border border-slate-200 rounded-full text-sm font-bold text-slate-700 hover:border-brand-300 hover:text-brand-600 transition shadow-sm">
+              View Entire Collection <i class="fas fa-arrow-right text-[10px]"></i>
+            </a>
+          </div>
+
+          <div class="grid grid-cols-2 md:grid-cols-4 gap-6">
+            <% similarProducts.forEach(simProd=> {
+              const simPrice = simProd.variants?.[0]?.price || 0;
+              const simFinalPrice = simProd.variants?.[0]?.finalPrice ?? simPrice;
+              %>
+              <div
+                class="group bg-white border border-slate-100 rounded-[2rem] p-5 transition-all duration-300 hover:shadow-2xl hover:shadow-brand-900/10 hover:-translate-y-2 relative">
+                <a href="/product/<%= simProd._id %>" class="block absolute inset-0 z-10 w-full h-full"></a>
+
+                <div
+                  class="relative w-full aspect-square rounded-[1.5rem] bg-slate-50 flex items-center justify-center overflow-hidden mb-5 group-hover:bg-slate-100 transition-colors">
+                  <img src="<%= simProd.variants?.[0]?.product_images?.[0]?.url || '/images/placeholder.png' %>"
+                    alt="<%= simProd.name %>"
+                    class="max-w-[70%] max-h-[70%] object-contain group-hover:scale-110 transition-transform duration-500">
+
+                  <% if (simFinalPrice < simPrice) { %>
+                    <div
+                      class="absolute top-3 left-3 bg-red-500 text-white text-[10px] font-black uppercase tracking-widest px-2.5 py-1 rounded-lg shadow-sm z-20">
+                      Sale</div>
+                    <% } %>
+                </div>
+
+                <h4
+                  class="text-slate-900 font-black text-base mb-1 truncate group-hover:text-brand-600 transition-colors">
+                  <%= simProd.name %>
+                </h4>
+
+                <div class="flex items-end justify-between mt-4">
+                  <div class="flex flex-col">
+                    <% if (simFinalPrice < simPrice) { %>
+                      <span class="text-xs text-slate-400 line-through font-bold">₹<%=
+                          Number(simPrice).toLocaleString('en-IN') %></span>
+                      <% } %>
+                        <span class="text-brand-600 font-black text-xl leading-none mt-1">₹<%=
+                            Number(simFinalPrice).toLocaleString('en-IN') %></span>
+                  </div>
+                  <button
+                    class="relative z-20 w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center text-slate-500 group-hover:bg-slate-900 group-hover:text-white transition-all shadow-sm">
+                    <i class="fas fa-shopping-cart text-xs"></i>
+                  </button>
+                </div>
+              </div>
+              <% }) %>
+          </div>
+        </div>
+        <% } %>
+
+          <!-- COMPREHENSIVE REVIEWS SECTION -->
+          <div id="reviews" class="mt-20 pt-16 border-t border-slate-200">
+            <div
+              class="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-12 bg-white p-8 rounded-[2rem] shadow-xl shadow-slate-100 border border-slate-50">
+              <div>
+                <h3 class="text-3xl font-black text-slate-900 tracking-tight">Verified Feedback</h3>
+                <p class="text-slate-500 font-medium mt-2">Real reviews from people who bought this gadget.</p>
+              </div>
+              <div
+                class="flex items-center gap-6 bg-slate-50 p-4 rounded-[1.5rem] border border-slate-100 shadow-inner">
+                <div class="text-center px-4">
+                  <div class="text-4xl font-black text-slate-900 leading-none">
+                    <%= (product.rating || 0).toFixed(1) %>
+                  </div>
+                  <div class="text-[10px] text-slate-400 font-black uppercase tracking-widest mt-2">Average</div>
+                </div>
+                <div class="h-10 w-[2px] bg-slate-200 rounded-full"></div>
+                <div class="text-center px-4">
+                  <div class="text-4xl font-black text-brand-600 leading-none">
+                    <%= product.reviewCount || 0 %>
+                  </div>
+                  <div class="text-[10px] text-slate-400 font-black uppercase tracking-widest mt-2">Total Reviews</div>
+                </div>
+              </div>
+            </div>
+
+            <div class="grid lg:grid-cols-12 gap-10">
+              <!-- Add Review Form -->
+              <div class="lg:col-span-4">
+                <div
+                  class="sticky top-28 bg-white border border-slate-100 p-8 rounded-[2rem] shadow-xl shadow-slate-100">
+                  <h4 class="text-xl font-black text-slate-900 mb-6 flex items-center gap-3">
+                    <span class="w-1.5 h-6 bg-brand-600 rounded-full"></span> Share your thoughts
+                  </h4>
+                  <form id="reviewForm" action="/product/review" method="POST" class="space-y-6">
+                    <input type="hidden" name="productId" value="<%= product._id %>">
+
+                    <div class="bg-slate-50 p-4 rounded-2xl border border-slate-100">
+                      <div class="flex justify-between items-center mb-3">
+                        <label class="text-xs font-black text-slate-400 uppercase tracking-widest">Rate
+                          Experience</label>
+                        <span id="ratingStatus"
+                          class="text-xs font-bold text-brand-600 bg-brand-50 px-2 py-1 rounded-md">Select Stars</span>
+                      </div>
+                      <!-- Interactive Stars -->
+                      <div class="flex items-center gap-2 text-3xl text-slate-200 cursor-pointer justify-center py-2"
+                        id="starRating">
+                        <i class="fas fa-star transition-all duration-300 hover:scale-110 drop-shadow-sm"
+                          data-rating="1"></i>
+                        <i class="fas fa-star transition-all duration-300 hover:scale-110 drop-shadow-sm"
+                          data-rating="2"></i>
+                        <i class="fas fa-star transition-all duration-300 hover:scale-110 drop-shadow-sm"
+                          data-rating="3"></i>
+                        <i class="fas fa-star transition-all duration-300 hover:scale-110 drop-shadow-sm"
+                          data-rating="4"></i>
+                        <i class="fas fa-star transition-all duration-300 hover:scale-110 drop-shadow-sm"
+                          data-rating="5"></i>
+                      </div>
+                      <input type="hidden" name="rating" id="ratingValue" value="0">
+                    </div>
+
+                    <div>
+                      <label
+                        class="text-xs font-black text-slate-400 uppercase tracking-widest block mb-3 pl-1">Detailed
+                        Review</label>
+                      <textarea name="comment" rows="5"
+                        class="w-full bg-slate-50 border border-slate-200 rounded-2xl p-5 text-slate-700 focus:outline-none focus:ring-2 focus:ring-brand-500/30 focus:border-brand-400 focus:bg-white transition-all text-sm resize-none font-medium placeholder:text-slate-400 shadow-inner"
+                        placeholder="What makes this special to you?"></textarea>
+                    </div>
+
+                    <button type="submit"
+                      class="w-full bg-slate-900 text-white font-black py-4 rounded-2xl transition-all duration-300 hover:bg-brand-600 hover:shadow-lg hover:shadow-brand-300 active:scale-95 flex items-center justify-center gap-2 group">
+                      POST REVIEW <i
+                        class="fas fa-paper-plane text-[10px] group-hover:-translate-y-1 group-hover:translate-x-1 transition-transform"></i>
+                    </button>
+                  </form>
+                </div>
+              </div>
+
+              <!-- Render List of Reviews -->
+              <div class="lg:col-span-8 space-y-5">
+                <% if (typeof product.reviews !=='undefined' && product.reviews.length> 0) { %>
+                  <% product.reviews.forEach(review=> { %>
+                    <div
+                      class="group bg-white border border-slate-100 p-8 rounded-[2rem] transition-all duration-300 hover:border-brand-200 hover:shadow-xl hover:shadow-brand-50/50">
+                      <div class="flex flex-col sm:flex-row sm:items-start justify-between gap-4 mb-4">
+                        <div class="flex items-center gap-4">
+                          <div
+                            class="h-14 w-14 bg-gradient-to-br from-slate-800 to-slate-900 text-white rounded-full flex items-center justify-center font-black text-xl shadow-lg border-4 border-slate-50">
+                            <%= review.user?.name?.charAt(0) || 'U' %>
+                          </div>
+                          <div>
+                            <h5 class="text-base font-black text-slate-900 leading-tight">
+                              <%= review.user?.name || 'Anonymous User' %>
+                            </h5>
+                            <div class="flex items-center gap-3 mt-1.5">
+                              <div class="flex text-yellow-400 text-[11px] drop-shadow-sm">
+                                <% for(let i=1; i<=5; i++) { %>
+                                  <i class="fas fa-star <%= i <= review.rating ? '' : 'text-slate-200' %>"></i>
+                                  <% } %>
+                              </div>
+                              <span
+                                class="text-[9px] text-emerald-700 font-extrabold uppercase tracking-widest bg-emerald-100 px-2 py-0.5 rounded-full inline-flex items-center gap-1">
+                                <i class="fas fa-check-circle"></i> Verified
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+                        <span
+                          class="text-[11px] font-bold text-slate-400 bg-slate-50 px-3 py-1.5 rounded-xl border border-slate-100">
+                          <%= new Date(review.createdAt || Date.now()).toLocaleDateString('en-US', {month: 'short' ,
+                            day: 'numeric' , year: 'numeric' }) %>
+                        </span>
+                      </div>
+                      <p class="text-[15px] text-slate-600 font-medium leading-relaxed sm:pl-16 pt-2">
+                        "<%= review.comment %>"
+                      </p>
+
+                      <div class="mt-6 sm:pl-16 flex items-center gap-5">
+                        <button
+                          class="text-[12px] font-bold text-slate-400 hover:text-brand-600 hover:bg-brand-50 px-3 py-1.5 rounded-lg transition-all flex items-center gap-1.5 border border-transparent hover:border-brand-100">
+                          <i class="far fa-thumbs-up"></i> Helpful
+                        </button>
+                        <div class="w-1 h-1 bg-slate-200 rounded-full"></div>
+                        <button
+                          class="text-[12px] font-bold text-slate-400 hover:text-red-500 hover:bg-red-50 px-3 py-1.5 rounded-lg transition-all flex items-center gap-1.5 border border-transparent hover:border-red-100">
+                          <i class="far fa-flag"></i> Report
+                        </button>
+                      </div>
+                    </div>
+                    <% }) %>
+                      <% } else { %>
+                        <div
+                          class="flex flex-col items-center justify-center h-full min-h-[400px] bg-slate-50/50 rounded-[3rem] border border-dashed border-slate-200 p-10">
+                          <div
+                            class="w-24 h-24 bg-white rounded-[2rem] shadow-xl shadow-slate-200/50 flex items-center justify-center mb-6 drop-shadow-sm">
+                            <i class="far fa-comments text-brand-300 text-4xl"></i>
+                          </div>
+                          <h5 class="text-2xl text-slate-900 font-black tracking-tight">Crickets so far...</h5>
+                          <p class="text-slate-500 font-medium mt-2 max-w-sm text-center">There are no reviews yet. Grab
+                            this product and be the absolute first to share your thoughts!</p>
+                        </div>
+                        <% } %>
+              </div>
+            </div>
+          </div>
+          <!-- END REVIEWS SECTION -->
+
+    </div>
+  </section>
+
+<script type="module">
+  import { showToast } from "/partials/errorMsg.utils.js"; 
+  window.showMessage = showToast;
+</script>
+
+<script>
+  // Ensure variants and product_images are heavily destructured so renderPrice and renderImages don't break
+  const productVariants = <%- JSON.stringify((product.variants || []).map(v => ({
+    _id: String(v._id || ''),
+    price: v.price || 0,
+    finalPrice: v.finalPrice ?? v.price ?? 0,
+    stock: Number(v.stock || 0),
+    attributes: v.attributes || {},
+    product_images: (v.product_images || []).map(img => ({ url: img.url || '' }))
+  }))) %>;
+
+  const isLoggedIn = <%= user ? 'true' : 'false' %>;
+
+  let currentVariant = null;
+  let isInCart = false;
+
+  const wishlistBtn = document.getElementById('wishlistBtn');
+  const heartIcon = document.getElementById('heartIcon');
+
+  const cartForm = document.getElementById('cartForm');
+  const cartBtn = cartForm.querySelector("button");
+
+  // ✅ HEART UI (MAINTAINS TAILWIND HOVER STATE)
+  function setHeart(active) {
+    if(!heartIcon) return;
+    heartIcon.className = active
+      ? "fa-solid fa-heart text-red-500 text-2xl group-hover:scale-110 transition-transform tracking-widest drop-shadow-sm"
+      : "fa-regular fa-heart text-2xl group-hover:scale-110 transition-transform tracking-widest";
+  }
+
+  // ✅ PRICE RENDER
+  function renderPrice(v) {
+    if (!v) return;
+    const priceContainer = document.getElementById('priceContainer');
+    const price = v.price || 0;
+    const finalPrice = v.finalPrice ?? price;
+
+    if (finalPrice < price) {
+      const discount = Math.round(((price - finalPrice) / price) * 100);
+      priceContainer.innerHTML = `
+        <span class="text-3xl font-bold text-brand-600">₹${finalPrice.toLocaleString('en-IN')}</span>
+        <span class="line-through text-slate-400 text-sm">₹${price.toLocaleString('en-IN')}</span>
+        <span class="text-[10px] bg-red-100 text-red-600 font-black px-2 py-1 rounded-lg tracking-widest uppercase">${discount}% OFF</span>
+      `;
+    } else {
+      priceContainer.innerHTML = `<span class="text-3xl font-bold text-brand-600">₹${price.toLocaleString('en-IN')}</span>`;
+    }
+  }
+
+  // ✅ STOCK RENDER
+  function renderStock(v) {
+    if (!v) return;
+    const stockWrapper = document.getElementById('stockWrapper');
+    const stockTopBar = document.getElementById('stockTopBar');
+    const buyNowBtn = document.getElementById('buyNowForm')?.querySelector('button');
+
+    if (v.stock > 0) {
+      stockWrapper.innerHTML = `
+        <div class="w-3 h-3 rounded-full bg-emerald-500 animate-pulse"></div>
+        <span class="text-sm font-black text-emerald-600 tracking-tight">In Stock (${v.stock} left)</span>
+      `;
+      if(stockTopBar) stockTopBar.className = "absolute top-0 left-0 h-[4px] w-full bg-emerald-500 transition-colors duration-500";
+      
+      // Allow buying
+      if(buyNowBtn) {
+        buyNowBtn.disabled = false;
+        buyNowBtn.classList.remove('opacity-50', 'cursor-not-allowed');
+      }
+    } else {
+      stockWrapper.innerHTML = `
+        <div class="w-3 h-3 rounded-full bg-red-500 hidden"></div>
+        <span class="text-sm font-black text-red-500 tracking-tight"><i class="fas fa-times-circle"></i> Out of Stock</span>
+      `;
+      if(stockTopBar) stockTopBar.className = "absolute top-0 left-0 h-[4px] w-full bg-red-500 transition-colors duration-500";
+      
+      // Disable cart buttons if out of stock
+      cartBtn.disabled = true;
+      cartBtn.classList.add('opacity-50', 'cursor-not-allowed');
+      if(buyNowBtn) {
+        buyNowBtn.disabled = true;
+        buyNowBtn.classList.add('opacity-50', 'cursor-not-allowed');
+      }
+    }
+  }
+
+  // ✅ IMAGE RENDER
+  function renderImages(v) {
+    if (!v) return;
+    const mainImage = document.getElementById('mainImage');
+    const thumbnailList = document.getElementById('thumbnailList');
+    
+    const imgs = (v.product_images && v.product_images.length)
+      ? v.product_images
+      : [{ url: '/images/placeholder.png' }];
+
+    mainImage.src = imgs[0].url;
+    thumbnailList.innerHTML = '';
+
+    imgs.forEach((img, index) => {
+      const btn = document.createElement('button');
+      btn.className = "thumb border-2 border-slate-100 rounded-xl overflow-hidden hover:border-brand-300 transition-colors h-16 w-16 bg-white shrink-0";
+      if (index === 0) btn.classList.add("active", "border-brand-600");
+      
+      btn.innerHTML = `<img src="${img.url}" class="w-full h-full object-contain p-1">`;
+
+      btn.onclick = () => {
+        mainImage.src = img.url;
+        document.querySelectorAll('.thumb').forEach(t => {
+          t.classList.remove('active', 'border-brand-600');
+          t.classList.add('border-slate-100');
+        });
+        btn.classList.add('active', 'border-brand-600');
+        btn.classList.remove('border-slate-100');
+      };
+      thumbnailList.appendChild(btn);
+    });
+  }
+
+  // ✅ VARIANT CHANGE
+  function setActiveVariant(index) {
+    currentVariant = productVariants[index];
+    if(!currentVariant) return;
+
+    if(wishlistBtn) wishlistBtn.dataset.variantId = currentVariant._id;
+    document.getElementById("cartVariantId").value = currentVariant._id;
+    
+    const checkoutEl = document.getElementById("checkoutVariantId");
+    if (checkoutEl) checkoutEl.value = currentVariant._id;
+
+    // Render HTML injections dynamically
+    renderPrice(currentVariant);
+    renderStock(currentVariant);
+    renderImages(currentVariant);
+
+    // Apply Active UI outlines on button variants
+    document.querySelectorAll('.variant-option').forEach(el => {
+      el.classList.remove('active', 'border-brand-600', 'bg-eff6ff');
+      el.classList.add('border-slate-100');
+      const check = el.querySelector('.check-icon');
+      if(check) check.classList.replace('scale-100', 'scale-0');
+    });
+    
+    // Set the checkmark and color for the newly activated button
+    const activeBtn = document.querySelector(`[data-index="${index}"]`);
+    if(activeBtn && !activeBtn.classList.contains('variant-out-of-stock')){
+      activeBtn.classList.add('active', 'border-brand-600');
+      activeBtn.classList.remove('border-slate-100');
+      const check = activeBtn.querySelector('.check-icon');
+      if(check) check.classList.replace('scale-0', 'scale-100');
+    }
+
+    checkWishlistStatus();
+    checkCartStatus();
+  }
+
+  // CHECK UNIT ALREADY IN CART 
+  async function checkCartStatus() {
+    if (!isLoggedIn || !currentVariant) return;
+
+    try {
+      const res = await fetch(`/cart/status?productId=${wishlistBtn.dataset.productId}&variantId=${currentVariant._id}`);
+      if (!res.ok) return;
+
+      const data = await res.json();
+      isInCart = data.inCart;
+      console.log("Cart status:", data);
+
+      if (isInCart) {
+        // Change Cart Button to "Go to Cart"
+        cartBtn.innerHTML = `GO TO CART <i class="fas fa-arrow-right text-[10px]"></i>`;
+        cartBtn.className = "w-full h-16 bg-emerald-500 text-white font-black rounded-2xl transition hover:bg-emerald-600 active:scale-95 flex items-center justify-center gap-3 shadow-lg shadow-emerald-500/20";
+        cartBtn.disabled = false; 
+
+        // Restrict Wishlist adding (Disable element so they can't click it)
+        if(wishlistBtn) {
+          wishlistBtn.disabled = true;
+          wishlistBtn.classList.add("opacity-50", "cursor-not-allowed");
+          wishlistBtn.classList.remove("hover:text-red-500", "hover:border-red-200", "hover:bg-red-50");
+        }
+      } else {
+        // Only re-enable normal ADD TO CART UI if there is stock available
+        if (currentVariant.stock > 0) {
+            cartBtn.innerHTML = `<i class="fas fa-shopping-bag text-lg"></i> ADD TO CART`;
+            cartBtn.className = "w-full h-16 bg-slate-100 text-slate-900 font-black rounded-2xl transition hover:bg-slate-200 active:scale-95 flex items-center justify-center gap-3";
+            cartBtn.disabled = false;
+        }
+
+        // Restoring Wishlist UI fully
+        if(wishlistBtn) {
+          wishlistBtn.disabled = false;
+          wishlistBtn.classList.remove("opacity-50", "cursor-not-allowed");
+          wishlistBtn.classList.add("hover:text-red-500", "hover:border-red-200", "hover:bg-red-50");
+        }
+      }
+    } catch (err) {
+      console.log(err);
+    }
+  }
+
+  // ADD TO CART LOGIC
+  cartForm.addEventListener("submit", async (e) => {
+    e.preventDefault();
+
+    if (!isLoggedIn) return window.location.href = "/login";
+
+    // Redirect to /cart if already inside
+    if (isInCart) {
+      window.location.href = "/cart";
+      return;
+    }
+
+    if (!currentVariant || currentVariant.stock <= 0) {
+      if(window.showMessage) window.showMessage("This item is currently out of stock", "error");
+      return;
+    }
+
+    try {
+      cartBtn.disabled = true;
+      cartBtn.innerHTML = `<i class="fas fa-spinner fa-spin"></i> ADDING...`;
+
+      const res = await fetch("/cart", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          productId: wishlistBtn.dataset.productId,
+          variantId: currentVariant._id,
+          quantity: 1
+        })
+      });
+
+      const result = await res.json();
+      if (!res.ok) throw new Error(result.message || "Failed to add to cart");
+
+      const data = result.data || {};
+      console.log("Add to Cart response:", data);
+
+      if(window.showMessage) window.showMessage(result.message || "Added to Cart!", "success");
+
+      // ✅ REMOVE FROM WISHLIST (Heart visually disappears if auto-removed in backend logic)
+      if (data.removedFromWishlist) {
+        setHeart(false);
+      }
+
+      // ✅ UPDATE UI IMMEDIATELY
+      isInCart = true;
+      checkCartStatus(); // This will disable Wishlist & set Cart button to "GO TO CART"
+
+    } catch (err) {
+      console.log(err);
+      if(window.showMessage) window.showMessage(err.message, "error");
+      checkCartStatus(); 
+    }
+  });
+
+  // CHECK WISHLIST
+  async function checkWishlistStatus() {
+    if (!isLoggedIn || !currentVariant) return;
+
+    try {
+      const res = await fetch(`/wishlist/status?productId=${wishlistBtn.dataset.productId}&variantId=${currentVariant._id}`);
+      if (!res.ok) return;
+      const data = await res.json();
+      console.log("Wishlist status:", data);
+
+      setHeart(data.inWishlist);
+    } catch (err) {
+      console.log(err);
+    }
+  }
+
+  // TOGGLE WISHLIST
+  async function toggleWishlist() {
+    if (!isLoggedIn) return window.location.href = "/login";
+
+    // Stop users from wishlisting if it's already in the cart
+    if (isInCart) {
+      if(window.showMessage) window.showMessage("This item is already safe in your cart!", "warning");
+      return;
+    }
+
+    try {
+      wishlistBtn.disabled = true;
+      heartIcon.className = "fas fa-spinner fa-spin text-2xl text-slate-400";
+
+      const res = await fetch("/wishlist", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          productId: wishlistBtn.dataset.productId,
+          variantId: currentVariant._id
+        })
+      });
+
+      const result = await res.json();
+      if (!res.ok) throw new Error(result.message);
+
+      const data = result.data || {};
+
+      if (data.added || (result.message && result.message.toLowerCase().includes("added"))) {
+        setHeart(true);
+      } else {
+        setHeart(false);
+      }
+
+      if(window.showMessage) window.showMessage(result.message || "Wishlist updated");
+
+    } catch(err) {
+      console.log(err);
+      if(window.showMessage) window.showMessage(err.message, "error");
+      checkWishlistStatus();
+    } finally {
+      // Re-enable if it isn't in cart currently. (If we disable completely, we want it to stay disabled)
+      if (!isInCart) wishlistBtn.disabled = false;
+    }
+  }
+
+
+  // COUPON CODE APPLY LOGIC
+  const applyCouponBtn = document.getElementById("applyCouponBtn");
+  const couponCodeInput = document.getElementById("couponCode");
+  const couponMessage = document.getElementById("couponMessage");
+
+  applyCouponBtn?.addEventListener("click", async () => {
+    const code = couponCodeInput.value.trim();
+    if (!code) {
+      if(window.showMessage) window.showMessage("Please enter a coupon code", "warning");
+      return;
+    }
+    try {
+      applyCouponBtn.disabled = true;
+      applyCouponBtn.innerHTML = `<i class="fas fa-spinner fa-spin"></i>`;
+      
+      const res = await fetch("/coupon/apply", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ code })
+      });
+      const result = await res.json();
+      
+      couponMessage.classList.remove("hidden");
+      if (res.ok && result.success !== false) {
+        couponMessage.classList.add("bg-green-500/20", "text-green-400", "border", "border-green-500/30");
+        couponMessage.classList.remove("bg-red-500/20", "text-red-400", "border-red-500/30");
+        couponMessage.innerHTML = `<i class="fas fa-check-circle"></i> Coupon applied!`;
+        if(window.showMessage) window.showMessage("Awesome! Coupon Applied.", "success");
+      } else {
+        couponMessage.classList.add("bg-red-500/20", "text-red-400", "border", "border-red-500/30");
+        couponMessage.classList.remove("bg-green-500/20", "text-green-400", "border-green-500/30");
+        couponMessage.innerHTML = `<i class="fas fa-times-circle"></i> Invalid code`;
+        if(window.showMessage) window.showMessage(result.message || "Invalid coupon", "error");
+      }
+    } catch (error) {
+       console.error(error);
+       if(window.showMessage) window.showMessage("Error applying. Try again.", "error");     
+    } finally {
+      applyCouponBtn.disabled = false;
+      applyCouponBtn.innerHTML = `REDEEM <i class="fas fa-arrow-right text-[10px]"></i>`;
+    }
+  });
+
+
+  // REVIEW RATING SYSTEM EVENT LISTENER
+  const starIconsArray = document.querySelectorAll("#starRating i");
+  const ratingValueInput = document.getElementById("ratingValue");
+  const ratingStatusText = document.getElementById("ratingStatus");
+  const reviewForm = document.getElementById("reviewForm");
+  
+  if (starIconsArray.length > 0) {
+    starIconsArray.forEach(star => {
+      // Selection Click Event
+      star.addEventListener("click", () => {
+        const rating = parseInt(star.getAttribute("data-rating"));
+        ratingValueInput.value = rating;
+        
+        starIconsArray.forEach(s => {
+          const sRating = parseInt(s.getAttribute("data-rating"));
+          if (sRating <= rating) {
+            s.classList.add("text-yellow-400", "fa-solid");
+            s.classList.remove("text-slate-200", "fa-regular");
+          } else {
+            s.classList.remove("text-yellow-400", "fa-solid");
+            s.classList.add("text-slate-200", "fa-regular");
+          }
+        });
+        
+        const feedback = ['Terrible', 'Bad', 'Okay', 'Good', 'Excellent!'][rating - 1];
+        if(ratingStatusText) ratingStatusText.innerText = `${rating} Stars - ${feedback}`;
+      });
+    });
+
+    // Review Form submission validation
+    reviewForm?.addEventListener("submit", (e) => {
+      if (ratingValueInput.value === "0") {
+        e.preventDefault(); 
+        if(window.showMessage) window.showMessage("Please select a star rating first!", "warning");
+      }
+    });
+  }
+
+  // INITIALIZATION LOOP
+  document.addEventListener("DOMContentLoaded", () => {
+    // Find the first product that actually has stock to show to the user (instead of rendering out-of-stock items off the bat)
+    let initialIndex = 0;
+    const inStockIndex = productVariants.findIndex(v => v.stock > 0);
+    if(inStockIndex !== -1) {
+      initialIndex = inStockIndex;
+    }
+
+    if (productVariants.length) setActiveVariant(initialIndex);
+
+    // Listen for Clicks on multiple variants
+    document.getElementById('variantOptions')?.addEventListener('click', e => {
+      const btn = e.target.closest('.variant-option');
+      if (btn && !btn.classList.contains('variant-out-of-stock')) {
+        setActiveVariant(btn.dataset.index);
+      } else if (btn && btn.classList.contains('variant-out-of-stock')) {
+        if(window.showMessage) window.showMessage("This item variant is currently out of stock", "warning");
+      }
+    });
+
+    if(wishlistBtn) wishlistBtn.addEventListener("click", toggleWishlist);
+  });
+</script>
+
+
+<%- include("../../partials/user/footer.ejs") %>
