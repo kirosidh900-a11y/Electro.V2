@@ -428,6 +428,9 @@
         <script type="module">
                 import { showToast } from "/partials/errorMsg.utils.js";
 
+                const isLoggedIn = <%= user ? 'true' : 'false' %>;
+
+
                 function applyFilters() {
                         if (Number(selectedMinPrice) > Number(selectedMaxPrice)) {
                                 showToast("Min price cannot be greater than Max price", 'warning');
@@ -439,8 +442,11 @@
                 window.applyFilters = applyFilters;
 
                 document.addEventListener('click', async (e) => {
+
+
                         const link = e.target.closest('.wishlist');
                         if (!link) return;
+                        if (isLoggedIn === false) return showToast("Please log in to manage your wishlist.", "warning");
 
                         if (link.classList.contains("loading")) return;
                         link.classList.add("loading");
@@ -471,10 +477,11 @@
                                         throw new Error("Invalid response");
                                 }
 
-                                const { data } = await res.json();
-                                console.log(data)
-                                if (!data.success) {
-                                        showToast(data.message, "error");
+                                const { success, data, message } = await res.json();
+
+
+                                if (!success) {
+                                        showToast(message, "error");
                                         return;
                                 }
 
@@ -498,7 +505,7 @@
                                 icon.classList.add("scale-110");
                                 setTimeout(() => icon.classList.remove("scale-110"), 150);
 
-                                showToast(data.message || "Updated wishlist", "success");
+                                showToast(message || "Updated wishlist", "success");
 
                         } catch (err) {
                                 console.error(err);
@@ -510,8 +517,11 @@
 
 
                 document.addEventListener('click', async (e) => {
-                        const btn = e.target.closest('.add-to-cart');
 
+                        const btn = e.target.closest('.add-to-cart');
+                        if (!btn) return;
+
+                        if (isLoggedIn === false) return showToast("Please log in to manage your cart.", "warning");
 
                         if (btn.classList.contains("loading")) return;
                         btn.classList.add("loading");

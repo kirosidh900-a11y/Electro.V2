@@ -317,10 +317,32 @@ export const getProductDetailsServiceUser = async (productId) => {
   }
 
   const product = await findByIdOrThrow(Products, productId, {
+    match: { isDeleted: false, status: "listed" },
+
     populate: [
-      { path: "category", select: "title", match: { status: "listed" } },
-      { path: "brand", select: "title logo", match: { status: "listed" } },
+      {
+        path: "category",
+        select: "title",
+        match: { status: "listed" },
+      },
+      {
+        path: "brand",
+        select: "title logo",
+        match: { status: "listed" },
+      },
+      {
+        path: "variants",
+        match: { isDeleted: false },
+        options: { sort: { createdAt: 1 } },
+        populate: [
+          {
+            path: "product_images",
+            select: "url",
+          },
+        ],
+      },
     ],
+
     lean: true,
   });
 
@@ -329,22 +351,23 @@ export const getProductDetailsServiceUser = async (productId) => {
   }
 
   const similarProducts = await Products.find({
-    _id: { $ne: productId }, // Exclude current product
-    isDeleted: false,
+    category: product.category?._id,
+    _id: { $ne: product._id },
     status: "listed",
-    category: product.category._id,
-    // brand: product.brand._id,
+    isDeleted: false,
   })
+    .select("name variants")
+    .limit(8)
     .populate({
-      path: "category",
-      match: { isDeleted: false, status: "listed" },
-    })
-    .populate({
-      path: "brand",
-      match: { isDeleted: false, status: "listed" }, // Ensure brand is active
+      path: "variants",
+      select: "price finalPrice product_images",
+      populate: {
+        path: "product_images",
+        select: "url",
+      },
     })
     .sort({ "variants.price": 1 })
-    .limit(4);
+    .lean();
 
   return { product, similarProducts };
 };
@@ -627,7 +650,7 @@ export const getProductsListService = async ({
       },
     },
     { $unwind: "$brand" },
-    { $match: { "brand.status": "listed" } },
+    { $match: { "brand.status": "listed", "brand.isDeleted": false } },
 
     // CATEGORY JOIN
     {
@@ -639,7 +662,7 @@ export const getProductsListService = async ({
       },
     },
     { $unwind: "$category" },
-    { $match: { "category.status": "listed" } },
+    { $match: { "category.status": "listed", "category.isDeleted": false } },
 
     // PAGINATION + COUNT
     {
