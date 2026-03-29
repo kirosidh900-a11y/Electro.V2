@@ -271,6 +271,14 @@
             <script src="https://cdn.jsdelivr.net/npm/toastify-js"></script>
 
             <script type="module" src="/user/js/auth/signUp.js"></script>
+            
+            <% if (typeof error !=="undefined" && error) { %>
+                <script type="module">
+                    import { showToast } from "/partials/errorMsg.utils.js";
+                    showToast('<%= error %>', 'error');
+                </script>
+            <% } %>
+            
             <script>
                 // Password Visibility Toggle
                 const togglePassword = document.querySelector('#toggleSignupPassword');
