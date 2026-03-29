@@ -1,0 +1,439 @@
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+<script src="https://cdn.tailwindcss.com"></script>
+
+<%- include("../../partials/user/header.ejs") %>
+
+<style>
+    body {
+        font-family: 'Outfit', sans-serif;
+        background-color: #f9fafb;
+    }
+    .custom-scrollbar::-webkit-scrollbar { width: 4px; }
+    .custom-scrollbar::-webkit-scrollbar-thumb { background: #d1d5db; border-radius: 4px; }
+    .loading { pointer-events: none; opacity: 0.5; filter: grayscale(1); }
+    
+    /* Smooth transitions */
+    .cart-item { transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); }
+</style>
+
+<main class="min-h-screen py-10">
+    <div class="max-w-[1280px] mx-auto px-4 sm:px-6 lg:px-8">
+        
+        <!-- Cart Header -->
+        <div class="flex flex-col sm:flex-row sm:items-end justify-between mb-8 sm:mb-10 gap-4">
+            <div>
+                <h1 class="text-3xl font-bold text-gray-900 tracking-tight">Your Cart</h1>
+                <p class="text-gray-500 mt-2">You have <span id="cartCountHeader" class="font-medium text-gray-900">0 items</span> in your cart</p>
+            </div>
+            <a href="/shop" class="inline-flex items-center gap-2 text-sm font-medium text-gray-600 hover:text-black transition-colors bg-white px-5 py-2.5 rounded-full border shadow-sm hover:shadow">
+                <i class="fa-solid fa-arrow-left"></i> Continue Shopping
+            </a>
+        </div>
+
+        <div class="flex flex-col lg:flex-row gap-10">
+            
+            <!-- Left Side: Cart Items -->
+            <div class="lg:w-2/3 flex flex-col gap-6">
+                
+                <!-- Empty Cart State (Hidden by default) -->
+                <div id="emptyCartState" class="hidden bg-white rounded-2xl shadow-sm border border-gray-100 p-16 flex flex-col items-center justify-center text-center">
+                    <div class="w-24 h-24 mb-6 relative">
+                        <div class="absolute inset-0 bg-blue-100 rounded-full animate-ping opacity-20"></div>
+                        <div class="relative w-full h-full bg-blue-50 text-blue-600 rounded-full flex items-center justify-center text-4xl shadow-inner">
+                            <i class="fa-solid fa-basket-shopping"></i>
+                        </div>
+                    </div>
+                    <h2 class="text-2xl font-bold text-gray-900 mb-3">Your cart is feeling lonely</h2>
+                    <p class="text-gray-500 mb-8 max-w-md mx-auto">Discover amazing products and fill your cart with joy. We have tons of exclusive items waiting for you.</p>
+                    <a href="/shop" class="bg-black text-white px-8 py-3.5 rounded-full font-medium hover:bg-gray-800 hover:-translate-y-0.5 transition-all shadow-lg hover:shadow-xl">
+                        Start Shopping Now
+                    </a>
+                </div>
+
+                <!-- Products Container -->
+                <div id="cartItemsContainer" class="flex flex-col gap-5">
+                    
+                    <% if (typeof cart !== 'undefined' && cart && cart.items && cart.items.length > 0) { %>
+                        <% cart.items.forEach(item => { %>
+                            <div class="bg-white p-5 sm:p-6 rounded-2xl shadow-sm border border-gray-100 flex flex-col sm:flex-row gap-6 cart-item hover:shadow-md"
+                                 data-item-id="<%= item._id %>"
+                                 data-product-id="<%= item.productId?._id %>"
+                                 data-variant-id="<%= item.variantId?._id %>">
+
+                                <!-- Product Image -->
+                                <a href="/product/<%= item.productId?._id %>"
+                                   class="relative shrink-0 w-28 h-28 sm:w-36 sm:h-36 bg-[#f8f9fa] rounded-xl flex items-center justify-center overflow-hidden group border border-gray-50">
+                                    <img 
+                                        src="<%= item?.variantId?.images?.[0] || item?.variantId?.product_images?.[0]?.url || '/images/default.png' %>"
+                                        alt="<%= item?.productId?.name || 'Product' %>"
+                                        class="w-full h-full object-contain p-3 group-hover:scale-110 transition-transform duration-500 mix-blend-multiply"
+                                    >
+                                    <% if (item.variantId?.stock === 0) { %>
+                                        <div class="absolute inset-x-0 bottom-0 bg-red-500/90 py-1.5 backdrop-blur-sm flex justify-center">
+                                            <span class="text-white text-[10px] font-bold tracking-widest uppercase">
+                                                Sold Out
+                                            </span>
+                                        </div>
+                                    <% } else if (item.variantId?.stock > 0 && item.variantId?.stock <= 5) { %>
+                                        <div class="absolute top-2 left-2 bg-orange-100 text-orange-700 px-2 py-0.5 rounded-md text-[10px] font-bold shadow-sm">
+                                            Few Left
+                                        </div>
+                                    <% } %>
+                                </a>
+
+                                <!-- Product Info -->
+                                <div class="flex-grow flex flex-col justify-between pt-1">
+
+                                    <!-- Top -->
+                                    <div class="flex flex-col sm:flex-row justify-between gap-4">
+
+                                        <div class="flex-1 pr-4">
+                                            <!-- Brand: Only output if name exists to prevent undefined -->
+                                            <% if (item.productId?.brand?.name) { %>
+                                                <p class="text-[11px] font-bold text-gray-400 uppercase tracking-widest mb-1.5">
+                                                    <%= item.productId.brand.name %>
+                                                </p>
+                                            <% } %>
+
+                                            <!-- Title -->
+                                            <a href="/product/<%= item.productId?._id %>"
+                                               class="text-base sm:text-lg font-semibold text-gray-900 hover:text-blue-600 transition-colors line-clamp-2 leading-snug">
+                                                <%= item.productId?.name %>
+                                            </a>
+
+                                            <!-- Nested Attributes mapped from item.variantId.attributes -->
+                                            <div class="flex flex-wrap items-center gap-2 mt-3">
+                                                <% if (item.variantId?.attributes?.color) { %>
+                                                    <div class="bg-gray-50 px-2.5 py-1 rounded-md text-xs font-medium text-gray-600 border border-gray-100">
+                                                        <span class="text-gray-400">Color:</span> <%= item.variantId.attributes.color %>
+                                                    </div>
+                                                <% } %>
+                                                <% if (item.variantId?.attributes?.ram) { %>
+                                                    <div class="bg-gray-50 px-2.5 py-1 rounded-md text-xs font-medium text-gray-600 border border-gray-100">
+                                                        <span class="text-gray-400">RAM:</span> <%= item.variantId.attributes.ram %>
+                                                    </div>
+                                                <% } %>
+                                                <% if (item.variantId?.attributes?.rom) { %>
+                                                    <div class="bg-gray-50 px-2.5 py-1 rounded-md text-xs font-medium text-gray-600 border border-gray-100">
+                                                        <span class="text-gray-400">Storage:</span> <%= item.variantId.attributes.rom %>
+                                                    </div>
+                                                <% } %>
+                                                <% if (item.variantId?.attributes?.processor) { %>
+                                                    <div class="bg-gray-50 px-2.5 py-1 rounded-md text-xs font-medium text-gray-600 border border-gray-100 max-w-[200px] truncate" title="<%= item.variantId.attributes.processor %>">
+                                                        <span class="text-gray-400">CPU:</span> <%= item.variantId.attributes.processor %>
+                                                    </div>
+                                                <% } %>
+                                                <% if (item.variantId?.attributes?.size) { %>
+                                                    <div class="bg-gray-50 px-2.5 py-1 rounded-md text-xs font-medium text-gray-600 border border-gray-100">
+                                                        <span class="text-gray-400">Size:</span> <%= item.variantId.attributes.size %>
+                                                    </div>
+                                                <% } %>
+                                            </div>
+
+                                            <!-- Stock Status Text -->
+                                            <div class="mt-3 text-xs">
+                                                <% if (item.variantId?.stock > 0 && item.variantId?.stock <= 5) { %>
+                                                    <span class="text-orange-600 font-medium bg-orange-50 px-2.5 py-1 rounded border border-orange-100">Only <%= item.variantId.stock %> left in stock</span>
+                                                <% } else if (item.variantId?.stock > 5) { %>
+                                                    <span class="text-green-600 font-medium bg-green-50 px-2.5 py-1 rounded border border-green-100"><i class="fa-solid fa-check text-[10px] mr-1"></i>In Stock</span>
+                                                <% } else { %>
+                                                    <span class="text-red-600 font-medium bg-red-50 px-2.5 py-1 rounded border border-red-100">Out of Stock</span>
+                                                <% } %>
+                                            </div>
+                                        </div>
+
+                                        <!-- Price -->
+                                        <div class="text-left sm:text-right shrink-0 mt-4 sm:mt-0">
+                                            <% const price = item.variantId?.discountPrice || item.variantId?.price || 0; %>
+                                            <div class="text-2xl font-bold text-gray-900 tracking-tight">₹<span class="item-price"><%= price %></span></div>
+
+                                            <% if (item.variantId?.discountPrice && item.variantId?.discountPrice !== item.variantId?.price) { %>
+                                                <div class="text-sm font-medium text-gray-400 line-through mt-0.5">
+                                                    ₹<%= item.variantId?.price %>
+                                                </div>
+                                            <% } %>
+                                        </div>
+
+                                    </div>
+
+                                    <!-- Bottom Actions -->
+                                    <div class="flex items-end sm:items-center justify-between mt-5 pt-4 border-t border-gray-100/80">
+
+                                        <!-- Qty Modern -->
+                                        <div class="flex items-center bg-gray-50 border border-gray-200 rounded-lg p-0.5 shadow-sm">
+                                            <button class="w-8 h-8 flex items-center justify-center rounded-md hover:bg-white hover:shadow-sm text-gray-600 transition-all disabled:opacity-30 disabled:hover:bg-transparent disabled:hover:shadow-none decrease-qty"
+                                                    <%= item.quantity <= 1 ? 'disabled' : '' %>>
+                                                <i class="fa-solid fa-minus text-[10px]"></i>
+                                            </button>
+
+                                            <input type="number"
+                                                   class="w-8 text-center text-sm font-semibold bg-transparent border-none focus:ring-0 p-0 item-qty"
+                                                   value="<%= item.quantity %>"
+                                                   readonly>
+
+                                            <button class="w-8 h-8 flex items-center justify-center rounded-md hover:bg-white hover:shadow-sm text-gray-600 transition-all disabled:opacity-30 disabled:hover:bg-transparent disabled:hover:shadow-none increase-qty"
+                                                    <%= item.quantity >= Math.min(item.variantId?.stock || 1, 5) ? 'disabled' : '' %>>
+                                                <i class="fa-solid fa-plus text-[10px]"></i>
+                                            </button>
+                                        </div>
+
+                                        <!-- Actions -->
+                                        <button class="remove-btn group flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm font-medium text-gray-500 hover:text-red-600 hover:bg-red-50 transition-colors">
+                                            <i class="fa-regular fa-trash-can group-hover:animate-bounce"></i> 
+                                            <span class="hidden sm:inline">Remove</span>
+                                        </button>
+
+                                    </div>
+
+                                </div>
+                            </div>
+                        <% }) %>
+                    <% } %>
+                    
+                </div>
+            </div>
+
+            <!-- Right Side: Order Summary -->
+            <div class="lg:w-1/3">
+                <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 sm:p-8 sticky top-10">
+                    <h2 class="text-xl font-bold text-gray-900 mb-6 flex items-center gap-2">
+                        Summary
+                    </h2>
+                    
+                    <div class="space-y-4 mb-6">
+                        <div class="flex justify-between items-center text-gray-600">
+                            <span class="text-sm">Subtotal (<span id="summaryItemCount">0</span> items)</span>
+                            <span class="font-semibold text-gray-900">₹<span id="summarySubtotal">0.00</span></span>
+                        </div>
+                        <div class="flex justify-between items-center text-gray-600">
+                            <span class="text-sm">Delivery Charges</span>
+                            <span class="font-medium text-green-600 text-sm bg-green-50 px-2 py-0.5 rounded" id="summaryDelivery">Free Delivery</span>
+                        </div>
+                    </div>
+
+                    <div class="border-t border-gray-100 pt-6 mb-8">
+                        <div class="flex justify-between items-end">
+                            <div>
+                                <span class="block text-sm font-medium text-gray-500 mb-1">Total Amount</span>
+                                <span class="text-[10px] text-gray-400">Including taxes</span>
+                            </div>
+                            <span class="font-bold text-3xl text-gray-900 tracking-tight">₹<span id="summaryTotal">0.00</span></span>
+                        </div>
+                    </div>
+
+                    <a href="/checkout" id="checkoutBtn" class="group relative w-full flex justify-center items-center gap-3 bg-black text-white py-4 rounded-xl font-semibold text-lg hover:bg-gray-800 transition-all shadow-lg hover:shadow-xl overflow-hidden disabled:opacity-50 disabled:cursor-not-allowed">
+                        <span class="relative z-10 flex items-center gap-2">
+                            Secure Checkout 
+                            <i class="fa-solid fa-lock text-sm bg-white/20 p-1.5 rounded-full group-hover:bg-white/30 transition-colors"></i>
+                        </span>
+                    </a>
+
+                    <div class="mt-8 pt-6 border-t border-gray-100 grid grid-cols-2 gap-4">
+                        <div class="flex items-center gap-3 text-gray-500">
+                            <div class="w-8 h-8 rounded-full bg-gray-50 flex items-center justify-center shrink-0">
+                                <i class="fa-solid fa-shield-halved text-xs"></i>
+                            </div>
+                            <span class="text-[11px] font-bold uppercase tracking-wider leading-tight">Secure<br>Payments</span>
+                        </div>
+                        <div class="flex items-center gap-3 text-gray-500">
+                            <div class="w-8 h-8 rounded-full bg-gray-50 flex items-center justify-center shrink-0">
+                                <i class="fa-solid fa-truck-fast text-xs"></i>
+                            </div>
+                            <span class="text-[11px] font-bold uppercase tracking-wider leading-tight">Fast<br>Delivery</span>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+
+        </div>
+    </div>
+</main>
+
+<script type="module">
+    import { showToast } from "/partials/errorMsg.utils.js";
+
+    document.addEventListener("DOMContentLoaded", () => {
+        calculateTotals();
+        checkEmptyCart();
+    });
+
+    // Handle Quantity Decrease
+    document.querySelectorAll('.decrease-qty').forEach(btn => {
+        btn.addEventListener('click', async (e) => {
+            const container = e.target.closest('.cart-item');
+            const input = container.querySelector('.item-qty');
+            let qty = parseInt(input.value);
+            
+            if (qty > 1) {
+                await updateCartQuantity(container, qty - 1);
+            }
+        });
+    });
+
+    // Handle Quantity Increase
+    document.querySelectorAll('.increase-qty').forEach(btn => {
+        btn.addEventListener('click', async (e) => {
+            const container = e.target.closest('.cart-item');
+            const input = container.querySelector('.item-qty');
+            // Safely parse max attribute using original backend stock limits
+            const incBtn = container.querySelector('.increase-qty');
+            const disabledState = incBtn.getAttribute('disabled');
+            let max = parseInt(input.getAttribute('max'));
+            
+            if (isNaN(max)) max = 5; 
+            
+            let qty = parseInt(input.value);
+            
+            if (qty < max) {
+                await updateCartQuantity(container, qty + 1);
+            } else {
+                showToast(`Maximum ${max} items allowed per order`, 'warning');
+            }
+        });
+    });
+
+    // Handle Remove Item
+    document.querySelectorAll('.remove-btn').forEach(btn => {
+        btn.addEventListener('click', async (e) => {
+            const container = e.target.closest('.cart-item');
+            await removeCartItem(container);
+        });
+    });
+
+    async function updateCartQuantity(itemContainer, newQty) {
+        const itemId = itemContainer.dataset.itemId;
+        const input = itemContainer.querySelector('.item-qty');
+        const decBtn = itemContainer.querySelector('.decrease-qty');
+        const incBtn = itemContainer.querySelector('.increase-qty');
+        // Retrieve dynamic max from original logic safely
+        let max = 5; 
+        
+        // Add loading state
+        itemContainer.classList.add('loading');
+        
+        try {
+            const res = await fetch('/cart', {
+                method: "PATCH",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ itemId, quantity: newQty })
+            });
+            const result = await res.json();
+            
+            if (result.success) {
+                input.value = newQty;
+                
+                // Toggle buttons styling disabled vs active
+                decBtn.disabled = (newQty <= 1);
+                incBtn.disabled = (newQty >= max);
+                
+                calculateTotals();
+            } else {
+                showToast(result.message || "Could not update quantity", "error");
+            }
+        } catch (error) {
+            console.error(error);
+            showToast("Network error trying to update cart", "error");
+        } finally {
+            itemContainer.classList.remove('loading');
+        }
+    }
+
+    async function removeCartItem(itemContainer) {
+        const itemId = itemContainer.dataset.itemId;
+        
+        // Add loading style to smoothly remove
+        itemContainer.style.opacity = '0.4';
+        itemContainer.style.pointerEvents = 'none';
+        
+        try {
+            const res = await fetch(`/cart/remove/${itemId}`, {
+                method: "DELETE",
+                headers: { "Content-Type": "application/json" }
+            });
+            const result = await res.json();
+            
+            if (result.success) {
+                // Animate removal
+                itemContainer.style.transform = 'translateY(10px) scale(0.95)';
+                itemContainer.style.opacity = '0';
+                
+                setTimeout(() => {
+                    itemContainer.remove();
+                    calculateTotals();
+                    checkEmptyCart();
+                    
+                    // Update global cart count if present
+                    const countEl = document.getElementById('cartCount');
+                    if (countEl) countEl.textContent = Math.max(0, parseInt(countEl.textContent || 0) - 1);
+                }, 300);
+
+                showToast("Item removed from cart", "success");
+            } else {
+                showToast(result.message || "Could not remove item", "error");
+                itemContainer.style.opacity = '1';
+                itemContainer.style.pointerEvents = 'auto';
+            }
+        } catch (error) {
+            console.error(error);
+            showToast("Network error trying to remove item", "error");
+            itemContainer.style.opacity = '1';
+            itemContainer.style.pointerEvents = 'auto';
+        }
+    }
+
+    function calculateTotals() {
+        let subtotal = 0;
+        let itemCount = 0;
+        
+        document.querySelectorAll('.cart-item').forEach(item => {
+            const priceText = item.querySelector('.item-price').textContent.replace(/,/g, '');
+            const price = parseFloat(priceText);
+            const qty = parseInt(item.querySelector('.item-qty').value);
+            
+            subtotal += (price * qty);
+            itemCount += qty;
+        });
+
+        const total = subtotal;
+
+        document.getElementById('summaryItemCount').textContent = itemCount;
+        document.getElementById('summarySubtotal').textContent = formatCurrency(subtotal);
+        document.getElementById('summaryTotal').textContent = formatCurrency(total);
+        
+        const countHeader = document.getElementById('cartCountHeader');
+        if(countHeader) {
+            countHeader.textContent = `${itemCount} item${itemCount !== 1 ? 's' : ''}`;
+        }
+    }
+
+    function checkEmptyCart() {
+        const items = document.querySelectorAll('.cart-item');
+        const container = document.getElementById('cartItemsContainer');
+        const emptyState = document.getElementById('emptyCartState');
+        const checkoutBtn = document.getElementById('checkoutBtn');
+        
+        if (items.length === 0) {
+            if (container) container.classList.add('hidden');
+            if (emptyState) {
+                emptyState.classList.remove('hidden');
+                emptyState.classList.add('flex');
+            }
+            if (checkoutBtn) {
+                checkoutBtn.setAttribute('disabled', 'true');
+                checkoutBtn.style.pointerEvents = 'none';
+                checkoutBtn.classList.remove('hover:bg-gray-800', 'hover:-translate-y-0.5', 'hover:shadow-xl');
+            }
+        }
+    }
+
+    function formatCurrency(amount) {
+        return amount.toLocaleString('en-IN', {
+            minimumFractionDigits: 2,
+            maximumFractionDigits: 2
+        });
+    }
+</script>
+
+<%- include("../../partials/user/footer.ejs") %>

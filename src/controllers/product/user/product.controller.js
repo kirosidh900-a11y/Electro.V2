@@ -216,3 +216,61 @@ export const getProductDetailsUser = async (req, res) => {
     res.redirect("/shop");
   }
 };
+
+//Cart Page
+export const getCartPage = async (req, res, next) => {
+  try {
+    const userId = req.user?._id;
+
+    if (!userId) {
+      return next(
+        new AppError("Please login to view cart", HTTP_STATUS.UNAUTHORIZED),
+      );
+    }
+
+    let cart = await Cart.findOne({ userId })
+      .populate({
+        path: "items.productId",
+        select: "name brand variants",
+        populate: {
+          path: "brand",
+          select: "name",
+        },
+      })
+      .lean();
+
+    if (!cart) {
+      cart = { items: [] };
+    }
+
+    cart.items = (cart.items || [])
+      .map((item) => {
+        const product = item.productId;
+
+        if (!product) return null;
+
+        // 🔍 find matching variant inside product
+        const variant = product.variants.find(
+          (v) => v._id.toString() === item.variantId.toString(),
+        );
+
+        if (!variant) return null;
+
+        return {
+          ...item,
+          variantId: {
+            ...variant,
+
+            // normalize images for frontend
+            images: variant.product_images?.map((img) => img.url) || [],
+          },
+        };
+      })
+      .filter(Boolean);
+
+    res.render("user/home/cart", { cart });
+  } catch (error) {
+    console.error("Cart Page Error:", error);
+    next(error);
+  }
+};
