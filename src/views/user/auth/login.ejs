@@ -162,9 +162,10 @@
 
         <%- include('../../partials/user/footer') %>
             <script type="module" src="/user/js/auth/login.js"></script>
+
             <% if (typeof error !=="undefined" && error) { %>
                 <script type="module">
-                    import { showToast } from "../../partials/errorMsg.utils.js";
+                    import { showToast } from "/partials/errorMsg.utils.js";
                     showToast('<%= error %>', 'error');
                 </script>
                 <% } %>

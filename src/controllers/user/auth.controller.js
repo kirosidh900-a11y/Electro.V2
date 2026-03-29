@@ -45,16 +45,10 @@ import { sendSMS } from "../../services/partials/sms.service.js";
 /* ================= LOGIN ================= */
 
 export const showLoginPage = (req, res) => {
-  const error = req.cookies.toastError || null;
-  const token = req.cookies?.token;
-
-  if (token) {
-    return res.redirect("/");
-  }
-
+  const error = JSON.parse(req.cookies.toast || null);
   clearAuthCookie(res, "toastError");
 
-  res.render("user/auth/login", { error });
+  res.render("user/auth/login", { error:error?.message });
 };
 
 export const login = async (req, res, next) => {
@@ -141,7 +135,7 @@ export const resendOtp = async (req, res, next) => {
   try {
     const { email, purpose, phone } = req.body;
 
-    console.log(req.body)
+    console.log(req.body);
 
     const otpDoc = await findOtp(email, purpose);
     const otpDoc2 = await findOtp(phone, purpose);
