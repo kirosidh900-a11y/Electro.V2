@@ -245,3 +245,69 @@ export const removeCartItemService = async (userId, itemId) => {
     itemId,
   };
 };
+
+export const validateCartBeforeCheckout = async () => {
+  const { userId } = res.locals.user || {};
+
+  if (!userId) {
+    throw new AppError("Please login", HTTP_STATUS.UNAUTHORIZED);
+  }
+
+  const cart = await Cart.findOne({ userId }).populate("items.productId");
+
+  if (!cart || cart.items.length === 0) {
+    throw new AppError("Cart is empty", HTTP_STATUS.BAD_REQUEST);
+  }
+
+  for (const item of cart.items) {
+    const product = await Product.findById(item.productId);
+
+    const variant = product.variants.find(
+      (v) => v._id.toString() === item.variantId.toString(),
+    );
+
+    if (!variant || variant.stock === 0) {
+      throw new AppError(
+        "Remove out of stock items before checkout",
+        HTTP_STATUS.BAD_REQUEST,
+      );
+    }
+
+    if (item.quantity > variant.stock) {
+      throw new AppError(
+        `Only ${variant.stock} items available`,
+        HTTP_STATUS.BAD_REQUEST,
+      );
+    }
+  }
+
+  return true;
+};
+
+export const validateCartStockService = async (userId) => {
+  const cart = await Cart.findOne({ userId });
+
+  if (!cart) return [];
+
+  const updates = [];
+
+  for (const item of cart.items) {
+    const product = await Product.findById(item.productId);
+
+    const variant = product.variants.find(
+      v => v._id.toString() === item.variantId.toString()
+    );
+
+    if (!variant) continue;
+
+    updates.push({
+      itemId: item._id,
+      stock: variant.stock,
+      quantity: item.quantity,
+      isOutOfStock: variant.stock === 0,
+      exceedsStock: item.quantity > variant.stock
+    });
+  }
+
+  return updates;
+};

@@ -16,11 +16,11 @@ import {
   removeCartItemService,
   updateCartQuantityService,
   updateCartService,
+  validateCartStockService,
 } from "../../../services/product/cart.service.js";
 import setCookieMSG from "../../../utils/partials/setCookieMsg.utils.js";
 import Wishlist from "../../../models/wishlistSchema.model.js";
 import Cart from "../../../models/cartSchema.models.js";
-import Product from "../../../models/productSchema.model.js";
 
 //Product
 export const getProductsListingPage = async (req, res) => {
@@ -304,5 +304,20 @@ export const removeCartItem = async (req, res, next) => {
     successResponse(res, "Item removed from cart", HTTP_STATUS.OK, data);
   } catch (error) {
     next(error);
+  }
+};
+
+export const validateCartStock = async (req, res, next) => {
+  try {
+    const userId = req.user._id;
+
+    const data = await validateCartStockService(userId);
+
+    res.json({
+      success: true,
+      data,
+    });
+  } catch (err) {
+    next(err);
   }
 };

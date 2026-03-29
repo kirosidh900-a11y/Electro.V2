@@ -21,15 +21,32 @@ export const getHomeProductsService = async (limit) => {
         },
       },
 
-      { $unwind: "$variants" },
-
+      // FILTER VALID VARIANTS (WITHOUT UNWIND)
       {
-        $match: {
-          "variants.isDeleted": false,
-          "variants.stock": { $gt: 0 },
+        $addFields: {
+          validVariants: {
+            $filter: {
+              input: "$variants",
+              as: "variant",
+              cond: {
+                $and: [
+                  { $eq: ["$$variant.isDeleted", false] },
+                  { $gt: ["$$variant.stock", 0] },
+                ],
+              },
+            },
+          },
         },
       },
 
+      // REMOVE PRODUCTS WITH NO VALID VARIANTS
+      {
+        $match: {
+          "validVariants.0": { $exists: true },
+        },
+      },
+
+      // BRAND
       {
         $lookup: {
           from: "brands",
@@ -39,14 +56,9 @@ export const getHomeProductsService = async (limit) => {
         },
       },
       { $unwind: "$brand" },
+      { $match: { "brand.status": "listed", "brand.isDeleted": false } },
 
-      {
-        $match: {
-          "brand.status": "listed",
-          "brand.isDeleted": false,
-        },
-      },
-
+      // CATEGORY
       {
         $lookup: {
           from: "categories",
@@ -56,17 +68,18 @@ export const getHomeProductsService = async (limit) => {
         },
       },
       { $unwind: "$category" },
-
-      {
-        $match: {
-          "category.status": "listed",
-          "category.isDeleted": false,
-        },
-      },
+      { $match: { "category.status": "listed", "category.isDeleted": false } },
 
       { $sort: { createdAt: -1 } },
+      
+      // PICK FIRST VALID VARIANT
+      {
+        $addFields: {
+          variant: { $arrayElemAt: ["$validVariants", 0] },
+        },
+      },
+      
       { $limit: limit },
-
       {
         $project: {
           _id: 1,
@@ -74,15 +87,16 @@ export const getHomeProductsService = async (limit) => {
           brand: "$brand.title",
           brandLogo: "$brand.logo",
           category: "$category.title",
-          price: "$variants.price",
-          stock: "$variants.stock",
-          variantId: "$variants._id", // ✅ FIX
-          image: { $arrayElemAt: ["$variants.product_images.url", 0] },
+          price: "$variant.price",
+          stock: "$variant.stock",
+          variantId: "$variant._id",
+          image: { $arrayElemAt: ["$variant.product_images.url", 0] },
         },
       },
     ]);
 
     await setCache(cacheKey, products);
+    console.warn("✅ Cache Set", products.length);
 
     return products;
   } catch (error) {
