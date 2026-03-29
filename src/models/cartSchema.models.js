@@ -11,7 +11,6 @@ const cartSchema = new mongoose.Schema(
 
     items: [
       {
-        _id: false, // prevent duplicate issue
 
         productId: {
           type: mongoose.Schema.Types.ObjectId,

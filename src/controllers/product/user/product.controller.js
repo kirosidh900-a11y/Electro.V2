@@ -12,7 +12,12 @@ import { successResponse } from "../../../utils/partials/response.util.js";
 
 import AppError from "../../../utils/partials/AppError.utils.js";
 import HTTP_STATUS from "../../../constant/statusCode.js";
-import { updateCartService } from "../../../services/product/cart.service.js";
+import {
+  removeCartItemService,
+  updateCartQuantityService,
+  updateCartService,
+  validateCartStockService,
+} from "../../../services/product/cart.service.js";
 import setCookieMSG from "../../../utils/partials/setCookieMsg.utils.js";
 import Wishlist from "../../../models/wishlistSchema.model.js";
 import Cart from "../../../models/cartSchema.models.js";
@@ -272,5 +277,47 @@ export const getCartPage = async (req, res, next) => {
   } catch (error) {
     console.error("Cart Page Error:", error);
     next(error);
+  }
+};
+
+//Cart Quantity Update
+export const updateCartQuantity = async (req, res, next) => {
+  try {
+    const userId = res.locals.user?._id;
+    const { itemId, quantity } = req.body;
+
+    const data = await updateCartQuantityService(userId, itemId, quantity);
+
+    successResponse(res, data.message, data.status, data);
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const removeCartItem = async (req, res, next) => {
+  try {
+    const userId = res.locals.user?._id;
+    const { itemId } = req.body;
+
+    const data = await removeCartItemService(userId, itemId);
+
+    successResponse(res, "Item removed from cart", HTTP_STATUS.OK, data);
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const validateCartStock = async (req, res, next) => {
+  try {
+    const userId = req.user._id;
+
+    const data = await validateCartStockService(userId);
+
+    res.json({
+      success: true,
+      data,
+    });
+  } catch (err) {
+    next(err);
   }
 };

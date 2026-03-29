@@ -20,6 +20,9 @@ import {
   getCartStatus,
   getWishlistStatus,
   getCartPage,
+  updateCartQuantity,
+  removeCartItem,
+  validateCartStock,
 } from "../../controllers/product/user/product.controller.js";
 import { resendOtp } from "../../controllers/user/auth.controller.js";
 import { setUploadFolder } from "../../middlewares/setUploadFolder.middleware.js";
@@ -35,6 +38,7 @@ import {
   cartSchema,
   wishlistSchema,
 } from "../../validations/products.validator.js";
+import { validateCartBeforeCheckout } from "../../services/product/cart.service.js";
 
 const router = Router();
 
@@ -55,7 +59,18 @@ router.get("/cart/status", getCartStatus);
 router.post("/wishlist", validate(wishlistSchema), updateWishlist);
 router.get("/productList", getProductsListingPage);
 router.get("/shop", getProductsListingPage);
-router.route("/cart").get(getCartPage).post(validate(cartSchema), updateCart);
+router
+  .route("/cart")
+  .get(getCartPage)
+  .post(validate(cartSchema), updateCart)
+  .patch(updateCartQuantity)
+  .delete(removeCartItem);
+  
+router.get("/cart/validate-stock", validateCartStock);
+
+router.post("/checkout", validateCartBeforeCheckout, (req, res) => {
+  res.status(200).json({ message: "Cart validated. Ready for checkout." });
+});
 
 //Profile Side
 router.get("/myProfile", userAuth, profilePage);

@@ -32,6 +32,7 @@ import renderView from "../../utils/admin/renderView.util.js";
 export const showHomePage = async (req, res) => {
   try {
     const limit = parseInt(req.query.limit) || 8;
+    console.log("Requested home products with limit:", limit, req.query.limit);
 
     // --- AJAX / API RESPONSE ---
     if (req.headers.accept && req.headers.accept.includes("application/json")) {
