@@ -4,6 +4,7 @@ import Cart from "../../models/cartSchema.models.js";
 import Products from "../../models/productSchema.model.js";
 import AppError from "../../utils/partials/AppError.utils.js";
 import Wishlist from "../../models/wishlistSchema.model.js";
+import Product from "../../models/productSchema.model.js";
 
 export const updateCartService = async ({
   userId,
@@ -151,5 +152,62 @@ export const updateCartService = async ({
     removedFromWishlist,
     message,
     cartCount: cart.items.length,
+  };
+};
+
+export const updateCartQuantityService = async (userId, itemId, quantity) => {
+  if (!userId) {
+    throw new AppError("Please login", 401);
+  }
+
+  // ✅ FIXED VALIDATION
+  if (!itemId || quantity === undefined || quantity === null) {
+    throw new AppError("Invalid data", 400);
+  }
+
+  const qty = Number(quantity);
+
+  if (isNaN(qty)) {
+    throw new AppError("Quantity must be a number", 400);
+  }
+
+  if (qty < 1) {
+    throw new AppError("Minimum quantity is 1", 400);
+  }
+
+  const cart = await Cart.findOne({ userId });
+  if (!cart) throw new AppError("Cart not found", 404);
+
+  const item = cart.items.id(itemId);
+  if (!item) throw new AppError("Item not found", 404);
+
+  const product = await Product.findById(item.productId);
+  if (!product) throw new AppError("Product not found", 404);
+
+  const variant = product.variants.find(
+    (v) => v._id.toString() === item.variantId.toString()
+  );
+
+  if (!variant) throw new AppError("Variant not found", 404);
+
+  if (variant.stock === 0) {
+    throw new AppError("Out of stock", 400);
+  }
+
+  if (qty > variant.stock) {
+    throw new AppError(`Only ${variant.stock} available`, 400);
+  }
+
+  const MAX_LIMIT = 3;
+  if (qty > MAX_LIMIT) {
+    throw new AppError(`Maximum ${MAX_LIMIT} items allowed`, 400);
+  }
+
+  item.quantity = qty;
+  await cart.save();
+
+  return {
+    itemId,
+    quantity: qty,
   };
 };

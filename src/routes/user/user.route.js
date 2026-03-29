@@ -20,6 +20,7 @@ import {
   getCartStatus,
   getWishlistStatus,
   getCartPage,
+  updateCartQuantity,
 } from "../../controllers/product/user/product.controller.js";
 import { resendOtp } from "../../controllers/user/auth.controller.js";
 import { setUploadFolder } from "../../middlewares/setUploadFolder.middleware.js";
@@ -55,7 +56,11 @@ router.get("/cart/status", getCartStatus);
 router.post("/wishlist", validate(wishlistSchema), updateWishlist);
 router.get("/productList", getProductsListingPage);
 router.get("/shop", getProductsListingPage);
-router.route("/cart").get(getCartPage).post(validate(cartSchema), updateCart);
+router
+  .route("/cart")
+  .get(getCartPage)
+  .post(validate(cartSchema), updateCart)
+  .patch(updateCartQuantity);
 
 //Profile Side
 router.get("/myProfile", userAuth, profilePage);

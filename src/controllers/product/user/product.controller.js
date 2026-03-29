@@ -12,10 +12,14 @@ import { successResponse } from "../../../utils/partials/response.util.js";
 
 import AppError from "../../../utils/partials/AppError.utils.js";
 import HTTP_STATUS from "../../../constant/statusCode.js";
-import { updateCartService } from "../../../services/product/cart.service.js";
+import {
+  updateCartQuantityService,
+  updateCartService,
+} from "../../../services/product/cart.service.js";
 import setCookieMSG from "../../../utils/partials/setCookieMsg.utils.js";
 import Wishlist from "../../../models/wishlistSchema.model.js";
 import Cart from "../../../models/cartSchema.models.js";
+import Product from "../../../models/productSchema.model.js";
 
 //Product
 export const getProductsListingPage = async (req, res) => {
@@ -271,6 +275,21 @@ export const getCartPage = async (req, res, next) => {
     res.render("user/home/cart", { cart });
   } catch (error) {
     console.error("Cart Page Error:", error);
+    next(error);
+  }
+};
+
+export const updateCartQuantity = async (req, res, next) => {
+  try {
+    const userId = res.locals.user?._id;
+    const { itemId, quantity } = req.body;
+
+    console.log(userId, req.body);
+
+    const data = await updateCartQuantityService(userId, itemId, quantity);
+
+    successResponse(res, data.message, data.status, data);
+  } catch (error) {
     next(error);
   }
 };

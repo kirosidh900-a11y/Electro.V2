@@ -282,14 +282,14 @@
             const disabledState = incBtn.getAttribute('disabled');
             let max = parseInt(input.getAttribute('max'));
             
-            if (isNaN(max)) max = 5; 
+            if (isNaN(max)) max = 3; 
             
             let qty = parseInt(input.value);
             
             if (qty < max) {
                 await updateCartQuantity(container, qty + 1);
             } else {
-                showToast(`Maximum ${max} items allowed per order`, 'warning');
+                showToast(`Maximum ${max} items allowed`, 'warning');
             }
         });
     });
@@ -308,9 +308,11 @@
         const decBtn = itemContainer.querySelector('.decrease-qty');
         const incBtn = itemContainer.querySelector('.increase-qty');
         // Retrieve dynamic max from original logic safely
-        let max = 5; 
+        let max = 3; 
         
-        // Add loading state
+     
+        if(itemContainer.classList.contains('loading')) return; // Prevent multiple clicks
+
         itemContainer.classList.add('loading');
         
         try {
@@ -328,6 +330,7 @@
                 decBtn.disabled = (newQty <= 1);
                 incBtn.disabled = (newQty >= max);
                 
+                showToast(result.message||"Cart updated", "success");
                 calculateTotals();
             } else {
                 showToast(result.message || "Could not update quantity", "error");
@@ -434,6 +437,7 @@
             maximumFractionDigits: 2
         });
     }
+    
 </script>
 
 <%- include("../../partials/user/footer.ejs") %>
