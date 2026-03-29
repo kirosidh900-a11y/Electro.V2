@@ -21,6 +21,7 @@ import {
   getWishlistStatus,
   getCartPage,
   updateCartQuantity,
+  removeCartItem,
 } from "../../controllers/product/user/product.controller.js";
 import { resendOtp } from "../../controllers/user/auth.controller.js";
 import { setUploadFolder } from "../../middlewares/setUploadFolder.middleware.js";
@@ -60,7 +61,8 @@ router
   .route("/cart")
   .get(getCartPage)
   .post(validate(cartSchema), updateCart)
-  .patch(updateCartQuantity);
+  .patch(updateCartQuantity)
+  .delete(removeCartItem);
 
 //Profile Side
 router.get("/myProfile", userAuth, profilePage);

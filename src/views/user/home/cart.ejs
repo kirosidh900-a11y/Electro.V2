@@ -252,7 +252,9 @@
 </main>
 
 <script type="module">
-    import { showToast } from "/partials/errorMsg.utils.js";
+    import { showToast  } from "/partials/errorMsg.utils.js";
+    import { confirmAction } from "/partials/confirm.util.js";
+
 
     document.addEventListener("DOMContentLoaded", () => {
         calculateTotals();
@@ -298,7 +300,10 @@
     document.querySelectorAll('.remove-btn').forEach(btn => {
         btn.addEventListener('click', async (e) => {
             const container = e.target.closest('.cart-item');
-            await removeCartItem(container);
+            const confirmed = await confirmAction("Are you sure you want to remove this item from your cart?");
+            if (confirmed) {
+                await removeCartItem(container);
+            }
         });
     });
 
@@ -351,9 +356,10 @@
         itemContainer.style.pointerEvents = 'none';
         
         try {
-            const res = await fetch(`/cart/remove/${itemId}`, {
+            const res = await fetch(`/cart`, {
                 method: "DELETE",
-                headers: { "Content-Type": "application/json" }
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ itemId })
             });
             const result = await res.json();
             

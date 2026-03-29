@@ -185,7 +185,7 @@ export const updateCartQuantityService = async (userId, itemId, quantity) => {
   if (!product) throw new AppError("Product not found", 404);
 
   const variant = product.variants.find(
-    (v) => v._id.toString() === item.variantId.toString()
+    (v) => v._id.toString() === item.variantId.toString(),
   );
 
   if (!variant) throw new AppError("Variant not found", 404);
@@ -209,5 +209,39 @@ export const updateCartQuantityService = async (userId, itemId, quantity) => {
   return {
     itemId,
     quantity: qty,
+  };
+};
+
+export const removeCartItemService = async (userId, itemId) => {
+  if (!userId) {
+    throw new AppError("Please login", HTTP_STATUS.UNAUTHORIZED);
+  }
+
+  if (!itemId) {
+    throw new AppError("Invalid itemId", HTTP_STATUS.BAD_REQUEST);
+  }
+
+  const cart = await Cart.findOne({ userId });
+
+  if (!cart) {
+    throw new AppError("Cart not found", HTTP_STATUS.NOT_FOUND);
+  }
+
+  // Find item index
+  const itemIndex = cart.items.findIndex(
+    (item) => item._id.toString() === itemId,
+  );
+
+  if (itemIndex === -1) {
+    throw new AppError("Item not found in cart", HTTP_STATUS.NOT_FOUND);
+  }
+
+  // Remove item
+  cart.items.splice(itemIndex, 1);
+
+  await cart.save();
+
+  return {
+    itemId,
   };
 };

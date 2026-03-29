@@ -13,6 +13,7 @@ import { successResponse } from "../../../utils/partials/response.util.js";
 import AppError from "../../../utils/partials/AppError.utils.js";
 import HTTP_STATUS from "../../../constant/statusCode.js";
 import {
+  removeCartItemService,
   updateCartQuantityService,
   updateCartService,
 } from "../../../services/product/cart.service.js";
@@ -279,16 +280,28 @@ export const getCartPage = async (req, res, next) => {
   }
 };
 
+//Cart Quantity Update
 export const updateCartQuantity = async (req, res, next) => {
   try {
     const userId = res.locals.user?._id;
     const { itemId, quantity } = req.body;
 
-    console.log(userId, req.body);
-
     const data = await updateCartQuantityService(userId, itemId, quantity);
 
     successResponse(res, data.message, data.status, data);
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const removeCartItem = async (req, res, next) => {
+  try {
+    const userId = res.locals.user?._id;
+    const { itemId } = req.body;
+
+    const data = await removeCartItemService(userId, itemId);
+
+    successResponse(res, "Item removed from cart", HTTP_STATUS.OK, data);
   } catch (error) {
     next(error);
   }
