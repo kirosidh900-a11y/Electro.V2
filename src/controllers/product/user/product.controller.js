@@ -209,8 +209,6 @@ export const getProductDetailsUser = async (req, res) => {
 
     const datas = await getProductDetailsServiceUser(id);
 
-    console.log(datas);
-
     res.render("user/home/productDetails", { ...datas });
   } catch (error) {
     setCookieMSG(res, error.message);

@@ -44,10 +44,10 @@
   }
 
   #mainImage {
-    will-change: transform;
-    transform-origin: center center;
-    transition: transform 180ms ease-out, transform-origin 0ms linear;
-  }
+  will-change: transform;
+  transition: transform 0.2s ease-out;
+  cursor: zoom-in;
+}
 
   .variant-option.active {
     border-color: #2563eb;
@@ -107,7 +107,7 @@
                 <img id="mainImage"
                   src="<%= product.variants?.[0]?.product_images?.[0]?.url || '/images/placeholder.png' %>"
                   alt="<%= product.name %>"
-                  class="relative z-10 max-h-[80%] max-w-[80%] object-contain select-none transition-transform duration-500 group-hover:scale-105">
+                  class="relative z-10 max-h-[80%] max-w-[80%] object-contain select-none transition-transform duration-500 ">
               </div>
             </div>
           </div>
@@ -570,6 +570,32 @@
 </script>
 
 <script>
+  const container = document.getElementById("mainImageContainer");
+  const image = document.getElementById("mainImage");
+
+  let zoomLevel = 2; // increase for more zoom (1.5 - 3 best)
+
+  container.addEventListener("mousemove", (e) => {
+    const rect = container.getBoundingClientRect();
+
+    const x = e.clientX - rect.left;
+    const y = e.clientY - rect.top;
+
+    const xPercent = (x / rect.width) * 100;
+    const yPercent = (y / rect.height) * 100;
+
+    image.style.transformOrigin = `${xPercent}% ${yPercent}%`;
+    image.style.transform = `scale(${zoomLevel})`;
+  });
+
+  container.addEventListener("mouseleave", () => {
+    image.style.transform = "scale(1)";
+    image.style.transformOrigin = "center center";
+  });
+  
+</script>
+
+<script>
   // Ensure variants and product_images are heavily destructured so renderPrice and renderImages don't break
   const productVariants = <%- JSON.stringify((product.variants || []).map(v => ({
     _id: String(v._id || ''),
@@ -591,7 +617,7 @@
   const cartForm = document.getElementById('cartForm');
   const cartBtn = cartForm.querySelector("button");
 
-  // ✅ HEART UI (MAINTAINS TAILWIND HOVER STATE)
+  //  HEART UI (MAINTAINS TAILWIND HOVER STATE)
   function setHeart(active) {
     if(!heartIcon) return;
     heartIcon.className = active
@@ -599,7 +625,7 @@
       : "fa-regular fa-heart text-2xl group-hover:scale-110 transition-transform tracking-widest";
   }
 
-  // ✅ PRICE RENDER
+  // PRICE RENDER
   function renderPrice(v) {
     if (!v) return;
     const priceContainer = document.getElementById('priceContainer');
@@ -618,7 +644,7 @@
     }
   }
 
-  // ✅ STOCK RENDER
+  // STOCK RENDER
   function renderStock(v) {
     if (!v) return;
     const stockWrapper = document.getElementById('stockWrapper');
@@ -654,7 +680,7 @@
     }
   }
 
-  // ✅ IMAGE RENDER
+  // IMAGE RENDER
   function renderImages(v) {
     if (!v) return;
     const mainImage = document.getElementById('mainImage');
@@ -687,7 +713,7 @@
     });
   }
 
-  // ✅ VARIANT CHANGE
+  //  VARIANT CHANGE
   function setActiveVariant(index) {
     currentVariant = productVariants[index];
     if(!currentVariant) return;
@@ -702,6 +728,7 @@
     renderPrice(currentVariant);
     renderStock(currentVariant);
     renderImages(currentVariant);
+    renderSpecifications(currentVariant);
 
     // Apply Active UI outlines on button variants
     document.querySelectorAll('.variant-option').forEach(el => {
@@ -772,7 +799,7 @@
   cartForm.addEventListener("submit", async (e) => {
     e.preventDefault();
 
-    if (!isLoggedIn) return window.location.href = "/login";
+    if (!isLoggedIn) return showMessage("Please log in to add items to your cart.", "warning");
 
     // Redirect to /cart if already inside
     if (isInCart) {
@@ -803,18 +830,30 @@
       if (!res.ok) throw new Error(result.message || "Failed to add to cart");
 
       const data = result.data || {};
-      console.log("Add to Cart response:", data);
 
       if(window.showMessage) window.showMessage(result.message || "Added to Cart!", "success");
+       
+      const countEl = document.getElementById('wishlistCount');
+      const countCartEl = document.getElementById('cartCount'); 
+      let current = +countEl.textContent || 0;
+      let currentCart = +countCartEl.textContent || 0;
+  
 
-      // ✅ REMOVE FROM WISHLIST (Heart visually disappears if auto-removed in backend logic)
-      if (data.removedFromWishlist) {
+      // REMOVE FROM WISHLIST 
+      if (data.removedFromWishlit) {
         setHeart(false);
+        current = Math.max(0, current - 1);
+        countEl.textContent =urrent;
       }
 
-      // ✅ UPDATE UI IMMEDIATELY
+      if(data.added){
+          currentCart += 1;
+          countCartEl.textContent = currentCart;
+      }
+
+      // UPDATE UI IMMEDIATELY
       isInCart = true;
-      checkCartStatus(); // This will disable Wishlist & set Cart button to "GO TO CART"
+      checkCartStatus(); 
 
     } catch (err) {
       console.log(err);
@@ -841,7 +880,7 @@
 
   // TOGGLE WISHLIST
   async function toggleWishlist() {
-    if (!isLoggedIn) return window.location.href = "/login";
+    if (!isLoggedIn) return showMessage("Please log in to manage your wishlist.", "warning");
 
     // Stop users from wishlisting if it's already in the cart
     if (isInCart) {
@@ -866,12 +905,17 @@
       if (!res.ok) throw new Error(result.message);
 
       const data = result.data || {};
+      const countEl = document.getElementById('wishlistCount');
+      let current = +countEl.textContent || 0;
 
       if (data.added || (result.message && result.message.toLowerCase().includes("added"))) {
+        current += 1;
         setHeart(true);
       } else {
+        current = Math.max(0, current - 1);
         setHeart(false);
       }
+      countEl.textContent = current;
 
       if(window.showMessage) window.showMessage(result.message || "Wishlist updated");
 
@@ -885,6 +929,46 @@
     }
   }
 
+//renderSpecifications
+  function renderSpecifications() {
+  const specContainer = document.querySelector(".specifications-section");
+  if (!specContainer) return;
+
+  const productAttrs = <%- JSON.stringify(product.attributes || {}) %>;
+  const variantAttrs = currentVariant?.attributes || {};
+
+  const allSpecs = {
+    ...productAttrs,
+    ...variantAttrs
+  };
+
+  if (Object.keys(allSpecs).length === 0) {
+    specContainer.innerHTML = "";
+    return;
+  }
+
+  specContainer.innerHTML = `
+    <div class="bg-white border border-slate-100 rounded-[2rem] p-6 shadow-sm">
+      <h3 class="text-lg font-extrabold mb-5 flex items-center gap-2">
+        <div class="w-1.5 h-4 bg-brand-500 rounded-full"></div>
+        Specifications
+      </h3>
+
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        ${Object.entries(allSpecs).map(([key, value]) => `
+          <div class="flex justify-between bg-slate-50 px-4 py-3 rounded-xl">
+            <span class="text-slate-500 text-sm font-bold capitalize">
+              ${key.replace(/_/g, " ")}
+            </span>
+            <span class="text-slate-900 text-sm font-extrabold">
+              ${value}
+            </span>
+          </div>
+        `).join("")}
+      </div>
+    </div>
+  `;
+}
 
   // COUPON CODE APPLY LOGIC
   const applyCouponBtn = document.getElementById("applyCouponBtn");
@@ -990,7 +1074,11 @@
     });
 
     if(wishlistBtn) wishlistBtn.addEventListener("click", toggleWishlist);
+
+    //renderSpecifications
+    renderSpecifications();
   });
+
 </script>
 
 

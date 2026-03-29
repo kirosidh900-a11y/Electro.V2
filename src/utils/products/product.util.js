@@ -1,15 +1,20 @@
 import mongoose from "mongoose";
+import AppError from "../partials/AppError.utils.js";
+import HTTP_STATUS from "../../constant/statusCode.js";
 
 export const findByIdOrThrow = async (Model, id, options = {}) => {
   if (!mongoose.Types.ObjectId.isValid(id)) {
     throw new AppError("Invalid ID", HTTP_STATUS.BAD_REQUEST);
   }
 
-  let query = Model.findById(id);
+  const { select, populate, lean, match } = options;
 
-  if (options.select) query = query.select(options.select);
-  if (options.populate) query = query.populate(options.populate);
-  if (options.lean) query = query.lean();
+  // Apply match filter correctly
+  let query = Model.findOne({ _id: id, ...(match || {}) });
+
+  if (select) query = query.select(select);
+  if (populate) query = query.populate(populate);
+  if (lean) query = query.lean();
 
   const doc = await query;
 

@@ -271,6 +271,8 @@
         </script>
 
         <script type="module">
+            const isLoggedIn = <%= JSON.stringify(!!user) %>;
+
             import { showToast } from "/partials/errorMsg.utils.js";
 
             function applyFilters() {
@@ -286,6 +288,10 @@
             document.addEventListener('click', async (e) => {
                 const link = e.target.closest('.wishlist');
                 if (!link) return;
+                if (!isLoggedIn) {
+                    showToast("Please log in to manage your wishlist.", "warning");
+                    return;
+                }
 
                 if (link.classList.contains("loading")) return;
                 link.classList.add("loading");
@@ -316,10 +322,10 @@
                         throw new Error("Invalid response");
                     }
 
-                    const { data } = await res.json();
+                    const { data, success, message } = await res.json();
 
-                    if (!data.success) {
-                        showToast(data.message, "error");
+                    if (!success) {
+                        showToast(message, "error");
                         return;
                     }
 
@@ -343,7 +349,7 @@
                     icon.classList.add("scale-110");
                     setTimeout(() => icon.classList.remove("scale-110"), 150);
 
-                    showToast(data.message || "Updated wishlist", "success");
+                    showToast(message || "Updated wishlist", "success");
 
                 } catch (err) {
                     console.error(err);
@@ -356,7 +362,11 @@
 
             document.addEventListener('click', async (e) => {
                 const btn = e.target.closest('.add-to-cart');
-
+                if (!btn) return;
+                if (!isLoggedIn) {
+                    showToast("Please log in to add items to cart.", "warning");
+                    return;
+                }
 
                 if (btn.classList.contains("loading")) return;
                 btn.classList.add("loading");
