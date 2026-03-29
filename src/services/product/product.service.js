@@ -5,9 +5,8 @@ import mongoose from "mongoose";
 import AppError from "../../utils/partials/AppError.utils.js";
 import HTTP_STATUS from "../../constant/statusCode.js";
 import { uploadToCloudinary } from "../partials/cloudinary.service.js";
-
-import setCookieMSG from "../../utils/partials/setCookieMsg.utils.js";
 import { getCache, setCache } from "../../utils/Redis/cache.js";
+import { findByIdOrThrow } from "../../utils/products/product.util.js";
 
 //  PRODUCTS PAGE
 export const getProductsService = async ({ page, limit, search, status }) => {
@@ -280,7 +279,7 @@ export const getVariantByIdService = async (productId, variantId) => {
   };
 };
 
-//  GET PRODUCT DETAILS
+//  GET PRODUCT DETAILS Admin
 export const getProductDetailsService = async (id, res) => {
   const product = await Products.findOne({
     _id: id,
@@ -309,6 +308,45 @@ export const getProductDetailsService = async (id, res) => {
   }
 
   return { product, variants, totalVariants, minPrice, totalStock };
+};
+
+//Get Product Details Page User
+export const getProductDetailsServiceUser = async (productId) => {
+  if (!mongoose.Types.ObjectId.isValid(productId)) {
+    throw new AppError("Invalid product ID", HTTP_STATUS.BAD_REQUEST);
+  }
+
+  const product = await findByIdOrThrow(Products, productId, {
+    populate: [
+      { path: "category", select: "title", match: { status: "listed" } },
+      { path: "brand", select: "title logo", match: { status: "listed" } },
+    ],
+    lean: true,
+  });
+
+  if (!product) {
+    throw new AppError("Product not found", HTTP_STATUS.NOT_FOUND);
+  }
+
+  const similarProducts = await Products.find({
+    _id: { $ne: productId }, // Exclude current product
+    isDeleted: false,
+    status: "listed",
+    category: product.category._id,
+    // brand: product.brand._id,
+  })
+    .populate({
+      path: "category",
+      match: { isDeleted: false, status: "listed" },
+    })
+    .populate({
+      path: "brand",
+      match: { isDeleted: false, status: "listed" }, // Ensure brand is active
+    })
+    .sort({ "variants.price": 1 })
+    .limit(4);
+
+  return { product, similarProducts };
 };
 
 //  ADD VARIANT
