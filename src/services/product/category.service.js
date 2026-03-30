@@ -1,7 +1,7 @@
 import Category from "../../models/CategorySchema.model.js";
 import HTTP_STATUS from "../../constant/statusCode.js";
 import AppError from "../../utils/partials/AppError.utils.js";
-
+import mongoose from "mongoose";
 
 //    Get Categories
 export const getCategoryService = async ({ page, limit, search, status }) => {
@@ -32,24 +32,46 @@ export const getCategoryService = async ({ page, limit, search, status }) => {
 
 //    Create Category
 export const createCategoryService = async (title, status) => {
-  try {
-    return await Category.create({ title, status });
-  } catch (error) {
-    if (error.code === 11000) {
-      throw new AppError(
-        "Category already exists",
-        HTTP_STATUS.CONFLICT,
-      );
-    }
-    throw error;
+  if (!title || !title.trim()) {
+    throw new AppError("Category title is required", HTTP_STATUS.BAD_REQUEST);
   }
+
+  const normalizedTitle = title.trim().toUpperCase();
+
+  const existing = await Category.findOne({ title: normalizedTitle });
+
+  if (existing) {
+    throw new AppError("Category already exists", HTTP_STATUS.CONFLICT);
+  }
+
+  return await Category.create({
+    title: normalizedTitle,
+    status,
+  });
 };
 
 //    Edit Category
-export const editCategoryService = async (id, title) => {
+export const editCategoryService = async (id, title, status) => {
+  if (!title || !title.trim()) {
+    throw new AppError("Category title is required", HTTP_STATUS.BAD_REQUEST);
+  }
+
+  const normalizedTitle = title.trim().toUpperCase();
+
+  // check duplicate EXCLUDING current category
+  const existing = await Category.findOne({
+    title: normalizedTitle,
+    _id: { $ne: id },
+  });
+
+  if (existing) {
+    throw new AppError("Category already exists", HTTP_STATUS.CONFLICT);
+  }
+
+  // update
   const category = await Category.findByIdAndUpdate(
     id,
-    { title },
+    { title: normalizedTitle, status },
     { new: true },
   );
 
@@ -73,16 +95,28 @@ export const deleteCategoryService = async (id) => {
 
 //    Toggle Status
 export const toggleCategoryService = async (id) => {
+  if (!id || !mongoose.Types.ObjectId.isValid(id)) {
+    throw new AppError("Invalid Category ID", HTTP_STATUS.BAD_REQUEST);
+  }
+
   const category = await Category.findById(id);
 
   if (!category) {
     throw new AppError("Category not found", HTTP_STATUS.NOT_FOUND);
   }
 
-  category.status = category.status === "listed" ? "unlisted" : "listed";
+  const updated = await Category.findByIdAndUpdate(
+    id,
+    {
+      status: category.status === "listed" ? "unlisted" : "listed",
+    },
+    { new: true },
+  );
 
-  await category.save();
-  return category.status;
+  return {
+    id: updated._id,
+    status: updated.status,
+  };
 };
 
 //    Add Attribute
@@ -121,10 +155,7 @@ export const deleteAttributeService = async (categoryId, key) => {
   );
 
   if (result.modifiedCount === 0) {
-    throw new AppError(
-      "Attribute not found",
-      HTTP_STATUS.NOT_FOUND,
-    );
+    throw new AppError("Attribute not found", HTTP_STATUS.NOT_FOUND);
   }
 };
 

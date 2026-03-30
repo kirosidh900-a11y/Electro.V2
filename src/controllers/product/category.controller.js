@@ -13,6 +13,8 @@ import {
 } from "../../services/product/category.service.js";
 
 import { successResponse } from "../../utils/partials/response.util.js";
+import AppError from "../../utils/partials/AppError.utils.js";
+import { deleteCacheByPattern } from "../../utils/Redis/cache.js";
 
 //  Category Page
 export const category = async (req, res, next) => {
@@ -64,6 +66,12 @@ export const createCategory = async (req, res, next) => {
 
     const category = await createCategoryService(title, status);
 
+    // global listing
+    await deleteCacheByPattern(`shop:category=all:*`);
+
+    // home cache
+    await deleteCacheByPattern("home_products_*");
+
     return successResponse(
       res,
       "Category Successfully Created!",
@@ -78,10 +86,17 @@ export const createCategory = async (req, res, next) => {
 //  Edit Category
 export const editCategory = async (req, res, next) => {
   try {
-    const { title } = req.body;
+    const { title, status } = req.body;
     const id = req.params.id;
 
-    const category = await editCategoryService(id, title);
+    const category = await editCategoryService(id, title, status);
+
+    // only one category cache
+    await deleteCacheByPattern(`shop:category=${id}:*`);
+    // global listing
+    await deleteCacheByPattern(`shop:category=all:*`);
+    // home cache
+    await deleteCacheByPattern("home_products_*");
 
     return successResponse(res, "Category Updated!", HTTP_STATUS.OK, category);
   } catch (error) {
@@ -105,16 +120,23 @@ export const deleteCategory = async (req, res, next) => {
 //  Toggle Status
 export const toggleCategoryStatus = async (req, res, next) => {
   try {
-    const id = req.params.id;
+    const { id, status } = await toggleCategoryService(req.params.id);
 
-    const status = await toggleCategoryService(id);
+    // CACHE INVALIDATION
+    // category-specific
+    await deleteCacheByPattern(`shop:category=${id}:*`);
+    // global listing
+    await deleteCacheByPattern(`shop:category=all:*`);
+    // home cache
+    await deleteCacheByPattern("home_products_*");
 
-    return successResponse(res, "Status Updated!", HTTP_STATUS.OK, { status });
+    return successResponse(res, "Status Updated!", HTTP_STATUS.OK, {
+      status,
+    });
   } catch (error) {
     next(error);
   }
 };
-
 //  Add Attribute
 export const addCategoryAttribute = async (req, res, next) => {
   try {
