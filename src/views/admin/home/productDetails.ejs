@@ -315,9 +315,16 @@
                                     <img src="<%= img.url %>"
                                       class="w-12 h-12 object-cover rounded border border-white/10" />
 
+                                    <!-- DELETE -->
                                     <button onclick="deleteVariantImage('<%= v._id %>', '<%= img.imageId %>')"
                                       class="absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-4 h-4 text-[10px] hidden group-hover:flex items-center justify-center">
                                       ×
+                                    </button>
+
+                                    <!-- 🔥 REPLACE BUTTON -->
+                                    <button onclick="replaceVariantImage('<%= v._id %>', '<%= img.imageId %>')"
+                                      class="absolute bottom-0 left-0 right-0 bg-black/60 text-white text-[10px] py-[2px] hidden group-hover:block">
+                                      Replace
                                     </button>
                                   </div>
 
@@ -1061,7 +1068,7 @@
         }
       };
 
-      // 🚫 Disable scroll on number inputs (GLOBAL FIX)
+      // Disable scroll on number inputs (GLOBAL FIX)
       document.addEventListener("wheel", function (e) {
         if (e.target.type === "number") {
           e.preventDefault();
@@ -1069,7 +1076,19 @@
         }
       }, { passive: false });
 
-    </script>
+      let replaceImageId = null;
+      let replaceVariantId = null;
+
+      // OPEN FILE SELECT FOR REPLACE
+      window.replaceVariantImage = function (variantId, imageId) {
+        replaceVariantId = variantId;
+        replaceImageId = imageId;
+
+        cropMode = "replace"; // new mode
+        variantImageInput.click();
+      };
+   
+   </script>
 
     <script>
       function debounce(fn, delay) {
