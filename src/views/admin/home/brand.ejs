@@ -630,14 +630,14 @@
                                                 }
                                         });
 
-                                        const data = await res.json();
-
-                                        if (!data.success) {
+                                        const { data, message, success } = await res.json();
+                                        console.log(data, message, success)
+                                        if (!success) {
 
                                                 Swal.fire({
                                                         icon: "error",
                                                         title: "Error",
-                                                        text: data.message || "Failed to update category status",
+                                                        text: message || "Failed to update category status",
                                                         background: "#0b1220",
                                                         color: "#e5e7eb"
                                                 });
