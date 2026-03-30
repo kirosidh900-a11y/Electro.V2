@@ -13,14 +13,13 @@ import {
 } from "../../services/product/category.service.js";
 
 import { successResponse } from "../../utils/partials/response.util.js";
-import AppError from "../../utils/partials/AppError.utils.js";
 import { deleteCacheByPattern } from "../../utils/Redis/cache.js";
 
 //  Category Page
 export const category = async (req, res, next) => {
   try {
     const page = Number(req.query.page) || 1;
-    const limit = 6;
+    const limit = 4;
 
     const search = req.query.search || "";
     const status = req.query.status || "All";
@@ -66,9 +65,9 @@ export const createCategory = async (req, res, next) => {
 
     const category = await createCategoryService(title, status);
 
+    //Cache Invalidation
     // global listing
     await deleteCacheByPattern(`shop:category=all:*`);
-
     // home cache
     await deleteCacheByPattern("home_products_*");
 
@@ -111,6 +110,14 @@ export const deleteCategory = async (req, res, next) => {
 
     await deleteCategoryService(id);
 
+    // CACHE INVALIDATION
+    // category-specific
+    await deleteCacheByPattern(`shop:category=${id}:*`);
+    // global listing
+    await deleteCacheByPattern(`shop:category=all:*`);
+    // home cache
+    await deleteCacheByPattern("home_products_*");
+
     return successResponse(res, "Category Deleted!", HTTP_STATUS.OK);
   } catch (error) {
     next(error);
@@ -137,6 +144,7 @@ export const toggleCategoryStatus = async (req, res, next) => {
     next(error);
   }
 };
+
 //  Add Attribute
 export const addCategoryAttribute = async (req, res, next) => {
   try {
