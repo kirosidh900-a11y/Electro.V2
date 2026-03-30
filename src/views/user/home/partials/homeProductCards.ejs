@@ -42,11 +42,11 @@ shadow-sm hover:shadow-2xl transition-all duration-300 border border-gray-100">
                 mix-blend-multiply">
 
             <!-- DISCOUNT -->
-            <% if (discount> 0) { %>
+            <!-- <% if (discount> 0) { %>
                 <span class="absolute bottom-2 left-2 bg-green-600 text-white text-[10px] px-2 py-0.5 rounded">
                     <%= discount %>% OFF
                 </span>
-                <% } %>
+                <% } %> -->
 
                     <!-- HOVER BUTTONS -->
                     <div class="absolute top-3 right-3 flex flex-col gap-2 
@@ -118,15 +118,15 @@ shadow-sm hover:shadow-2xl transition-all duration-300 border border-gray-100">
                     ₹<%= price %>
                 </span>
 
-                <span class="text-xs text-gray-400 line-through">
+                <!-- <span class="text-xs text-gray-400 line-through">
                     ₹<%= original %>
-                </span>
+                </span> -->
             </div>
 
             <!-- SAVE -->
-            <p class="text-[11px] text-green-600 font-medium">
+            <!-- <p class="text-[11px] text-green-600 font-medium">
                 You save ₹<%= original - price %>
-            </p>
+            </p> -->
 
         </div>
     </div>
