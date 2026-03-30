@@ -807,7 +807,6 @@
             if (variantCropper) variantCropper.destroy();
 
             variantCropper = new Cropper(variantCropImage, {
-              //  aspectRatio: 1,
               viewMode: 1,
               autoCropArea: 1,
             });
@@ -928,10 +927,52 @@
       window.handleCrop = function () {
         if (cropMode === "single") {
           cropSingleVariantImage();
-        } else {
+        } else if (cropMode === "multi") {
           cropMultiVariantImage();
+        } else if (cropMode === "replace") {
+          replaceVariantImageUpload();
         }
       };
+
+      async function replaceVariantImageUpload() {
+        if (!variantCropper) return;
+
+        const canvas = variantCropper.getCroppedCanvas({
+          width: 400,
+          height: 400,
+        });
+
+        canvas.toBlob(async (blob) => {
+          const formData = new FormData();
+          formData.append("image", blob, "variant.png");
+          formData.append("imageId", replaceImageId);
+
+          try {
+            const res = await fetch(
+              `/admin/products/<%= product._id %>/variants/${replaceVariantId}/image/replace`,
+              {
+                method: "PATCH",
+                body: formData
+              }
+            );
+
+            const data = await res.json();
+
+            if (!data.success)
+              return showToast(data.message, "error");
+
+            showToast("Image replaced successfully", "success");
+
+            closeVariantCrop();
+            setTimeout(() => location.reload(), 800);
+
+          } catch {
+            showToast("Replace failed", "error");
+          }
+
+        }, "image/png");
+      }
+      
       /* ================= CLOSE CROP ================= */
 
       window.closeVariantCrop = function () {
@@ -1087,8 +1128,8 @@
         cropMode = "replace"; // new mode
         variantImageInput.click();
       };
-   
-   </script>
+
+    </script>
 
     <script>
       function debounce(fn, delay) {

@@ -17,6 +17,7 @@ import {
   getProductById,
   getVariantById,
   checkSkuAvailability,
+  replaceVariantImage,
 } from "../../controllers/product/product.controller.js";
 
 import { setUploadFolder } from "../../middlewares/setUploadFolder.middleware.js";
@@ -82,5 +83,12 @@ router
   .route("/:productId/variants/:variantId/image")
   .post(setUploadFolder("products"), upload.single("image"), addVariantImage)
   .delete(deleteVariantImage);
+
+router.patch(
+  "/:productId/variants/:variantId/image/replace",
+  setUploadFolder("products"),
+  upload.single("image"),
+  replaceVariantImage,
+);
 
 export default router;

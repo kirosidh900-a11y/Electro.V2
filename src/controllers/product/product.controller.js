@@ -20,6 +20,7 @@ import {
 import {
   addVariantImageService,
   deleteVariantImageService,
+  replaceVariantImageService,
 } from "../../services/product/variantImage.service.js";
 
 import {
@@ -176,11 +177,11 @@ export const toggleProductStatus = async (req, res, next) => {
     );
 
     //CACHE INVALIDATION
-    // category-related 
+    // category-related
     await deleteCacheByPattern(`shop:*category=${category}*`);
-    // brand-related 
+    // brand-related
     await deleteCacheByPattern(`shop:*brand=${brand}*`);
-    // global listing 
+    // global listing
     await deleteCacheByPattern(`shop:category=all:*`);
     // home cache
     await deleteCacheByPattern("home_products_*");
@@ -397,6 +398,63 @@ export const deleteVariantImage = async (req, res, next) => {
     return successResponse(res, result.message);
   } catch (error) {
     next(error); // 🔥 pass to global handler
+  }
+};
+
+export const replaceVariantImage = async (req, res, next) => {
+  let uploadedImage;
+
+  try {
+    const { productId, variantId } = req.params;
+    const { imageId } = req.body;
+
+    const file = req.file || req.files?.[0];
+
+    if (!file) {
+      return errorResponse(res, "Image required", HTTP_STATUS.BAD_REQUEST);
+    }
+
+    if (!imageId) {
+      return errorResponse(
+        res,
+        "Old imageId required",
+        HTTP_STATUS.BAD_REQUEST,
+      );
+    }
+
+    // ✅ upload new image (same as your add)
+    uploadedImage = await uploadToCloudinary(file.buffer, "variants");
+
+    // ✅ call service (replace logic)
+    const result = await replaceVariantImageService({
+      productId,
+      variantId,
+      oldImageId: imageId,
+      newImage: uploadedImage.secure_url,
+      newImageId: uploadedImage.public_id,
+    });
+
+    return successResponse(
+      res,
+      result?.message || "Variant image replaced",
+      HTTP_STATUS.OK,
+      {
+        image: uploadedImage.secure_url,
+        imageId: uploadedImage.public_id,
+      },
+    );
+  } catch (error) {
+    // 🔥 rollback (same pattern you used)
+    if (uploadedImage?.public_id) {
+      try {
+        await deleteFromCloudinary(uploadedImage.public_id);
+      } catch (err) {
+        console.error("Cleanup failed:", err);
+      }
+    }
+
+    console.error("replace variant img error:", error);
+    next(error);
   }
 };
 
