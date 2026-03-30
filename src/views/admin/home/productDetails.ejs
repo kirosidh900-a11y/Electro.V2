@@ -408,14 +408,14 @@
           <!-- PRICE -->
           <div>
             <label class="text-sm text-gray-400">Price</label>
-            <input type="number" id="variant-price"
+            <input type="number" min="0" step="0.01" id="variant-price"
               class="w-full mt-1 bg-[#0f172a] border border-white/10 px-3 py-2 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none">
           </div>
 
           <!-- STOCK -->
           <div>
             <label class="text-sm text-gray-400">Stock</label>
-            <input type="number" id="variant-stock"
+            <input type="number" min="0" step="1" id="variant-stock"
               class="w-full mt-1 bg-[#0f172a] border border-white/10 px-3 py-2 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none">
           </div>
 
@@ -652,7 +652,6 @@
 
         const submitBtn = variantForm.querySelector("button[type='submit']");
 
-        //  prevent multiple clicks
         if (submitBtn.disabled) return;
 
         try {
@@ -662,21 +661,34 @@
 
           const variantId = document.getElementById("variant-id").value;
           const sku = document.getElementById("variant-sku").value.trim();
-          const price = parseFloat(document.getElementById("variant-price").value);
-          const stock = parseInt(document.getElementById("variant-stock").value);
+
+          const priceInput = document.getElementById("variant-price").value;
+          const stockInput = document.getElementById("variant-stock").value;
+
+          const price = priceInput === "" ? NaN : parseFloat(priceInput);
+          const stock = stockInput === "" ? NaN : parseInt(stockInput);
+
           const description = document.getElementById("variant-description").value.trim();
 
+          // SKU validation
           if (skuStatus.textContent.includes("exists")) {
             throw new Error("SKU already exists!");
           }
 
           if (!sku) throw new Error("SKU is required");
           if (sku.length < 3) throw new Error("SKU must be at least 3 characters");
-          if (!price || price <= 0) throw new Error("Price must be greater than 0");
-          if (stock < 0) throw new Error("Stock cannot be negative");
 
+          // FIXED VALIDATION (allow 0)
+          if (isNaN(price) || price < 0) {
+            throw new Error("Price must be 0 or greater");
+          }
+
+          if (isNaN(stock) || stock < 0) {
+            throw new Error("Stock must be 0 or greater");
+          }
+
+          // ATTRIBUTES
           const attributes = {};
-
           document.querySelectorAll("#variantAttributes input").forEach(input => {
             attributes[input.name] = input.value.trim();
           });
@@ -685,15 +697,16 @@
             if (!attributes[key]) throw new Error(`${key} cannot be empty`);
           }
 
+          // DESCRIPTION
           if (!description || description.length < 5)
             throw new Error("Description required");
 
+          // IMAGES
           if (!variantId && variantImages.length < 3)
-            throw new Error("At least three image required");
+            throw new Error("At least three images required");
 
-          //  FormData
+          // FORM DATA
           const formData = new FormData();
-
           formData.append("sku", sku);
           formData.append("price", price);
           formData.append("stock", stock);
@@ -728,12 +741,11 @@
         } catch (err) {
           showToast(err.message || "Something went wrong", "error");
         } finally {
-          // 🔥 re-enable button
           setTimeout(() => {
             submitBtn.disabled = false;
             submitBtn.textContent = "Save Variant";
             submitBtn.classList.remove("opacity-50", "cursor-not-allowed");
-          }, 1000)
+          }, 1000);
         }
       });
 
@@ -1048,6 +1060,14 @@
           showToast("Something went wrong", "error");
         }
       };
+
+      // 🚫 Disable scroll on number inputs (GLOBAL FIX)
+      document.addEventListener("wheel", function (e) {
+        if (e.target.type === "number") {
+          e.preventDefault();
+          e.target.blur();
+        }
+      }, { passive: false });
 
     </script>
 
