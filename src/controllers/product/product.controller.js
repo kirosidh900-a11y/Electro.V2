@@ -9,7 +9,7 @@ import {
   toggleProductStatusService,
   getProductAttributesService,
   getProductDetailsService,
-  addVariantService, 
+  addVariantService,
   editVariantService,
   deleteVariantService,
   getProductByIdService,
@@ -20,6 +20,7 @@ import {
 import {
   addVariantImageService,
   deleteVariantImageService,
+  replaceVariantImageService,
 } from "../../services/product/variantImage.service.js";
 
 import {
@@ -37,16 +38,28 @@ import { deleteCacheByPattern } from "../../utils/Redis/cache.js";
 //  PRODUCTS PAGE
 export const productsPage = async (req, res, next) => {
   try {
-    const page = Number(req.query.page) || 1;
+    //pagination
+    const page = Math.max(Number(req.query.page) || 1, 1);
     const limit = 6;
 
-    const search = req.query.search || "";
+    //filters
+    const search = (req.query.search || "").trim();
     const status = req.query.status || "All";
 
+    //service call
     const { products, currentPage, categories, brands, totalPages } =
-      await getProductsService({ page, limit, search, status });
+      await getProductsService({
+        page,
+        limit,
+        search,
+        status,
+      });
 
-    if (req.headers.accept?.includes("application/json")) {
+    //AJAX request detection (BEST WAY)
+    const isAjax =
+      req.xhr || req.headers["x-requested-with"] === "XMLHttpRequest";
+
+    if (isAjax) {
       const rows = await renderView(res, "admin/home/partials/productRows", {
         products,
         currentPage,
@@ -58,13 +71,19 @@ export const productsPage = async (req, res, next) => {
         { currentPage, totalPages },
       );
 
-      return res.status(HTTP_STATUS.OK).json({ rows, pagination });
+      return res.status(HTTP_STATUS.OK).json({
+        success: true,
+        rows,
+        pagination,
+      });
     }
 
+    // normal render
     res.locals.title = "Products Management";
+
     const error = req.cookies.toastError || null;
 
-    res.status(HTTP_STATUS.OK).render("admin/home/products", {
+    return res.status(HTTP_STATUS.OK).render("admin/home/products", {
       products,
       categories,
       brands,
@@ -101,11 +120,24 @@ export const updateProduct = async (req, res, next) => {
 
     const product = await updateProductService(id, req.body);
 
-    successResponse(res, "Product updated successfully", HTTP_STATUS.OK, {
-      product,
-    });
+    // CACHE INVALIDATION
+    // category-based cache
+    await deleteCacheByPattern(`shop:*category=${product.category}*`);
+    // brand-based cache
+    await deleteCacheByPattern(`shop:*brand=${product.brand}*`);
+    // global listing
+    await deleteCacheByPattern(`shop:category=all:*`);
+    // home
+    await deleteCacheByPattern("home_products_*");
+
+    return successResponse(
+      res,
+      "Product updated successfully",
+      HTTP_STATUS.OK,
+      { product },
+    );
   } catch (error) {
-    console.error("Delete Product Error", error);
+    console.error("Update Product Error", error);
     next(error);
   }
 };
@@ -113,9 +145,24 @@ export const updateProduct = async (req, res, next) => {
 //  DELETE PRODUCT
 export const deleteProduct = async (req, res, next) => {
   try {
-    await deleteProductService(req.params.id);
+    const { id, category, brand } = await deleteProductService(req.params.id);
 
-    successResponse(res, "Product deleted successfully");
+    // CACHE INVALIDATION
+    // category-based cache
+    await deleteCacheByPattern(`shop:*category=${category}*`);
+    // brand-based cache
+    await deleteCacheByPattern(`shop:*brand=${brand}*`);
+    // global listing
+    await deleteCacheByPattern(`shop:category=all:*`);
+    // home cache
+    await deleteCacheByPattern("home_products_*");
+
+    return successResponse(
+      res,
+      "Product deleted successfully",
+      HTTP_STATUS.OK,
+      { id },
+    );
   } catch (error) {
     console.error("Delete Product Error", error);
     next(error);
@@ -129,19 +176,17 @@ export const toggleProductStatus = async (req, res, next) => {
       req.params.id,
     );
 
-    // SMART CACHE INVALIDATION
-
-    // Category related
-    await deleteCacheByPattern(`shop:category=${category}:*`);
-    // Brand related
+    //CACHE INVALIDATION
+    // category-related
+    await deleteCacheByPattern(`shop:*category=${category}*`);
+    // brand-related
     await deleteCacheByPattern(`shop:*brand=${brand}*`);
-    //  Global listing (IMPORTANT)
-    await deleteCacheByPattern(`shop:category=all:brand=all:*`);
-
-    // Home cache (FIXED)
+    // global listing
+    await deleteCacheByPattern(`shop:category=all:*`);
+    // home cache
     await deleteCacheByPattern("home_products_*");
 
-    successResponse(res, "Toggle Updated!", HTTP_STATUS.OK, {
+    return successResponse(res, "Toggle Updated!", HTTP_STATUS.OK, {
       action: status,
     });
   } catch (error) {
@@ -206,11 +251,10 @@ export const getVariantById = async (req, res, next) => {
   }
 };
 
-//  PRODUCT DETAILS 
+//  PRODUCT DETAILS
 export const getProductDetails = async (req, res, next) => {
   try {
     const data = await getProductDetailsService(req.params.id, res);
-
 
     res.status(HTTP_STATUS.OK).render("admin/home/productDetails", {
       title: "Product Details",
@@ -354,6 +398,63 @@ export const deleteVariantImage = async (req, res, next) => {
     return successResponse(res, result.message);
   } catch (error) {
     next(error); // 🔥 pass to global handler
+  }
+};
+
+export const replaceVariantImage = async (req, res, next) => {
+  let uploadedImage;
+
+  try {
+    const { productId, variantId } = req.params;
+    const { imageId } = req.body;
+
+    const file = req.file || req.files?.[0];
+
+    if (!file) {
+      return errorResponse(res, "Image required", HTTP_STATUS.BAD_REQUEST);
+    }
+
+    if (!imageId) {
+      return errorResponse(
+        res,
+        "Old imageId required",
+        HTTP_STATUS.BAD_REQUEST,
+      );
+    }
+
+    // ✅ upload new image (same as your add)
+    uploadedImage = await uploadToCloudinary(file.buffer, "variants");
+
+    // ✅ call service (replace logic)
+    const result = await replaceVariantImageService({
+      productId,
+      variantId,
+      oldImageId: imageId,
+      newImage: uploadedImage.secure_url,
+      newImageId: uploadedImage.public_id,
+    });
+
+    return successResponse(
+      res,
+      result?.message || "Variant image replaced",
+      HTTP_STATUS.OK,
+      {
+        image: uploadedImage.secure_url,
+        imageId: uploadedImage.public_id,
+      },
+    );
+  } catch (error) {
+    // 🔥 rollback (same pattern you used)
+    if (uploadedImage?.public_id) {
+      try {
+        await deleteFromCloudinary(uploadedImage.public_id);
+      } catch (err) {
+        console.error("Cleanup failed:", err);
+      }
+    }
+
+    console.error("replace variant img error:", error);
+    next(error);
   }
 };
 

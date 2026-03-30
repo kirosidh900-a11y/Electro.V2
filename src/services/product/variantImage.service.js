@@ -1,7 +1,10 @@
 import Products from "../../models/productSchema.model.js";
 import AppError from "../../utils/partials/AppError.utils.js";
 import HTTP_STATUS from "../../constant/statusCode.js";
-import { deleteFromCloudinary } from "../partials/cloudinary.service.js";
+import {
+  uploadToCloudinary,
+  deleteFromCloudinary,
+} from "../partials/cloudinary.service.js";
 
 export const addVariantImageService = async ({
   productId,
@@ -70,5 +73,49 @@ export const deleteVariantImageService = async ({
 
   return {
     message: "Variant image deleted successfully",
+  };
+};
+
+export const replaceVariantImageService = async ({
+  productId,
+  variantId,
+  oldImageId,
+  newImage,
+  newImageId,
+}) => {
+  const product = await Products.findById(productId);
+
+  if (!product) throw new Error("Product not found");
+
+  const variant = product.variants.id(variantId);
+
+  if (!variant) throw new Error("Variant not found");
+
+  const imageIndex = variant.product_images.findIndex(
+    (img) => img.imageId === oldImageId,
+  );
+
+  if (imageIndex === -1) throw new Error("Image not found");
+
+  const oldImage = variant.product_images[imageIndex];
+
+  // 🔥 replace in DB first (safe)
+  variant.product_images[imageIndex] = {
+    url: newImage,
+    imageId: newImageId,
+  };
+
+  await product.save();
+
+  // 🔥 delete old image AFTER success (safe approach)
+  try {
+    await deleteFromCloudinary(oldImage.imageId);
+  } catch (err) {
+    console.warn("Old image delete failed:", err);
+  }
+
+  return {
+    message: "Image replaced successfully",
+    images: variant.product_images,
   };
 };

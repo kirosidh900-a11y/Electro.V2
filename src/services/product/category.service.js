@@ -84,13 +84,24 @@ export const editCategoryService = async (id, title, status) => {
 
 //    Delete Category
 export const deleteCategoryService = async (id) => {
-  const category = await Category.findByIdAndUpdate(id, {
-    isDeleted: true,
-  });
+  //validate id
+  if (!id || !mongoose.Types.ObjectId.isValid(id)) {
+    throw new AppError("Invalid Category ID", HTTP_STATUS.BAD_REQUEST);
+  }
+
+  const category = await Category.findByIdAndUpdate(
+    id,
+    { isDeleted: true },
+    { new: true },
+  );
 
   if (!category) {
     throw new AppError("Category not found", HTTP_STATUS.NOT_FOUND);
   }
+
+  return {
+    id: category._id,
+  };
 };
 
 //    Toggle Status

@@ -173,32 +173,62 @@ export const createProductService = async (data) => {
 
 //  UPDATE PRODUCT
 export const updateProductService = async (id, data) => {
-  const existingProduct = await Products.findOne({
-    _id: { $ne: id },
-    name: { $regex: `^${data.name}$`, $options: "i" },
-  });
-
-  if (existingProduct) {
-    throw new AppError(
-      "Product with this name already exists",
-      HTTP_STATUS.CONFLICT,
-    );
+  // validate id
+  if (!id || !mongoose.Types.ObjectId.isValid(id)) {
+    throw new AppError("Invalid Product ID", HTTP_STATUS.BAD_REQUEST);
   }
 
-  const product = await Products.findByIdAndUpdate(id, data, { new: true });
+  // normalize name
+  if (data.name) {
+    data.name = data.name.trim().toUpperCase();
+
+    const existingProduct = await Products.findOne({
+      name: data.name,
+      _id: { $ne: id },
+    });
+
+    if (existingProduct) {
+      throw new AppError(
+        "Product with this name already exists",
+        HTTP_STATUS.CONFLICT,
+      );
+    }
+  }
+
+  const product = await Products.findByIdAndUpdate(id, data, {
+    new: true,
+    runValidators: true,
+  });
+
+  if (!product) {
+    throw new AppError("Product not found", HTTP_STATUS.NOT_FOUND);
+  }
 
   return product;
 };
 
 // DELETE PRODUCT
 export const deleteProductService = async (id) => {
+  // validate id
+  if (!id || !mongoose.Types.ObjectId.isValid(id)) {
+    throw new AppError("Invalid Product ID", HTTP_STATUS.BAD_REQUEST);
+  }
+
   const product = await Products.findById(id);
 
-  if (!product) throw new AppError("Product not found", HTTP_STATUS.NOT_FOUND);
+  if (!product) {
+    throw new AppError("Product not found", HTTP_STATUS.NOT_FOUND);
+  }
 
   product.isDeleted = true;
 
   await product.save();
+
+  return {
+    id: product._id,
+    category: product.category,
+    brand: product.brand,
+  };
 };
 
 //  TOGGLE STATUS

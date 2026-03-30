@@ -5,6 +5,7 @@ import {
   createBrandService,
   findBrandByIdService,
   softDeleteBrandService,
+  toggleBrandStatusService,
   updateBrandService,
 } from "../../services/product/brand.service.js";
 
@@ -18,6 +19,7 @@ import {
   deleteFromCloudinary,
   uploadToCloudinary,
 } from "../../services/partials/cloudinary.service.js";
+import { deleteCacheByPattern } from "../../utils/Redis/cache.js";
 
 export const brandPage = async (req, res) => {
   try {
@@ -69,31 +71,40 @@ export const createBrand = async (req, res) => {
     const { title, status } = req.body;
 
     if (!req.file) {
-      return errorResponse(res, "Logo required", HTTP_STATUS.NOT_FOUND);
+      return errorResponse(res, "Logo required", HTTP_STATUS.BAD_REQUEST);
     }
 
+    //upload first
     uploadedImage = await uploadToCloudinary(req.file.buffer, "brand");
 
-    await createBrandService({
-      title: title.trim().toUpperCase(),
+    const brand = await createBrandService({
+      title,
       status,
       logo: uploadedImage.secure_url,
       brandId: uploadedImage.public_id,
     });
 
-    return successResponse(res, "Brand created successfully");
+    // CACHE INVALIDATION
+    await deleteCacheByPattern(`shop:category=all:*`);
+    await deleteCacheByPattern("home_products_*");
+
+    return successResponse(
+      res,
+      "Brand created successfully",
+      HTTP_STATUS.CREATED,
+      brand,
+    );
   } catch (error) {
-    // cleanup only if uploaded
+    // rollback image
     if (uploadedImage?.public_id) {
       await deleteFromCloudinary(uploadedImage.public_id);
     }
 
-    if (error.code === 11000) {
-      return errorResponse(res, "Brand already exists",HTTP_STATUS.CONFLICT);
-    }
-
-    console.error(error);
-    return errorResponse(res, "Failed to create brand");
+    return errorResponse(
+      res,
+      error.message || "Failed to create brand",
+      error.statusCode || 500,
+    );
   }
 };
 
@@ -107,13 +118,13 @@ export const updateBrand = async (req, res) => {
     const brand = await findBrandByIdService(id);
 
     if (!brand) {
-      return errorResponse(res, "Brand not found");
+      return errorResponse(res, "Brand not found", HTTP_STATUS.NOT_FOUND);
     }
 
     let logo = brand.logo;
     let brandId = brand.brandId;
 
-    // Only if new image uploaded
+    // upload new image
     if (req.file) {
       uploadedImage = await uploadToCloudinary(req.file.buffer, "brand");
 
@@ -121,26 +132,40 @@ export const updateBrand = async (req, res) => {
       brandId = uploadedImage.public_id;
     }
 
-    await updateBrandService(id, {
+    // update DB
+    const updatedBrand = await updateBrandService(id, {
       title,
       logo,
       brandId,
     });
 
-    // After DB success → delete old image
+    // delete OLD image AFTER success
     if (req.file && brand?.brandId) {
       await deleteFromCloudinary(brand.brandId);
     }
 
-    return successResponse(res, "Brand updated successfully");
+    // CACHE INVALIDATION
+    await deleteCacheByPattern(`shop:*brand=${id}*`);
+    await deleteCacheByPattern(`shop:category=*`);
+    await deleteCacheByPattern("home_products_*");
+
+    return successResponse(
+      res,
+      "Brand updated successfully",
+      HTTP_STATUS.OK,
+      updatedBrand,
+    );
   } catch (error) {
-    // If DB fails → delete NEW uploaded image only
+    // rollback new image if DB failed
     if (uploadedImage?.public_id) {
       await deleteFromCloudinary(uploadedImage.public_id);
     }
 
-    console.error(error);
-    return errorResponse(res, "Failed to update brand");
+    return errorResponse(
+      res,
+      error.message || "Failed to update brand",
+      error.statusCode || HTTP_STATUS.INTERNAL_SERVER_ERROR,
+    );
   }
 };
 
@@ -148,41 +173,49 @@ export const deleteBrand = async (req, res) => {
   try {
     const { id } = req.params;
 
-    const brand = await findBrandByIdService(id);
+    const brand = await softDeleteBrandService(id);
 
-    if (!brand) {
-      return errorResponse(res, "Brand not found");
-    }
+    // CACHE INVALIDATION
+    await deleteCacheByPattern(`shop:*brand=${id}*`);
+    await deleteCacheByPattern(`shop:category=*`);
+    await deleteCacheByPattern("home_products_*");
 
-    await softDeleteBrandService(id);
-
-    return successResponse(res, "Brand deleted successfully");
+    return successResponse(res, "Brand deleted successfully", HTTP_STATUS.OK, {
+      id: brand._id,
+    });
   } catch (error) {
     console.error(error);
-    return errorResponse(res, "Failed to delete brand");
+
+    return errorResponse(
+      res,
+      error.message || "Failed to delete brand",
+      error.statusCode || 500,
+    );
   }
 };
 
 export const toggleBrandStatus = async (req, res) => {
   try {
-    const { id } = req.params;
+    const { status, id } = await toggleBrandStatusService(req.params.id);
 
-    const brand = await findBrandByIdService(id);
+    //CACHE INVALIDATION
+    await deleteCacheByPattern(`shop:*brand=${id}*`);
+    await deleteCacheByPattern(`shop:category=*`);
+    await deleteCacheByPattern("home_products_*");
 
-    if (!brand) {
-      return errorResponse(res, "Brand not found");
-    }
-
-    const status = brand.status === "listed" ? "unlisted" : "listed";
-
-    await updateBrandService(id, { status });
-
-    res.json({
-      success: true,
-      status,
-    });
+    return successResponse(
+      res,
+      "Brand status updated successfully",
+      HTTP_STATUS.OK,
+      { status },
+    );
   } catch (error) {
     console.error(error);
-    return errorResponse(res, "Failed to update brand status");
+
+    return errorResponse(
+      res,
+      error.message || "Failed to update brand status",
+      error.statusCode || HTTP_STATUS.INTERNAL_SERVER_ERROR,
+    );
   }
 };
