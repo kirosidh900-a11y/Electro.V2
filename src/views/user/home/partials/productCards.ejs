@@ -103,11 +103,11 @@
                 group-hover:scale-110 transition duration-500 ease-in-out">
 
                     <!-- DISCOUNT -->
-                    <% if(discount> 0) { %>
+                    <!-- <% if(discount> 0) { %>
                         <span class="absolute bottom-2 left-2 bg-green-600 text-white text-[10px] px-2 py-0.5 rounded">
                             <%= discount %>% OFF
                         </span>
-                        <% } %>
+                        <% } %> -->
                 </div>
 
                 <!-- CONTENT -->
@@ -144,15 +144,15 @@
                         <span class="text-lg font-bold text-gray-900">
                             ₹<%= price.toLocaleString('en-IN') %>
                         </span>
-                        <span class="text-xs text-gray-400 line-through">
+                        <!-- <span class="text-xs text-gray-400 line-through">
                             ₹<%= original.toLocaleString('en-IN') %>
-                        </span>
+                        </span> -->
                     </div>
 
                     <!-- SAVE -->
-                    <p class="text-[11px] text-green-600 font-medium">
+                    <!-- <p class="text-[11px] text-green-600 font-medium">
                         You save ₹<%= (original - price).toLocaleString('en-IN') %>
-                    </p>
+                    </p> -->
 
                 </div>
 

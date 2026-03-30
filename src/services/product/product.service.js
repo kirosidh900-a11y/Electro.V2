@@ -536,11 +536,9 @@ export const getProductsListService = async ({
   const skip = (page - 1) * limit;
   const isSearch = search && search.trim() !== "";
 
-  // SAFE PRICE
   const safeMin = Number(minPrice) || 0;
   const safeMax = Number(maxPrice) || 100000;
 
-  // NORMALIZE BRAND
   const normalizedBrand = brand ? brand.split(",").sort().join(",") : "all";
 
   const cacheKey = `shop:category=${category || "all"}:brand=${normalizedBrand}:page=${page}:limit=${limit}:sort=${sort}:price=${safeMin}-${safeMax}`;
@@ -548,7 +546,7 @@ export const getProductsListService = async ({
   // CACHE HIT
   if (!isSearch) {
     const cachedData = await getCache(cacheKey);
-    if (cachedData && cachedData.products) {
+    if (cachedData?.products) {
       console.warn("⚡ Cache HIT:", cacheKey);
       return cachedData;
     }
@@ -556,7 +554,6 @@ export const getProductsListService = async ({
 
   console.warn("🐢 DB HIT:", cacheKey);
 
-  // BASE FILTER
   const filter = {
     status: "listed",
     isDeleted: false,
@@ -579,7 +576,7 @@ export const getProductsListService = async ({
     filter.category = new mongoose.Types.ObjectId(category);
   }
 
-  // BRAND (MULTI SELECT)
+  // BRAND
   if (brand && brand !== "all") {
     const brands = brand
       .split(",")
@@ -589,53 +586,65 @@ export const getProductsListService = async ({
     filter.brand = { $in: brands };
   }
 
-  // PRICE FILTER
-  filter.variants = {
-    $elemMatch: {
-      price: {
-        $gte: safeMin,
-        $lte: safeMax,
-      },
-    },
-  };
-
-  // SORT LOGIC
+  // SORT
   let sortOption = {};
 
-  switch (sort) {
+  switch ((sort || "").trim()) {
     case "priceLow":
-      sortOption = { minPrice: 1 };
+      sortOption = { minPrice: 1, createdAt: -1 };
       break;
-
     case "priceHigh":
-      sortOption = { minPrice: -1 };
+      sortOption = { minPrice: -1, createdAt: -1 };
       break;
-
     case "nameAsc":
       sortOption = { lowerName: 1 };
       break;
-
     case "nameDesc":
       sortOption = { lowerName: -1 };
       break;
-
     case "oldest":
       sortOption = { createdAt: 1 };
       break;
-
     case "newest":
     default:
       sortOption = { createdAt: -1 };
   }
 
-  // AGGREGATION PIPELINE
   const result = await Products.aggregate([
     { $match: filter },
 
-    // COMPUTED FIELDS
+    // UNWIND
+    { $unwind: "$variants" },
+
+    // PRICE FILTER
+    {
+      $match: {
+        "variants.price": {
+          $gte: safeMin,
+          $lte: safeMax,
+        },
+      },
+    },
+
+    // SORT VARIANTS (IMPORTANT)
+    { $sort: { "variants.price": 1 } },
+
+    // GROUP BACK
+    {
+      $group: {
+        _id: "$_id",
+        name: { $first: "$name" },
+        brand: { $first: "$brand" },
+        category: { $first: "$category" },
+        createdAt: { $first: "$createdAt" },
+        variants: { $push: "$variants" }, // sorted variants
+        minPrice: { $first: "$variants.price" }, // cheapest
+      },
+    },
+
+    // LOWER NAME
     {
       $addFields: {
-        minPrice: { $min: "$variants.price" },
         lowerName: { $toLower: "$name" },
       },
     },
@@ -664,7 +673,7 @@ export const getProductsListService = async ({
     { $unwind: "$category" },
     { $match: { "category.status": "listed", "category.isDeleted": false } },
 
-    // PAGINATION + COUNT
+    // FINAL
     {
       $facet: {
         data: [
@@ -686,7 +695,6 @@ export const getProductsListService = async ({
     totalPages: Math.ceil(total / limit),
   };
 
-  // ✅ CACHE SET
   if (!isSearch) {
     await setCache(cacheKey, responseData);
   }
