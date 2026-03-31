@@ -510,6 +510,15 @@ export const editVariantService = async (productId, variantId, data) => {
   variant.attributes = new Map(Object.entries(data.attributes || {}));
 
   await product.save();
+
+  //REAL-TIME EMIT
+  if (global.io) {
+    global.io.emit("stockUpdated", {
+      productId,
+      variantId,
+      stock: variant.stock,
+    });
+  }
 };
 
 //  DELETE VARIANT
