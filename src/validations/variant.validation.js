@@ -44,5 +44,7 @@ export const editVariantSchema = Joi.object({
         return helpers.error("any.invalid");
       }
     })
-    .optional(),// New field for images to delete
+    .optional(), // New field for images to delete
+
+  replaceImageIds: Joi.any().optional(),
 });

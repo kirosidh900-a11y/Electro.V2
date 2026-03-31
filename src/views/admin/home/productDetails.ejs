@@ -511,6 +511,8 @@
       let variantImages = []; //  store cropped blobs
       let cropMode = "single"; // "single" | "multi"
       let imagesToDelete = []; // store imageIds to delete on save
+      let replacedImages = []; // store {imageId, blob} for replaced images
+      let replaceVariantId = null;
 
 
       const variantImageInput = document.getElementById("variantImageInput");
@@ -558,7 +560,7 @@
 
       window.closeVariantModal = function () {
         document.getElementById("variantModal").classList.add("hidden");
-        document.body.style.overflow = "auto"; // 🔥 restore scroll
+        document.body.style.overflow = "auto"; // restore scroll
         skuStatus.textContent = ''
         imagesToDelete = [];
       };
@@ -634,7 +636,11 @@
           if (variant.product_images?.length) {
             variant.product_images.forEach(img => {
               const wrapper = document.createElement("div");
-              wrapper.className = "relative group w-16 h-16"; // 🔥 FIX: fixed size container
+              wrapper.className = "relative group w-16 h-16";
+
+              // store imageId for delete/replace actions
+              wrapper.dataset.imageId = img.imageId;
+
 
               const image = document.createElement("img");
               image.src = img.url;
@@ -643,6 +649,7 @@
               const removeBtn = document.createElement("button");
               removeBtn.innerHTML = "×";
 
+              // ❌ REMOVE BUTTON
               removeBtn.className =
                 "absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-4 h-4 text-[10px] hidden group-hover:flex items-center justify-center z-10";
 
@@ -652,8 +659,26 @@
                 wrapper.remove();
               };
 
+              const replaceBtn = document.createElement("button");
+              replaceBtn.type = "button";
+              replaceBtn.innerText = "Replace";
+
+              // 🔁 REPLACE BUTTO
+              replaceBtn.className =
+                "absolute bottom-0 left-0 right-0 bg-black/60 text-white text-[10px] py-[2px] hidden group-hover:block";
+
+              // click replace (EDIT MODE ONLY)
+              replaceBtn.onclick = () => {
+                replaceVariantId = img.imageId;
+                cropMode = "replace-edit";
+                variantImageInput.click();
+              };
+
               wrapper.appendChild(image);
               wrapper.appendChild(removeBtn);
+              wrapper.appendChild(replaceBtn);
+
+
               preview.appendChild(wrapper);
             });
           }
@@ -746,6 +771,13 @@
 
           if (imagesToDelete.length > 0) {
             formData.append("deleteImages", JSON.stringify(imagesToDelete));
+          }
+
+          if (replacedImages.length > 0) {
+            replacedImages.forEach((item, i) => {
+              formData.append("images", item.file); 
+              formData.append("replaceImageIds", item.imageId);
+            });
           }
 
           let url = `/admin/products/<%= product._id %>/variants`;
@@ -954,7 +986,9 @@
         } else if (cropMode === "multi") {
           cropMultiVariantImage();
         } else if (cropMode === "replace") {
-          replaceVariantImageUpload();
+          replaceVariantImageUpload(); // existing (table)
+        } else if (cropMode === "replace-edit") {
+          replaceImageInEdit(); // edit modal
         }
       };
 
@@ -994,6 +1028,38 @@
             showToast("Replace failed", "error");
           }
 
+        }, "image/png");
+      }
+
+
+      function replaceImageInEdit() {
+        if (!variantCropper) return;
+
+        const canvas = variantCropper.getCroppedCanvas({
+          width: 400,
+          height: 400,
+        });
+
+        canvas.toBlob((blob) => {
+
+          // store for backend
+          replacedImages.push({
+            imageId: replaceVariantId,
+            file: blob,
+          });
+
+          // update UI preview
+          const preview = document.getElementById("variantImagePreview");
+
+          [...preview.children].forEach((wrapper) => {
+            const img = wrapper.querySelector("img");
+
+            if (img && img.src.includes(replaceVariantId)) {
+              img.src = URL.createObjectURL(blob);
+            }
+          });
+
+          closeVariantCrop();
         }, "image/png");
       }
 
@@ -1142,7 +1208,7 @@
       }, { passive: false });
 
       let replaceImageId = null;
-      let replaceVariantId = null;
+      replaceVariantId = null;
 
       // OPEN FILE SELECT FOR REPLACE
       window.replaceVariantImage = function (variantId, imageId) {

@@ -4,7 +4,10 @@ import Brand from "../../models/brandSchema.model.js";
 import mongoose from "mongoose";
 import AppError from "../../utils/partials/AppError.utils.js";
 import HTTP_STATUS from "../../constant/statusCode.js";
-import { deleteFromCloudinary, uploadToCloudinary } from "../partials/cloudinary.service.js";
+import {
+  deleteFromCloudinary,
+  uploadToCloudinary,
+} from "../partials/cloudinary.service.js";
 import { getCache, setCache } from "../../utils/Redis/cache.js";
 import { findByIdOrThrow } from "../../utils/products/product.util.js";
 
@@ -491,26 +494,31 @@ export const editVariantService = async (productId, variantId, data) => {
   if (!variant) throw new Error("Variant not found");
 
   // ================= SKU CHECK =================
-  const normalizedSku = data.sku.trim().toLowerCase();
+  if (data.sku) {
+    const normalizedSku = data.sku.trim().toLowerCase();
 
-  const skuExists = await Products.findOne({
-    "variants.sku": { $regex: `^${normalizedSku}$`, $options: "i" },
-    "variants._id": { $ne: variantId },
-  });
+    const skuExists = await Products.findOne({
+      "variants.sku": { $regex: `^${normalizedSku}$`, $options: "i" },
+      "variants._id": { $ne: variantId },
+    });
 
-  if (skuExists) {
-    throw new Error("SKU already exists for another variant");
+    if (skuExists) {
+      throw new Error("SKU already exists for another variant");
+    }
+
+    variant.sku = data.sku;
   }
 
   // ================= BASIC UPDATE =================
-  variant.sku = data.sku;
-  variant.price = data.price;
-  variant.stock = data.stock;
-  variant.description = data.description;
+  if (data.price !== undefined) variant.price = data.price;
+  if (data.stock !== undefined) variant.stock = data.stock;
+  if (data.description !== undefined) variant.description = data.description;
 
-  variant.attributes = new Map(Object.entries(data.attributes || {}));
+  if (data.attributes) {
+    variant.attributes = new Map(Object.entries(data.attributes));
+  }
 
-  // ================= DELETE IMAGES  =================
+  // ================= DELETE IMAGES =================
   let deleteImages = [];
 
   if (data.deleteImages) {
@@ -526,7 +534,6 @@ export const editVariantService = async (productId, variantId, data) => {
       (img) => !deleteImages.includes(img.imageId),
     );
 
-    // delete from cloudinary
     for (const imageId of deleteImages) {
       try {
         await deleteFromCloudinary(imageId);
@@ -536,20 +543,53 @@ export const editVariantService = async (productId, variantId, data) => {
     }
   }
 
-  // ================= ADD NEW IMAGES =================
-  if (data.images && data.images.length > 0) {
-    const uploadedImages = [];
+  // ================= FILES =================
+  const files = data.images || [];
+  const replaceIds = [].concat(data.replaceImageIds || []);
 
-    for (const file of data.images) {
-      const uploaded = await uploadToCloudinary(file.buffer, "variants");
+  let fileIndex = 0;
 
-      uploadedImages.push({
+  // ================= REPLACE IMAGES =================
+  for (let i = 0; i < replaceIds.length; i++) {
+    const imageId = replaceIds[i];
+    const file = files[fileIndex];
+
+    if (!file || !file.buffer) continue;
+
+    const uploaded = await uploadToCloudinary(file.buffer, "variants");
+
+    const imgIndex = variant.product_images.findIndex(
+      (img) => img.imageId === imageId,
+    );
+
+    if (imgIndex !== -1) {
+      try {
+        await deleteFromCloudinary(imageId);
+      } catch (err) {
+        console.error("Cloudinary delete failed:", imageId);
+      }
+
+      variant.product_images[imgIndex] = {
         url: uploaded.secure_url,
         imageId: uploaded.public_id,
-      });
+      };
     }
 
-    variant.product_images.push(...uploadedImages);
+    fileIndex++; // 🔥 IMPORTANT
+  }
+
+  // ================= ADD NEW IMAGES =================
+  for (let i = fileIndex; i < files.length; i++) {
+    const file = files[i];
+
+    if (!file || !file.buffer) continue;
+
+    const uploaded = await uploadToCloudinary(file.buffer, "variants");
+
+    variant.product_images.push({
+      url: uploaded.secure_url,
+      imageId: uploaded.public_id,
+    });
   }
 
   await product.save();
@@ -560,9 +600,11 @@ export const editVariantService = async (productId, variantId, data) => {
       productId,
       variantId,
       stock: variant.stock,
+      price: variant.price,
     });
   }
 };
+
 //  DELETE VARIANT
 export const deleteVariantService = async (variantId) => {
   const product = await Products.findOne({
