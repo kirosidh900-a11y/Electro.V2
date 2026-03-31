@@ -510,6 +510,7 @@
       let variantCroppedBlob;
       let variantImages = []; //  store cropped blobs
       let cropMode = "single"; // "single" | "multi"
+      let imagesToDelete = []; // store imageIds to delete on save
 
 
       const variantImageInput = document.getElementById("variantImageInput");
@@ -538,6 +539,7 @@
         document.getElementById("variant-price").value = "";
         document.getElementById("variant-stock").value = "";
         variantImages = [];
+        imagesToDelete = [];
         document.getElementById("variantImagePreview").innerHTML = "";
         document.getElementById("variant-description").value = "";
 
@@ -558,6 +560,7 @@
         document.getElementById("variantModal").classList.add("hidden");
         document.body.style.overflow = "auto"; // 🔥 restore scroll
         skuStatus.textContent = ''
+        imagesToDelete = [];
       };
 
       /* ================= LOAD ATTRIBUTES ================= */
@@ -593,7 +596,7 @@
       /* ================= EDIT VARIANT ================= */
 
       window.editVariant = async function (variantId) {
-
+        imagesToDelete = [];
         try {
 
           const res = await fetch(
@@ -630,11 +633,28 @@
 
           if (variant.product_images?.length) {
             variant.product_images.forEach(img => {
+              const wrapper = document.createElement("div");
+              wrapper.className = "relative group w-16 h-16"; // 🔥 FIX: fixed size container
+
               const image = document.createElement("img");
               image.src = img.url;
-              image.className = "w-16 h-16 object-cover rounded";
+              image.className = "w-full h-full object-cover rounded";
 
-              preview.appendChild(image);
+              const removeBtn = document.createElement("button");
+              removeBtn.innerHTML = "×";
+
+              removeBtn.className =
+                "absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-4 h-4 text-[10px] hidden group-hover:flex items-center justify-center z-10";
+
+              // REMOVE HANDLER
+              removeBtn.onclick = () => {
+                imagesToDelete.push(img.imageId);
+                wrapper.remove();
+              };
+
+              wrapper.appendChild(image);
+              wrapper.appendChild(removeBtn);
+              preview.appendChild(wrapper);
             });
           }
 
@@ -723,6 +743,10 @@
           variantImages.forEach((img, i) => {
             formData.append("images", img, `variant-${i}.png`);
           });
+
+          if (imagesToDelete.length > 0) {
+            formData.append("deleteImages", JSON.stringify(imagesToDelete));
+          }
 
           let url = `/admin/products/<%= product._id %>/variants`;
           let method = "POST";
@@ -972,7 +996,7 @@
 
         }, "image/png");
       }
-      
+
       /* ================= CLOSE CROP ================= */
 
       window.closeVariantCrop = function () {

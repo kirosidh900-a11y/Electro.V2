@@ -4,7 +4,7 @@ import Brand from "../../models/brandSchema.model.js";
 import mongoose from "mongoose";
 import AppError from "../../utils/partials/AppError.utils.js";
 import HTTP_STATUS from "../../constant/statusCode.js";
-import { uploadToCloudinary } from "../partials/cloudinary.service.js";
+import { deleteFromCloudinary, uploadToCloudinary } from "../partials/cloudinary.service.js";
 import { getCache, setCache } from "../../utils/Redis/cache.js";
 import { findByIdOrThrow } from "../../utils/products/product.util.js";
 
@@ -490,9 +490,9 @@ export const editVariantService = async (productId, variantId, data) => {
 
   if (!variant) throw new Error("Variant not found");
 
+  // ================= SKU CHECK =================
   const normalizedSku = data.sku.trim().toLowerCase();
 
-  // 🔍 check globally across all products
   const skuExists = await Products.findOne({
     "variants.sku": { $regex: `^${normalizedSku}$`, $options: "i" },
     "variants._id": { $ne: variantId },
@@ -502,6 +502,7 @@ export const editVariantService = async (productId, variantId, data) => {
     throw new Error("SKU already exists for another variant");
   }
 
+  // ================= BASIC UPDATE =================
   variant.sku = data.sku;
   variant.price = data.price;
   variant.stock = data.stock;
@@ -509,9 +510,51 @@ export const editVariantService = async (productId, variantId, data) => {
 
   variant.attributes = new Map(Object.entries(data.attributes || {}));
 
+  // ================= DELETE IMAGES  =================
+  let deleteImages = [];
+
+  if (data.deleteImages) {
+    try {
+      deleteImages = JSON.parse(data.deleteImages);
+    } catch {
+      deleteImages = [];
+    }
+  }
+
+  if (deleteImages.length > 0) {
+    variant.product_images = variant.product_images.filter(
+      (img) => !deleteImages.includes(img.imageId),
+    );
+
+    // delete from cloudinary
+    for (const imageId of deleteImages) {
+      try {
+        await deleteFromCloudinary(imageId);
+      } catch (err) {
+        console.error("Cloudinary delete failed:", imageId);
+      }
+    }
+  }
+
+  // ================= ADD NEW IMAGES =================
+  if (data.images && data.images.length > 0) {
+    const uploadedImages = [];
+
+    for (const file of data.images) {
+      const uploaded = await uploadToCloudinary(file.buffer, "variants");
+
+      uploadedImages.push({
+        url: uploaded.secure_url,
+        imageId: uploaded.public_id,
+      });
+    }
+
+    variant.product_images.push(...uploadedImages);
+  }
+
   await product.save();
 
-  //REAL-TIME EMIT
+  // ================= REAL-TIME =================
   if (global.io) {
     global.io.emit("stockUpdated", {
       productId,
@@ -520,7 +563,6 @@ export const editVariantService = async (productId, variantId, data) => {
     });
   }
 };
-
 //  DELETE VARIANT
 export const deleteVariantService = async (variantId) => {
   const product = await Products.findOne({
