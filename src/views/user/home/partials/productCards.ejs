@@ -47,118 +47,127 @@
             const isWishlisted = wishlistSet?.has(key);
             const isCarted = cartSet?.has(key);
 
-            %>
+            const isOutOfStock = product.variants?.[0]?.stock <= 0; %>
 
-            <div class="bg-white border border-gray-200 rounded-xl overflow-hidden 
-    shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300 
-    cursor-pointer group relative">
+                <div class="bg-white border border-gray-200 rounded-xl overflow-hidden 
+shadow-sm transition-all duration-300 cursor-pointer group relative
+<%= isOutOfStock ? 'opacity-60' : 'hover:shadow-xl hover:-translate-y-1' %>">
 
 
-                <!-- RIGHT SIDE ACTIONS -->
-                <div class="absolute right-2 top-3 flex flex-col gap-2 
+                    <!-- RIGHT SIDE ACTIONS -->
+                    <div class="absolute right-2 top-3 flex flex-col gap-2 
     opacity-0 group-hover:opacity-100 translate-x-2 group-hover:translate-x-0 
     transition-all duration-300 z-10">
 
-                    <!-- WISHLIST -->
-                    <button id="wishlist-<%= variant._id %>" data-product-id="<%= product._id %>"
-                        data-variant-id="<%= variant._id %>" <%=isCarted ? 'disabled' : '' %>
-                        class="wishlist bg-white/90 backdrop-blur p-2 rounded-full shadow
-                        <%= isCarted ? 'opacity-50 cursor-not-allowed' : 'hover:bg-red-50' %> transition">
+                        <!-- WISHLIST -->
+                        <button id="wishlist-<%= variant._id %>" data-product-id="<%= product._id %>"
+                            data-variant-id="<%= variant._id %>" <%=isCarted ? 'disabled' : '' %>
+                            class="wishlist bg-white/90 backdrop-blur p-2 rounded-full shadow
+                            <%= isCarted ? 'opacity-50 cursor-not-allowed' : 'hover:bg-red-50' %> transition">
 
-                            <i
-                                class="<%= isWishlisted ? 'fa-solid text-red-500' : 'fa-regular text-gray-600' %> fa-heart"></i>
-                    </button>
-
-                    <!-- CART -->
-                    <% if (!isCarted) { %>
-
-                        <!-- 🛒 ADD TO CART -->
-                        <button data-product-id="<%= product._id %>" data-variant-id="<%= variant._id %>"
-                            class="add-to-cart bg-white/90 backdrop-blur p-2 rounded-full shadow hover:bg-blue-50 transition">
-
-                            <i class="fa-solid fa-cart-shopping text-gray-600 hover:text-blue-600"></i>
+                                <i
+                                    class="<%= isWishlisted ? 'fa-solid text-red-500' : 'fa-regular text-gray-600' %> fa-heart"></i>
                         </button>
 
-                        <% } else { %>
+                        <!-- CART -->
+                        <% if (!isCarted) { %>
 
-                            <!-- 🔢 QUANTITY CONTROL -->
+                            <!-- 🛒 ADD TO CART -->
+                            <button data-product-id="<%= product._id %>" data-variant-id="<%= variant._id %>"
+                                <%=isOutOfStock ? 'disabled' : '' %>
+                                class="add-to-cart bg-white/90 backdrop-blur p-2 rounded-full shadow transition
+                                <%= isOutOfStock ? 'opacity-50 cursor-not-allowed' : 'hover:bg-blue-50' %>">
+
+                                    <i class="fa-solid fa-cart-shopping text-gray-600 hover:text-blue-600"></i>
+                            </button>
+
+                            <% } else { %>
+
+                                <!-- 🔢 QUANTITY CONTROL -->
+                                <div
+                                    class="flex items-center bg-white/90 backdrop-blur rounded-full shadow overflow-hidden">
+                                    <button data-product-id="<%= product._id %>" data-variant-id="<%= variant._id %>"
+                                        class=" add-to-cart increase px-2 py-1 text-green-600">+
+                                        <span class="px-2 text-sm font-semibold">
+                                            Add
+                                        </span>
+                                    </button>
+                                </div>
+
+                                <% } %>
+                    </div>
+
+                    <!-- IMAGE -->
+                    <div class="relative h-56 flex items-center justify-center p-4 bg-white overflow-hidden"
+                        onclick="window.location.href='/product/<%= product._id %>'">
+                        <% if (isOutOfStock) { %>
                             <div
-                                class="flex items-center bg-white/90 backdrop-blur rounded-full shadow overflow-hidden">
-                                <button data-product-id="<%= product._id %>" data-variant-id="<%= variant._id %>"
-                                    class=" add-to-cart increase px-2 py-1 text-green-600">+
-                                    <span class="px-2 text-sm font-semibold">
-                                        Add
-                                    </span>
-                                </button>
+                                class="absolute top-2 left-2 bg-red-600 text-white text-[10px] font-bold px-2 py-1 rounded z-20">
+                                OUT OF STOCK
                             </div>
-
                             <% } %>
-                </div>
 
-                <!-- IMAGE -->
-                <div class="relative h-56 flex items-center justify-center p-4 bg-white overflow-hidden"
-                    onclick="window.location.href='/product/<%= product._id %>'">
+                                <img src="<%= image %>" class="max-h-full max-w-full object-contain transition duration-500 ease-in-out
+<%= isOutOfStock ? 'grayscale opacity-70' : 'group-hover:scale-110' %>">
 
-                    <img src="<%= image %>" class="max-h-full max-w-full object-contain 
-                group-hover:scale-110 transition duration-500 ease-in-out">
-
-                    <!-- DISCOUNT -->
-                    <!-- <% if(discount> 0) { %>
+                                <!-- DISCOUNT -->
+                                <!-- <% if(discount> 0) { %>
                         <span class="absolute bottom-2 left-2 bg-green-600 text-white text-[10px] px-2 py-0.5 rounded">
                             <%= discount %>% OFF
                         </span>
                         <% } %> -->
-                </div>
-
-                <!-- CONTENT -->
-                <div class="p-4 flex flex-col">
-
-
-                    <!-- TITLE -->
-                    <h4
-                        class="text-[14px] font-semibold text-gray-800 line-clamp-2 min-h-[42px] group-hover:text-blue-600 transition">
-                        <%= product.name %>
-                    </h4>
-
-
-                    <!-- BRAND -->
-                    <div class="flex items-center gap-2 mb-1">
-                        <img src="<%= brandLogo %>" class="w-5 h-5 object-contain">
-                        <span class="text-[12px] text-gray-500 font-medium">
-                            <%= brand %>
-                        </span>
                     </div>
 
-                    <!-- RATING -->
-                    <div class="flex items-center gap-2 mt-2">
-                        <span class="bg-green-600 text-white text-[10px] px-1.5 py-0.5 rounded flex items-center gap-1">
-                            <%= rating %> <i class="fa fa-star text-[8px]"></i>
-                        </span>
-                        <span class="text-[11px] text-gray-400">
-                            (<%= reviews.toLocaleString() %>)
-                        </span>
-                    </div>
+                    <!-- CONTENT -->
+                    <div class="p-4 flex flex-col">
 
-                    <!-- PRICE -->
-                    <div class="mt-3 flex items-center gap-2">
-                        <span class="text-lg font-bold text-gray-900">
-                            ₹<%= price.toLocaleString('en-IN') %>
-                        </span>
-                        <!-- <span class="text-xs text-gray-400 line-through">
+
+                        <!-- TITLE -->
+                        <h4
+                            class="text-[14px] font-semibold text-gray-800 line-clamp-2 min-h-[42px] group-hover:text-blue-600 transition">
+                            <%= product.name %>
+                        </h4>
+
+
+                        <!-- BRAND -->
+                        <div class="flex items-center gap-2 mb-1">
+                            <img src="<%= brandLogo %>" class="w-5 h-5 object-contain">
+                            <span class="text-[12px] text-gray-500 font-medium">
+                                <%= brand %>
+                            </span>
+                        </div>
+
+                        <!-- RATING -->
+                        <div class="flex items-center gap-2 mt-2">
+                            <span
+                                class="bg-green-600 text-white text-[10px] px-1.5 py-0.5 rounded flex items-center gap-1">
+                                <%= rating %> <i class="fa fa-star text-[8px]"></i>
+                            </span>
+                            <span class="text-[11px] text-gray-400">
+                                (<%= reviews.toLocaleString() %>)
+                            </span>
+                        </div>
+
+                        <!-- PRICE -->
+                        <div class="mt-3 flex items-center gap-2">
+                            <span class="text-lg font-bold text-gray-900">
+                                ₹<%= price.toLocaleString('en-IN') %>
+                            </span>
+                            <!-- <span class="text-xs text-gray-400 line-through">
                             ₹<%= original.toLocaleString('en-IN') %>
                         </span> -->
-                    </div>
+                        </div>
 
-                    <!-- SAVE -->
-                    <!-- <p class="text-[11px] text-green-600 font-medium">
+                        <!-- SAVE -->
+                        <!-- <p class="text-[11px] text-green-600 font-medium">
                         You save ₹<%= (original - price).toLocaleString('en-IN') %>
                     </p> -->
 
+                    </div>
+
+
                 </div>
 
+                <% }) %>
 
-            </div>
-
-            <% }) %>
-
-                <% } %>
+                    <% } %>

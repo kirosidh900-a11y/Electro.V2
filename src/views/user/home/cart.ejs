@@ -38,8 +38,9 @@
             <div class="flex flex-col sm:flex-row sm:items-end justify-between mb-8 sm:mb-10 gap-4">
                 <div>
                     <h1 class="text-3xl font-bold text-gray-900 tracking-tight">Your Cart</h1>
-                    <p class="text-gray-500 mt-2">You have <span id="cartCountHeader"
-                            class="font-medium text-gray-900">0 items</span> in your cart</p>
+                    <p class="text-gray-500 mt-2">You have <span id="cartCountHeader" class="font-medium text-gray-900">
+                            <%= cart.items?.length || 0 %>
+                        </span> items</span> in your cart</p>
                 </div>
                 <a href="/shop"
                     class="inline-flex items-center gap-2 text-sm font-medium text-gray-600 hover:text-black transition-colors bg-white px-5 py-2.5 rounded-full border shadow-sm hover:shadow">
@@ -324,7 +325,7 @@
 
         let isSyncing = false;
 
-        // ✅ SAFE SYNC
+        // SAFE SYNC
         async function safeSyncCartStock() {
             if (isSyncing) return;
             isSyncing = true;
@@ -336,7 +337,7 @@
             }
         }
 
-        // 🚀 INITIAL LOAD
+        // INITIAL LOAD
         document.addEventListener("DOMContentLoaded", async () => {
             calculateTotals();
             highlightInvalidItems();
@@ -344,23 +345,14 @@
             await safeSyncCartStock();
         });
 
-        // 🔁 TAB SWITCH
+        // TAB SWITCH
         document.addEventListener("visibilitychange", async () => {
             if (document.visibilityState === "visible") {
                 await safeSyncCartStock();
             }
         });
 
-        // 🔁 AUTO SYNC
-        setInterval(() => {
-            safeSyncCartStock();
-        }, 30000);
-
-
-        // =======================
-        // 🔥 QUANTITY HANDLERS
-        // =======================
-
+        //  QUANTITY HANDLERS
         document.querySelectorAll('.decrease-qty').forEach(btn => {
             btn.addEventListener('click', async (e) => {
                 const container = e.target.closest('.cart-item');
@@ -647,5 +639,6 @@
                 maximumFractionDigits: 2
             });
         }
+
     </script>
     <%- include("../../partials/user/footer.ejs") %>

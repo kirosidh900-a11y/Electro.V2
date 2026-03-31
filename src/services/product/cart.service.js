@@ -30,7 +30,7 @@ export const updateCartService = async ({
   const productObjId = new mongoose.Types.ObjectId(productId);
   const variantObjId = new mongoose.Types.ObjectId(variantId);
 
-  // ✅ Fetch only valid product + specific variant
+  // Fetch only valid product + specific variant
   const product = await Products.findOne(
     {
       _id: productObjId,
@@ -52,7 +52,7 @@ export const updateCartService = async ({
 
   const variant = product.variants[0];
 
-  // ✅ STOCK CHECK
+  // STOCK CHECK
   if (quantity > variant.stock) {
     throw new AppError(
       `Only ${variant.stock} items available in stock`,
@@ -60,7 +60,7 @@ export const updateCartService = async ({
     );
   }
 
-  // ✅ REMOVE FROM WISHLIST IF EXISTS
+  // REMOVE FROM WISHLIST IF EXISTS
   const wishlist = await Wishlist.findOne({ userId });
 
   let removedFromWishlist = false;
@@ -81,7 +81,7 @@ export const updateCartService = async ({
 
   let cart = await Cart.findOne({ userId });
 
-  // ✅ CREATE CART
+  // CREATE CART
   if (!cart) {
     cart = await Cart.create({
       userId,
@@ -115,7 +115,7 @@ export const updateCartService = async ({
   if (existingItem) {
     const newQty = existingItem.quantity + quantity;
 
-    // ✅ MAX LIMIT CHECK
+    // MAX LIMIT CHECK
     if (newQty > MAX_QTY) {
       throw new AppError(
         "Maximum 3 items allowed per product",
@@ -123,7 +123,7 @@ export const updateCartService = async ({
       );
     }
 
-    // ✅ STOCK CHECK
+    // STOCK CHECK
     if (newQty > variant.stock) {
       throw new AppError(
         `Only ${variant.stock} items available`,
@@ -135,6 +135,14 @@ export const updateCartService = async ({
     message = "Product quantity updated!";
     added = false;
   } else {
+    
+    if(cart.items.length >= 5) {
+      throw new AppError(
+        "Maximum 5 different products allowed in cart",
+        HTTP_STATUS.BAD_REQUEST,
+      );
+    }
+
     cart.items.push({
       productId: productObjId,
       variantId: variantObjId,
@@ -160,7 +168,7 @@ export const updateCartQuantityService = async (userId, itemId, quantity) => {
     throw new AppError("Please login", 401);
   }
 
-  // ✅ FIXED VALIDATION
+  // FIXED VALIDATION
   if (!itemId || quantity === undefined || quantity === null) {
     throw new AppError("Invalid data", 400);
   }
