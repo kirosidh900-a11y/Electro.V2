@@ -90,15 +90,15 @@
                                             class="w-full h-full object-contain p-3 group-hover:scale-110 transition-transform duration-500 mix-blend-multiply">
                                         <% if (item.variantId?.stock===0) { %>
                                             <div
-                                                class="absolute inset-x-0 bottom-0 bg-red-500/90 py-1.5 backdrop-blur-sm flex justify-center">
+                                                class="absolute sold-out-badge inset-x-0 bottom-0 bg-red-500/90 py-1.5 backdrop-blur-sm flex justify-center">
                                                 <span
-                                                    class="text-white text-[10px] font-bold tracking-widest uppercase">
+                                                    class=" text-white text-[10px] font-bold tracking-widest uppercase">
                                                     Sold Out
                                                 </span>
                                             </div>
                                             <% } else if (item.variantId?.stock> 0 && item.variantId?.stock <= 5) { %>
                                                     <div
-                                                        class="absolute top-2 left-2 bg-orange-100 text-orange-700 px-2 py-0.5 rounded-md text-[10px] font-bold shadow-sm">
+                                                        class="few-left-badge absolute top-2 left-2 bg-orange-100 text-orange-700 px-2 py-0.5 rounded-md text-[10px] font-bold shadow-sm">
                                                         Few Left
                                                     </div>
                                                     <% } %>
@@ -752,7 +752,46 @@
             const increaseBtn = el.querySelector('.increase-qty');
             const stockText = el.querySelector(".mt-3.text-xs");
 
-            // UI update
+            // IMAGE CONTAINER =
+            const imageWrapper = el.querySelector("a.relative");
+
+            //  HANDLE SOLD OUT BADGE
+            let soldOutBadge = imageWrapper.querySelector(".sold-out-badge");
+            let fewLeftBadge =
+                imageWrapper.querySelector(".few-left-badge")
+
+            if (stock === 0) {
+                // create if not exists
+                if (!soldOutBadge) {
+                    const div = document.createElement("div");
+                    div.className = "sold-out-badge absolute inset-x-0 bottom-0 bg-red-500/90 py-1.5 backdrop-blur-sm flex justify-center";
+                    div.innerHTML = `
+                <span class="text-white text-[10px] font-bold tracking-widest uppercase">
+                    Sold Out
+                </span>
+            `;
+                    imageWrapper.appendChild(div);
+                }
+            } else {
+                // remove if exists
+                if (soldOutBadge) {
+                    soldOutBadge.remove();
+                }
+            }
+
+            // ---------- FEW LEFT ----------
+            if (stock > 0 && stock <= 5) {
+                if (!fewLeftBadge) {
+                    const div = document.createElement("div");
+                    div.className = "few-left-badge absolute top-2 left-2 bg-orange-100 text-orange-700 px-2 py-0.5 rounded-md text-[10px] font-bold shadow-sm";
+                    div.innerText = "Few Left";
+                    imageWrapper.appendChild(div);
+                }
+            } else {
+                if (fewLeftBadge) fewLeftBadge.remove();
+            }
+
+            //  STOCK TEXT UI
             if (stockText) {
                 if (stock === 0) {
                     stockText.innerHTML = `<span class="text-red-600 font-medium bg-red-50 px-2.5 py-1 rounded border border-red-100">Out of Stock</span>`;
@@ -763,14 +802,14 @@
                 }
             }
 
-            // button control
+            // BUTTON CONTROL
             if (increaseBtn) {
                 qty >= stock
                     ? increaseBtn.setAttribute("disabled", true)
                     : increaseBtn.removeAttribute("disabled");
             }
 
-            // highlight
+            // HIGHLIGHT
             el.classList.remove("border-red-500", "bg-red-50", "border-orange-400", "bg-orange-50");
 
             if (stock === 0) {
@@ -901,7 +940,27 @@
         function format(n) {
             return n.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
         }
-    
+
+        function highlightInvalidItems() {
+            document.querySelectorAll('.cart-item').forEach(item => {
+                const stock = Number(item.dataset.stock);
+                const qty = Number(item.querySelector('.item-qty').value);
+
+                item.classList.remove("border-red-500", "bg-red-50", "border-orange-400", "bg-orange-50");
+
+                if (stock === 0) {
+                    item.classList.add("border-red-500", "bg-red-50");
+                } else if (qty > stock) {
+                    item.classList.add("border-orange-400", "bg-orange-50");
+                }
+            });
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            calculateTotals();
+            checkEmptyCart();
+            highlightInvalidItems();
+        });
     </script>
 
     <%- include("../../partials/user/footer.ejs") %>

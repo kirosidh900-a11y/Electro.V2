@@ -35,3 +35,10 @@ export const validate = (schema) => (req, res, next) => {
     next(err);
   }
 };
+
+export const requireAuth = (req, res, next) => {
+  if (!req.user) {
+    return res.redirect("/auth/login"); 
+  }
+  next();
+};

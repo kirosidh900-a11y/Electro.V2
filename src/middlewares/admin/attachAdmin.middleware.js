@@ -6,6 +6,10 @@ const adminAuth = async (req, res, next) => {
   const token = req.cookies.adminToken;
 
   if (!token) {
+    res.locals.admin = null;
+    res.locals.menu = null;
+    res.locals.currentPath = null;
+    setCookieMSG(res, "Please log in to continue!");
     return next();
   }
 
