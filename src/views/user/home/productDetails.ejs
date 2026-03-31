@@ -130,7 +130,6 @@
                 <%= product.category?.title || 'Electronics' %>
               </span>
               <h1 class="product-title text-3xl lg:text-4xl font-black text-slate-900 leading-tight tracking-tight">
-                <%= product.brand?.title ? product.brand.title + " " : "" %>
                   <%= product.name %>
               </h1>
             </div>
@@ -257,7 +256,7 @@
                     const primary = attrs.color || attrs.ram || Object.values(attrs)[0] || "Variant";
                     const isOutOfStock = (variant.stock <= 0); %>
                       <button type="button"
-                        class="variant-option border-2 relative <%= index === 0 ? 'active border-brand-600' : 'border-slate-100' %> <%= isOutOfStock ? 'variant-out-of-stock cursor-not-allowed opacity-60' : 'cursor-pointer hover:border-brand-300 hover:shadow-lg hover:-translate-y-1' %> group flex flex-col items-center justify-center rounded-[1.5rem] p-3 transition-all duration-300 bg-white w-[100px]"
+                        class="variant-option border-2 relative <%= index === 0 ? 'active border-brand-600' : 'border-slate-100' %> <%= isOutOfStock ? ' opacity-60' : 'cursor-pointer hover:border-brand-300 hover:shadow-lg hover:-translate-y-1' %> group flex flex-col items-center justify-center rounded-[1.5rem] p-3 transition-all duration-300 bg-white w-[100px]"
                         data-index="<%= index %>">
 
                         <% if (isOutOfStock) { %>
