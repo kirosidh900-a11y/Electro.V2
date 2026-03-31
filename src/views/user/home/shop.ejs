@@ -537,6 +537,15 @@
                                 return;
                         }
 
+                        const cartCount = +document.getElementById('cartCount').textContent || 0;
+
+                        if (cartCount >= 5) {
+                                showToast("Maximum 5 different products allowed in cart.", "warning");
+                                btn.classList.remove("loading");
+                                return;
+                        }
+
+
                         try {
                                 const res = await fetch('/cart', {
                                         method: "POST",

@@ -285,7 +285,7 @@
                 <!-- Action Buttons -->
                 <div class="flex flex-wrap gap-4 mb-10">
                   <div id="purchaseActions" class="flex flex-1 gap-4 flex-wrap">
-                    <form id="cartForm" action="/cart/add" method="POST" class="flex-1 min-w-[200px]">
+                    <form id="cartForm"  class="flex-1 min-w-[200px]">
                       <input type="hidden" name="productId" value="<%= product._id %>">
                       <input type="hidden" name="variantId" id="cartVariantId" value="">
                       <input type="hidden" name="quantity" value="1">
@@ -871,6 +871,13 @@
 
     if (!currentVariant || currentVariant.stock <= 0) {
       if(window.showMessage) window.showMessage("This item is currently out of stock", "error");
+      return;
+    }
+
+    const cartCount = +document.getElementById('cartCount').textContent || 0;
+
+    if(cartCount >= 5) {
+      showMessage("Maximum 5 different products allowed in cart.", "warning");
       return;
     }
 
