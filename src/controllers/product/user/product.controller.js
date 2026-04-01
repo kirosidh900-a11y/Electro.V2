@@ -21,6 +21,7 @@ import {
 import setCookieMSG from "../../../utils/partials/setCookieMsg.utils.js";
 import Wishlist from "../../../models/wishlistSchema.model.js";
 import Cart from "../../../models/cartSchema.models.js";
+import Product from "../../../models/productSchema.model.js";
 
 //Product
 export const getProductsListingPage = async (req, res) => {
@@ -102,6 +103,59 @@ export const getProductsListingPage = async (req, res) => {
   } catch (error) {
     console.error("Shop Controller Error:", error);
     res.status(500).json({ success: false, message: "Server Error" });
+  }
+};
+
+//WISHLIST
+export const getWishlistPage = async (req, res, next) => {
+  try {
+    const userId = req.user._id;
+
+    // 🔥 GET WISHLIST
+    let wishlist = await Wishlist.findOne({ userId }).lean();
+
+    if (!wishlist || !wishlist.items.length) {
+      return res.render("user/wishlist/index", {
+        wishlist: { items: [] },
+      });
+    }
+
+    // 🔥 MAP ITEMS WITH PRODUCT + VARIANT
+    const populatedItems = await Promise.all(
+      wishlist.items.map(async (item) => {
+        const product = await Product.findById(item.productId)
+          .populate("brand", "title")
+          .lean();
+
+        if (!product) return null;
+
+        const variant = product.variants.find(
+          (v) => v._id.toString() === item.variantId.toString(),
+        );
+
+        if (!variant) return null;
+
+        return {
+          productId: {
+            _id: product._id,
+            name: product.name,
+            brand: product.brand,
+          },
+          variantId: variant,
+        };
+      }),
+    );
+
+    // ❌ REMOVE NULL ITEMS (deleted product/variant)
+    const filteredItems = populatedItems.filter(Boolean);
+
+    return res.render("user/home/wishlist", {
+      wishlist: {
+        items: filteredItems,
+      },
+    });
+  } catch (err) {
+    next(err);
   }
 };
 

@@ -33,6 +33,8 @@ import addresRouter from "./addres.route.js";
 import upload from "../../middlewares/cloudinaryUpload.middleware.js";
 import locationRoutes from "./location.route.js";
 import productRouter from "../../routes/product/user/product.route.js";
+import wishlistRouter from "./wishlist.route.js";
+
 import {
   validate,
   requireAuth,
@@ -40,7 +42,6 @@ import {
 
 import {
   cartSchema,
-  wishlistSchema,
 } from "../../validations/products.validator.js";
 
 import { validateCartBeforeCheckout } from "../../services/product/cart.service.js";
@@ -54,14 +55,14 @@ router.use(attachUser);
 router.use("/product", productRouter);
 router.use("/address", requireAuth, addresRouter);
 router.use("/location", requireAuth, locationRoutes);
+router.use('/wishlist', requireAuth, wishlistRouter);
 
 //Home side
 router.get("/", showHomePage);
 
 //Product List page
-router.get("/wishlist/status", getWishlistStatus);
 router.get("/cart/status", getCartStatus);
-router.post("/wishlist", requireAuth, validate(wishlistSchema), updateWishlist);
+
 router.get("/productList", getProductsListingPage);
 router.get("/shop", getProductsListingPage);
 router
