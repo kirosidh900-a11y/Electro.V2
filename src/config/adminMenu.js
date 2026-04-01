@@ -13,6 +13,16 @@ export const adminMenu = [
     ],
   },
 
+  {
+    name: "Marketing",
+    icon: "fas fa-bullhorn",
+    children: [
+      { name: "Offers", path: "/admin/offers" },
+      { name: "Coupons", path: "/admin/coupons" },
+      { name: "Banners", path: "/admin/banners" },
+    ],
+  },
+
   { name: "Orders", icon: "fas fa-clipboard-list", path: "/admin/orders" },
   // { name: "Coupons", icon: "fas fa-ticket-alt", path: "/admin/coupons" },
   // { name: "Reviews", icon: "fas fa-star", path: "/admin/reviews" },

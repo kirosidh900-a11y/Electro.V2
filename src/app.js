@@ -50,12 +50,13 @@ app.set("views", path.join(__dirname, "views"));
 // Routes
 app.use("/auth", authRouter);
 app.use("/admin", adminRouter);
-app.use("/", userRouter); 
+app.use("/", userRouter);
 
 //api routes
 // app.use("/api/auth", authApiRouter);
 // app.use("/api/products", productApiRouter);
 // app.use("/api/cart", cartApiRouter);
+app.use("/api/admin", adminRouter);
 app.use("/api/wishlist", wishlistRoutes);
 
 // 404 Handler (FIXED)
