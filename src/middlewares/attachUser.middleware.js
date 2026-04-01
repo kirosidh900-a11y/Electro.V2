@@ -3,7 +3,7 @@ import setCookieMSG from "../utils/partials/setCookieMsg.utils.js";
 import { verifyUser } from "../utils/partials/verifyToken.utils.js";
 
 const attachUser = async (req, res, next) => {
-  const token = req.cookies.token;
+  const token = req.cookies?.token;
 
   // ================= NO TOKEN =================
   if (!token) {
@@ -13,7 +13,7 @@ const attachUser = async (req, res, next) => {
     res.locals.wishlist = null;
     res.locals.wishlistSet = null;
     res.locals.cartSet = null;
-
+    setCookieMSG(res, "Please log in to continue!");
     return next();
   }
 

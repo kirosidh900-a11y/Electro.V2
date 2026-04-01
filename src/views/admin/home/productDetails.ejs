@@ -333,10 +333,13 @@
                                     <% } %>
 
                                       <!-- ADD IMAGE -->
-                                      <div onclick="openImageUpload('<%= v._id %>')"
-                                        class="w-12 h-12 border-2 border-dashed border-gray-500 rounded flex items-center justify-center cursor-pointer hover:border-blue-500">
-                                        <i class="fas fa-plus text-xs"></i>
-                                      </div>
+                                      <% if (v.product_images.length < 5) { %>
+                                        <div onclick="openImageUpload('<%= v._id %>')"
+                                          class="w-12 h-12 border-2 border-dashed border-gray-500 rounded flex items-center justify-center cursor-pointer hover:border-blue-500">
+                                          <i class="fas fa-plus text-xs"></i>
+                                        </div>
+                                        <%}%>
+
 
                             </div>
                           </td>
@@ -440,7 +443,8 @@
 
             <input type="file" id="variantImageInput" class="hidden" accept="image/*" multiple>
 
-            <div id="variantImagePreview" class="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-2 mt-2">
+            <div id="variantImagePreview"
+              class="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-3 mt-2 overflow-visible">
             </div>
 
             <button type="button" onclick="openImageUploadForForm()"
@@ -504,17 +508,45 @@
 
       let editingVariantAttributes = {};
       let currentVariantId = null;
+      const MAX_IMAGES = 5;
 
       // Cropper variables
       let variantCropper;
       let variantCroppedBlob;
       let variantImages = []; //  store cropped blobs
       let cropMode = "single"; // "single" | "multi"
+      let imagesToDelete = []; // store imageIds to delete on save
+      let replacedImages = []; // store {imageId, blob} for replaced images
+      let replaceVariantId = null;
+      let replaceIndex = null;
+      let newImagesInEdit = []; //store new img in editing variant time
+
 
 
       const variantImageInput = document.getElementById("variantImageInput");
       const variantCropModal = document.getElementById("variantCropModal");
       const variantCropImage = document.getElementById("variantCropImage");
+
+      function getTotalImages() {
+        const existing = document.querySelectorAll("#variantImagePreview > div[data-image-id]").length;
+        const newImgs = newImagesInEdit.length;
+        const addImgs = variantImages.length;
+
+        return existing + newImgs + addImgs;
+      }
+
+      function updateAddButtonVisibility() {
+        const btn = document.querySelector("#variantForm button[onclick='openImageUploadForForm()']");
+
+        if (getTotalImages() >= MAX_IMAGES) {
+          btn.style.display = "none"; // ❌ hide
+        } else {
+          btn.style.display = "inline-block"; // ✅ show
+        }
+      }
+
+
+
 
       /* ================= ACTION MENU ================= */
 
@@ -538,6 +570,8 @@
         document.getElementById("variant-price").value = "";
         document.getElementById("variant-stock").value = "";
         variantImages = [];
+        imagesToDelete = [];
+
         document.getElementById("variantImagePreview").innerHTML = "";
         document.getElementById("variant-description").value = "";
 
@@ -556,8 +590,11 @@
 
       window.closeVariantModal = function () {
         document.getElementById("variantModal").classList.add("hidden");
-        document.body.style.overflow = "auto"; // 🔥 restore scroll
+        document.body.style.overflow = "auto"; // restore scroll
         skuStatus.textContent = ''
+        imagesToDelete = [];
+        newImagesInEdit = [];
+        replacedImages = [];
       };
 
       /* ================= LOAD ATTRIBUTES ================= */
@@ -593,6 +630,11 @@
       /* ================= EDIT VARIANT ================= */
 
       window.editVariant = async function (variantId) {
+        imagesToDelete = [];
+        newImagesInEdit = [];//for Backend
+        replacedImages = [];
+        variantImages = [];  // for UI
+
 
         try {
 
@@ -630,11 +672,52 @@
 
           if (variant.product_images?.length) {
             variant.product_images.forEach(img => {
+              const wrapper = document.createElement("div");
+              wrapper.className = "relative group w-16 h-16";
+
+              // store imageId for delete/replace actions
+              wrapper.dataset.imageId = img.imageId;
+
+
               const image = document.createElement("img");
               image.src = img.url;
-              image.className = "w-16 h-16 object-cover rounded";
+              image.className = "w-full h-full object-cover rounded";
 
-              preview.appendChild(image);
+              const removeBtn = document.createElement("button");
+              removeBtn.innerHTML = "×";
+
+              // ❌ REMOVE BUTTON
+              removeBtn.className =
+                "absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-4 h-4 text-[10px] hidden group-hover:flex items-center justify-center z-10";
+
+              // REMOVE HANDLER
+              removeBtn.onclick = () => {
+                imagesToDelete.push(img.imageId);
+                wrapper.remove();
+                updateAddButtonVisibility();
+              };
+
+              const replaceBtn = document.createElement("button");
+              replaceBtn.type = "button";
+              replaceBtn.innerText = "Replace";
+
+              // 🔁 REPLACE BUTTO
+              replaceBtn.className =
+                "absolute bottom-0 left-0 right-0 bg-black/60 text-white text-[10px] py-[2px] hidden group-hover:block";
+
+              // click replace (EDIT MODE ONLY)
+              replaceBtn.onclick = () => {
+                replaceVariantId = img.imageId;
+                cropMode = "replace-edit";
+                variantImageInput.click();
+              };
+
+              wrapper.appendChild(image);
+              wrapper.appendChild(removeBtn);
+              wrapper.appendChild(replaceBtn);
+
+
+              preview.appendChild(wrapper);
             });
           }
 
@@ -650,6 +733,7 @@
           showToast("Failed to load variant", "error");
         }
       };
+      
       /* ================= SUBMIT VARIANT ================= */
 
       const variantForm = document.getElementById("variantForm");
@@ -721,7 +805,28 @@
           formData.append("attributes", JSON.stringify(attributes));
 
           variantImages.forEach((img, i) => {
-            formData.append("images", img, `variant-${i}.png`);
+            if (img.file) {
+              formData.append("images", img.file, `variant-${i}.png`);
+            }
+          });
+
+          if (imagesToDelete.length > 0) {
+            formData.append("deleteImages", JSON.stringify(imagesToDelete));
+          }
+
+          if (replacedImages.length > 0) {
+            replacedImages.forEach((item, i) => {
+              if (item.file && item.imageId) {
+                formData.append("images", item.file);
+                formData.append("replaceImageIds", item.imageId);
+              }
+            });
+          }
+
+          newImagesInEdit.forEach((img) => {
+            if (img.file) {
+              formData.append("images", img.file);
+            }
           });
 
           let url = `/admin/products/<%= product._id %>/variants`;
@@ -909,15 +1014,12 @@
 
         canvas.toBlob((blob) => {
 
-          variantImages.push(blob);
+          variantImages.push({
+            file: blob,
+            preview: URL.createObjectURL(blob),
+          });
 
-          const preview = document.getElementById("variantImagePreview");
-
-          const img = document.createElement("img");
-          img.src = URL.createObjectURL(blob);
-          img.className = "w-16 h-16 rounded object-cover";
-
-          preview.appendChild(img);
+          renderImages();
 
           closeVariantCrop();
 
@@ -929,8 +1031,16 @@
           cropSingleVariantImage();
         } else if (cropMode === "multi") {
           cropMultiVariantImage();
+        } else if (cropMode === "multi-edit") {
+          cropMultiVariantImageEdit(); // NEW
         } else if (cropMode === "replace") {
-          replaceVariantImageUpload();
+          replaceVariantImageUpload(); // existing (table)
+        } else if (cropMode === "replace-edit") {
+          replaceImageInEdit(); // edit modal
+        } else if (cropMode === "replace-add") {
+          replaceImageInAdd(); // add modal 
+        } else if (cropMode === "replace-edit-new") {
+          replaceNewImageInEdit();
         }
       };
 
@@ -972,7 +1082,39 @@
 
         }, "image/png");
       }
-      
+
+
+      function replaceImageInEdit() {
+        if (!variantCropper) return;
+
+        const canvas = variantCropper.getCroppedCanvas({
+          width: 400,
+          height: 400,
+        });
+
+        canvas.toBlob((blob) => {
+
+          // store for backend
+          replacedImages.push({
+            imageId: replaceVariantId,
+            file: blob,
+          });
+
+          // update UI preview
+          const preview = document.getElementById("variantImagePreview");
+
+          [...preview.children].forEach((wrapper) => {
+            const img = wrapper.querySelector("img");
+
+            if (img && img.src.includes(replaceVariantId)) {
+              img.src = URL.createObjectURL(blob);
+            }
+          });
+
+          closeVariantCrop();
+        }, "image/png");
+      }
+
       /* ================= CLOSE CROP ================= */
 
       window.closeVariantCrop = function () {
@@ -1018,8 +1160,24 @@
       };
 
       window.openImageUploadForForm = function () {
-        currentVariantId = null;
-        cropMode = "multi";
+        const variantId = document.getElementById("variant-id").value;
+
+        const totalImages =
+          variantImages.length + newImagesInEdit.length + document.querySelectorAll("#variantImagePreview > div[data-image-id]").length;
+
+        if (totalImages >= MAX_IMAGES) {
+          showToast("Maximum 5 images allowed", "warning");
+          return;
+        }
+
+        if (variantId) {
+          // EDIT MODE
+          cropMode = "multi-edit";
+        } else {
+          // ADD MODE
+          cropMode = "multi";
+        }
+
         variantImageInput.click();
       };
 
@@ -1118,7 +1276,7 @@
       }, { passive: false });
 
       let replaceImageId = null;
-      let replaceVariantId = null;
+      replaceVariantId = null;
 
       // OPEN FILE SELECT FOR REPLACE
       window.replaceVariantImage = function (variantId, imageId) {
@@ -1129,9 +1287,207 @@
         variantImageInput.click();
       };
 
+      function addVariantImages(files) {
+        const preview = document.getElementById("variantImagePreview");
+
+        [...files].forEach(file => {
+          const url = URL.createObjectURL(file);
+
+          variantImages.push({ file, preview: url });
+
+          renderImages();
+          updateAddButtonVisibility();
+        });
+      }
+
+      function replaceImageInAdd() {
+        if (!variantCropper) return;
+
+        const canvas = variantCropper.getCroppedCanvas({
+          width: 400,
+          height: 400,
+        });
+
+        canvas.toBlob((blob) => {
+          if (!blob) return; // safety
+
+          const url = URL.createObjectURL(blob);
+
+          variantImages[replaceIndex] = {
+            file: blob,
+            preview: url,
+          };
+
+          renderImages();
+          closeVariantCrop();
+        }, "image/png");
+      }
+
+      function renderImages() {
+        const preview = document.getElementById("variantImagePreview");
+        preview.innerHTML = "";
+
+        variantImages.forEach((img, index) => {
+          const wrapper = document.createElement("div");
+          wrapper.className = "relative group w-20 h-20"; // 🔥 bigger hit area
+
+          const image = document.createElement("img");
+          image.src = img.preview;
+          image.className = "w-full h-full object-cover rounded pointer-events-none";
+
+          // ❌ REMOVE
+          const removeBtn = document.createElement("button");
+          removeBtn.type = "button";
+          removeBtn.innerHTML = "×";
+          removeBtn.className =
+            "absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-5 h-5 text-[10px] hidden group-hover:flex items-center justify-center z-20";
+
+          removeBtn.onclick = () => {
+            variantImages.splice(index, 1);
+            // ALSO REMOVE FROM newImagesInEdit
+            newImagesInEdit.splice(index, 1);
+            renderImages();
+            updateAddButtonVisibility();
+
+          };
+
+          // 🔁 REPLACE
+          const replaceBtn = document.createElement("button");
+          replaceBtn.type = "button";
+          replaceBtn.innerText = "Replace";
+          replaceBtn.className =
+            "absolute bottom-0 left-0 right-0 bg-black/70 text-white text-[10px] py-[2px] hidden group-hover:block z-20";
+
+          replaceBtn.onclick = () => {
+            replaceIndex = index;
+            cropMode = "replace-add"; // 
+            variantImageInput.click();
+          };
+
+          wrapper.appendChild(image);
+          wrapper.appendChild(removeBtn);
+          wrapper.appendChild(replaceBtn);
+
+          preview.appendChild(wrapper);
+        });
+      }
+
+      function cropMultiVariantImageEdit() {
+        if (!variantCropper) return;
+
+        const canvas = variantCropper.getCroppedCanvas({
+          width: 400,
+          height: 400,
+        });
+
+        canvas.toBlob((blob) => {
+          if (!blob) return;
+
+          // store like replacedImages OR new images
+          newImagesInEdit.push({
+            file: blob,
+            preview: URL.createObjectURL(blob),
+          });
+
+          //  ONLY APPEND 
+          appendNewImagePreview(blob);
+          updateAddButtonVisibility();
+
+          closeVariantCrop();
+
+        }, "image/png");
+      }
+
+      function appendNewImagePreview(blob) {
+        const preview = document.getElementById("variantImagePreview");
+
+
+
+        const wrapper = document.createElement("div");
+        wrapper.className = "relative group w-20 h-20";
+
+        wrapper.dataset.type = "new";
+        wrapper.dataset.index = newImagesInEdit.length - 1;
+
+        const img = document.createElement("img");
+        img.src = URL.createObjectURL(blob);
+        img.className = "w-full h-full object-cover rounded";
+
+        // ❌ REMOVE
+        const removeBtn = document.createElement("button");
+        removeBtn.type = "button";
+        removeBtn.innerHTML = "×";
+        removeBtn.className =
+          "absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-5 h-5 text-[10px] hidden group-hover:flex items-center justify-center z-20";
+
+        removeBtn.onclick = () => {
+          const index = Number(wrapper.dataset.index);
+
+          newImagesInEdit.splice(index, 1);
+          wrapper.remove();
+          updateAddButtonVisibility(); // ✅ ADD
+        };
+
+        // 🔁 REPLACE (NEW IMAGE)
+        const replaceBtn = document.createElement("button");
+        replaceBtn.innerText = "Replace";
+        replaceBtn.type = "button";
+        replaceBtn.className =
+          "absolute bottom-0 left-0 right-0 bg-black/70 text-white text-[10px] py-[2px] hidden group-hover:block z-20";
+
+        replaceBtn.onclick = () => {
+          replaceIndex = Number(wrapper.dataset.index);
+          cropMode = "replace-edit-new";
+          variantImageInput.click();
+        };
+
+        wrapper.appendChild(img);
+        wrapper.appendChild(removeBtn);
+        wrapper.appendChild(replaceBtn);
+
+        preview.appendChild(wrapper);
+      }
+
+
+      function replaceNewImageInEdit() {
+        if (!variantCropper) return;
+
+        const canvas = variantCropper.getCroppedCanvas({
+          width: 400,
+          height: 400,
+        });
+
+        canvas.toBlob((blob) => {
+          if (!blob) return;
+
+          const url = URL.createObjectURL(blob);
+
+          newImagesInEdit[replaceIndex] = {
+            file: blob,
+            preview: url,
+          };
+
+          const preview = document.getElementById("variantImagePreview");
+
+          const wrapper = [...preview.children].find(
+            (w) => w.dataset.index == replaceIndex && w.dataset.type === "new"
+          );
+
+          if (wrapper) {
+            const img = wrapper.querySelector("img");
+            img.src = url;
+          }
+
+          closeVariantCrop();
+        }, "image/png");
+      }
+
     </script>
 
+    
+
     <script>
+
       function debounce(fn, delay) {
         let timeout;
 

@@ -33,11 +33,16 @@ import addresRouter from "./addres.route.js";
 import upload from "../../middlewares/cloudinaryUpload.middleware.js";
 import locationRoutes from "./location.route.js";
 import productRouter from "../../routes/product/user/product.route.js";
-import { validate } from "../../middlewares/validate.middleware.js";
+import {
+  validate,
+  requireAuth,
+} from "../../middlewares/validate.middleware.js";
+
 import {
   cartSchema,
   wishlistSchema,
 } from "../../validations/products.validator.js";
+
 import { validateCartBeforeCheckout } from "../../services/product/cart.service.js";
 
 const router = Router();
@@ -47,8 +52,8 @@ router.use(attachUser);
 
 //Routes
 router.use("/product", productRouter);
-router.use("/address", addresRouter);
-router.use("/location", locationRoutes);
+router.use("/address", requireAuth, addresRouter);
+router.use("/location", requireAuth, locationRoutes);
 
 //Home side
 router.get("/", showHomePage);
@@ -56,16 +61,16 @@ router.get("/", showHomePage);
 //Product List page
 router.get("/wishlist/status", getWishlistStatus);
 router.get("/cart/status", getCartStatus);
-router.post("/wishlist", validate(wishlistSchema), updateWishlist);
+router.post("/wishlist", requireAuth, validate(wishlistSchema), updateWishlist);
 router.get("/productList", getProductsListingPage);
 router.get("/shop", getProductsListingPage);
 router
   .route("/cart")
-  .get(getCartPage)
+  .get(requireAuth, getCartPage)
   .post(validate(cartSchema), updateCart)
   .patch(updateCartQuantity)
   .delete(removeCartItem);
-  
+
 router.get("/cart/validate-stock", validateCartStock);
 
 router.post("/checkout", validateCartBeforeCheckout, (req, res) => {

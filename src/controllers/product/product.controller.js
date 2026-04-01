@@ -312,7 +312,10 @@ export const editVariant = async (req, res, next) => {
       req.body.attributes = attributes;
     }
 
-    await editVariantService(productId, variantId, req.body);
+    await editVariantService(productId, variantId, {
+      ...req.body,
+      images: req.files,
+    });
 
     successResponse(res, "Variant updated successfully");
   } catch (error) {

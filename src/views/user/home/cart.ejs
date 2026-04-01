@@ -90,15 +90,15 @@
                                             class="w-full h-full object-contain p-3 group-hover:scale-110 transition-transform duration-500 mix-blend-multiply">
                                         <% if (item.variantId?.stock===0) { %>
                                             <div
-                                                class="absolute inset-x-0 bottom-0 bg-red-500/90 py-1.5 backdrop-blur-sm flex justify-center">
+                                                class="absolute sold-out-badge inset-x-0 bottom-0 bg-red-500/90 py-1.5 backdrop-blur-sm flex justify-center">
                                                 <span
-                                                    class="text-white text-[10px] font-bold tracking-widest uppercase">
+                                                    class=" text-white text-[10px] font-bold tracking-widest uppercase">
                                                     Sold Out
                                                 </span>
                                             </div>
                                             <% } else if (item.variantId?.stock> 0 && item.variantId?.stock <= 5) { %>
                                                     <div
-                                                        class="absolute top-2 left-2 bg-orange-100 text-orange-700 px-2 py-0.5 rounded-md text-[10px] font-bold shadow-sm">
+                                                        class="few-left-badge absolute top-2 left-2 bg-orange-100 text-orange-700 px-2 py-0.5 rounded-md text-[10px] font-bold shadow-sm">
                                                         Few Left
                                                     </div>
                                                     <% } %>
@@ -319,9 +319,95 @@
         </div>
     </main>
 
-    <script type="module">
+    <!-- <script type="module">
         import { showToast } from "/partials/errorMsg.utils.js";
         import { confirmAction } from "/partials/confirm.util.js";
+
+
+        // =======================
+        // 🔥 SOCKET SETUP
+        // =======================
+
+        // load socket (IMPORTANT: add script tag in HTML also)
+        const socket = io();
+
+        // =======================
+        // 🔥 REAL-TIME STOCK UPDATE (MAIN)
+        // =======================
+
+        socket.on("stockUpdated", (data) => {
+            const { productId, variantId, stock } = data;
+
+            const el = document.querySelector(
+                `.cart-item[data-product-id="${productId}"][data-variant-id="${variantId}"]`
+            );
+
+            if (!el) return;
+
+            // ✅ update stock
+            el.dataset.stock = stock;
+
+            const qtyInput = el.querySelector('.item-qty');
+            const increaseBtn = el.querySelector('.increase-qty');
+            const stockTextContainer = el.querySelector(".mt-3.text-xs");
+
+            const qty = Number(qtyInput.value);
+
+            // =======================
+            // 🔥 UPDATE STOCK TEXT UI
+            // =======================
+            if (stockTextContainer) {
+                if (stock === 0) {
+                    stockTextContainer.innerHTML = `
+                <span class="text-red-600 font-medium bg-red-50 px-2.5 py-1 rounded border border-red-100">
+                    Out of Stock
+                </span>
+            `;
+                } else if (stock <= 5) {
+                    stockTextContainer.innerHTML = `
+                <span class="text-orange-600 font-medium bg-orange-50 px-2.5 py-1 rounded border border-orange-100">
+                    Only ${stock} left in stock
+                </span>
+            `;
+                } else {
+                    stockTextContainer.innerHTML = `
+                <span class="text-green-600 font-medium bg-green-50 px-2.5 py-1 rounded border border-green-100">
+                    <i class="fa-solid fa-check text-[10px] mr-1"></i>In Stock
+                </span>
+            `;
+                }
+            }
+
+            // =======================
+            // 🔥 BUTTON CONTROL
+            // =======================
+            if (increaseBtn) {
+                if (qty >= stock) {
+                    increaseBtn.setAttribute("disabled", true);
+                } else {
+                    increaseBtn.removeAttribute("disabled");
+                }
+            }
+
+            // =======================
+            // 🔥 INVALID STATES (REUSE YOUR LOGIC)
+            // =======================
+            el.classList.remove(
+                "border-red-500",
+                "bg-red-50",
+                "border-orange-400",
+                "bg-orange-50"
+            );
+
+            if (stock === 0) {
+                el.classList.add("border-red-500", "bg-red-50");
+            } else if (qty > stock) {
+                el.classList.add("border-orange-400", "bg-orange-50");
+            }
+
+            // 🔥 reuse your function
+            highlightInvalidItems();
+        });
 
         let isSyncing = false;
 
@@ -342,7 +428,7 @@
             calculateTotals();
             highlightInvalidItems();
             checkEmptyCart();
-            await safeSyncCartStock();
+          //  await safeSyncCartStock();
         });
 
         // TAB SWITCH
@@ -407,7 +493,7 @@
                     itemContainer.querySelector('.item-qty').value = newQty;
 
                     calculateTotals();
-                    highlightInvalidItems();
+                     highlightInvalidItems();
                 } else {
                     showToast(result.message || "Update failed", "error");
                 }
@@ -451,6 +537,7 @@
                     container.remove();
                     calculateTotals();
                     checkEmptyCart();
+                    await safeSyncCartStock();
                 }
 
             } catch (err) {
@@ -640,5 +727,240 @@
             });
         }
 
+    </script> -->
+
+    <script src="/socket.io/socket.io.js"></script>
+
+    <script type="module">
+        import { showToast } from "/partials/errorMsg.utils.js";
+        import { confirmAction } from "/partials/confirm.util.js";
+
+
+        //  SOCKET SETUP
+        const socket = io();
+
+        // 🔥 REAL-TIME STOCK UPDATE
+        socket.on("stockUpdated", ({ productId, variantId, stock }) => {
+            const el = document.querySelector(
+                `.cart-item[data-product-id="${productId}"][data-variant-id="${variantId}"]`
+            );
+            if (!el) return;
+
+            el.dataset.stock = stock;
+
+            const qty = Number(el.querySelector('.item-qty').value);
+            const increaseBtn = el.querySelector('.increase-qty');
+            const stockText = el.querySelector(".mt-3.text-xs");
+
+            // IMAGE CONTAINER =
+            const imageWrapper = el.querySelector("a.relative");
+
+            //  HANDLE SOLD OUT BADGE
+            let soldOutBadge = imageWrapper.querySelector(".sold-out-badge");
+            let fewLeftBadge =
+                imageWrapper.querySelector(".few-left-badge")
+
+            if (stock === 0) {
+                // create if not exists
+                if (!soldOutBadge) {
+                    const div = document.createElement("div");
+                    div.className = "sold-out-badge absolute inset-x-0 bottom-0 bg-red-500/90 py-1.5 backdrop-blur-sm flex justify-center";
+                    div.innerHTML = `
+                <span class="text-white text-[10px] font-bold tracking-widest uppercase">
+                    Sold Out
+                </span>
+            `;
+                    imageWrapper.appendChild(div);
+                }
+            } else {
+                // remove if exists
+                if (soldOutBadge) {
+                    soldOutBadge.remove();
+                }
+            }
+
+            // ---------- FEW LEFT ----------
+            if (stock > 0 && stock <= 5) {
+                if (!fewLeftBadge) {
+                    const div = document.createElement("div");
+                    div.className = "few-left-badge absolute top-2 left-2 bg-orange-100 text-orange-700 px-2 py-0.5 rounded-md text-[10px] font-bold shadow-sm";
+                    div.innerText = "Few Left";
+                    imageWrapper.appendChild(div);
+                }
+            } else {
+                if (fewLeftBadge) fewLeftBadge.remove();
+            }
+
+            //  STOCK TEXT UI
+            if (stockText) {
+                if (stock === 0) {
+                    stockText.innerHTML = `<span class="text-red-600 font-medium bg-red-50 px-2.5 py-1 rounded border border-red-100">Out of Stock</span>`;
+                } else if (stock <= 5) {
+                    stockText.innerHTML = `<span class="text-orange-600 font-medium bg-orange-50 px-2.5 py-1 rounded border border-orange-100">Only ${stock} left in stock</span>`;
+                } else {
+                    stockText.innerHTML = `<span class="text-green-600 font-medium bg-green-50 px-2.5 py-1 rounded border border-green-100"><i class="fa-solid fa-check text-[10px] mr-1"></i>In Stock</span>`;
+                }
+            }
+
+            // BUTTON CONTROL
+            if (increaseBtn) {
+                qty >= stock
+                    ? increaseBtn.setAttribute("disabled", true)
+                    : increaseBtn.removeAttribute("disabled");
+            }
+
+            // HIGHLIGHT
+            el.classList.remove("border-red-500", "bg-red-50", "border-orange-400", "bg-orange-50");
+
+            if (stock === 0) {
+                el.classList.add("border-red-500", "bg-red-50");
+            } else if (qty > stock) {
+                el.classList.add("border-orange-400", "bg-orange-50");
+            }
+        });
+
+        //  QUANTITY HANDLERS
+        document.querySelectorAll('.decrease-qty').forEach(btn => {
+            btn.addEventListener('click', async e => {
+                const el = e.target.closest('.cart-item');
+                const qty = +el.querySelector('.item-qty').value;
+                if (qty > 1) await updateQty(el, qty - 1);
+            });
+        });
+
+        document.querySelectorAll('.increase-qty').forEach(btn => {
+            btn.addEventListener('click', async e => {
+                const el = e.target.closest('.cart-item');
+                const qty = +el.querySelector('.item-qty').value;
+                const stock = +el.dataset.stock;
+
+                if (qty < stock) {
+                    await updateQty(el, qty + 1);
+                } else {
+                    showToast(`Only ${stock} items available`, "warning");
+                }
+            });
+        });
+
+        //  UPDATE QTY
+        async function updateQty(el, qty) {
+            const itemId = el.dataset.itemId;
+
+            try {
+                const res = await fetch("/cart", {
+                    method: "PATCH",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ itemId, quantity: qty })
+                });
+
+                const result = await res.json();
+
+                if (result.success) {
+                    el.querySelector('.item-qty').value = qty;
+                    calculateTotals();
+                } else {
+                    showToast(result.message, "error");
+                }
+
+            } catch {
+                showToast("Network error", "error");
+            }
+        }
+
+        //  REMOVE ITEM
+        document.querySelectorAll('.remove-btn').forEach(btn => {
+            btn.addEventListener('click', async e => {
+                const el = e.target.closest('.cart-item');
+                if (await confirmAction("Remove item?")) {
+                    await removeItem(el);
+                }
+            });
+        });
+
+        async function removeItem(el) {
+            const itemId = el.dataset.itemId;
+
+            try {
+                const res = await fetch("/cart", {
+                    method: "DELETE",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ itemId })
+                });
+
+                const result = await res.json();
+
+                if (result.success) {
+                    el.remove();
+                    calculateTotals();
+                    checkEmptyCart();
+                }
+
+            } catch {
+                showToast("Error removing item", "error");
+            }
+        }
+
+        //  CHECKOUT VALIDATION
+        document.getElementById("checkoutBtn").addEventListener("click", e => {
+            const invalid = [...document.querySelectorAll('.cart-item')].some(el => {
+                const stock = +el.dataset.stock;
+                const qty = +el.querySelector('.item-qty').value;
+                return stock === 0 || qty > stock;
+            });
+
+            if (invalid) {
+                e.preventDefault();
+                showToast("Fix stock issues before checkout", "error");
+            }
+        });
+
+        //  HELPERS
+        function calculateTotals() {
+            let total = 0, count = 0;
+
+            document.querySelectorAll('.cart-item').forEach(el => {
+                const price = +el.querySelector('.item-price').textContent.replace(/,/g, '');
+                const qty = +el.querySelector('.item-qty').value;
+                total += price * qty;
+                count += qty;
+            });
+
+            document.getElementById('summaryItemCount').textContent = count;
+            document.getElementById('summarySubtotal').textContent = format(total);
+            document.getElementById('summaryTotal').textContent = format(total);
+        }
+
+        function checkEmptyCart() {
+            if (!document.querySelectorAll('.cart-item').length) {
+                document.getElementById('cartItemsContainer').classList.add('hidden');
+                document.getElementById('emptyCartState').classList.remove('hidden');
+            }
+        }
+
+        function format(n) {
+            return n.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+        }
+
+        function highlightInvalidItems() {
+            document.querySelectorAll('.cart-item').forEach(item => {
+                const stock = Number(item.dataset.stock);
+                const qty = Number(item.querySelector('.item-qty').value);
+
+                item.classList.remove("border-red-500", "bg-red-50", "border-orange-400", "bg-orange-50");
+
+                if (stock === 0) {
+                    item.classList.add("border-red-500", "bg-red-50");
+                } else if (qty > stock) {
+                    item.classList.add("border-orange-400", "bg-orange-50");
+                }
+            });
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            calculateTotals();
+            checkEmptyCart();
+            highlightInvalidItems();
+        });
     </script>
+
     <%- include("../../partials/user/footer.ejs") %>

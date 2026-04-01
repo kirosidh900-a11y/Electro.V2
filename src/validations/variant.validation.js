@@ -28,10 +28,23 @@ export const addVariantSchema = Joi.object({
     }),
 });
 
-export const  editVariantSchema = Joi.object({
+export const editVariantSchema = Joi.object({
   sku: Joi.string().optional(),
   price: Joi.number().optional(),
   stock: Joi.number().optional(),
   description: Joi.string().optional(),
-  attributes: Joi.object().optional()
+  attributes: Joi.object().optional(),
+  deleteImages: Joi.string()
+    .custom((value, helpers) => {
+      try {
+        const parsed = JSON.parse(value);
+        if (!Array.isArray(parsed)) throw new Error();
+        return value;
+      } catch {
+        return helpers.error("any.invalid");
+      }
+    })
+    .optional(), // New field for images to delete
+
+  replaceImageIds: Joi.any().optional(),
 });

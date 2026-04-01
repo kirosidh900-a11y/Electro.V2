@@ -4,7 +4,10 @@ import Brand from "../../models/brandSchema.model.js";
 import mongoose from "mongoose";
 import AppError from "../../utils/partials/AppError.utils.js";
 import HTTP_STATUS from "../../constant/statusCode.js";
-import { uploadToCloudinary } from "../partials/cloudinary.service.js";
+import {
+  deleteFromCloudinary,
+  uploadToCloudinary,
+} from "../partials/cloudinary.service.js";
 import { getCache, setCache } from "../../utils/Redis/cache.js";
 import { findByIdOrThrow } from "../../utils/products/product.util.js";
 
@@ -490,26 +493,116 @@ export const editVariantService = async (productId, variantId, data) => {
 
   if (!variant) throw new Error("Variant not found");
 
-  const normalizedSku = data.sku.trim().toLowerCase();
+  // ================= SKU CHECK =================
+  if (data.sku) {
+    const normalizedSku = data.sku.trim().toLowerCase();
 
-  // 🔍 check globally across all products
-  const skuExists = await Products.findOne({
-    "variants.sku": { $regex: `^${normalizedSku}$`, $options: "i" },
-    "variants._id": { $ne: variantId },
-  });
+    const skuExists = await Products.findOne({
+      "variants.sku": { $regex: `^${normalizedSku}$`, $options: "i" },
+      "variants._id": { $ne: variantId },
+    });
 
-  if (skuExists) {
-    throw new Error("SKU already exists for another variant");
+    if (skuExists) {
+      throw new Error("SKU already exists for another variant");
+    }
+
+    variant.sku = data.sku;
   }
 
-  variant.sku = data.sku;
-  variant.price = data.price;
-  variant.stock = data.stock;
-  variant.description = data.description;
+  // ================= BASIC UPDATE =================
+  if (data.price !== undefined) variant.price = data.price;
+  if (data.stock !== undefined) variant.stock = data.stock;
+  if (data.description !== undefined) variant.description = data.description;
 
-  variant.attributes = new Map(Object.entries(data.attributes || {}));
+  if (data.attributes) {
+    variant.attributes = new Map(Object.entries(data.attributes));
+  }
+
+  // ================= DELETE IMAGES =================
+  let deleteImages = [];
+
+  if (data.deleteImages) {
+    try {
+      deleteImages = JSON.parse(data.deleteImages);
+    } catch {
+      deleteImages = [];
+    }
+  }
+
+  if (deleteImages.length > 0) {
+    variant.product_images = variant.product_images.filter(
+      (img) => !deleteImages.includes(img.imageId),
+    );
+
+    for (const imageId of deleteImages) {
+      try {
+        await deleteFromCloudinary(imageId);
+      } catch (err) {
+        console.error("Cloudinary delete failed:", imageId);
+      }
+    }
+  }
+
+  // ================= FILES =================
+  const files = data.images || [];
+  const replaceIds = [].concat(data.replaceImageIds || []);
+
+  let fileIndex = 0;
+
+  // ================= REPLACE IMAGES =================
+  for (let i = 0; i < replaceIds.length; i++) {
+    const imageId = replaceIds[i];
+    const file = files[fileIndex];
+
+    if (!file || !file.buffer) continue;
+
+    const uploaded = await uploadToCloudinary(file.buffer, "variants");
+
+    const imgIndex = variant.product_images.findIndex(
+      (img) => img.imageId === imageId,
+    );
+
+    if (imgIndex !== -1) {
+      try {
+        await deleteFromCloudinary(imageId);
+      } catch (err) {
+        console.error("Cloudinary delete failed:", imageId);
+      }
+
+      variant.product_images[imgIndex] = {
+        url: uploaded.secure_url,
+        imageId: uploaded.public_id,
+      };
+    }
+
+    fileIndex++; // 🔥 IMPORTANT
+  }
+
+  // ================= ADD NEW IMAGES =================
+  for (let i = fileIndex; i < files.length; i++) {
+    const file = files[i];
+
+    if (!file || !file.buffer) continue;
+
+    const uploaded = await uploadToCloudinary(file.buffer, "variants");
+
+    variant.product_images.push({
+      url: uploaded.secure_url,
+      imageId: uploaded.public_id,
+    });
+  }
 
   await product.save();
+
+  // ================= REAL-TIME =================
+  if (global.io) {
+    global.io.emit("stockUpdated", {
+      productId,
+      variantId,
+      stock: variant.stock,
+      price: variant.price,
+    });
+  }
 };
 
 //  DELETE VARIANT
