@@ -10,6 +10,8 @@ import compression from "compression";
 import authRouter from "./routes/user/auth.route.js";
 import userRouter from "./routes/user/user.route.js";
 import adminRouter from "./routes/admin/admin.route.js";
+import wishlistRoutes from "./routes/user/wishlist.route.js";
+
 import errorMiddleware from "./middlewares/error.middleware.js";
 import AppError from "./utils/partials/AppError.utils.js";
 import { errorResponse } from "./utils/partials/response.util.js";
@@ -49,6 +51,12 @@ app.set("views", path.join(__dirname, "views"));
 app.use("/auth", authRouter);
 app.use("/admin", adminRouter);
 app.use("/", userRouter); 
+
+//api routes
+// app.use("/api/auth", authApiRouter);
+// app.use("/api/products", productApiRouter);
+// app.use("/api/cart", cartApiRouter);
+app.use("/api/wishlist", wishlistRoutes);
 
 // 404 Handler (FIXED)
 app.use((req, res) => {

@@ -961,7 +961,7 @@
       wishlistBtn.disabled = true;
       heartIcon.className = "fas fa-spinner fa-spin text-2xl text-slate-400";
 
-      const res = await fetch("/wishlist", {
+      const res = await fetch("/api/wishlist", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -986,7 +986,7 @@
       }
       countEl.textContent = current;
 
-      if(window.showMessage) window.showMessage(result.message || "Wishlist updated");
+      if(window.showMessage) window.showMessage(result.message || "Wishlist updated",'success');
 
     } catch(err) {
       console.log(err);

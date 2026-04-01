@@ -13,6 +13,7 @@ export const updateWishlistService = async ({
 
   const wishlist = await Wishlist.findOne({ userId });
 
+  /* ================= CHECK EXIST ================= */
   const exists = wishlist?.items?.some(
     (item) =>
       item.productId.equals(productObjId) &&
@@ -36,7 +37,7 @@ export const updateWishlistService = async ({
     return {
       success: true,
       added: false,
-      stauts:HTTP_STATUS.OK,
+      status: HTTP_STATUS.OK,
       message: "Removed from wishlist",
     };
   }
@@ -91,7 +92,7 @@ export const updateWishlistService = async ({
   if (!product.length) {
     return {
       success: false,
-      status: 400,
+      status: HTTP_STATUS.BAD_REQUEST,
       message: "Product not available now!",
     };
   }
@@ -128,7 +129,7 @@ export const updateWishlistService = async ({
   return {
     success: true,
     added: true,
-    status:HTTP_STATUS.OK,
+    status: HTTP_STATUS.OK,
     message: "Added to wishlist",
   };
 };
