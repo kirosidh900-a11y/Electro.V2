@@ -164,6 +164,8 @@
 
                         const data = await res.json();
 
+                        if (!res.ok) throw new Error(data.data.message);
+
                         if (data.success) {
                                 showToast("Removed from wishlist", "success");
                                 document.getElementById(`wishlist-item-${variantId}`).remove();
@@ -187,13 +189,15 @@
 
                         if (!confirmed) return;
 
-                        const res = await fetch("/api/wishlist/move-to-cart", {
+                        const res = await fetch("/cart", {
                                 method: "POST",
                                 headers: { "Content-Type": "application/json" },
-                                body: JSON.stringify({ productId, variantId })
+                                body: JSON.stringify({ productId, variantId, quantity: 1 })
                         });
 
                         const data = await res.json();
+
+                        if (!res.ok) throw new Error(data.data.message);
 
                         if (data.success) {
                                 showToast("Moved to cart", "success");
