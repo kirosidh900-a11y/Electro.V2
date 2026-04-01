@@ -74,6 +74,7 @@ router
     setUploadFolder("products"),
     upload.array("images"),
     validate(editVariantSchema),
+    validateVariantImages, 
     editVariant,
   )
   .delete(deleteVariant);
