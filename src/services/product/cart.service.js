@@ -135,8 +135,7 @@ export const updateCartService = async ({
     message = "Product quantity updated!";
     added = false;
   } else {
-    
-    if(cart.items.length >= 5) {
+    if (cart.items.length >= 5) {
       throw new AppError(
         "Maximum 5 different products allowed in cart",
         HTTP_STATUS.BAD_REQUEST,
@@ -303,7 +302,7 @@ export const validateCartStockService = async (userId) => {
     const product = await Product.findById(item.productId);
 
     const variant = product.variants.find(
-      v => v._id.toString() === item.variantId.toString()
+      (v) => v._id.toString() === item.variantId.toString(),
     );
 
     if (!variant) continue;
@@ -313,9 +312,52 @@ export const validateCartStockService = async (userId) => {
       stock: variant.stock,
       quantity: item.quantity,
       isOutOfStock: variant.stock === 0,
-      exceedsStock: item.quantity > variant.stock
+      exceedsStock: item.quantity > variant.stock,
     });
   }
 
   return updates;
+};
+
+export const getWishlistService = async (userId) => {
+  const wishlist = await Wishlist.findOne({ userId }).lean();
+
+  if (!wishlist || !wishlist.items.length) {
+    return { items: [] };
+  }
+
+  //  SORT (NEW → OLD)
+  const sortedItems = wishlist.items.sort(
+    (a, b) => new Date(b.addedAt) - new Date(a.addedAt),
+  );
+
+  const populatedItems = await Promise.all(
+    sortedItems.map(async (item) => {
+      const product = await Products.findById(item.productId)
+        .populate("brand", "title")
+        .lean();
+
+      if (!product) return null;
+
+      const variant = product.variants.find(
+        (v) => v._id.toString() === item.variantId.toString() && !v.isDeleted,
+      );
+
+      if (!variant) return null;
+
+      return {
+        productId: {
+          _id: product._id,
+          name: product.name,
+          brand: product.brand,
+        },
+        variantId: variant,
+        addedAt: item.addedAt,
+      };
+    }),
+  );
+
+  return {
+    items: populatedItems.filter(Boolean),
+  };
 };

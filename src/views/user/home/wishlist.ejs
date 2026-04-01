@@ -189,35 +189,50 @@
 
                         if (!confirmed) return;
 
-                        const res = await fetch("/cart", {
-                                method: "POST",
-                                headers: { "Content-Type": "application/json" },
-                                body: JSON.stringify({ productId, variantId, quantity: 1 })
-                        });
+                        try {
+                                //  ADD TO CART
+                                const res = await fetch("/cart", {
+                                        method: "POST",
+                                        headers: {
+                                                "Content-Type": "application/json",
+                                        },
+                                        body: JSON.stringify({
+                                                productId,
+                                                variantId,
+                                                quantity: 1,
+                                        }),
+                                });
 
-                        const data = await res.json();
+                                const data = await res.json();
 
-                        if (!res.ok) throw new Error(data.data.message);
-
-                        if (data.success) {
+                                // STOP if cart failed
+                                if (!res.ok) {
+                                        return showToast(data.message || "Cannot add to cart", "error");
+                                }
+                                
+                                // SUCCESS UI UPDATE
                                 showToast("Moved to cart", "success");
 
-                                document.getElementById(`wishlist-item-${variantId}`).remove();
-                                // Update items count
+                                document.getElementById(`wishlist-item-${variantId}`)?.remove();
+
+                                // update counts
                                 const itemsCountElem = document.getElementById("itemsCount");
-                                const currentCount = +itemsCountElem.textContent;
-                                itemsCountElem.textContent = Math.max(currentCount - 1, 0);
+                                if (itemsCountElem) {
+                                        itemsCountElem.textContent = Math.max(+itemsCountElem.textContent - 1, 0);
+                                }
 
-                                //Update wishlist count in header
                                 const wishlistCountElem = document.getElementById("wishlistCount");
-                                const currentWishlistCount = +wishlistCountElem.textContent;
-                                wishlistCountElem.textContent = Math.max(currentWishlistCount - 1, 0);
+                                if (wishlistCountElem) {
+                                        wishlistCountElem.textContent = Math.max(+wishlistCountElem.textContent - 1, 0);
+                                }
 
-                                //Update cart count in header
                                 const cartCountElem = document.getElementById("cartCount");
-                                const currentCartCount = +cartCountElem.textContent;
-                                cartCountElem.textContent = currentCartCount + 1;
+                                if (cartCountElem) {
+                                        cartCountElem.textContent = +cartCountElem.textContent + 1;
+                                }
 
+                        } catch (err) {
+                                showToast(err.message || "Something went wrong", "error");
                         }
                 };
 

@@ -17,11 +17,11 @@ import {
   updateCartQuantityService,
   updateCartService,
   validateCartStockService,
+  getWishlistService,
 } from "../../../services/product/cart.service.js";
 import setCookieMSG from "../../../utils/partials/setCookieMsg.utils.js";
 import Wishlist from "../../../models/wishlistSchema.model.js";
 import Cart from "../../../models/cartSchema.models.js";
-import Product from "../../../models/productSchema.model.js";
 
 //Product
 export const getProductsListingPage = async (req, res) => {
@@ -109,50 +109,12 @@ export const getProductsListingPage = async (req, res) => {
 //WISHLIST
 export const getWishlistPage = async (req, res, next) => {
   try {
-    const userId = req.user._id;
+    const userId = res.locals.user?._id;
 
-    // 🔥 GET WISHLIST
-    let wishlist = await Wishlist.findOne({ userId }).lean();
-
-    if (!wishlist || !wishlist.items.length) {
-      return res.render("user/wishlist/index", {
-        wishlist: { items: [] },
-      });
-    }
-
-    // 🔥 MAP ITEMS WITH PRODUCT + VARIANT
-    const populatedItems = await Promise.all(
-      wishlist.items.map(async (item) => {
-        const product = await Product.findById(item.productId)
-          .populate("brand", "title")
-          .lean();
-
-        if (!product) return null;
-
-        const variant = product.variants.find(
-          (v) => v._id.toString() === item.variantId.toString(),
-        );
-
-        if (!variant) return null;
-
-        return {
-          productId: {
-            _id: product._id,
-            name: product.name,
-            brand: product.brand,
-          },
-          variantId: variant,
-        };
-      }),
-    );
-
-    // ❌ REMOVE NULL ITEMS (deleted product/variant)
-    const filteredItems = populatedItems.filter(Boolean);
+    const wishlist = await getWishlistService(userId);
 
     return res.render("user/home/wishlist", {
-      wishlist: {
-        items: filteredItems,
-      },
+      wishlist,
     });
   } catch (err) {
     next(err);
@@ -209,6 +171,64 @@ export const getWishlistStatus = async (req, res) => {
   } catch (err) {
     console.error(err);
     return res.status(500).json({ inWishlist: false });
+  }
+};
+
+//Cart Page
+export const getCartPage = async (req, res, next) => {
+  try {
+    const userId = req.user?._id;
+
+    if (!userId) {
+      return next(
+        new AppError("Please login to view cart", HTTP_STATUS.UNAUTHORIZED),
+      );
+    }
+
+    let cart = await Cart.findOne({ userId })
+      .populate({
+        path: "items.productId",
+        select: "name brand variants",
+        populate: {
+          path: "brand",
+          select: "name",
+        },
+      })
+      .lean();
+
+    if (!cart) {
+      cart = { items: [] };
+    }
+
+    cart.items = (cart.items || [])
+      .map((item) => {
+        const product = item.productId;
+
+        if (!product) return null;
+
+        // 🔍 find matching variant inside product
+        const variant = product.variants.find(
+          (v) => v._id.toString() === item.variantId.toString(),
+        );
+
+        if (!variant) return null;
+
+        return {
+          ...item,
+          variantId: {
+            ...variant,
+
+            // normalize images for frontend
+            images: variant.product_images?.map((img) => img.url) || [],
+          },
+        };
+      })
+      .filter(Boolean);
+
+    res.render("user/home/cart", { cart });
+  } catch (error) {
+    console.error("Cart Page Error:", error);
+    next(error);
   }
 };
 
@@ -273,64 +293,6 @@ export const getProductDetailsUser = async (req, res) => {
     setCookieMSG(res, error.message);
 
     res.redirect("/shop");
-  }
-};
-
-//Cart Page
-export const getCartPage = async (req, res, next) => {
-  try {
-    const userId = req.user?._id;
-
-    if (!userId) {
-      return next(
-        new AppError("Please login to view cart", HTTP_STATUS.UNAUTHORIZED),
-      );
-    }
-
-    let cart = await Cart.findOne({ userId })
-      .populate({
-        path: "items.productId",
-        select: "name brand variants",
-        populate: {
-          path: "brand",
-          select: "name",
-        },
-      })
-      .lean();
-
-    if (!cart) {
-      cart = { items: [] };
-    }
-
-    cart.items = (cart.items || [])
-      .map((item) => {
-        const product = item.productId;
-
-        if (!product) return null;
-
-        // 🔍 find matching variant inside product
-        const variant = product.variants.find(
-          (v) => v._id.toString() === item.variantId.toString(),
-        );
-
-        if (!variant) return null;
-
-        return {
-          ...item,
-          variantId: {
-            ...variant,
-
-            // normalize images for frontend
-            images: variant.product_images?.map((img) => img.url) || [],
-          },
-        };
-      })
-      .filter(Boolean);
-
-    res.render("user/home/cart", { cart });
-  } catch (error) {
-    console.error("Cart Page Error:", error);
-    next(error);
   }
 };
 

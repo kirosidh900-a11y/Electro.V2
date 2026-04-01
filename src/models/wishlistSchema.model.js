@@ -18,6 +18,10 @@ const wishlistSchema = new mongoose.Schema(
         variantId: {
           type: mongoose.Schema.Types.ObjectId,
         },
+        addedAt: {
+          type: Date,
+          default: Date.now,
+        },
       },
     ],
   },
