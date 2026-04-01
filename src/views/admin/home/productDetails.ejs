@@ -333,10 +333,13 @@
                                     <% } %>
 
                                       <!-- ADD IMAGE -->
-                                      <div onclick="openImageUpload('<%= v._id %>')"
-                                        class="w-12 h-12 border-2 border-dashed border-gray-500 rounded flex items-center justify-center cursor-pointer hover:border-blue-500">
-                                        <i class="fas fa-plus text-xs"></i>
-                                      </div>
+                                      <% if (v.product_images.length < 5) { %>
+                                        <div onclick="openImageUpload('<%= v._id %>')"
+                                          class="w-12 h-12 border-2 border-dashed border-gray-500 rounded flex items-center justify-center cursor-pointer hover:border-blue-500">
+                                          <i class="fas fa-plus text-xs"></i>
+                                        </div>
+                                        <%}%>
+
 
                             </div>
                           </td>
@@ -505,6 +508,7 @@
 
       let editingVariantAttributes = {};
       let currentVariantId = null;
+      const MAX_IMAGES = 5;
 
       // Cropper variables
       let variantCropper;
@@ -522,6 +526,24 @@
       const variantImageInput = document.getElementById("variantImageInput");
       const variantCropModal = document.getElementById("variantCropModal");
       const variantCropImage = document.getElementById("variantCropImage");
+
+      function getTotalImages() {
+        const existing = document.querySelectorAll("#variantImagePreview > div[data-image-id]").length;
+        const newImgs = newImagesInEdit.length;
+        const addImgs = variantImages.length;
+
+        return existing + newImgs + addImgs;
+      }
+
+      function updateAddButtonVisibility() {
+        const btn = document.querySelector("#variantForm button[onclick='openImageUploadForForm()']");
+
+        if (getTotalImages() >= MAX_IMAGES) {
+          btn.style.display = "none"; // ❌ hide
+        } else {
+          btn.style.display = "inline-block"; // ✅ show
+        }
+      }
 
 
 
@@ -672,6 +694,7 @@
               removeBtn.onclick = () => {
                 imagesToDelete.push(img.imageId);
                 wrapper.remove();
+                updateAddButtonVisibility();
               };
 
               const replaceBtn = document.createElement("button");
@@ -710,6 +733,7 @@
           showToast("Failed to load variant", "error");
         }
       };
+      
       /* ================= SUBMIT VARIANT ================= */
 
       const variantForm = document.getElementById("variantForm");
@@ -1138,6 +1162,14 @@
       window.openImageUploadForForm = function () {
         const variantId = document.getElementById("variant-id").value;
 
+        const totalImages =
+          variantImages.length + newImagesInEdit.length + document.querySelectorAll("#variantImagePreview > div[data-image-id]").length;
+
+        if (totalImages >= MAX_IMAGES) {
+          showToast("Maximum 5 images allowed", "warning");
+          return;
+        }
+
         if (variantId) {
           // EDIT MODE
           cropMode = "multi-edit";
@@ -1264,6 +1296,7 @@
           variantImages.push({ file, preview: url });
 
           renderImages();
+          updateAddButtonVisibility();
         });
       }
 
@@ -1311,11 +1344,11 @@
 
           removeBtn.onclick = () => {
             variantImages.splice(index, 1);
-
             // ALSO REMOVE FROM newImagesInEdit
             newImagesInEdit.splice(index, 1);
-
             renderImages();
+            updateAddButtonVisibility();
+
           };
 
           // 🔁 REPLACE
@@ -1358,6 +1391,7 @@
 
           //  ONLY APPEND 
           appendNewImagePreview(blob);
+          updateAddButtonVisibility();
 
           closeVariantCrop();
 
@@ -1391,6 +1425,7 @@
 
           newImagesInEdit.splice(index, 1);
           wrapper.remove();
+          updateAddButtonVisibility(); // ✅ ADD
         };
 
         // 🔁 REPLACE (NEW IMAGE)
@@ -1448,6 +1483,8 @@
       }
 
     </script>
+
+    
 
     <script>
 
