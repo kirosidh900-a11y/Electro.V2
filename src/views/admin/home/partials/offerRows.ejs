@@ -1,0 +1,83 @@
+<% if(offers.length === 0){ %>
+
+<tr>
+    <td colspan="6" class="text-center py-12 text-gray-500">
+        <i class="fas fa-tags text-2xl mb-2 block"></i>
+        <p>No offers found</p>
+    </td>
+</tr>
+
+<% } else { %>
+
+<% offers.forEach((offer,index)=>{ %>
+
+<tr id="row-<%= offer._id %>" class="border-b border-white/5 hover:bg-white/5">
+
+    <td class="px-6 py-4">
+        <%= (currentPage-1)*6 + index +1 %>
+    </td>
+
+    <!-- NAME -->
+    <td id="name-<%= offer._id %>" class="px-6 py-4 font-semibold text-white">
+        <%= offer.name %>
+    </td>
+
+    <!-- TYPE -->
+    <td class="px-6 py-4">
+        <%= offer.discount_type %>
+    </td>
+
+    <!-- APPLIES TO -->
+    <td class="px-6 py-4">
+        <%= offer.applies_to %>
+    </td>
+
+    <!-- STATUS -->
+    <td class="px-6 py-4">
+
+        <span id="badge-<%= offer._id %>"
+            class="px-3 py-1 rounded-full text-xs
+            <%= offer.is_active
+                ? 'bg-emerald-500/20 text-emerald-400'
+                : 'bg-red-500/20 text-red-400' %>">
+
+            <%= offer.is_active ? "active" : "inactive" %>
+
+        </span>
+
+    </td>
+
+    <!-- ACTIONS -->
+    <td class="px-6 py-4 text-right flex justify-end gap-3">
+
+        <!-- EDIT -->
+        <button onclick='event.stopPropagation();editOffer("<%= offer._id %>")'
+            class="text-cyan-400 hover:text-cyan-300">
+            <i class="fas fa-edit"></i>
+        </button>
+
+        <!-- TOGGLE -->
+        <button id="status-<%= offer._id %>"
+            onclick="event.stopPropagation();toggleOfferStatus('<%= offer._id %>', <%= offer.is_active %>)"
+            class="px-3 py-1 text-xs rounded-md font-semibold
+            <%= offer.is_active
+                ? 'bg-yellow-500/20 text-yellow-400'
+                : 'bg-emerald-500/20 text-emerald-400' %>">
+
+            <%= offer.is_active ? "Disable" : "Enable" %>
+
+        </button>
+
+        <!-- DELETE -->
+        <button onclick="event.stopPropagation(); deleteOffer('<%= offer._id %>')"
+            class="text-red-400 hover:text-red-300">
+            <i class="fas fa-trash"></i>
+        </button>
+
+    </td>
+
+</tr>
+
+<% }) %>
+
+<% } %>

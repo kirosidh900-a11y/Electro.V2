@@ -1,0 +1,797 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+
+<head>
+        <%- include('../../partials/head') %>
+                <link href="https://unpkg.com/cropperjs/dist/cropper.css" rel="stylesheet">
+                <script defer src="https://unpkg.com/cropperjs/dist/cropper.js"></script>
+                <link href="https://cdn.jsdelivr.net/npm/tom-select/dist/css/tom-select.css" rel="stylesheet">
+                <script src="https://cdn.jsdelivr.net/npm/tom-select/dist/js/tom-select.complete.min.js"></script>
+
+                <style>
+                        /* Main box */
+                        .ts-control {
+                                background: #0f172a !important;
+                                border: 1px solid rgba(255, 255, 255, 0.1) !important;
+                                border-radius: 10px !important;
+                                padding: 6px !important;
+                                min-height: 42px;
+                        }
+
+                        /* Input text */
+                        .ts-control input {
+                                color: #fff !important;
+                        }
+
+                        /* Selected tags */
+                        .ts-control .item {
+                                background: rgba(34, 197, 94, 0.15) !important;
+                                color: #4ade80 !important;
+                                border-radius: 6px !important;
+                                padding: 4px 8px !important;
+                                margin: 2px !important;
+                                font-size: 12px;
+                        }
+
+                        /* Remove button */
+                        .ts-control .remove {
+                                color: #f87171 !important;
+                                margin-left: 6px;
+                        }
+
+                        /* Dropdown */
+                        .ts-dropdown {
+                                background: #0b1220 !important;
+                                border: 1px solid rgba(255, 255, 255, 0.1) !important;
+                                border-radius: 10px !important;
+                        }
+
+                        /* Dropdown items */
+                        .ts-dropdown .option {
+                                color: #e5e7eb !important;
+                                padding: 10px;
+                        }
+
+                        /* Hover */
+                        .ts-dropdown .option.active {
+                                background: rgba(59, 130, 246, 0.2) !important;
+                                color: #fff !important;
+                        }
+
+                        /* Placeholder */
+                        .ts-control .placeholder {
+                                color: #6b7280 !important;
+                        }
+
+                        .ts-control {
+                                max-height: 100px;
+                                overflow-y: auto;
+                        }
+                </style>
+                <style>
+                        /* 🔥 Glass container */
+                        .ts-wrapper.multi .ts-control {
+                                background: linear-gradient(145deg, #0f172a, #020617) !important;
+                                border: 1px solid rgba(255, 255, 255, 0.08) !important;
+                                border-radius: 12px !important;
+                                padding: 8px !important;
+                                min-height: 48px;
+                                box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.02),
+                                        0 4px 20px rgba(0, 0, 0, 0.5);
+                                transition: all 0.2s ease;
+                        }
+
+                        /* ✨ Focus glow */
+                        .ts-wrapper.focus .ts-control {
+                                border-color: rgba(59, 130, 246, 0.5) !important;
+                                box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2),
+                                        0 8px 25px rgba(0, 0, 0, 0.6);
+                        }
+
+                        /* 🧠 Input */
+                        .ts-control input {
+                                color: #e5e7eb !important;
+                                font-size: 14px;
+                        }
+
+                        /* 🏷️ Tags (premium pills) */
+                        .ts-control .item {
+                                background: linear-gradient(135deg, #22c55e, #16a34a) !important;
+                                color: white !important;
+                                border-radius: 999px !important;
+                                padding: 4px 10px !important;
+                                margin: 3px !important;
+                                font-size: 12px;
+                                display: flex;
+                                align-items: center;
+                                gap: 6px;
+                        }
+
+                        /* ❌ Remove button */
+                        .ts-control .remove {
+                                background: rgba(255, 255, 255, 0.2);
+                                border-radius: 50%;
+                                padding: 0 5px;
+                                font-size: 10px;
+                                transition: 0.2s;
+                        }
+
+                        .ts-control .remove:hover {
+                                background: #ef4444;
+                        }
+
+                        /* 📦 Dropdown */
+                        .ts-dropdown {
+                                background: linear-gradient(145deg, #020617, #0b1220) !important;
+                                border: 1px solid rgba(255, 255, 255, 0.08) !important;
+                                border-radius: 12px !important;
+                                margin-top: 6px;
+                                overflow: hidden;
+                                box-shadow: 0 10px 40px rgba(0, 0, 0, 0.6);
+                        }
+
+                        /* 🔍 Search result item */
+                        .ts-dropdown .option {
+                                padding: 12px;
+                                color: #d1d5db !important;
+                                font-size: 14px;
+                                transition: 0.15s;
+                        }
+
+                        /* Hover */
+                        .ts-dropdown .option:hover {
+                                background: rgba(59, 130, 246, 0.15) !important;
+                                color: white !important;
+                        }
+
+                        /* Active (keyboard nav) */
+                        .ts-dropdown .active {
+                                background: rgba(59, 130, 246, 0.25) !important;
+                        }
+
+                        /* ✨ Highlight search match */
+                        .ts-dropdown .highlight {
+                                color: #60a5fa;
+                                font-weight: 600;
+                        }
+
+                        /* Placeholder */
+                        .ts-control .placeholder {
+                                color: #6b7280 !important;
+                        }
+
+                        /* Scrollbar (premium feel) */
+                        .ts-dropdown::-webkit-scrollbar {
+                                width: 6px;
+                        }
+
+                        .ts-dropdown::-webkit-scrollbar-thumb {
+                                background: rgba(255, 255, 255, 0.2);
+                                border-radius: 10px;
+                        }
+
+                        .ts-dropdown {
+                                animation: dropdownFade 0.15s ease;
+                        }
+
+                        @keyframes dropdownFade {
+                                from {
+                                        opacity: 0;
+                                        transform: translateY(-6px);
+                                }
+
+                                to {
+                                        opacity: 1;
+                                        transform: translateY(0);
+                                }
+                        }
+                </style>
+
+</head>
+
+<body class="min-h-screen flex">
+
+        <%- include('../../partials/admin/sidebar') %>
+
+                <div id="mainContent" class="flex-1 flex flex-col min-w-0 transition-all duration-300">
+
+                        <%- include('../../partials/admin/header') %>
+
+                                <main class="flex-1 p-4 sm:p-6 lg:p-8 w-full">
+
+                                        <%- include("./partials/header",{ title }) %>
+
+                                                <!-- ================= TABLE ================= -->
+
+                                                <div
+                                                        class="w-full bg-[#0b1220] border border-white/5 rounded-3xl shadow-xl overflow-x-auto">
+
+                                                        <table class="w-full text-sm text-left text-gray-300">
+
+                                                                <!-- ✅ HEADER -->
+                                                                <thead
+                                                                        class="border-b border-white/10 text-gray-400 uppercase text-xs">
+                                                                        <tr>
+                                                                                <th class="px-6 py-4">#</th>
+                                                                                <th class="px-6 py-4">Offer Name</th>
+                                                                                <th class="px-6 py-4">Discount Type</th>
+                                                                                <th class="px-6 py-4">Applies To</th>
+                                                                                <th class="px-6 py-4">Status</th>
+                                                                                <th class="px-6 py-4 text-right">Actions
+                                                                                </th>
+                                                                        </tr>
+                                                                </thead>
+
+                                                                <!-- BODY -->
+                                                                <tbody id="offersTableBody">
+                                                                        <%- include("./partials/offerRows", { offers,
+                                                                                currentPage }) %>
+                                                                </tbody>
+
+                                                        </table>
+
+                                                </div>
+
+                                                <!-- ================= PAGINATION ================= -->
+
+                                                <div id="pagination" class="flex flex-wrap justify-center gap-2 mt-8">
+
+                                                        <%- include("./partials/pagination",{ currentPage,totalPages })
+                                                                %>
+
+                                                </div>
+
+                                </main>
+
+                </div>
+
+
+                <!-- ================= OFFER MODAL ================= -->
+
+                <div id="offerModal" class="fixed inset-0 bg-black/60 hidden z-50 flex items-center justify-center">
+
+                        <div class="bg-[#0b1220] w-[550px] rounded-xl border border-white/10 p-6">
+
+                                <!-- HEADER -->
+                                <div class="flex justify-between items-center mb-4">
+
+                                        <h2 id="offerModalTitle" class="text-lg font-semibold text-white">
+                                                Add Offer
+                                        </h2>
+
+                                        <button onclick="closeOfferModal()" class="text-gray-400 hover:text-white">
+                                                <i class="fas fa-times"></i>
+                                        </button>
+
+                                </div>
+
+                                <!-- FORM -->
+                                <form id="offerForm" class="flex flex-col gap-4">
+
+                                        <input type="hidden" id="offer-id">
+
+                                        <!-- Offer Name -->
+                                        <div>
+                                                <label class="text-sm text-gray-400">Offer Name</label>
+                                                <input type="text" id="offer-name"
+                                                        class="w-full mt-1 bg-[#0f172a] border border-white/10 px-3 py-2 rounded-lg text-sm">
+                                        </div>
+
+                                        <!-- Code -->
+                                        <div>
+                                                <label class="text-sm text-gray-400">Code</label>
+                                                <input type="text" id="offer-code"
+                                                        class="w-full mt-1 bg-[#0f172a] border border-white/10 px-3 py-2 rounded-lg text-sm">
+                                        </div>
+
+                                        <!-- Discount Type -->
+                                        <div>
+                                                <label class="text-sm text-gray-400">Discount Type</label>
+                                                <select id="offer-discount-type"
+                                                        class="w-full mt-1 bg-[#0f172a] border border-white/10 px-3 py-2 rounded-lg text-sm">
+                                                        <option value="">Select</option>
+                                                        <option value="percentage">Percentage</option>
+                                                        <option value="fixed">Fixed</option>
+                                                </select>
+                                        </div>
+
+                                        <!-- Discount Value -->
+                                        <div>
+                                                <label class="text-sm text-gray-400">Discount Value</label>
+                                                <input type="number" id="offer-discount"
+                                                        class="w-full mt-1 bg-[#0f172a] border border-white/10 px-3 py-2 rounded-lg text-sm">
+                                        </div>
+
+                                        <!-- Applies To -->
+                                        <div>
+                                                <label class="text-sm text-gray-400">Applies To</label>
+                                                <select id="offer-applies-to"
+                                                        class="w-full mt-1 bg-[#0f172a] border border-white/10 px-3 py-2 rounded-lg text-sm">
+                                                        <option value="">Select</option>
+                                                        <option value="product">Product</option>
+                                                        <option value="category">Category</option>
+                                                        <option value="brand">Brand</option>
+                                                        <option value="all">All</option>
+                                                </select>
+                                        </div>
+
+                                        <!-- Target -->
+                                        <div id="offer-target-container" class="hidden">
+                                                <label class="text-sm text-gray-400">Target</label>
+                                                <select id="offer-target" multiple placeholder="Select targets..."
+                                                        class="w-full mt-1 bg-[#0f172a] border border-white/10 px-3 py-2 rounded-lg text-sm">
+                                                </select>
+                                        </div>
+
+                                        <!-- Dates -->
+                                        <div class="flex gap-3">
+                                                <div class="flex-1">
+                                                        <label class="text-sm text-gray-400">Start Date</label>
+                                                        <input type="date" id="offer-start"
+                                                                class="w-full mt-1 bg-[#0f172a] border border-white/10 px-3 py-2 rounded-lg text-sm">
+                                                </div>
+
+                                                <div class="flex-1">
+                                                        <label class="text-sm text-gray-400">End Date</label>
+                                                        <input type="date" id="offer-end"
+                                                                class="w-full mt-1 bg-[#0f172a] border border-white/10 px-3 py-2 rounded-lg text-sm">
+                                                </div>
+                                        </div>
+
+                                        <!-- Status -->
+                                        <div>
+                                                <label class="text-sm text-gray-400">Status</label>
+                                                <select id="offer-status"
+                                                        class="w-full mt-1 bg-[#0f172a] border border-white/10 px-3 py-2 rounded-lg text-sm">
+                                                        <option value="true">Active</option>
+                                                        <option value="false">Inactive</option>
+                                                </select>
+                                        </div>
+
+                                        <!-- BUTTONS -->
+                                        <div class="flex justify-center gap-3 mt-4">
+
+                                                <button type="button" onclick="closeOfferModal()"
+                                                        class="px-4 py-2 bg-gray-600 hover:bg-gray-700 text-white rounded-lg text-sm">
+                                                        Cancel
+                                                </button>
+
+                                                <button type="submit" id="offer-submit-btn"
+                                                        class="px-4 py-2 bg-cyan-600 hover:bg-cyan-700 text-white rounded-lg text-sm">
+                                                        Create Offer
+                                                </button>
+
+                                        </div>
+
+                                </form>
+
+                        </div>
+
+                </div>
+
+                <!-- ================= SCRIPTS ================= -->
+
+                <% if (typeof error !=="undefined" && error) { %>
+                        <script type="module">
+                                import { showToast } from "/partials/errorMsg.utils.js";
+                                showToast('<%= error %>', 'error');
+                        </script>
+                        <% } %>
+
+
+                                <!-- search and filter -->
+                                <script>
+                                        const filter = document.getElementById("filter");
+
+                                        const pageTitle = document.querySelector("h1")?.textContent || "";
+                                        const moduleName = pageTitle.replace("Management", "").trim().toLowerCase();
+
+                                        function debounce(func, delay) {
+                                                let timer;
+
+                                                return function (...args) {
+                                                        clearTimeout(timer);
+
+                                                        timer = setTimeout(async () => {
+                                                                await func.apply(this, args);
+                                                        }, delay);
+                                                };
+                                        }
+
+                                        async function searchData() {
+                                                const title = document.g
+                                                moduleName
+                                                const value = searchInput?.value.trim() || "";
+                                                const filterValue = filter?.value.trim() || "";
+
+                                                try {
+
+                                                        const res = await fetch(
+                                                                `/admin/${moduleName}?search=${encodeURIComponent(value)}&status=${encodeURIComponent(filterValue)}`,
+                                                                {
+                                                                        headers: {
+                                                                                "X-Requested-With": "XMLHttpRequest",
+                                                                                "Accept": "application/json"
+                                                                        }
+                                                                }
+                                                        );
+
+                                                        const data = await res.json();
+
+                                                        document.getElementById(`${moduleName}TableBody`).innerHTML = data.rows;
+                                                        document.getElementById("pagination").innerHTML = data.pagination;
+
+                                                } catch (error) {
+                                                        console.error("Search error:", error);
+                                                }
+                                        }
+
+                                        const debouncedSearch = debounce(searchData, 400);
+
+                                        searchInput?.addEventListener("input", debouncedSearch);
+                                        filter?.addEventListener("change", searchData);
+
+
+
+
+                                </script>
+
+                                <!-- Main content -->
+                                <script type="module">
+
+                                        import { showToast } from "../../partials/errorMsg.utils.js";
+                                        import { confirmAction } from "../../partials/confirm.util.js";
+
+                                        let targetSelectInstance;
+
+                                        function initTomSelect(options = []) {
+
+                                                if (targetSelectInstance) {
+                                                        targetSelectInstance.destroy();
+                                                }
+
+                                                targetSelectInstance = new TomSelect("#offer-target", {
+                                                        options,
+                                                        valueField: "_id",
+                                                        labelField: "title",
+                                                        searchField: ["title", "name"],
+
+                                                        plugins: ['remove_button'],
+                                                        maxItems: null,
+
+                                                        placeholder: "🔍 Search products, categories or brands...",
+
+                                                        render: {
+                                                                option: (data, escape) => {
+                                                                        return `
+                <div class="flex justify-between items-center">
+                    <span>${escape(data.title)}</span>
+                    <span class="text-xs text-gray-500">Select</span>
+                </div>
+            `;
+                                                                },
+                                                                item: (data, escape) => {
+                                                                        return `
+                <div class="flex items-center gap-1">
+                    <span>✔</span>
+                    ${escape(data.title)}
+                </div>
+            `;
+                                                                }
+                                                        }
+                                                });
+                                        }
+
+                                        // ================= OPEN MODAL =================
+
+                                        function openOfferModal() {
+
+                                                document.getElementById("offer-id").value = "";
+                                                document.getElementById("offer-name").value = "";
+                                                document.getElementById("offer-code").value = "";
+                                                document.getElementById("offer-discount-type").value = "";
+                                                document.getElementById("offer-discount").value = "";
+                                                document.getElementById("offer-applies-to").value = "";
+                                                document.getElementById("offer-start").value = "";
+                                                document.getElementById("offer-end").value = "";
+                                                document.getElementById("offer-status").value = "true";
+
+                                                document.getElementById("offer-target-container").classList.add("hidden");
+
+                                                document.getElementById("offer-submit-btn").textContent = "Create Offer";
+                                                document.getElementById("offerModalTitle").textContent = "Add Offer";
+
+                                                document.getElementById("offerModal").classList.remove("hidden");
+                                        }
+
+                                        // ================= CLOSE MODAL =================
+
+                                        function closeOfferModal() {
+                                                document.getElementById("offerModal").classList.add("hidden");
+                                        }
+
+                                        // ================= TARGET LOAD =================
+
+                                        document.getElementById("offer-applies-to")?.addEventListener("change", async function () {
+
+                                                const value = this.value;
+                                                const container = document.getElementById("offer-target-container");
+                                                const targetSelect = document.getElementById("offer-target");
+
+                                                if (value === "all" || !value) {
+                                                        container.classList.add("hidden");
+                                                        targetSelect.innerHTML = "";
+                                                        return;
+                                                }
+
+                                                container.classList.remove("hidden");
+
+                                                try {
+                                                        const res = await fetch(`/api/admin/offers/targets?type=${value}`);
+                                                        const { data, success, message } = await res.json();
+
+                                                        if (!success) {
+                                                                return showToast(message, "error");
+                                                        }
+
+                                                        // normalize data
+                                                        const options = data.map(item => ({
+                                                                _id: item._id,
+                                                                title: item.title || item.name
+                                                        }));
+
+                                                        initTomSelect(options);
+                                                } catch {
+                                                        showToast("Failed to load targets", "error");
+                                                }
+                                        });
+
+                                        // ================= FORM SUBMIT =================
+
+                                        const offerForm = document.getElementById("offerForm");
+                                        const addBtn = document.getElementById(`add-offers`);
+
+                                        if (addBtn) {
+                                                addBtn.addEventListener("click", openOfferModal);
+                                        }
+
+                                        offerForm?.addEventListener("submit", async (e) => {
+
+                                                e.preventDefault();
+
+                                                const id = document.getElementById("offer-id").value;
+                                                const name = document.getElementById("offer-name").value.trim();
+                                                const code = document.getElementById("offer-code").value.trim();
+                                                const discount_type = document.getElementById("offer-discount-type").value;
+                                                const discount = Number(document.getElementById("offer-discount").value);
+                                                const applies_to = document.getElementById("offer-applies-to").value;
+                                                const targetSelect = document.getElementById("offer-target");
+
+                                                const target_ids = Array.from(targetSelect.selectedOptions)
+                                                        .map(option => option.value);
+
+                                                const start_date = document.getElementById("offer-start").value;
+                                                const end_date = document.getElementById("offer-end").value;
+                                                const is_active = document.getElementById("offer-status").value === "true";
+
+                                                // VALIDATION
+
+                                                if (!name) return showToast("Offer name required", "warning");
+                                                if (!code) return showToast("Code required", "warning");
+                                                if (!discount_type) return showToast("Select discount type", "warning");
+                                                if (!discount) return showToast("Enter discount value", "warning");
+                                                if (!applies_to) return showToast("Select applies to", "warning");
+                                                if (applies_to !== "all" && !target) return showToast("Select target", "warning");
+                                                if (!start_date || !end_date) return showToast("Select dates", "warning");
+
+                                                let url = "/admin/offers";
+                                                let method = "POST";
+
+                                                if (id) {
+                                                        url = `/admin/offers/${id}`;
+                                                        method = "PATCH";
+                                                }
+
+                                                try {
+
+                                                        const res = await fetch(url, {
+                                                                method,
+                                                                headers: { "Content-Type": "application/json" },
+                                                                body: JSON.stringify({
+                                                                        name,
+                                                                        code,
+                                                                        discount_type,
+                                                                        discount,
+                                                                        applies_to,
+                                                                        target_ids: targetSelectInstance.getValue(),
+                                                                        start_date,
+                                                                        end_date,
+                                                                        is_active
+                                                                })
+                                                        });
+
+                                                        const { data, success, message } = await res.json();
+
+                                                        if (!success) return showToast(message, "error");
+
+                                                        showToast(message, "success");
+
+                                                        // 🔥 SIMPLE APPROACH
+                                                        location.reload();
+
+                                                } catch {
+                                                        showToast("Something went wrong", "error");
+                                                }
+
+                                        });
+
+                                        // ================= EDIT OFFER =================
+
+                                        async function editOffer(id) {
+
+                                                try {
+
+                                                        const res = await fetch(`/admin/offers/${id}`);
+                                                        const data = await res.json();
+
+                                                        if (!data.success) return showToast(data.message, "error");
+
+                                                        const offer = data.data;
+
+                                                        document.getElementById("offer-id").value = offer._id;
+                                                        document.getElementById("offer-name").value = offer.name;
+                                                        document.getElementById("offer-code").value = offer.code;
+                                                        document.getElementById("offer-discount-type").value = offer.discount_type;
+                                                        document.getElementById("offer-discount").value = offer.discount;
+                                                        document.getElementById("offer-applies-to").value = offer.applies_to;
+                                                        document.getElementById("offer-start").value = offer.start_date?.split("T")[0];
+                                                        document.getElementById("offer-end").value = offer.end_date?.split("T")[0];
+                                                        document.getElementById("offer-status").value = offer.is_active ? "true" : "false";
+
+                                                        document.getElementById("offerModalTitle").textContent = "Edit Offer";
+                                                        document.getElementById("offer-submit-btn").textContent = "Update Offer";
+
+                                                        document.getElementById("offerModal").classList.remove("hidden");
+
+                                                } catch {
+                                                        showToast("Failed to load offer", "error");
+                                                }
+                                        }
+
+                                        // ================= DELETE OFFER =================
+
+                                        async function deleteOffer(id) {
+
+                                                const confirmed = await confirmAction("Delete Offer?");
+                                                if (!confirmed) return;
+
+                                                try {
+
+                                                        const res = await fetch(`/admin/offers/${id}`, {
+                                                                method: "DELETE"
+                                                        });
+
+                                                        const data = await res.json();
+
+                                                        if (!data.success) return showToast(data.message, "error");
+
+                                                        const row = document.getElementById(`row-${id}`);
+                                                        if (row) {
+                                                                row.style.opacity = "0";
+                                                                setTimeout(() => row.remove(), 300);
+                                                        }
+
+                                                        showToast("Offer deleted", "success");
+
+                                                } catch {
+                                                        showToast("Server error", "error");
+                                                }
+                                        }
+
+                                        // ================= TOGGLE =================
+
+                                        async function toggleOfferStatus(id, isActive) {
+
+                                                const action = isActive ? "disable" : "enable";
+
+                                                const confirmed = await confirmAction(`Do you want to ${action} this offer?`);
+                                                if (!confirmed) return;
+
+                                                try {
+
+                                                        const res = await fetch(`/admin/offers/${id}/status`, {
+                                                                method: "PATCH"
+                                                        });
+
+                                                        const result = await res.json();
+
+                                                        if (!result.success) return showToast(result.message, "error");
+
+                                                        const newStatus = result.data.is_active;
+
+                                                        const badge = document.getElementById(`badge-${id}`);
+                                                        const btn = document.getElementById(`status-${id}`);
+
+                                                        badge.textContent = newStatus ? "active" : "inactive";
+                                                        badge.className =
+                                                                newStatus
+                                                                        ? "px-3 py-1 rounded-full text-xs bg-emerald-500/20 text-emerald-400"
+                                                                        : "px-3 py-1 rounded-full text-xs bg-red-500/20 text-red-400";
+
+                                                        btn.textContent = newStatus ? "Disable" : "Enable";
+                                                        btn.className =
+                                                                `px-3 py-1 text-xs rounded-md font-semibold ${newStatus
+                                                                        ? "bg-yellow-500/20 text-yellow-400"
+                                                                        : "bg-emerald-500/20 text-emerald-400"
+                                                                }`;
+
+                                                        btn.setAttribute(
+                                                                "onclick",
+                                                                `event.stopPropagation();toggleOfferStatus('${id}', ${newStatus})`
+                                                        );
+
+                                                        showToast(`Offer ${action}d successfully`, "success");
+
+                                                } catch {
+                                                        showToast("Something went wrong", "error");
+                                                }
+                                        }
+
+                                        // ================= GLOBAL =================
+
+                                        window.openOfferModal = openOfferModal;
+                                        window.closeOfferModal = closeOfferModal;
+                                        window.editOffer = editOffer;
+                                        window.deleteOffer = deleteOffer;
+                                        window.toggleOfferStatus = toggleOfferStatus;
+
+                                </script>
+
+                                <!-- pagenation -->
+                                <script>
+
+                                        const paginationContainer = document.getElementById("pagination");
+                                        let currentPage = 1;
+
+                                        paginationContainer.addEventListener("click", async (e) => {
+
+                                                const link = e.target.closest(".pagination-link");
+                                                if (!link) return;
+
+                                                e.preventDefault();
+
+                                                currentPage = Number(link.dataset.page);
+
+                                                const search = searchInput?.value.trim() || "";
+                                                const filterValue = filter?.value || "";
+
+                                                try {
+
+                                                        const res = await fetch(
+                                                                `/admin/${moduleName}?page=${currentPage}&search=${encodeURIComponent(search)}&status=${encodeURIComponent(filterValue)}`,
+                                                                {
+                                                                        headers: {
+                                                                                "X-Requested-With": "XMLHttpRequest",
+                                                                                "Accept": "application/json"
+                                                                        }
+                                                                }
+                                                        );
+
+                                                        const data = await res.json();
+
+                                                        document.getElementById(`${moduleName}TableBody`).innerHTML = data.rows;
+                                                        document.getElementById("pagination").innerHTML = data.pagination;
+
+                                                } catch (err) {
+
+                                                        console.error("Pagination error:", err);
+
+                                                }
+
+                                        });
+
+                                </script>
+
+</body>
+
+</html>
