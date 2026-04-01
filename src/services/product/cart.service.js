@@ -4,7 +4,6 @@ import Cart from "../../models/cartSchema.models.js";
 import Products from "../../models/productSchema.model.js";
 import AppError from "../../utils/partials/AppError.utils.js";
 import Wishlist from "../../models/wishlistSchema.model.js";
-import Product from "../../models/productSchema.model.js";
 
 export const updateCartService = async ({
   userId,
@@ -30,7 +29,7 @@ export const updateCartService = async ({
   const productObjId = new mongoose.Types.ObjectId(productId);
   const variantObjId = new mongoose.Types.ObjectId(variantId);
 
-  // Fetch only valid product + specific variant
+  // ================= FETCH PRODUCT =================
   const product = await Products.findOne(
     {
       _id: productObjId,
@@ -39,7 +38,7 @@ export const updateCartService = async ({
       "variants._id": variantObjId,
     },
     {
-      "variants.$": 1, // only matched variant
+      "variants.$": 1,
     },
   );
 
@@ -52,7 +51,7 @@ export const updateCartService = async ({
 
   const variant = product.variants[0];
 
-  // STOCK CHECK
+  // ================= STOCK CHECK =================
   if (quantity > variant.stock) {
     throw new AppError(
       `Only ${variant.stock} items available in stock`,
@@ -60,10 +59,82 @@ export const updateCartService = async ({
     );
   }
 
-  // REMOVE FROM WISHLIST IF EXISTS
-  const wishlist = await Wishlist.findOne({ userId });
-
+  let cart = await Cart.findOne({ userId });
+  let added = false;
+  let message = "";
   let removedFromWishlist = false;
+  let isNewCart = false;
+
+  // ================= CREATE CART =================
+  if (!cart) {
+    cart = new Cart({
+      userId,
+      items: [
+        {
+          productId: productObjId,
+          variantId: variantObjId,
+          quantity,
+        },
+      ],
+    });
+
+    added = true;
+    message = "Product added to cart!";
+    isNewCart = true;
+  }
+
+  // ================= UPDATE CART =================
+  else {
+    const existingItem = cart.items.find(
+      (item) =>
+        item.productId.equals(productObjId) &&
+        item.variantId.equals(variantObjId),
+    );
+
+    if (existingItem) {
+      const newQty = existingItem.quantity + quantity;
+
+      if (newQty > MAX_QTY) {
+        throw new AppError(
+          "Maximum 3 items allowed per product",
+          HTTP_STATUS.BAD_REQUEST,
+        );
+      }
+
+      if (newQty > variant.stock) {
+        throw new AppError(
+          `Only ${variant.stock} items available`,
+          HTTP_STATUS.BAD_REQUEST,
+        );
+      }
+
+      existingItem.quantity = newQty;
+      message = "Product quantity updated!";
+      added = false;
+    } else {
+      if (cart.items.length >= 5) {
+        throw new AppError(
+          "Maximum 5 different products allowed in cart",
+          HTTP_STATUS.BAD_REQUEST,
+        );
+      }
+
+      cart.items.push({
+        productId: productObjId,
+        variantId: variantObjId,
+        quantity,
+      });
+
+      message = "Product added to cart!";
+      added = true;
+    }
+  }
+
+  // ================= SAVE CART FIRST =================
+  await cart.save();
+
+  // ================= REMOVE FROM WISHLIST (SAFE) =================
+  const wishlist = await Wishlist.findOne({ userId });
 
   if (wishlist) {
     const index = wishlist.items.findIndex(
@@ -79,82 +150,9 @@ export const updateCartService = async ({
     }
   }
 
-  let cart = await Cart.findOne({ userId });
-
-  // CREATE CART
-  if (!cart) {
-    cart = await Cart.create({
-      userId,
-      items: [
-        {
-          productId: productObjId,
-          variantId: variantObjId,
-          quantity,
-        },
-      ],
-    });
-
-    return {
-      status: HTTP_STATUS.CREATED,
-      added: true,
-      removedFromWishlist,
-      message: "Added to cart",
-      cartCount: 1,
-    };
-  }
-
-  let added = false;
-  let message = "";
-
-  const existingItem = cart.items.find(
-    (item) =>
-      item.productId.equals(productObjId) &&
-      item.variantId.equals(variantObjId),
-  );
-
-  if (existingItem) {
-    const newQty = existingItem.quantity + quantity;
-
-    // MAX LIMIT CHECK
-    if (newQty > MAX_QTY) {
-      throw new AppError(
-        "Maximum 3 items allowed per product",
-        HTTP_STATUS.BAD_REQUEST,
-      );
-    }
-
-    // STOCK CHECK
-    if (newQty > variant.stock) {
-      throw new AppError(
-        `Only ${variant.stock} items available`,
-        HTTP_STATUS.BAD_REQUEST,
-      );
-    }
-
-    existingItem.quantity = newQty;
-    message = "Product quantity updated!";
-    added = false;
-  } else {
-    if (cart.items.length >= 5) {
-      throw new AppError(
-        "Maximum 5 different products allowed in cart",
-        HTTP_STATUS.BAD_REQUEST,
-      );
-    }
-
-    cart.items.push({
-      productId: productObjId,
-      variantId: variantObjId,
-      quantity,
-    });
-    message = "Product added to cart!";
-    added = true;
-  }
-
-  await cart.save();
-
+  // ================= FINAL RESPONSE =================
   return {
-    status: HTTP_STATUS.OK,
+    status: isNewCart ? HTTP_STATUS.CREATED : HTTP_STATUS.OK,
     added,
     removedFromWishlist,
     message,
@@ -188,7 +186,7 @@ export const updateCartQuantityService = async (userId, itemId, quantity) => {
   const item = cart.items.id(itemId);
   if (!item) throw new AppError("Item not found", 404);
 
-  const product = await Product.findById(item.productId);
+  const product = await Products.findById(item.productId);
   if (!product) throw new AppError("Product not found", 404);
 
   const variant = product.variants.find(
@@ -267,7 +265,7 @@ export const validateCartBeforeCheckout = async () => {
   }
 
   for (const item of cart.items) {
-    const product = await Product.findById(item.productId);
+    const product = await Products.findById(item.productId);
 
     const variant = product.variants.find(
       (v) => v._id.toString() === item.variantId.toString(),
@@ -299,7 +297,7 @@ export const validateCartStockService = async (userId) => {
   const updates = [];
 
   for (const item of cart.items) {
-    const product = await Product.findById(item.productId);
+    const product = await Products.findById(item.productId);
 
     const variant = product.variants.find(
       (v) => v._id.toString() === item.variantId.toString(),
