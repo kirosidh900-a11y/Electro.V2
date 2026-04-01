@@ -178,7 +178,7 @@ export const updateWishlist = async (req, res, next) => {
       throw new AppError(result.message, result.status || 400);
     }
 
-    return successResponse(res, result.message, HTTP_STATUS.OK, result);
+    return successResponse(res, result.message, result.status, result);
   } catch (err) {
     next(err); // clean
   }

@@ -14,7 +14,8 @@ const router = Router();
 router
   .route("/")
   .get(getWishlistPage)
-  .post(requireAuth, validate(wishlistSchema), updateWishlist);
+  .post(requireAuth, validate(wishlistSchema), updateWishlist)
+  .delete(requireAuth, validate(wishlistSchema), updateWishlist);
 
 router.delete("/", requireAuth, (req, res, next) => {
   try {
