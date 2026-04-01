@@ -67,7 +67,10 @@
                                                 <% wishlist.items.forEach(item=> { %>
 
                                                         <div id="wishlist-item-<%= item.variantId._id %>"
-                                                                class="bg-white p-6 rounded-2xl shadow-sm border flex flex-col sm:flex-row gap-6 items-center">
+                                                                data-product-id="<%= item.productId._id %>"
+                                                                data-variant-id="<%= item.variantId._id %>"
+                                                                data-stock="<%= item.variantId.stock %>"
+                                                                class="wishlist-item bg-white p-6 rounded-2xl shadow-sm border flex flex-col sm:flex-row gap-6 items-center">
 
                                                                 <!-- IMAGE -->
                                                                 <img src="<%= item.variantId?.product_images?.[0]?.url || '/images/default.png' %>"
@@ -148,6 +151,54 @@
                 import { showToast } from "/partials/errorMsg.utils.js";
                 import { confirmAction } from "/partials/confirm.util.js";
 
+                // ================= SOCKET =================
+                const socket = io();
+
+                // 🔥 REAL-TIME STOCK UPDATE
+                socket.on("stockUpdated", ({ productId, variantId, stock }) => {
+
+                        const el = document.querySelector(
+                                `.wishlist-item[data-product-id="${productId}"][data-variant-id="${variantId}"]`
+                        );
+
+                        if (!el) return;
+
+                        el.dataset.stock = stock;
+
+                        // STOCK TEXT
+                        const stockEl = el.querySelector(".mt-3");
+
+                        if (stockEl) {
+                                if (stock === 0) {
+                                        stockEl.innerHTML = `<span class="text-red-600 text-sm font-medium">Out of Stock</span>`;
+                                } else {
+                                        stockEl.innerHTML = `<span class="text-green-600 text-sm font-medium">In Stock</span>`;
+                                }
+                        }
+
+                        // MOVE TO CART BUTTON
+                        const moveBtn = el.querySelector("button.bg-black");
+
+                        if (moveBtn) {
+                                if (stock === 0) {
+                                        moveBtn.disabled = true;
+                                        moveBtn.classList.add("opacity-50", "cursor-not-allowed");
+                                        moveBtn.innerText = "Out of Stock";
+                                } else {
+                                        moveBtn.disabled = false;
+                                        moveBtn.classList.remove("opacity-50", "cursor-not-allowed");
+                                        moveBtn.innerText = "Move to Cart";
+                                }
+                        }
+
+                        // 🔥 HIGHLIGHT ITEM
+                        el.classList.remove("border-red-500", "bg-red-50");
+
+                        if (stock === 0) {
+                                el.classList.add("border-red-500", "bg-red-50");
+                        }
+                });
+
                 // REMOVE
                 window.removeWishlist = async (productId, variantId) => {
                         const confirmed = await confirmAction(
@@ -209,7 +260,7 @@
                                 if (!res.ok) {
                                         return showToast(data.message || "Cannot add to cart", "error");
                                 }
-                                
+
                                 // SUCCESS UI UPDATE
                                 showToast("Moved to cart", "success");
 
@@ -236,6 +287,47 @@
                         }
                 };
 
+                // 🔥 APPLY INITIAL STOCK UI 
+                document.addEventListener("DOMContentLoaded", () => {
+                        const items = document.querySelectorAll(".wishlist-item");
+
+                        items.forEach((el) => {
+                                const stock = Number(el.dataset.stock);
+
+                                const stockEl = el.querySelector(".mt-3");
+                                const moveBtn = el.querySelector("button.bg-black");
+
+                                // RESET
+                                el.classList.remove("border-red-500", "bg-red-50");
+
+                                if (stock === 0) {
+                                        // STOCK TEXT
+                                        if (stockEl) {
+                                                stockEl.innerHTML = `
+                    <span class="text-red-600 text-sm font-medium">
+                        Out of Stock
+                    </span>`;
+                                        }
+
+                                        // BUTTON DISABLE
+                                        if (moveBtn) {
+                                                moveBtn.disabled = true;
+                                                moveBtn.classList.add("opacity-50", "cursor-not-allowed");
+                                                moveBtn.innerText = "Out of Stock";
+                                        }
+
+                                        // 🔥 HIGHLIGHT LIKE YOUR IMAGE
+                                        el.classList.add("border-red-500", "bg-red-50");
+                                } else {
+                                        if (moveBtn) {
+                                                moveBtn.disabled = false;
+                                                moveBtn.classList.remove("opacity-50", "cursor-not-allowed");
+                                                moveBtn.innerText = "Move to Cart";
+                                        }
+                                }
+                        });
+                });
+        
         </script>
 
         <%- include("../../partials/user/footer.ejs") %>
