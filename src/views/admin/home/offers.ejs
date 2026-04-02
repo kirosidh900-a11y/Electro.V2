@@ -590,7 +590,7 @@
 
                                                 const id = document.getElementById("offer-id").value;
 
-                                                // ✅ GET VALUES
+                                                //  GET VALUES
                                                 const name = document.getElementById("offer-name").value.trim();
                                                 const discount_type = document.getElementById("offer-discount-type").value;
                                                 const discount = Number(document.getElementById("offer-discount").value);
@@ -600,7 +600,7 @@
                                                 const end_date = document.getElementById("offer-end").value;
                                                 const is_active = document.getElementById("offer-status").value === "true";
 
-                                                // ✅ VALIDATION
+                                                //  VALIDATION
                                                 if (!validateOfferForm(true)) return;
 
                                                 let url = "/admin/offers";

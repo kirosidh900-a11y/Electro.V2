@@ -15,6 +15,9 @@ import {
 } from "../../controllers/product/offer.controller.js";
 
 router.route("/").get(getOffers).post(validate(offerSchema), createOffer);
+
+router.get("/targets", getTargets);
+
 router
   .route("/:id")
   .get(getOfferById)
@@ -22,9 +25,5 @@ router
   .delete(deleteOffer);
 
 router.patch("/:id/status", toggleOfferStatus);
-
-// router.get("/api/admin/offers/targets", getTargets);
-
-router.get("/targets", getTargets);
 
 export default router;
