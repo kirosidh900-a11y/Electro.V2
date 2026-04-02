@@ -2,14 +2,6 @@ import mongoose from "mongoose";
 
 const offerSchema = new mongoose.Schema(
   {
-    code: {
-      type: String,
-      required: true,
-      trim: true,
-      uppercase: true,
-      unique: true,
-    },
-
     name: {
       type: String,
       required: true,
@@ -22,18 +14,28 @@ const offerSchema = new mongoose.Schema(
       required: true,
     },
 
+    target_model: {
+      type: String,
+      enum: ["Product", "Category", "Brand"],
+    },
+    discount: {
+      type: Number,
+      required: true,
+    },
+    max_discount: {
+      type: Number,
+    },
+    target_ids: [
+      {
+        type: mongoose.Schema.Types.ObjectId,
+        refPath: "target_model", // dynamic reference
+      },
+    ],
     applies_to: {
       type: String,
       enum: ["product", "category", "brand", "all"],
       required: true,
     },
-
-    target_ids: [
-      {
-        type: mongoose.Schema.Types.ObjectId,
-        refPath: "applies_to", // dynamic reference
-      },
-    ],
 
     start_date: {
       type: Date,
