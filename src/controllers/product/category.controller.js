@@ -15,7 +15,28 @@ import {
 import { successResponse } from "../../utils/partials/response.util.js";
 import { deleteCacheByPattern } from "../../utils/Redis/cache.js";
 
-//  Category Page
+
+// 🔥 COMMON CACHE INVALIDATION (ADMIN + USER)
+const clearCategoryCache = async (id = null) => {
+  // 🔹 USER SIDE CACHE
+  await deleteCacheByPattern("shop:category=all:*");
+  await deleteCacheByPattern("shop:products:*");
+  await deleteCacheByPattern("home_products_*");
+
+  // 🔹 SPECIFIC CATEGORY CACHE
+  if (id) {
+    await deleteCacheByPattern(`shop:category=${id}:*`);
+  }
+
+  // 🔹 ADMIN SIDE CACHE (if added later)
+  await deleteCacheByPattern("admin:category:*");
+};
+
+
+
+// =====================================================
+// ✅ CATEGORY LIST (SSR + AJAX)
+// =====================================================
 export const category = async (req, res, next) => {
   try {
     const page = Number(req.query.page) || 1;
@@ -31,6 +52,7 @@ export const category = async (req, res, next) => {
       status,
     });
 
+    // 🔥 AJAX SUPPORT
     if (req.xhr) {
       const rows = await renderView(res, "admin/home/partials/categoryRows", {
         categories,
@@ -40,7 +62,7 @@ export const category = async (req, res, next) => {
       const pagination = await renderView(
         res,
         "admin/home/partials/pagination",
-        { currentPage, totalPages },
+        { currentPage, totalPages }
       );
 
       return res.json({ rows, pagination });
@@ -48,41 +70,48 @@ export const category = async (req, res, next) => {
 
     res.locals.title = "Category Management";
 
-    res.render("admin/home/category", {
+    return res.render("admin/home/category", {
       categories,
       currentPage,
       totalPages,
     });
+
   } catch (error) {
     next(error);
   }
 };
 
-//  Create Category
+
+
+// =====================================================
+// ✅ CREATE CATEGORY
+// =====================================================
 export const createCategory = async (req, res, next) => {
   try {
     const { title, status } = req.body;
 
     const category = await createCategoryService(title, status);
 
-    //Cache Invalidation
-    // global listing
-    await deleteCacheByPattern(`shop:category=all:*`);
-    // home cache
-    await deleteCacheByPattern("home_products_*");
+    // 🔥 CACHE INVALIDATION
+    await clearCategoryCache();
 
     return successResponse(
       res,
       "Category Successfully Created!",
       HTTP_STATUS.CREATED,
-      { category },
+      { category }
     );
+
   } catch (error) {
     next(error);
   }
 };
 
-//  Edit Category
+
+
+// =====================================================
+// ✅ EDIT CATEGORY
+// =====================================================
 export const editCategory = async (req, res, next) => {
   try {
     const { title, status } = req.body;
@@ -90,62 +119,75 @@ export const editCategory = async (req, res, next) => {
 
     const category = await editCategoryService(id, title, status);
 
-    // only one category cache
-    await deleteCacheByPattern(`shop:category=${id}:*`);
-    // global listing
-    await deleteCacheByPattern(`shop:category=all:*`);
-    // home cache
-    await deleteCacheByPattern("home_products_*");
+    // 🔥 CACHE INVALIDATION
+    await clearCategoryCache(id);
 
-    return successResponse(res, "Category Updated!", HTTP_STATUS.OK, category);
+    return successResponse(
+      res,
+      "Category Updated!",
+      HTTP_STATUS.OK,
+      category
+    );
+
   } catch (error) {
     next(error);
   }
 };
 
-//  Delete Category
+
+
+// =====================================================
+// ✅ DELETE CATEGORY
+// =====================================================
 export const deleteCategory = async (req, res, next) => {
   try {
     const id = req.params.id;
 
     await deleteCategoryService(id);
 
-    // CACHE INVALIDATION
-    // category-specific
-    await deleteCacheByPattern(`shop:category=${id}:*`);
-    // global listing
-    await deleteCacheByPattern(`shop:category=all:*`);
-    // home cache
-    await deleteCacheByPattern("home_products_*");
+    // 🔥 CACHE INVALIDATION
+    await clearCategoryCache(id);
 
-    return successResponse(res, "Category Deleted!", HTTP_STATUS.OK);
+    return successResponse(
+      res,
+      "Category Deleted!",
+      HTTP_STATUS.OK
+    );
+
   } catch (error) {
     next(error);
   }
 };
 
-//  Toggle Status
+
+
+// =====================================================
+// ✅ TOGGLE STATUS
+// =====================================================
 export const toggleCategoryStatus = async (req, res, next) => {
   try {
     const { id, status } = await toggleCategoryService(req.params.id);
 
-    // CACHE INVALIDATION
-    // category-specific
-    await deleteCacheByPattern(`shop:category=${id}:*`);
-    // global listing
-    await deleteCacheByPattern(`shop:category=all:*`);
-    // home cache
-    await deleteCacheByPattern("home_products_*");
+    // 🔥 CACHE INVALIDATION
+    await clearCategoryCache(id);
 
-    return successResponse(res, "Status Updated!", HTTP_STATUS.OK, {
-      status,
-    });
+    return successResponse(
+      res,
+      "Status Updated!",
+      HTTP_STATUS.OK,
+      { status }
+    );
+
   } catch (error) {
     next(error);
   }
 };
 
-//  Add Attribute
+
+
+// =====================================================
+// ✅ ADD ATTRIBUTE
+// =====================================================
 export const addCategoryAttribute = async (req, res, next) => {
   try {
     const categoryId = req.params.id;
@@ -153,13 +195,21 @@ export const addCategoryAttribute = async (req, res, next) => {
 
     await addCategoryAttributeService(categoryId, attribute);
 
+    // 🔥 OPTIONAL CACHE CLEAR
+    await clearCategoryCache(categoryId);
+
     return successResponse(res, "Attribute added successfully");
+
   } catch (error) {
     next(error);
   }
 };
 
-//  Delete Attribute
+
+
+// =====================================================
+// ✅ DELETE ATTRIBUTE
+// =====================================================
 export const deleteAttribute = async (req, res, next) => {
   try {
     const categoryId = req.params.id;
@@ -167,20 +217,34 @@ export const deleteAttribute = async (req, res, next) => {
 
     await deleteAttributeService(categoryId, key);
 
+    // 🔥 OPTIONAL CACHE CLEAR
+    await clearCategoryCache(categoryId);
+
     return successResponse(res, "Attribute deleted successfully");
+
   } catch (error) {
     next(error);
   }
 };
 
-// Get Attributes
+
+
+// =====================================================
+// ✅ GET ATTRIBUTES
+// =====================================================
 export const getAttributes = async (req, res, next) => {
   try {
     const { id } = req.params;
 
     const data = await getAttributesService(id);
 
-    return successResponse(res, "Attributes fetched", HTTP_STATUS.OK, data);
+    return successResponse(
+      res,
+      "Attributes fetched",
+      HTTP_STATUS.OK,
+      data
+    );
+
   } catch (error) {
     next(error);
   }

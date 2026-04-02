@@ -1,83 +1,111 @@
-<% if(offers.length === 0){ %>
+<% if(offers.length===0){ %>
 
-<tr>
-    <td colspan="6" class="text-center py-12 text-gray-500">
-        <i class="fas fa-tags text-2xl mb-2 block"></i>
-        <p>No offers found</p>
-    </td>
-</tr>
+    <tr>
+        <td colspan="6" class="text-center py-12 text-gray-500">
+            <i class="fas fa-tags text-2xl mb-2 block"></i>
+            <p>No offers found</p>
+        </td>
+    </tr>
 
-<% } else { %>
+    <% } else { %>
 
-<% offers.forEach((offer,index)=>{ %>
+        <% offers.forEach((offer,index)=>{ %>
 
-<tr id="row-<%= offer._id %>" class="border-b border-white/5 hover:bg-white/5">
+            <tr id="row-<%= offer._id %>" class="border-b border-white/5 hover:bg-white/5">
 
-    <td class="px-6 py-4">
-        <%= (currentPage-1)*6 + index +1 %>
-    </td>
+                <td class="px-6 py-4">
+                    <%= (currentPage-1)*6 + index +1 %>
+                </td>
 
-    <!-- NAME -->
-    <td id="name-<%= offer._id %>" class="px-6 py-4 font-semibold text-white">
-        <%= offer.name %>
-    </td>
+                <!-- NAME -->
+                <td id="name-<%= offer._id %>" class="px-6 py-4 font-semibold text-white">
+                    <%= offer.name %>
+                </td>
 
-    <!-- TYPE -->
-    <td class="px-6 py-4">
-        <%= offer.discount_type %>
-    </td>
+                <!-- TYPE -->
+                <td class="px-6 py-4">
+                    <%= offer.discount_type %>
+                </td>
 
-    <!-- APPLIES TO -->
-    <td class="px-6 py-4">
-        <%= offer.applies_to %>
-    </td>
+                <!-- APPLIES TO -->
+                <td class="px-6 py-4">
+                    <div class="flex flex-col gap-1">
 
-    <!-- STATUS -->
-    <td class="px-6 py-4">
+                        <!-- Applies Type -->
+                        <span class="text-xs text-gray-400 capitalize">
+                            <%= offer.applies_to %>
+                        </span>
 
-        <span id="badge-<%= offer._id %>"
-            class="px-3 py-1 rounded-full text-xs
-            <%= offer.is_active
-                ? 'bg-emerald-500/20 text-emerald-400'
-                : 'bg-red-500/20 text-red-400' %>">
+                        <!-- Targets -->
+                        <% if (offer.target_ids && offer.target_ids.length> 0) { %>
+                            <div class="flex flex-wrap gap-1 mt-1">
 
-            <%= offer.is_active ? "active" : "inactive" %>
+                                <% offer.target_ids.slice(0,3).forEach(item=> { %>
+                                    <span class="px-2 py-0.5 text-[10px] bg-blue-500/20 text-blue-400 rounded">
+                                        <%= item.title || item.name %>
+                                    </span>
+                                    <% }) %>
 
-        </span>
+                                        <% if (offer.target_ids.length> 3) { %>
+                                            <span class="text-[10px] text-gray-400">
+                                                +<%= offer.target_ids.length - 3 %> more
+                                            </span>
+                                            <% } %>
 
-    </td>
+                            </div>
+                            <% } else { %>
+                                <span class="text-xs text-gray-500">All items</span>
+                                <% } %>
 
-    <!-- ACTIONS -->
-    <td class="px-6 py-4 text-right flex justify-end gap-3">
+                    </div>
+                </td>
 
-        <!-- EDIT -->
-        <button onclick='event.stopPropagation();editOffer("<%= offer._id %>")'
-            class="text-cyan-400 hover:text-cyan-300">
-            <i class="fas fa-edit"></i>
-        </button>
+                <!-- STATUS -->
+                <td class="px-6 py-4">
 
-        <!-- TOGGLE -->
-        <button id="status-<%= offer._id %>"
-            onclick="event.stopPropagation();toggleOfferStatus('<%= offer._id %>', <%= offer.is_active %>)"
-            class="px-3 py-1 text-xs rounded-md font-semibold
+                    <% const now=new Date(); const endDate=new Date(offer.end_date); let status="inactive" ; if
+                        (!offer.is_active) { status="inactive" ; } else if (endDate < now) { status="expired" ; } else {
+                        status="active" ; } %>
+
+                        <span id="badge-<%= offer._id %>" class="px-3 py-1 rounded-full text-xs
+    <%= status === " active" ? 'bg-emerald-500/20 text-emerald-400' : status==="expired"
+                            ? 'bg-orange-500/20 text-orange-400' : 'bg-red-500/20 text-red-400' %>">
+
+                            <%= status %>
+                        </span>
+                </td>
+
+                <!-- ACTIONS -->
+                <td class="px-6 py-4 text-right flex justify-end gap-3">
+
+                    <!-- EDIT -->
+                    <button onclick='event.stopPropagation();editOffer("<%= offer._id %>")'
+                        class="text-cyan-400 hover:text-cyan-300">
+                        <i class="fas fa-edit"></i>
+                    </button>
+
+                    <!-- TOGGLE -->
+                    <button id="status-<%= offer._id %>"
+                        onclick="event.stopPropagation();toggleOfferStatus('<%= offer._id %>', <%= offer.is_active %>)"
+                        class="px-3 py-1 text-xs rounded-md font-semibold
             <%= offer.is_active
                 ? 'bg-yellow-500/20 text-yellow-400'
                 : 'bg-emerald-500/20 text-emerald-400' %>">
 
-            <%= offer.is_active ? "Disable" : "Enable" %>
+                        <%= offer.is_active ? "Disable" : "Enable" %>
 
-        </button>
+                    </button>
 
-        <!-- DELETE -->
-        <button onclick="event.stopPropagation(); deleteOffer('<%= offer._id %>')"
-            class="text-red-400 hover:text-red-300">
-            <i class="fas fa-trash"></i>
-        </button>
+                    <!-- DELETE -->
+                    <button onclick="event.stopPropagation(); deleteOffer('<%= offer._id %>')"
+                        class="text-red-400 hover:text-red-300">
+                        <i class="fas fa-trash"></i>
+                    </button>
 
-    </td>
+                </td>
 
-</tr>
+            </tr>
 
-<% }) %>
+            <% }) %>
 
-<% } %>
+                <% } %>

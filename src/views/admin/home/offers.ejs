@@ -248,10 +248,21 @@
 
                 <!-- ================= OFFER MODAL ================= -->
 
-                <div id="offerModal" class="fixed inset-0 bg-black/60 hidden z-50 flex items-center justify-center">
+                <div id="offerModal"
+                        class="fixed inset-0 bg-black/60 hidden z-50 flex items-center justify-center p-3 sm:p-6">
 
-                        <div class="bg-[#0b1220] w-[550px] rounded-xl border border-white/10 p-6">
-
+                        <div class="
+        bg-[#0b1220]
+        w-full
+        max-w-lg
+        sm:max-w-xl
+        lg:max-w-2xl
+        rounded-xl
+        border border-white/10
+        p-4 sm:p-6
+        max-h-[90vh]
+        overflow-y-auto
+    ">
                                 <!-- HEADER -->
                                 <div class="flex justify-between items-center mb-4">
 
@@ -268,45 +279,47 @@
                                 <!-- FORM -->
                                 <form id="offerForm" class="flex flex-col gap-4">
 
-                                        <input type="hidden" id="offer-id">
+                                        <input class="w-full mt-1 bg-[#0f172a] border border-white/10 px-3 py-2 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-cyan-500"
+                                                type="hidden" id="offer-id">
 
                                         <!-- Offer Name -->
                                         <div>
                                                 <label class="text-sm text-gray-400">Offer Name</label>
                                                 <input type="text" id="offer-name"
-                                                        class="w-full mt-1 bg-[#0f172a] border border-white/10 px-3 py-2 rounded-lg text-sm">
-                                        </div>
-
-                                        <!-- Code -->
-                                        <div>
-                                                <label class="text-sm text-gray-400">Code</label>
-                                                <input type="text" id="offer-code"
-                                                        class="w-full mt-1 bg-[#0f172a] border border-white/10 px-3 py-2 rounded-lg text-sm">
+                                                        class="w-full mt-1 bg-[#0f172a] border border-white/10 px-3 py-2 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-cyan-500">
                                         </div>
 
                                         <!-- Discount Type -->
                                         <div>
                                                 <label class="text-sm text-gray-400">Discount Type</label>
                                                 <select id="offer-discount-type"
-                                                        class="w-full mt-1 bg-[#0f172a] border border-white/10 px-3 py-2 rounded-lg text-sm">
+                                                        class="w-full mt-1 bg-[#0f172a] border border-white/10 px-3 py-2 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-cyan-500">
                                                         <option value="">Select</option>
                                                         <option value="percentage">Percentage</option>
                                                         <option value="fixed">Fixed</option>
                                                 </select>
                                         </div>
 
-                                        <!-- Discount Value -->
+                                        <!-- Discount Value (only for fixed type) -->
                                         <div>
                                                 <label class="text-sm text-gray-400">Discount Value</label>
-                                                <input type="number" id="offer-discount"
-                                                        class="w-full mt-1 bg-[#0f172a] border border-white/10 px-3 py-2 rounded-lg text-sm">
+                                                <input step="none" min="0" type="number" id="offer-discount"
+                                                        class="w-full mt-1 bg-[#0f172a] border border-white/10 px-3 py-2 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-cyan-500">
+                                        </div>
+
+                                        <!-- Max Discount Value (only for percentage type) -->
+                                        <div id="max-discount-container" class="hidden">
+                                                <label class="text-sm text-gray-400">Max Discount Value</label>
+                                                <input min="0" type="number" id="offer-max-discount"
+                                                        placeholder="Only for percentage offers"
+                                                        class="w-full mt-1 bg-[#0f172a] border border-white/10 px-3 py-2 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-cyan-500">
                                         </div>
 
                                         <!-- Applies To -->
                                         <div>
                                                 <label class="text-sm text-gray-400">Applies To</label>
                                                 <select id="offer-applies-to"
-                                                        class="w-full mt-1 bg-[#0f172a] border border-white/10 px-3 py-2 rounded-lg text-sm">
+                                                        class="w-full mt-1 bg-[#0f172a] border border-white/10 px-3 py-2 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-cyan-500">
                                                         <option value="">Select</option>
                                                         <option value="product">Product</option>
                                                         <option value="category">Category</option>
@@ -319,22 +332,22 @@
                                         <div id="offer-target-container" class="hidden">
                                                 <label class="text-sm text-gray-400">Target</label>
                                                 <select id="offer-target" multiple placeholder="Select targets..."
-                                                        class="w-full mt-1 bg-[#0f172a] border border-white/10 px-3 py-2 rounded-lg text-sm">
+                                                        class="w-full mt-1 bg-[#0f172a] border border-white/10 px-3 py-2 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-cyan-500">
                                                 </select>
                                         </div>
 
                                         <!-- Dates -->
-                                        <div class="flex gap-3">
+                                        <div class="flex flex-col sm:flex-row gap-3">
                                                 <div class="flex-1">
                                                         <label class="text-sm text-gray-400">Start Date</label>
                                                         <input type="date" id="offer-start"
-                                                                class="w-full mt-1 bg-[#0f172a] border border-white/10 px-3 py-2 rounded-lg text-sm">
+                                                                class="w-full mt-1 bg-[#0f172a] border border-white/10 px-3 py-2 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-cyan-500">
                                                 </div>
 
                                                 <div class="flex-1">
                                                         <label class="text-sm text-gray-400">End Date</label>
                                                         <input type="date" id="offer-end"
-                                                                class="w-full mt-1 bg-[#0f172a] border border-white/10 px-3 py-2 rounded-lg text-sm">
+                                                                class="w-full mt-1 bg-[#0f172a] border border-white/10 px-3 py-2 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-cyan-500">
                                                 </div>
                                         </div>
 
@@ -342,14 +355,14 @@
                                         <div>
                                                 <label class="text-sm text-gray-400">Status</label>
                                                 <select id="offer-status"
-                                                        class="w-full mt-1 bg-[#0f172a] border border-white/10 px-3 py-2 rounded-lg text-sm">
+                                                        class="w-full mt-1 bg-[#0f172a] border border-white/10 px-3 py-2 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-cyan-500">
                                                         <option value="true">Active</option>
                                                         <option value="false">Inactive</option>
                                                 </select>
                                         </div>
 
                                         <!-- BUTTONS -->
-                                        <div class="flex justify-center gap-3 mt-4">
+                                        <div class="flex flex-col sm:flex-row justify-center gap-3 mt-4">
 
                                                 <button type="button" onclick="closeOfferModal()"
                                                         class="px-4 py-2 bg-gray-600 hover:bg-gray-700 text-white rounded-lg text-sm">
@@ -488,13 +501,14 @@
 
                                                 document.getElementById("offer-id").value = "";
                                                 document.getElementById("offer-name").value = "";
-                                                document.getElementById("offer-code").value = "";
                                                 document.getElementById("offer-discount-type").value = "";
                                                 document.getElementById("offer-discount").value = "";
                                                 document.getElementById("offer-applies-to").value = "";
                                                 document.getElementById("offer-start").value = "";
                                                 document.getElementById("offer-end").value = "";
                                                 document.getElementById("offer-status").value = "true";
+                                                document.getElementById("offer-max-discount").value = "";
+                                                document.getElementById("max-discount-container").classList.add("hidden");
 
                                                 document.getElementById("offer-target-container").classList.add("hidden");
 
@@ -518,9 +532,19 @@
                                                 const container = document.getElementById("offer-target-container");
                                                 const targetSelect = document.getElementById("offer-target");
 
+
                                                 if (value === "all" || !value) {
                                                         container.classList.add("hidden");
                                                         targetSelect.innerHTML = "";
+
+                                                        // 🔥 destroy TomSelect safely
+                                                        if (targetSelectInstance) {
+                                                                targetSelectInstance.clear();     // remove selected items
+                                                                targetSelectInstance.destroy();   // destroy instance
+                                                                targetSelectInstance = null;      // reset variable
+                                                        }
+
+                                                        targetSelect.innerHTML = ""; // clean options
                                                         return;
                                                 }
 
@@ -559,30 +583,25 @@
 
                                                 e.preventDefault();
 
+                                                const submitBtn = document.getElementById("offer-submit-btn");
+
+                                                // 🚫 Prevent double click
+                                                if (submitBtn.disabled) return;
+
                                                 const id = document.getElementById("offer-id").value;
+
+                                                //  GET VALUES
                                                 const name = document.getElementById("offer-name").value.trim();
-                                                const code = document.getElementById("offer-code").value.trim();
                                                 const discount_type = document.getElementById("offer-discount-type").value;
                                                 const discount = Number(document.getElementById("offer-discount").value);
+                                                const max_discount = Number(document.getElementById("offer-max-discount").value);
                                                 const applies_to = document.getElementById("offer-applies-to").value;
-                                                const targetSelect = document.getElementById("offer-target");
-
-                                                const target_ids = Array.from(targetSelect.selectedOptions)
-                                                        .map(option => option.value);
-
                                                 const start_date = document.getElementById("offer-start").value;
                                                 const end_date = document.getElementById("offer-end").value;
                                                 const is_active = document.getElementById("offer-status").value === "true";
 
-                                                // VALIDATION
-
-                                                if (!name) return showToast("Offer name required", "warning");
-                                                if (!code) return showToast("Code required", "warning");
-                                                if (!discount_type) return showToast("Select discount type", "warning");
-                                                if (!discount) return showToast("Enter discount value", "warning");
-                                                if (!applies_to) return showToast("Select applies to", "warning");
-                                                if (applies_to !== "all" && !target) return showToast("Select target", "warning");
-                                                if (!start_date || !end_date) return showToast("Select dates", "warning");
+                                                //  VALIDATION
+                                                if (!validateOfferForm(true)) return;
 
                                                 let url = "/admin/offers";
                                                 let method = "POST";
@@ -592,37 +611,68 @@
                                                         method = "PATCH";
                                                 }
 
+                                                let originalText = submitBtn.innerHTML;
+
                                                 try {
+                                                        // 🔒 Disable button + add spinner
+                                                        submitBtn.disabled = true;
+                                                        submitBtn.innerHTML = `
+        <i class="fas fa-spinner fa-spin mr-2"></i> Processing...
+    `;
+                                                        submitBtn.classList.add("opacity-50", "cursor-not-allowed");
 
                                                         const res = await fetch(url, {
                                                                 method,
                                                                 headers: { "Content-Type": "application/json" },
                                                                 body: JSON.stringify({
                                                                         name,
-                                                                        code,
                                                                         discount_type,
                                                                         discount,
+                                                                        max_discount: discount_type === "percentage" ? max_discount : undefined,
                                                                         applies_to,
-                                                                        target_ids: targetSelectInstance.getValue(),
+                                                                        target_ids:
+                                                                                applies_to === "all"
+                                                                                        ? []
+                                                                                        : targetSelectInstance?.getValue() || [],
                                                                         start_date,
                                                                         end_date,
                                                                         is_active
                                                                 })
                                                         });
 
-                                                        const { data, success, message } = await res.json();
+                                                        const { success, message } = await res.json();
 
-                                                        if (!success) return showToast(message, "error");
+                                                        if (!success) {
+                                                                showToast(message, "error");
+                                                                return;
+                                                        }
 
                                                         showToast(message, "success");
 
-                                                        // 🔥 SIMPLE APPROACH
                                                         location.reload();
 
-                                                } catch {
+                                                } catch (err) {
+                                                        console.error(err);
                                                         showToast("Something went wrong", "error");
-                                                }
 
+                                                } finally {
+                                                        // 🔓 Restore button
+                                                        submitBtn.disabled = false;
+                                                        submitBtn.innerHTML = originalText;
+                                                        submitBtn.classList.remove("opacity-50", "cursor-not-allowed");
+                                                }
+                                        });
+
+                                        const discountType = document.getElementById("offer-discount-type");
+                                        const maxDiscountContainer = document.getElementById("max-discount-container");
+
+                                        discountType?.addEventListener("change", function () {
+                                                if (this.value === "percentage") {
+                                                        maxDiscountContainer.classList.remove("hidden");
+                                                } else {
+                                                        maxDiscountContainer.classList.add("hidden");
+                                                        document.getElementById("offer-max-discount").value = "";
+                                                }
                                         });
 
                                         // ================= EDIT OFFER =================
@@ -640,7 +690,6 @@
 
                                                         document.getElementById("offer-id").value = offer._id;
                                                         document.getElementById("offer-name").value = offer.name;
-                                                        document.getElementById("offer-code").value = offer.code;
                                                         document.getElementById("offer-discount-type").value = offer.discount_type;
                                                         document.getElementById("offer-discount").value = offer.discount;
                                                         document.getElementById("offer-applies-to").value = offer.applies_to;
@@ -652,6 +701,21 @@
                                                         document.getElementById("offer-submit-btn").textContent = "Update Offer";
 
                                                         document.getElementById("offerModal").classList.remove("hidden");
+
+                                                        if (offer.discount_type === "percentage") {
+                                                                document.getElementById("max-discount-container").classList.remove("hidden");
+                                                                document.getElementById("offer-max-discount").value = offer.max_discount || "";
+                                                        }
+
+                                                        // trigger change to load targets
+                                                        document.getElementById("offer-applies-to").dispatchEvent(new Event("change"));
+
+                                                        // wait and set selected values
+                                                        setTimeout(() => {
+                                                                if (targetSelectInstance && offer.target_ids?.length) {
+                                                                        targetSelectInstance.setValue(offer.target_ids);
+                                                                }
+                                                        }, 300);
 
                                                 } catch {
                                                         showToast("Failed to load offer", "error");
@@ -745,6 +809,95 @@
                                         window.deleteOffer = deleteOffer;
                                         window.toggleOfferStatus = toggleOfferStatus;
 
+                                        const inputs = [
+                                                "offer-name",
+                                                "offer-discount",
+                                                "offer-max-discount",
+                                                "offer-discount-type",
+                                                "offer-applies-to",
+                                                "offer-start",
+                                                "offer-end"
+                                        ];
+
+
+
+                                        function validateOfferForm(showError = true) {
+
+                                                const name = document.getElementById("offer-name").value.trim();
+                                                const discount_type = document.getElementById("offer-discount-type").value;
+                                                const discount = Number(document.getElementById("offer-discount").value);
+                                                const max_discount = Number(document.getElementById("offer-max-discount").value);
+                                                const applies_to = document.getElementById("offer-applies-to").value;
+                                                const start_date = document.getElementById("offer-start").value;
+                                                const end_date = document.getElementById("offer-end").value;
+
+                                                const show = (msg) => {
+                                                        if (showError) showToast(msg, "warning");
+                                                        return false;
+                                                };
+
+                                                // Name
+                                                if (!name) return show("Offer name required");
+                                                if (name.length < 3) return show("Offer name must be at least 3 characters");
+
+                                                // Discount Type
+                                                if (!discount_type) return show("Select discount type");
+
+                                                // Discount
+                                                if (!discount || isNaN(discount) || discount <= 0) {
+                                                        return show("Enter valid discount value");
+                                                }
+
+                                                // Percentage
+                                                if (discount_type === "percentage") {
+                                                        if (discount > 100) return show("Percentage cannot exceed 100%");
+                                                        if (!max_discount || max_discount <= 0) {
+                                                                return show("Enter valid max discount value");
+                                                        }
+                                                }
+
+                                                // Applies To
+                                                if (!applies_to) return show("Select applies to");
+
+                                                // Targets
+                                                if (applies_to !== "all") {
+                                                        const selectedTargets = targetSelectInstance?.getValue() || [];
+                                                        if (selectedTargets.length === 0) {
+                                                                return show("Select at least one target");
+                                                        }
+                                                }
+
+                                                // Dates
+                                                if (!start_date || !end_date) {
+                                                        return show("Select start and end date");
+                                                }
+
+                                                const start = new Date(start_date);
+                                                const end = new Date(end_date);
+                                                const today = new Date();
+                                                today.setHours(0, 0, 0, 0);
+
+                                                if (isNaN(start) || isNaN(end)) {
+                                                        return show("Invalid date format");
+                                                }
+
+                                                if (start < today) {
+                                                        return show("Start date cannot be in the past");
+                                                }
+
+                                                if (end <= start) {
+                                                        return show("End date must be after start date");
+                                                }
+
+                                                return true;
+                                        }
+
+
+                                        const submitBtn = document.getElementById("offer-submit-btn");
+
+                                        function updateSubmitState() {
+                                                if (!validateOfferForm(true)) return;
+                                        }
                                 </script>
 
                                 <!-- pagenation -->
