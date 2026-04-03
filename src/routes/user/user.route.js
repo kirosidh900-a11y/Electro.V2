@@ -65,6 +65,7 @@ router.get("/cart/status", getCartStatus);
 
 router.get("/productList", getProductsListingPage);
 router.get("/shop", getProductsListingPage);
+
 router
   .route("/cart")
   .get(requireAuth, getCartPage)

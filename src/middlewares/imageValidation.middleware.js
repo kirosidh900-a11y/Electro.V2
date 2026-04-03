@@ -65,20 +65,19 @@ export const validateVariantImages = async (req, res, next) => {
 
     const finalImageCount = existingImagesCount - deletedCount + files.length;
 
-    // MIN CHECK (ONLY CREATE)
-    if (!variantId && finalImageCount < 3) {
+    // ✅ MIN CHECK (for BOTH create + edit)
+    if (finalImageCount < 3) {
       return next(
         new AppError("At least 3 images required", HTTP_STATUS.BAD_REQUEST),
       );
     }
 
-    // MAX CHECK
+    // ✅ MAX CHECK
     if (finalImageCount > 5) {
       return next(
         new AppError("Maximum 5 images allowed", HTTP_STATUS.BAD_REQUEST),
       );
     }
-
     next();
   } catch (err) {
     next(err);

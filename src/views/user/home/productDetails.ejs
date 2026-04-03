@@ -620,7 +620,7 @@
 <script>
     const productVariants = <%- JSON.stringify((product.variants || []).map(v => ({
       _id: String(v._id || ''),
-      price: v.price || 0,
+      price: v.regular_price || 0,
       finalPrice: v.finalPrice ?? v.price ?? 0,
       stock: Number(v.stock || 0),
       description: v.description || "",
