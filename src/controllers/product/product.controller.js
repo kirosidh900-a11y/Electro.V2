@@ -271,7 +271,7 @@ export const addVariant = async (req, res, next) => {
   try {
     const productId = req.params.id;
 
-    let { sku, price, stock, description, attributes } = req.body;
+    let {  attributes  } = req.body;
 
     if (typeof attributes === "string") {
       attributes = JSON.parse(attributes);
@@ -281,19 +281,26 @@ export const addVariant = async (req, res, next) => {
 
     const result = await addVariantService({
       productId,
-      sku,
-      price,
-      stock,
-      description,
-      attributes,
+      ...req.body,
       files,
+      attributes,
     });
+
+    const product = result.product; // ✅ FIX
+
+    // ================= CACHE CLEAR =================
+    await Promise.all([
+      deleteCacheByPattern(`shop:*category=${product.category}*`),
+      deleteCacheByPattern(`shop:*brand=${product.brand}*`),
+      deleteCacheByPattern(`shop:category=all:*`),
+      deleteCacheByPattern("home_products_*"),
+    ]);
 
     return successResponse(res, result.message, HTTP_STATUS.CREATED, {
       variant: result.variant,
     });
   } catch (error) {
-    console.error("Delete Product Error", error);
+    console.error("Add Variant Error", error);
     next(error);
   }
 };
@@ -312,25 +319,47 @@ export const editVariant = async (req, res, next) => {
       req.body.attributes = attributes;
     }
 
-    await editVariantService(productId, variantId, {
+    const result = await editVariantService(productId, variantId, {
       ...req.body,
       images: req.files,
     });
 
+    const product = result.product; // ✅ IMPORTANT
+
+    // ================= CACHE CLEAR (OPTIMIZED 🚀) =================
+    await Promise.all([
+      deleteCacheByPattern(`shop:*category=${product.category}*`),
+      deleteCacheByPattern(`shop:*brand=${product.brand}*`),
+      deleteCacheByPattern(`shop:category=all:*`),
+      deleteCacheByPattern("home_products_*"),
+    ]);
+
     successResponse(res, "Variant updated successfully");
   } catch (error) {
-    console.error("Delete Product Error", error);
+    console.error("Edit Variant Product Error", error);
     next(error);
   }
 };
 
 export const deleteVariant = async (req, res, next) => {
   try {
-    await deleteVariantService(req.params.variantId);
+    const { variantId } = req.params;
+
+    const result = await deleteVariantService(variantId);
+
+    const product = result.product; // ✅ IMPORTANT
+
+    // ================= CACHE CLEAR =================
+    await Promise.all([
+      deleteCacheByPattern(`shop:*category=${product.category}*`),
+      deleteCacheByPattern(`shop:*brand=${product.brand}*`),
+      deleteCacheByPattern(`shop:category=all:*`),
+      deleteCacheByPattern("home_products_*"),
+    ]);
 
     successResponse(res, "Variant deleted successfully");
   } catch (error) {
-    console.error("Delete Product Error", error);
+    console.error("Delete Variant Error", error);
     next(error);
   }
 };

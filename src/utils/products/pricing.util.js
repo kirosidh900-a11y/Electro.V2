@@ -68,3 +68,48 @@ export const applyPricing = (product, offer) => {
 
   return product;
 };
+
+const calculateFinalPrice = (variant, offer) => {
+  if (!offer) return variant.price;
+
+  let discount = 0;
+
+  // 🔹 STEP 1: FULL OFFER CALCULATION
+  if (offer.discount_type === "percentage") {
+    discount = (variant.price * offer.discount) / 100;
+  } else {
+    discount = offer.discount;
+  }
+
+  // 🔹 STEP 2: APPLY CAPS (IMPORTANT)
+  const caps = [
+    discount,
+    offer.max_discount ?? discount,
+    variant.max_discount_amount ?? discount,
+  ];
+
+  const finalDiscount = Math.min(...caps);
+
+  // 🔹 STEP 3: FINAL PRICE
+  return Math.max(0, variant.price - finalDiscount);
+};
+
+export const getBestVariantPricing = (variant, offers) => {
+  let bestPrice = variant.price;
+  let bestOffer = null;
+
+  for (const offer of offers) {
+    const finalPrice = calculateFinalPrice(variant, offer);
+
+    if (finalPrice < bestPrice) {
+      bestPrice = finalPrice;
+      bestOffer = offer;
+    }
+  }
+
+  return {
+    finalPrice: Math.round(bestPrice),
+    appliedOffer: bestOffer,
+    savings: Math.round(variant.price - bestPrice),
+  };
+};

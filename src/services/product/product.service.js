@@ -11,10 +11,6 @@ import {
 import { getCache, setCache } from "../../utils/Redis/cache.js";
 import { findByIdOrThrow } from "../../utils/products/product.util.js";
 import Offer from "../../models/offersSchema.model.js";
-import {
-  applyPricing,
-  getBestOffer,
-} from "../../utils/products/pricing.util.js";
 
 //  PRODUCTS PAGE
 export const getProductsService = async ({ page, limit, search, status }) => {
@@ -354,32 +350,19 @@ export const getProductDetailsServiceUser = async (productId) => {
     throw new AppError("Invalid product ID", HTTP_STATUS.BAD_REQUEST);
   }
 
-  // ✅ GET PRODUCT
+  // ================= PRODUCT =================
   const product = await findByIdOrThrow(Products, productId, {
     match: { isDeleted: false, status: "listed" },
-
     populate: [
-      {
-        path: "category",
-        select: "title",
-        match: { status: "listed" },
-      },
-      {
-        path: "brand",
-        select: "title logo",
-        match: { status: "listed" },
-      },
+      { path: "category", select: "title", match: { status: "listed" } },
+      { path: "brand", select: "title logo", match: { status: "listed" } },
       {
         path: "variants",
         match: { isDeleted: false },
         options: { sort: { createdAt: 1 } },
-        populate: {
-          path: "product_images",
-          select: "url",
-        },
+        populate: { path: "product_images", select: "url" },
       },
     ],
-
     lean: true,
   });
 
@@ -387,11 +370,12 @@ export const getProductDetailsServiceUser = async (productId) => {
     throw new AppError("Product not found", HTTP_STATUS.NOT_FOUND);
   }
 
-  // ================= OFFER LOGIC =================
   const now = new Date();
 
+  // ================= OFFERS =================
   const offers = await Offer.find({
     is_active: true,
+    isDeleted: { $ne: true },
     start_date: { $lte: now },
     end_date: { $gte: now },
     $or: [
@@ -402,13 +386,49 @@ export const getProductDetailsServiceUser = async (productId) => {
     ],
   }).lean();
 
-  // PICK BEST OFFER
-  const bestOffer = getBestOffer(product, offers);
+  // ================= APPLY PRICING =================
+  product.variants = product.variants
+    .map((variant) => {
+      let bestPrice = variant.price;
+      let appliedOffer = null;
 
-  // APPLY PRICING
-  const updatedProduct = applyPricing(product, bestOffer);
+      for (const offer of offers) {
+        let discount = 0;
 
-  // SIMILAR PRODUCTS
+        // 🔹 FULL OFFER
+        if (offer.discount_type === "percentage") {
+          discount = (variant.price * offer.discount) / 100;
+        } else {
+          discount = offer.discount;
+        }
+
+        // 🔹 APPLY CAPS (YOUR LOGIC ✅)
+        const finalDiscount = Math.min(
+          discount,
+          offer.max_discount ?? discount,
+          variant.max_discount_amount ?? discount,
+        );
+
+        const finalPrice = variant.price - finalDiscount;
+
+        if (finalPrice < bestPrice) {
+          bestPrice = finalPrice;
+          appliedOffer = offer;
+        }
+      }
+
+      return {
+        ...variant,
+        regular_price: variant.regular_price || variant.price,
+        finalPrice: Math.max(0, Math.round(bestPrice)),
+        appliedOffer,
+        savings: Math.max(0, variant.price - bestPrice),
+      };
+    })
+    // 🔥 THIS IS THE MAIN FIX
+    .sort((a, b) => a.finalPrice - b.finalPrice);
+
+  // ================= SIMILAR =================
   const similarProducts = await Products.find({
     category: product.category?._id,
     _id: { $ne: product._id },
@@ -419,17 +439,17 @@ export const getProductDetailsServiceUser = async (productId) => {
     .limit(8)
     .populate({
       path: "variants",
-      select: "price finalPrice product_images",
-      populate: {
-        path: "product_images",
-        select: "url",
-      },
+      match: { isDeleted: false },
+      select: "price regular_price product_images",
+      populate: { path: "product_images", select: "url" },
     })
     .sort({ "variants.price": 1 })
     .lean();
 
+  console.log(product);
+
   return {
-    product: updatedProduct,
+    product, // ✅ FIXED
     similarProducts,
   };
 };
@@ -441,6 +461,8 @@ export const addVariantService = async ({
   price,
   stock,
   description,
+  regular_price,
+  max_discount_amount,
   attributes,
   files,
 }) => {
@@ -450,7 +472,6 @@ export const addVariantService = async ({
     throw new AppError("Product not found", HTTP_STATUS.NOT_FOUND);
   }
 
-  // ✅ Validate required fields
   if (!description || description.trim() === "") {
     throw new AppError("Description is required", HTTP_STATUS.BAD_REQUEST);
   }
@@ -459,7 +480,6 @@ export const addVariantService = async ({
     throw new AppError("Price is required", HTTP_STATUS.BAD_REQUEST);
   }
 
-  // ✅ Normalize SKU
   const normalizedSku = sku.trim().toLowerCase();
 
   const skuExists = await Products.exists({
@@ -470,12 +490,10 @@ export const addVariantService = async ({
     throw new AppError("SKU already exists", HTTP_STATUS.CONFLICT);
   }
 
-  // ✅ Fix attributes (FormData case)
   if (typeof attributes === "string") {
     attributes = JSON.parse(attributes);
   }
 
-  // ================= IMAGE UPLOAD =================
   if (!files || files.length < 3) {
     throw new AppError("At least 3 images required", HTTP_STATUS.BAD_REQUEST);
   }
@@ -491,10 +509,11 @@ export const addVariantService = async ({
     });
   }
 
-  // ================= CREATE VARIANT =================
   const newVariant = {
     sku: normalizedSku,
     price,
+    regular_price: regular_price ?? price,
+    max_discount_amount: max_discount_amount ?? 0,
     stock,
     description,
     attributes: new Map(Object.entries(attributes || {})),
@@ -503,31 +522,35 @@ export const addVariantService = async ({
 
   product.variants.push(newVariant);
 
-  // ✅ Skip full validation (IMPORTANT FIX)
-  await product.save({ validateBeforeSave: false });
+  // 🔥 SAFETY FIX
+  product.variants.forEach((v) => {
+    if (!v.regular_price) v.regular_price = v.price;
+    if (v.max_discount_amount == null) v.max_discount_amount = 0;
+  });
+
+  await product.save(); // ✅ SAFE
 
   return {
     message: "Variant added successfully",
     variant: product.variants.at(-1),
+    product,
   };
 };
 
 //  EDIT VARIANT
 export const editVariantService = async (productId, variantId, data) => {
   const product = await Products.findById(productId);
-
   if (!product) throw new Error("Product not found");
 
   const variant = product.variants.id(variantId);
-
   if (!variant) throw new Error("Variant not found");
 
   // ================= SKU CHECK =================
   if (data.sku) {
-    const normalizedSku = data.sku.trim().toLowerCase();
+    const normalizedSku = data.sku.trim();
 
-    const skuExists = await Products.findOne({
-      "variants.sku": { $regex: `^${normalizedSku}$`, $options: "i" },
+    const skuExists = await Products.exists({
+      "variants.sku": new RegExp(`^${normalizedSku}$`, "i"),
       "variants._id": { $ne: variantId },
     });
 
@@ -535,13 +558,30 @@ export const editVariantService = async (productId, variantId, data) => {
       throw new Error("SKU already exists for another variant");
     }
 
-    variant.sku = data.sku;
+    variant.sku = normalizedSku;
   }
 
   // ================= BASIC UPDATE =================
-  if (data.price !== undefined) variant.price = data.price;
-  if (data.stock !== undefined) variant.stock = data.stock;
-  if (data.description !== undefined) variant.description = data.description;
+
+  if (data.price !== undefined) {
+    variant.price = Number(data.price);
+  }
+
+  if (data.regular_price !== undefined) {
+    variant.regular_price = Number(data.regular_price);
+  }
+
+  if (data.max_discount_amount !== undefined) {
+    variant.max_discount_amount = Number(data.max_discount_amount);
+  }
+
+  if (data.stock !== undefined) {
+    variant.stock = Number(data.stock);
+  }
+
+  if (data.description !== undefined) {
+    variant.description = data.description;
+  }
 
   if (data.attributes) {
     variant.attributes = new Map(Object.entries(data.attributes));
@@ -578,12 +618,12 @@ export const editVariantService = async (productId, variantId, data) => {
 
   let fileIndex = 0;
 
-  // ================= REPLACE IMAGES =================
+  // 🔹 REPLACE IMAGES
   for (let i = 0; i < replaceIds.length; i++) {
     const imageId = replaceIds[i];
     const file = files[fileIndex];
 
-    if (!file || !file.buffer) continue;
+    if (!file?.buffer) continue;
 
     const uploaded = await uploadToCloudinary(file.buffer, "variants");
 
@@ -604,14 +644,14 @@ export const editVariantService = async (productId, variantId, data) => {
       };
     }
 
-    fileIndex++; // 🔥 IMPORTANT
+    fileIndex++;
   }
 
-  // ================= ADD NEW IMAGES =================
+  // 🔹 ADD NEW IMAGES
   for (let i = fileIndex; i < files.length; i++) {
     const file = files[i];
 
-    if (!file || !file.buffer) continue;
+    if (!file?.buffer) continue;
 
     const uploaded = await uploadToCloudinary(file.buffer, "variants");
 
@@ -623,15 +663,21 @@ export const editVariantService = async (productId, variantId, data) => {
 
   await product.save();
 
-  // ================= REAL-TIME =================
+  // ================= SOCKET =================
   if (global.io) {
     global.io.emit("stockUpdated", {
       productId,
       variantId,
       stock: variant.stock,
       price: variant.price,
+      regular_price: variant.regular_price,
+      max_discount_amount: variant.max_discount_amount,
     });
   }
+
+  return {
+    product,
+  };
 };
 
 //  DELETE VARIANT
@@ -656,6 +702,7 @@ export const deleteVariantService = async (variantId) => {
   await product.save({ validateBeforeSave: false });
 
   return {
+    product,
     message: "Variant deleted successfully",
   };
 };
@@ -693,9 +740,19 @@ export const getProductsListService = async ({
 
   const normalizedBrand = brand ? brand.split(",").sort().join(",") : "all";
 
+  const now = new Date();
+
+  // ================= OFFERS =================
+  const offers = await Offer.find({
+    is_active: true,
+    isDeleted: { $ne: true },
+    start_date: { $lte: now },
+    end_date: { $gte: now },
+  }).lean();
+
   const cacheKey = `shop:category=${category || "all"}:brand=${normalizedBrand}:page=${page}:limit=${limit}:sort=${sort}:price=${safeMin}-${safeMax}`;
 
-  // CACHE HIT
+  // ================= CACHE =================
   if (!isSearch) {
     const cachedData = await getCache(cacheKey);
     if (cachedData?.products) {
@@ -706,12 +763,12 @@ export const getProductsListService = async ({
 
   console.warn("🐢 DB HIT:", cacheKey);
 
+  // ================= FILTER =================
   const filter = {
     status: "listed",
     isDeleted: false,
   };
 
-  // SEARCH
   if (isSearch) {
     filter.$or = [
       { name: { $regex: search, $options: "i" } },
@@ -719,7 +776,6 @@ export const getProductsListService = async ({
     ];
   }
 
-  // CATEGORY
   if (
     category &&
     category !== "all" &&
@@ -728,7 +784,6 @@ export const getProductsListService = async ({
     filter.category = new mongoose.Types.ObjectId(category);
   }
 
-  // BRAND
   if (brand && brand !== "all") {
     const brands = brand
       .split(",")
@@ -738,7 +793,7 @@ export const getProductsListService = async ({
     filter.brand = { $in: brands };
   }
 
-  // SORT
+  // ================= SORT =================
   let sortOption = {};
 
   switch ((sort || "").trim()) {
@@ -757,18 +812,16 @@ export const getProductsListService = async ({
     case "oldest":
       sortOption = { createdAt: 1 };
       break;
-    case "newest":
     default:
       sortOption = { createdAt: -1 };
   }
 
+  // ================= AGGREGATION =================
   const result = await Products.aggregate([
     { $match: filter },
 
-    // UNWIND
     { $unwind: "$variants" },
 
-    // PRICE FILTER
     {
       $match: {
         "variants.price": {
@@ -778,10 +831,8 @@ export const getProductsListService = async ({
       },
     },
 
-    // SORT VARIANTS (IMPORTANT)
     { $sort: { "variants.price": 1 } },
 
-    // GROUP BACK
     {
       $group: {
         _id: "$_id",
@@ -789,19 +840,17 @@ export const getProductsListService = async ({
         brand: { $first: "$brand" },
         category: { $first: "$category" },
         createdAt: { $first: "$createdAt" },
-        variants: { $push: "$variants" }, // sorted variants
-        minPrice: { $first: "$variants.price" }, // cheapest
+        variants: { $push: "$variants" },
+        minPrice: { $first: "$variants.price" },
       },
     },
 
-    // LOWER NAME
     {
       $addFields: {
         lowerName: { $toLower: "$name" },
       },
     },
 
-    // BRAND JOIN
     {
       $lookup: {
         from: "brands",
@@ -813,7 +862,6 @@ export const getProductsListService = async ({
     { $unwind: "$brand" },
     { $match: { "brand.status": "listed", "brand.isDeleted": false } },
 
-    // CATEGORY JOIN
     {
       $lookup: {
         from: "categories",
@@ -825,7 +873,6 @@ export const getProductsListService = async ({
     { $unwind: "$category" },
     { $match: { "category.status": "listed", "category.isDeleted": false } },
 
-    // FINAL
     {
       $facet: {
         data: [
@@ -838,15 +885,65 @@ export const getProductsListService = async ({
     },
   ]);
 
+  // ================= FIX: CORRECT DATA =================
   const products = result[0]?.data || [];
+
+  // ================= PRICING ENGINE =================
+  const productsWithPricing = products.map((product) => {
+    const updatedVariants = (product.variants || []).map((variant) => {
+      let bestPrice = variant.price;
+      let appliedOffer = null;
+
+      for (const offer of offers) {
+        let discount = 0;
+
+        // 🔹 FULL OFFER
+        if (offer.discount_type === "percentage") {
+          discount = (variant.price * offer.discount) / 100;
+        } else {
+          discount = offer.discount;
+        }
+
+        // 🔹 APPLY CAPS (YOUR REQUIREMENT ✅)
+        const finalDiscount = Math.min(
+          discount,
+          offer.max_discount ?? discount,
+          variant.max_discount_amount ?? discount,
+        );
+
+        const finalPrice = variant.price - finalDiscount;
+
+        if (finalPrice < bestPrice) {
+          bestPrice = finalPrice;
+          appliedOffer = offer;
+        }
+      }
+
+      return {
+        ...variant,
+        regular_price: variant.regular_price || variant.price,
+        finalPrice: Math.max(0, Math.round(bestPrice)),
+        appliedOffer,
+        savings: Math.max(0, variant.price - bestPrice),
+      };
+    });
+
+    return {
+      ...product,
+      variants: updatedVariants,
+    };
+  });
+
+  // ================= RESPONSE =================
   const total = result[0]?.totalCount?.[0]?.count || 0;
 
   const responseData = {
-    products,
+    products: productsWithPricing,
     total,
     totalPages: Math.ceil(total / limit),
   };
 
+  // ================= CACHE SAVE =================
   if (!isSearch) {
     await setCache(cacheKey, responseData);
   }

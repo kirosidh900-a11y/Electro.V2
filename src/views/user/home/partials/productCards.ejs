@@ -33,6 +33,7 @@
 
             const image = variant?.product_images?.[0]?.url || '/images/placeholder.png';
             const price = variant?.price || 0;
+            const finalPrice = variant?.finalPrice ?? price;
             const original = product.regularPrice || (price + 2000);
             const discount = product.discountPercentage || Math.round(((original - price) / original) * 100);
 
@@ -151,7 +152,23 @@ shadow-sm transition-all duration-300 cursor-pointer group relative
                         <!-- PRICE -->
                         <div class="mt-3 flex items-center gap-2">
                             <span class="text-lg font-bold text-gray-900">
-                                ₹<%= price.toLocaleString('en-IN') %>
+                                <% if (finalPrice < price) { %>
+
+                                    <span class="text-lg font-bold text-gray-900">
+                                        ₹<%= finalPrice.toLocaleString('en-IN') %>
+                                    </span>
+
+                                    <span class="text-xs text-gray-400 line-through">
+                                        ₹<%= price.toLocaleString('en-IN') %>
+                                    </span>
+
+                                    <% } else { %>
+
+                                        <span class="text-lg font-bold text-gray-900">
+                                            ₹<%= price.toLocaleString('en-IN') %>
+                                        </span>
+
+                                        <% } %>
                             </span>
                             <!-- <span class="text-xs text-gray-400 line-through">
                             ₹<%= original.toLocaleString('en-IN') %>
