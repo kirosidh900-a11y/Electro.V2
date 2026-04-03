@@ -150,3 +150,73 @@ export const offerSchema = Joi.object({
   }),
   is_active: Joi.boolean().default(true),
 });
+
+export const updateofferSchema = Joi.object({
+  name: Joi.string().min(3).max(100).required().messages({
+    "string.base": "Offer name must be a string",
+    "string.empty": "Offer name is required",
+    "string.min": "Offer name must be at least 3 characters",
+    "string.max": "Offer name cannot exceed 100 characters",
+    "any.required": "Offer name is required",
+  }),
+
+  discount_type: Joi.string().valid("percentage", "fixed").required().messages({
+    "any.only": "Discount type must be either percentage or fixed",
+    "any.required": "Discount type is required",
+  }),
+
+  discount: Joi.when("discount_type", {
+    is: "percentage",
+    then: Joi.number().min(1).max(100).required().messages({
+      "number.base": "Discount must be a number",
+      "number.min": "Percentage must be at least 1%",
+      "number.max": "Percentage cannot exceed 100%",
+      "any.required": "Discount percentage is required",
+    }),
+    otherwise: Joi.number().positive().required().messages({
+      "number.base": "Discount must be a number",
+      "number.positive": "Fixed discount must be greater than 0",
+      "any.required": "Discount amount is required",
+    }),
+  }),
+
+  max_discount: Joi.when("discount_type", {
+    is: "percentage",
+    then: Joi.number().positive().required().messages({
+      "number.base": "Max discount must be a number",
+      "number.positive": "Max discount must be greater than 0",
+      "any.required": "Max discount is required for percentage offers",
+    }),
+    otherwise: Joi.forbidden(),
+  }),
+
+  applies_to: Joi.string()
+    .valid("product", "category", "brand", "all")
+    .required()
+    .messages({
+      "any.only": "Applies to must be product, category, brand or all",
+      "any.required": "Applies to field is required",
+    }),
+
+  start_date: Joi.date().required().messages({
+    "date.base": "Start date must be a valid date",
+    "any.required": "Start date is required",
+  }),
+
+  end_date: Joi.date().required().greater(Joi.ref("start_date")).messages({
+    "date.base": "End date must be a valid date",
+    "date.greater": "End date must be after start date",
+    "any.required": "End date is required",
+  }),
+
+  target_ids: Joi.when("applies_to", {
+    is: Joi.valid("product", "category", "brand"),
+    then: Joi.array().items(Joi.string()).min(1).required().messages({
+      "array.base": "Targets must be an array",
+      "array.min": "Select at least one target",
+      "any.required": "Target selection is required",
+    }),
+    otherwise: Joi.optional(),
+  }),
+  is_active: Joi.boolean().default(true),
+});

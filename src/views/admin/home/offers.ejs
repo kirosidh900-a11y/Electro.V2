@@ -411,14 +411,25 @@
                                                 };
                                         }
 
+                                        function normalizeStatus(value) {
+                                                if (!value) return "";
+
+                                                const v = value?.toLowerCase();
+
+                                                if (v === "all") return "";
+                                                if (v === "active") return "active";
+                                                if (v === "inactive") return "inactive";
+                                                if (v === "expired") return "expired";
+                                                if (v === "upcoming") return "upcoming";
+
+                                                return "";
+                                        }
+
                                         async function searchData() {
-                                                const title = document.g
-                                                moduleName
                                                 const value = searchInput?.value.trim() || "";
-                                                const filterValue = filter?.value.trim() || "";
+                                                const filterValue = normalizeStatus(filter?.value);
 
                                                 try {
-
                                                         const res = await fetch(
                                                                 `/admin/${moduleName}?search=${encodeURIComponent(value)}&status=${encodeURIComponent(filterValue)}`,
                                                                 {
@@ -682,11 +693,11 @@
                                                 try {
 
                                                         const res = await fetch(`/admin/offers/${id}`);
-                                                        const data = await res.json();
+                                                        const { success, data, message } = await res.json();
 
-                                                        if (!data.success) return showToast(data.message, "error");
+                                                        if (!success) return showToast(message, "error");
 
-                                                        const offer = data.data;
+                                                        const offer = data;
 
                                                         document.getElementById("offer-id").value = offer._id;
                                                         document.getElementById("offer-name").value = offer.name;
@@ -701,6 +712,7 @@
                                                         document.getElementById("offer-submit-btn").textContent = "Update Offer";
 
                                                         document.getElementById("offerModal").classList.remove("hidden");
+                                                        window.originalStartDate = offer.start_date?.split("T")[0];
 
                                                         if (offer.discount_type === "percentage") {
                                                                 document.getElementById("max-discount-container").classList.remove("hidden");
@@ -881,10 +893,35 @@
                                                         return show("Invalid date format");
                                                 }
 
-                                                if (start < today) {
-                                                        return show("Start date cannot be in the past");
+                                                // CHECK MODE
+                                                const isEdit = !!document.getElementById("offer-id").value;
+
+                                                // ✅ CREATE MODE
+                                                if (!isEdit) {
+                                                        if (start < today) {
+                                                                return show("Start date cannot be in the past");
+                                                        }
                                                 }
 
+                                                // ✅ EDIT MODE
+                                                if (isEdit) {
+                                                        const originalStart = new Date(window.originalStartDate);
+
+                                                        // Only validate if changed
+                                                        if (start.getTime() !== originalStart.getTime()) {
+
+                                                                // If offer already started → restrict changes
+                                                                if (originalStart < today) {
+                                                                        return show("Cannot change start date after offer has started");
+                                                                }
+
+                                                                if (start < today) {
+                                                                        return show("Start date cannot be in the past");
+                                                                }
+                                                        }
+                                                }
+
+                                                // Common rule
                                                 if (end <= start) {
                                                         return show("End date must be after start date");
                                                 }

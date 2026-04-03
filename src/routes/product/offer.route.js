@@ -2,7 +2,7 @@ import { Router } from "express";
 const router = Router();
 
 import { validate } from "../../middlewares/validate.middleware.js";
-import { offerSchema } from "../../validations/products.validator.js";
+import { offerSchema ,updateofferSchema } from "../../validations/products.validator.js";
 
 import {
   getOffers,
@@ -21,7 +21,7 @@ router.get("/targets", getTargets);
 router
   .route("/:id")
   .get(getOfferById)
-  .patch(validate(offerSchema), updateOffer)
+  .patch(validate(updateofferSchema), updateOffer)
   .delete(deleteOffer);
 
 router.patch("/:id/status", toggleOfferStatus);

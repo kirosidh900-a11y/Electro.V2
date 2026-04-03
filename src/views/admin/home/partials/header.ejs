@@ -38,13 +38,18 @@ focus:outline-none focus:ring-2 focus:ring-cyan-500">
 
                                         <option value="Active">Active</option>
                                         <option value="Blocked">Blocked</option>
+                                        <% } else if(pageName==="Offers" ){ %>
+                                                        <option value="active">Active</option>
+                                                        <option value="inactive">Inactive</option>
+                                                        <option value="expired">Expired</option>
+                                                        <option value="upcoming">Upcoming</option>
 
-                                        <% } else { %>
+                                                <% } else { %>
 
-                                                <option value="listed">Listed</option>
-                                                <option value="unlisted">Unlisted</option>
+                                                        <option value="listed">Listed</option>
+                                                        <option value="unlisted">Unlisted</option>
 
-                                                <% } %>
+                                                        <% } %>
 
                         </select>
 

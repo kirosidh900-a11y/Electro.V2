@@ -4,12 +4,13 @@ import Brand from "../../models/brandSchema.model.js";
 import Product from "../../models/productSchema.model.js";
 
 import renderView from "../../utils/admin/renderView.util.js";
-import { getCache, setCache, deleteCacheByPattern } from "../../utils/Redis/cache.js";
+import {
+  getCache,
+  setCache,
+  deleteCacheByPattern,
+} from "../../utils/Redis/cache.js";
 
-
-// =====================================================
-// 🔥 COMMON CACHE CLEAR (ADMIN + USER)
-// =====================================================
+//  COMMON CACHE CLEAR (ADMIN + USER)
 const clearOfferCache = async () => {
   // 🔹 ADMIN CACHE
   await deleteCacheByPattern("admin:offers:*");
@@ -19,10 +20,7 @@ const clearOfferCache = async () => {
   await deleteCacheByPattern("home_products_*");
 };
 
-
-// =====================================================
 // 🔹 HELPER
-// =====================================================
 const getTargetModel = (applies_to) => {
   const map = {
     product: "Product",
@@ -32,32 +30,91 @@ const getTargetModel = (applies_to) => {
   return map[applies_to] || null;
 };
 
-
-// =====================================================
-// ✅ GET OFFERS (SSR + AJAX + CACHE)
-// =====================================================
+//  GET OFFERS (SSR + AJAX + CACHE)
 export const getOffers = async (req, res) => {
   try {
     const page = Number(req.query.page) || 1;
-    const cacheKey = `admin:offers:page=${page}`;
+    const limit = 6;
+    const skip = (page - 1) * limit;
 
-    // 🔥 CACHE
-    const cached = await getCache(cacheKey);
+    const search = req.query.search?.trim() || "";
+    const type = req.query.type || "";
+    const status = req.query.status || "";
+    const isSearch = !!search;
+
+    const now = new Date();
+
+    // 🔥 BASE QUERY
+    const query = {
+      isDeleted: { $ne: true },
+    };
+
+    // 🔎 SEARCH
+    if (search) {
+      // query.name = { $regex: search, $options: "i" };
+      query.$or = [{ name: { $regex: search, $options: "i" } }];
+    }
+
+    // 🎯 TYPE FILTER
+    if (type) {
+      query.target_model = type;
+    }
+
+    // 📌 STATUS FILTER
+    if (status === "active") {
+      query.$and = [
+        ...(query.$and || []),
+        { start_date: { $lte: now } },
+        { end_date: { $gte: now } },
+      ];
+    } else if (status === "expired") {
+      query.end_date = { $lt: now };
+    } else if (status === "upcoming") {
+      query.start_date = { $gt: now };
+    } else if (status === "inactive") {
+      query.is_active = false;
+    }
+
+    console.log("Offer Query:", JSON.stringify(query));
+
+    const cacheKey = `admin:offers:${req.xhr ? "xhr" : "view"}:page=${page}:search=${search}:type=${type}:status=${status}`;
+
+    // CACHE
+    let cached = null;
+
+    if (!isSearch) {
+      cached = await getCache(cacheKey);
+    }
 
     if (cached) {
       const parsed = JSON.parse(cached);
 
-      if (req.xhr) return res.json(parsed);
+      if (req.xhr) {
+        return res.json(parsed); // only xhr cache
+      }
 
-      return res.render("admin/home/offers", parsed);
+      // DO NOT trust cached view blindly
+      if (parsed.offers) {
+        return res.render("admin/home/offers", parsed);
+      }
     }
 
-    // 🔥 DB
-    const [offers, categories, brands] = await Promise.all([
-      Offer.find().populate("target_ids").lean(),
+    //  DB
+    const [offers, totalCount, categories, brands] = await Promise.all([
+      Offer.find(query)
+        .populate("target_ids")
+        .sort({ createdAt: -1 })
+        .skip(skip)
+        .limit(limit)
+        .lean(),
+
+      Offer.countDocuments(query),
+
       Category.find().lean(),
       Brand.find().lean(),
     ]);
+
+    const totalPages = Math.ceil(totalCount / limit);
 
     const baseData = {
       title: "Offers Management",
@@ -66,7 +123,10 @@ export const getOffers = async (req, res) => {
       categories,
       brands,
       currentPage: page,
-      totalPages: 1,
+      totalPages,
+      search,
+      type,
+      status,
     };
 
     // 🔥 AJAX
@@ -79,21 +139,24 @@ export const getOffers = async (req, res) => {
       const pagination = await renderView(
         res,
         "admin/home/partials/pagination",
-        { currentPage: page, totalPages: 1 }
+        { currentPage: page, totalPages },
       );
 
       const response = { rows, pagination };
 
-      await setCache(cacheKey, JSON.stringify(response), 60);
+      if (!isSearch) {
+        await setCache(cacheKey, JSON.stringify(response), 600);
+      }
 
       return res.json(response);
     }
 
     // 🔥 NORMAL
-    await setCache(cacheKey, JSON.stringify(baseData), 60);
+    if (!isSearch) {
+      await setCache(cacheKey, JSON.stringify(baseData), 600);
+    }
 
     return res.render("admin/home/offers", baseData);
-
   } catch (error) {
     console.error("Error fetching offers:", error);
 
@@ -109,10 +172,7 @@ export const getOffers = async (req, res) => {
   }
 };
 
-
-// =====================================================
-// ✅ CREATE OFFER
-// =====================================================
+// CREATE OFFER
 export const createOffer = async (req, res) => {
   try {
     const {
@@ -149,7 +209,6 @@ export const createOffer = async (req, res) => {
       message: "Offer created successfully",
       data: newOffer,
     });
-
   } catch (error) {
     console.error("Error creating offer:", error);
 
@@ -160,10 +219,7 @@ export const createOffer = async (req, res) => {
   }
 };
 
-
-// =====================================================
-// ✅ GET TARGETS (FIXED)
-// =====================================================
+// GET TARGETS (FIXED)
 export const getTargets = async (req, res) => {
   try {
     const { type } = req.query;
@@ -172,19 +228,18 @@ export const getTargets = async (req, res) => {
 
     if (type === "product") {
       data = await Product.find().select("_id name").lean();
-      data = data.map(i => ({ _id: i._id, title: i.name }));
+      data = data.map((i) => ({ _id: i._id, title: i.name }));
     } else if (type === "category") {
       data = await Category.find().select("_id title").lean();
-      data = data.map(i => ({ _id: i._id, title: i.title }));
+      data = data.map((i) => ({ _id: i._id, title: i.title }));
     } else if (type === "brand") {
       data = await Brand.find().select("_id title").lean();
-      data = data.map(i => ({ _id: i._id, title: i.title }));
+      data = data.map((i) => ({ _id: i._id, title: i.title }));
     } else {
       return res.json({ success: false, message: "Invalid type" });
     }
 
     return res.json({ success: true, data });
-
   } catch (error) {
     console.error("Error fetching targets:", error);
 
@@ -195,10 +250,7 @@ export const getTargets = async (req, res) => {
   }
 };
 
-
-// =====================================================
-// ✅ GET OFFER BY ID
-// =====================================================
+// GET OFFER BY ID
 export const getOfferById = async (req, res) => {
   try {
     const offer = await Offer.findById(req.params.id).lean();
@@ -207,7 +259,6 @@ export const getOfferById = async (req, res) => {
       success: true,
       data: offer,
     });
-
   } catch {
     return res.json({
       success: false,
@@ -216,10 +267,7 @@ export const getOfferById = async (req, res) => {
   }
 };
 
-
-// =====================================================
-// ✅ UPDATE OFFER
-// =====================================================
+// UPDATE OFFER
 export const updateOffer = async (req, res) => {
   try {
     const {
@@ -237,6 +285,25 @@ export const updateOffer = async (req, res) => {
     const target_model =
       applies_to === "all" ? null : getTargetModel(applies_to);
 
+    const existingOffer = await Offer.findById(req.params.id);
+
+    const now = new Date();
+    const originalStart = new Date(existingOffer.start_date);
+    const newStart = new Date(req.body.start_date);
+
+    // 🔥 Only validate if changed
+    if (newStart.getTime() !== originalStart.getTime()) {
+      // ❌ Offer already started
+      if (originalStart < now) {
+        throw new Error("Cannot change start date after offer has started");
+      }
+
+      // ❌ New date in past
+      if (newStart < now) {
+        throw new Error("Start date cannot be in the past");
+      }
+    }
+
     const updated = await Offer.findByIdAndUpdate(
       req.params.id,
       {
@@ -251,7 +318,7 @@ export const updateOffer = async (req, res) => {
         end_date,
         is_active,
       },
-      { new: true }
+      { new: true },
     );
 
     // 🔥 CACHE CLEAR
@@ -262,7 +329,6 @@ export const updateOffer = async (req, res) => {
       message: "Offer updated successfully",
       data: updated,
     });
-
   } catch (error) {
     console.error(error);
 
@@ -273,13 +339,12 @@ export const updateOffer = async (req, res) => {
   }
 };
 
-
-// =====================================================
-// ✅ DELETE OFFER
-// =====================================================
+// DELETE OFFER
 export const deleteOffer = async (req, res) => {
   try {
-    await Offer.findByIdAndDelete(req.params.id);
+    await Offer.findByIdAndUpdate(req.params.id, {
+      isDeleted: true,
+    });
 
     // 🔥 CACHE CLEAR
     await clearOfferCache();
@@ -288,7 +353,6 @@ export const deleteOffer = async (req, res) => {
       success: true,
       message: "Offer deleted",
     });
-
   } catch {
     return res.json({
       success: false,
@@ -297,10 +361,7 @@ export const deleteOffer = async (req, res) => {
   }
 };
 
-
-// =====================================================
-// ✅ TOGGLE STATUS
-// =====================================================
+// TOGGLE STATUS
 export const toggleOfferStatus = async (req, res) => {
   try {
     const offer = await Offer.findById(req.params.id);
@@ -315,11 +376,10 @@ export const toggleOfferStatus = async (req, res) => {
       success: true,
       data: offer,
     });
-
   } catch {
     return res.json({
       success: false,
       message: "Status update failed",
     });
   }
-}; 
+};
