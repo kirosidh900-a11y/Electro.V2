@@ -12,6 +12,7 @@ export const getCache = async (key) => {
 
     // SAFE PARSE
     try {
+      console.warn("🎯 Cache HIT:", key);
       return JSON.parse(data);
     } catch (err) {
       console.error("⚠️ Invalid cache detected, deleting:", key, err);

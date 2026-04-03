@@ -63,13 +63,19 @@
                 <!-- STATUS -->
                 <td class="px-6 py-4">
 
-                    <% const now=new Date(); const endDate=new Date(offer.end_date); let status="inactive" ; if
-                        (!offer.is_active) { status="inactive" ; } else if (endDate < now) { status="expired" ; } else {
-                        status="active" ; } %>
+                    <% const now=new Date(); const startDate=new Date(offer.start_date); const endDate=new
+                        Date(offer.end_date); let status="inactive" ; if (!offer.is_active) { status="inactive" ; } else
+                        if (endDate < now) { status="expired" ; } else if (startDate> now) {
+                        status = "upcoming";
+                        } else {
+                        status = "active";
+                        }
+                        %>
 
                         <span id="badge-<%= offer._id %>" class="px-3 py-1 rounded-full text-xs
     <%= status === " active" ? 'bg-emerald-500/20 text-emerald-400' : status==="expired"
-                            ? 'bg-orange-500/20 text-orange-400' : 'bg-red-500/20 text-red-400' %>">
+                            ? 'bg-orange-500/20 text-orange-400' : status==="upcoming"
+                            ? 'bg-yellow-500/20 text-yellow-400' : 'bg-red-500/20 text-red-400' %>">
 
                             <%= status %>
                         </span>

@@ -1,325 +1,155 @@
-import Offer from "../../models/offersSchema.model.js";
-import Category from "../../models/CategorySchema.model.js";
-import Brand from "../../models/brandSchema.model.js";
-import Product from "../../models/productSchema.model.js";
-
 import renderView from "../../utils/admin/renderView.util.js";
-import { getCache, setCache, deleteCacheByPattern } from "../../utils/Redis/cache.js";
+import { setCache } from "../../utils/Redis/cache.js";
 
+import {
+  fetchOffersService,
+  createOfferService,
+  getTargetsService,
+  updateOfferService,
+  getOfferByIdService,
+  deleteOfferService,
+  toggleOfferStatusService,
+} from "../../services/product/offer.service.js";
 
-// =====================================================
-// 🔥 COMMON CACHE CLEAR (ADMIN + USER)
-// =====================================================
-const clearOfferCache = async () => {
-  // 🔹 ADMIN CACHE
-  await deleteCacheByPattern("admin:offers:*");
-
-  // 🔹 USER SIDE CACHE (VERY IMPORTANT)
-  await deleteCacheByPattern("shop:*");
-  await deleteCacheByPattern("home_products_*");
-};
-
-
-// =====================================================
-// 🔹 HELPER
-// =====================================================
-const getTargetModel = (applies_to) => {
-  const map = {
-    product: "Product",
-    category: "Category",
-    brand: "Brand",
-  };
-  return map[applies_to] || null;
-};
-
-
-// =====================================================
-// ✅ GET OFFERS (SSR + AJAX + CACHE)
-// =====================================================
+// 🔹 GET OFFERS
 export const getOffers = async (req, res) => {
   try {
-    const page = Number(req.query.page) || 1;
-    const cacheKey = `admin:offers:page=${page}`;
-
-    // 🔥 CACHE
-    const cached = await getCache(cacheKey);
+    const { cached, data, cacheKey, isSearch } =
+      await fetchOffersService({
+        queryParams: req.query,
+        isXHR: req.xhr,
+      }); 
 
     if (cached) {
-      const parsed = JSON.parse(cached);
-
-      if (req.xhr) return res.json(parsed);
-
-      return res.render("admin/home/offers", parsed);
+      return req.xhr
+        ? res.json(cached)
+        : res.render("admin/home/offers", cached);
     }
 
-    // 🔥 DB
-    const [offers, categories, brands] = await Promise.all([
-      Offer.find().populate("target_ids").lean(),
-      Category.find().lean(),
-      Brand.find().lean(),
-    ]);
-
-    const baseData = {
-      title: "Offers Management",
-      activeMenu: "offers",
-      offers,
-      categories,
-      brands,
-      currentPage: page,
-      totalPages: 1,
-    };
-
-    // 🔥 AJAX
     if (req.xhr) {
-      const rows = await renderView(res, "admin/home/partials/offerRows", {
-        offers,
-        currentPage: page,
-      });
+      const rows = await renderView(
+        res,
+        "admin/home/partials/offerRows",
+        data
+      );
 
       const pagination = await renderView(
         res,
         "admin/home/partials/pagination",
-        { currentPage: page, totalPages: 1 }
+        data
       );
 
       const response = { rows, pagination };
 
-      await setCache(cacheKey, JSON.stringify(response), 60);
+      if (!isSearch) {
+        await setCache(cacheKey, JSON.stringify(response), 600);
+      }
 
       return res.json(response);
     }
 
-    // 🔥 NORMAL
-    await setCache(cacheKey, JSON.stringify(baseData), 60);
-
-    return res.render("admin/home/offers", baseData);
-
-  } catch (error) {
-    console.error("Error fetching offers:", error);
-
-    return res.render("admin/home/offers", {
+    const baseData = {
       title: "Offers Management",
       activeMenu: "offers",
-      offers: [],
-      categories: [],
-      brands: [],
-      currentPage: 1,
-      totalPages: 1,
-    });
-  }
-};
+      ...data,
+    };
 
-
-// =====================================================
-// ✅ CREATE OFFER
-// =====================================================
-export const createOffer = async (req, res) => {
-  try {
-    const {
-      name,
-      discount_type,
-      discount,
-      max_discount,
-      applies_to,
-      target_ids,
-      start_date,
-      end_date,
-    } = req.body;
-
-    const target_model =
-      applies_to === "all" ? null : getTargetModel(applies_to);
-
-    const newOffer = await Offer.create({
-      name,
-      discount_type,
-      discount,
-      max_discount,
-      applies_to,
-      target_model,
-      target_ids: applies_to === "all" ? [] : target_ids,
-      start_date,
-      end_date,
-    });
-
-    // 🔥 CACHE CLEAR
-    await clearOfferCache();
-
-    return res.json({
-      success: true,
-      message: "Offer created successfully",
-      data: newOffer,
-    });
-
-  } catch (error) {
-    console.error("Error creating offer:", error);
-
-    return res.json({
-      success: false,
-      message: "Failed to create offer",
-    });
-  }
-};
-
-
-// =====================================================
-// ✅ GET TARGETS (FIXED)
-// =====================================================
-export const getTargets = async (req, res) => {
-  try {
-    const { type } = req.query;
-
-    let data = [];
-
-    if (type === "product") {
-      data = await Product.find().select("_id name").lean();
-      data = data.map(i => ({ _id: i._id, title: i.name }));
-    } else if (type === "category") {
-      data = await Category.find().select("_id title").lean();
-      data = data.map(i => ({ _id: i._id, title: i.title }));
-    } else if (type === "brand") {
-      data = await Brand.find().select("_id title").lean();
-      data = data.map(i => ({ _id: i._id, title: i.title }));
-    } else {
-      return res.json({ success: false, message: "Invalid type" });
+    if (!isSearch) {
+      await setCache(cacheKey, JSON.stringify(baseData), 600);
     }
 
-    return res.json({ success: true, data });
-
-  } catch (error) {
-    console.error("Error fetching targets:", error);
-
-    return res.json({
-      success: false,
-      message: "Failed to load targets",
-    });
+    return res.render("admin/home/offers", baseData);
+  } catch (err) {
+    console.error("Get Offers Error:", err);
+    return res.render("admin/home/offers", { offers: [] });
   }
 };
 
-
-// =====================================================
-// ✅ GET OFFER BY ID
-// =====================================================
 export const getOfferById = async (req, res) => {
   try {
-    const offer = await Offer.findById(req.params.id).lean();
+    const offer = await getOfferByIdService(req.params.id);
 
     return res.json({
       success: true,
       data: offer,
     });
-
-  } catch {
+  } catch (err) {
     return res.json({
       success: false,
-      message: "Offer not found",
+      message: err.message,
     });
   }
 };
 
+// 🔹 CREATE
+export const createOffer = async (req, res) => {
+  try {
+    const offer = await createOfferService(req.body);
 
-// =====================================================
-// ✅ UPDATE OFFER
-// =====================================================
+    res.json({
+      success: true,
+      message: "Offer created successfully",
+      data: offer,
+    });
+  } catch (err) {
+    res.json({ success: false, message: err.message });
+  }
+};
+
+// 🔹 TARGETS
+export const getTargets = async (req, res) => {
+  try {
+    const data = await getTargetsService(req.query.type);
+    res.json({ success: true, data });
+  } catch (err) {
+    res.json({ success: false, message: err.message });
+  }
+};
+
+// 🔹 UPDATE
 export const updateOffer = async (req, res) => {
   try {
-    const {
-      name,
-      discount_type,
-      discount,
-      max_discount,
-      applies_to,
-      target_ids,
-      start_date,
-      end_date,
-      is_active,
-    } = req.body;
-
-    const target_model =
-      applies_to === "all" ? null : getTargetModel(applies_to);
-
-    const updated = await Offer.findByIdAndUpdate(
+    const updated = await updateOfferService(
       req.params.id,
-      {
-        name,
-        discount_type,
-        discount,
-        max_discount,
-        applies_to,
-        target_model,
-        target_ids: applies_to === "all" ? [] : target_ids,
-        start_date,
-        end_date,
-        is_active,
-      },
-      { new: true }
+      req.body
     );
 
-    // 🔥 CACHE CLEAR
-    await clearOfferCache();
-
-    return res.json({
+    res.json({
       success: true,
       message: "Offer updated successfully",
       data: updated,
     });
-
-  } catch (error) {
-    console.error(error);
-
-    return res.json({
-      success: false,
-      message: "Update failed",
-    });
+  } catch (err) {
+    res.json({ success: false, message: err.message });
   }
 };
 
-
-// =====================================================
-// ✅ DELETE OFFER
-// =====================================================
+// 🔹 DELETE
 export const deleteOffer = async (req, res) => {
   try {
-    await Offer.findByIdAndDelete(req.params.id);
+    await deleteOfferService(req.params.id);
 
-    // 🔥 CACHE CLEAR
-    await clearOfferCache();
-
-    return res.json({
+    res.json({
       success: true,
-      message: "Offer deleted",
+      message: "Offer deleted successfully",
     });
-
-  } catch {
-    return res.json({
-      success: false,
-      message: "Delete failed",
-    });
+  } catch (err) {
+    res.json({ success: false, message: err.message });
   }
 };
 
-
-// =====================================================
-// ✅ TOGGLE STATUS
-// =====================================================
+// 🔹 TOGGLE STATUS
 export const toggleOfferStatus = async (req, res) => {
   try {
-    const offer = await Offer.findById(req.params.id);
+    const offer = await toggleOfferStatusService(
+      req.params.id
+    );
 
-    offer.is_active = !offer.is_active;
-    await offer.save();
-
-    // 🔥 CACHE CLEAR
-    await clearOfferCache();
-
-    return res.json({
+    res.json({
       success: true,
       data: offer,
     });
-
-  } catch {
-    return res.json({
-      success: false,
-      message: "Status update failed",
-    });
+  } catch (err) {
+    res.json({ success: false, message: err.message });
   }
-}; 
+};

@@ -10,6 +10,11 @@ import {
 } from "../partials/cloudinary.service.js";
 import { getCache, setCache } from "../../utils/Redis/cache.js";
 import { findByIdOrThrow } from "../../utils/products/product.util.js";
+import Offer from "../../models/offersSchema.model.js";
+import {
+  applyPricing,
+  getBestOffer,
+} from "../../utils/products/pricing.util.js";
 
 //  PRODUCTS PAGE
 export const getProductsService = async ({ page, limit, search, status }) => {
@@ -349,6 +354,7 @@ export const getProductDetailsServiceUser = async (productId) => {
     throw new AppError("Invalid product ID", HTTP_STATUS.BAD_REQUEST);
   }
 
+  // ✅ GET PRODUCT
   const product = await findByIdOrThrow(Products, productId, {
     match: { isDeleted: false, status: "listed" },
 
@@ -367,12 +373,10 @@ export const getProductDetailsServiceUser = async (productId) => {
         path: "variants",
         match: { isDeleted: false },
         options: { sort: { createdAt: 1 } },
-        populate: [
-          {
-            path: "product_images",
-            select: "url",
-          },
-        ],
+        populate: {
+          path: "product_images",
+          select: "url",
+        },
       },
     ],
 
@@ -383,6 +387,28 @@ export const getProductDetailsServiceUser = async (productId) => {
     throw new AppError("Product not found", HTTP_STATUS.NOT_FOUND);
   }
 
+  // ================= OFFER LOGIC =================
+  const now = new Date();
+
+  const offers = await Offer.find({
+    is_active: true,
+    start_date: { $lte: now },
+    end_date: { $gte: now },
+    $or: [
+      { applies_to: "all" },
+      { target_ids: product._id },
+      { target_ids: product.category?._id },
+      { target_ids: product.brand?._id },
+    ],
+  }).lean();
+
+  // PICK BEST OFFER
+  const bestOffer = getBestOffer(product, offers);
+
+  // APPLY PRICING
+  const updatedProduct = applyPricing(product, bestOffer);
+
+  // SIMILAR PRODUCTS
   const similarProducts = await Products.find({
     category: product.category?._id,
     _id: { $ne: product._id },
@@ -402,7 +428,10 @@ export const getProductDetailsServiceUser = async (productId) => {
     .sort({ "variants.price": 1 })
     .lean();
 
-  return { product, similarProducts };
+  return {
+    product: updatedProduct,
+    similarProducts,
+  };
 };
 
 //  ADD VARIANT
