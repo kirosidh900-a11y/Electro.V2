@@ -285,8 +285,26 @@
                           </td>
 
                           <!-- PRICE -->
-                          <td class="py-3 px-4 text-green-400 font-semibold">
-                            ₹<%= v.price %>
+                          <td class="py-3 px-4">
+                            <div class="flex flex-col">
+
+                              <span class="text-green-400 font-semibold">
+                                ₹<%= v.price %>
+                              </span>
+
+                              <% if (v.regular_price && v.regular_price> v.price) { %>
+                                <span class="text-xs text-gray-400 line-through">
+                                  ₹<%= v.regular_price %>
+                                </span>
+                                <% } %>
+
+                                  <% if (v.max_discount_amount) { %>
+                                    <span class="text-[10px] text-yellow-400">
+                                      Max Disc: ₹<%= v.max_discount_amount %>
+                                    </span>
+                                    <% } %>
+
+                            </div>
                           </td>
 
                           <!-- STOCK -->
@@ -420,6 +438,20 @@
             <label class="text-sm text-gray-400">Price</label>
             <input type="number" min="0" step="0.01" id="variant-price"
               class="w-full mt-1 bg-[#0f172a] border border-white/10 px-3 py-2 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none">
+          </div>
+
+          <!-- REGULAR PRICE -->
+          <div>
+            <label class="text-sm text-gray-400">Regular Price (MRP)</label>
+            <input type="number" min="0" step="0.01" id="variant-regular-price"
+              class="w-full mt-1 bg-[#0f172a] border border-white/10 px-3 py-2 rounded-lg text-sm">
+          </div>
+
+          <!-- MAX DISCOUNT -->
+          <div>
+            <label class="text-sm text-gray-400">Max Discount Amount</label>
+            <input type="number" min="0" step="0.01" id="variant-max-discount"
+              class="w-full mt-1 bg-[#0f172a] border border-white/10 px-3 py-2 rounded-lg text-sm">
           </div>
 
           <!-- STOCK -->
@@ -569,6 +601,10 @@
         document.getElementById("variant-sku").value = "";
         document.getElementById("variant-price").value = "";
         document.getElementById("variant-stock").value = "";
+
+        document.getElementById("variant-regular-price").value = "";
+        document.getElementById("variant-max-discount").value = "";
+
         variantImages = [];
         imagesToDelete = [];
 
@@ -659,6 +695,11 @@
           document.getElementById("variant-price").value = variant.price || "";
           document.getElementById("variant-stock").value = variant.stock || "";
           document.getElementById("variant-description").value = variant.description || "";
+          document.getElementById("variant-regular-price").value =
+            variant.regular_price || "";
+
+          document.getElementById("variant-max-discount").value =
+            variant.max_discount_amount || "";
 
           // ================= ATTRIBUTES =================
 
@@ -733,7 +774,7 @@
           showToast("Failed to load variant", "error");
         }
       };
-      
+
       /* ================= SUBMIT VARIANT ================= */
 
       const variantForm = document.getElementById("variantForm");
@@ -755,6 +796,14 @@
 
           const priceInput = document.getElementById("variant-price").value;
           const stockInput = document.getElementById("variant-stock").value;
+          const regularPriceInput = document.getElementById("variant-regular-price").value;
+          const maxDiscountInput = document.getElementById("variant-max-discount").value;
+
+          const regular_price =
+            regularPriceInput === "" ? undefined : parseFloat(regularPriceInput);
+
+          const max_discount_amount =
+            maxDiscountInput === "" ? undefined : parseFloat(maxDiscountInput);
 
           const price = priceInput === "" ? NaN : parseFloat(priceInput);
           const stock = stockInput === "" ? NaN : parseInt(stockInput);
@@ -776,6 +825,14 @@
 
           if (isNaN(stock) || stock < 0) {
             throw new Error("Stock must be 0 or greater");
+          }
+
+          if (regular_price !== undefined && regular_price < price) {
+            throw new Error("Regular price must be ≥ price");
+          }
+
+          if (max_discount_amount !== undefined && max_discount_amount < 0) {
+            throw new Error("Invalid max discount");
           }
 
           // ATTRIBUTES
@@ -828,6 +885,14 @@
               formData.append("images", img.file);
             }
           });
+
+          if (regular_price !== undefined) {
+            formData.append("regular_price", regular_price);
+          }
+
+          if (max_discount_amount !== undefined) {
+            formData.append("max_discount_amount", max_discount_amount);
+          }
 
           let url = `/admin/products/<%= product._id %>/variants`;
           let method = "POST";
@@ -1484,7 +1549,7 @@
 
     </script>
 
-    
+
 
     <script>
 

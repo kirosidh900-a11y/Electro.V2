@@ -515,19 +515,17 @@ export const addVariantService = async ({
 //  EDIT VARIANT
 export const editVariantService = async (productId, variantId, data) => {
   const product = await Products.findById(productId);
-
   if (!product) throw new Error("Product not found");
 
   const variant = product.variants.id(variantId);
-
   if (!variant) throw new Error("Variant not found");
 
   // ================= SKU CHECK =================
   if (data.sku) {
-    const normalizedSku = data.sku.trim().toLowerCase();
+    const normalizedSku = data.sku.trim();
 
-    const skuExists = await Products.findOne({
-      "variants.sku": { $regex: `^${normalizedSku}$`, $options: "i" },
+    const skuExists = await Products.exists({
+      "variants.sku": new RegExp(`^${normalizedSku}$`, "i"),
       "variants._id": { $ne: variantId },
     });
 
@@ -535,13 +533,30 @@ export const editVariantService = async (productId, variantId, data) => {
       throw new Error("SKU already exists for another variant");
     }
 
-    variant.sku = data.sku;
+    variant.sku = normalizedSku;
   }
 
   // ================= BASIC UPDATE =================
-  if (data.price !== undefined) variant.price = data.price;
-  if (data.stock !== undefined) variant.stock = data.stock;
-  if (data.description !== undefined) variant.description = data.description;
+
+  if (data.price !== undefined) {
+    variant.price = Number(data.price);
+  }
+
+  if (data.regular_price !== undefined) {
+    variant.regular_price = Number(data.regular_price);
+  }
+
+  if (data.max_discount_amount !== undefined) {
+    variant.max_discount_amount = Number(data.max_discount_amount);
+  }
+
+  if (data.stock !== undefined) {
+    variant.stock = Number(data.stock);
+  }
+
+  if (data.description !== undefined) {
+    variant.description = data.description;
+  }
 
   if (data.attributes) {
     variant.attributes = new Map(Object.entries(data.attributes));
@@ -578,12 +593,12 @@ export const editVariantService = async (productId, variantId, data) => {
 
   let fileIndex = 0;
 
-  // ================= REPLACE IMAGES =================
+  // 🔹 REPLACE IMAGES
   for (let i = 0; i < replaceIds.length; i++) {
     const imageId = replaceIds[i];
     const file = files[fileIndex];
 
-    if (!file || !file.buffer) continue;
+    if (!file?.buffer) continue;
 
     const uploaded = await uploadToCloudinary(file.buffer, "variants");
 
@@ -604,14 +619,14 @@ export const editVariantService = async (productId, variantId, data) => {
       };
     }
 
-    fileIndex++; // 🔥 IMPORTANT
+    fileIndex++;
   }
 
-  // ================= ADD NEW IMAGES =================
+  // 🔹 ADD NEW IMAGES
   for (let i = fileIndex; i < files.length; i++) {
     const file = files[i];
 
-    if (!file || !file.buffer) continue;
+    if (!file?.buffer) continue;
 
     const uploaded = await uploadToCloudinary(file.buffer, "variants");
 
@@ -623,15 +638,19 @@ export const editVariantService = async (productId, variantId, data) => {
 
   await product.save();
 
-  // ================= REAL-TIME =================
+  // ================= SOCKET =================
   if (global.io) {
     global.io.emit("stockUpdated", {
       productId,
       variantId,
       stock: variant.stock,
       price: variant.price,
+      regular_price: variant.regular_price,
+      max_discount_amount: variant.max_discount_amount,
     });
   }
+
+  return variant;
 };
 
 //  DELETE VARIANT

@@ -319,7 +319,7 @@ export const editVariant = async (req, res, next) => {
 
     successResponse(res, "Variant updated successfully");
   } catch (error) {
-    console.error("Delete Product Error", error);
+    console.error("Edit Variant Product Error", error);
     next(error);
   }
 };

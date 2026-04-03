@@ -8,12 +8,27 @@ const variantSchema = new mongoose.Schema(
       type: String,
       required: true,
       trim: true,
-      uppercase: true, // normalize automatically
+      uppercase: true,
     },
 
+    // ✅ SELLING PRICE
     price: {
       type: Number,
       required: true,
+      min: 0,
+    },
+
+    // ✅ ORIGINAL PRICE (MRP)
+    regular_price: {
+      type: Number,
+      required: true,
+      min: 0,
+    },
+
+    // ✅ MAX DISCOUNT LIMIT (VERY IMPORTANT)
+    max_discount_amount: {
+      type: Number,
+      default: 0, // no limit = 0
       min: 0,
     },
 
@@ -37,14 +52,8 @@ const variantSchema = new mongoose.Schema(
 
     product_images: [
       {
-        url: {
-          type: String,
-          required: true,
-        },
-        imageId: {
-          type: String,
-          required: true,
-        },
+        url: { type: String, required: true },
+        imageId: { type: String, required: true },
       },
     ],
 
@@ -53,7 +62,7 @@ const variantSchema = new mongoose.Schema(
       default: false,
     },
   },
-  { timestamps: true }, // IMPORTANT
+  { timestamps: true },
 );
 
 const productSchema = new mongoose.Schema(
