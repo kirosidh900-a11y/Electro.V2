@@ -3,21 +3,22 @@ import setCookieMSG from "../utils/partials/setCookieMsg.utils.js";
 import { verifyUser } from "../utils/partials/verifyToken.utils.js";
 
 const attachUser = async (req, res, next) => {
-  const token = req.cookies?.token;
-
-  // ================= NO TOKEN =================
-  if (!token) {
-    req.user = null;
-    res.locals.user = null;
-    res.locals.cart = null;
-    res.locals.wishlist = null;
-    res.locals.wishlistSet = null;
-    res.locals.cartSet = null;
-    setCookieMSG(res, "Please log in to continue!");
-    return next();
-  }
-
   try {
+    const token = req.cookies?.token;
+
+    // ================= NO TOKEN =================
+    if (!token) {
+      req.user = null;
+      res.locals.user = null;
+      res.locals.cart = null;
+      res.locals.wishlist = null;
+      res.locals.wishlistSet = null;
+      res.locals.cartSet = null;
+
+      return next(); 
+    }
+
+
     const { user, cart, wishlist } = await verifyUser(token);
 
     // ================= USER INVALID / BLOCKED =================
@@ -70,6 +71,13 @@ const attachUser = async (req, res, next) => {
     res.locals.wishlist = null;
     res.locals.wishlistSet = null;
     res.locals.cartSet = null;
+
+    // 🔥 ONLY show when token expired/invalid
+    if (err.name === "TokenExpiredError") {
+      setCookieMSG(res, "Session expired. Please log in again.");
+    } else {
+      setCookieMSG(res, "Authentication failed. Please log in.");
+    }
   }
 
   next();

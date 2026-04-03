@@ -8,10 +8,10 @@ import {
   getOffers,
   createOffer,
   getTargets,
-  getOfferById,
   updateOffer,
   deleteOffer,
   toggleOfferStatus,
+  getOfferById,
 } from "../../controllers/product/offer.controller.js";
 
 router.route("/").get(getOffers).post(validate(offerSchema), createOffer);
