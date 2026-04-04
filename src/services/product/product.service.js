@@ -11,6 +11,8 @@ import {
 import { getCache, setCache } from "../../utils/Redis/cache.js";
 import { findByIdOrThrow } from "../../utils/products/product.util.js";
 import Offer from "../../models/offersSchema.model.js";
+import { applyPricingToProduct } from "../../utils/products/pricing.util.js";
+import { getActiveOffers } from "../../utils/products/offers.util.js";
 
 //  PRODUCTS PAGE
 export const getProductsService = async ({ page, limit, search, status }) => {
@@ -373,60 +375,10 @@ export const getProductDetailsServiceUser = async (productId) => {
   const now = new Date();
 
   // ================= OFFERS =================
-  const offers = await Offer.find({
-    is_active: true,
-    isDeleted: { $ne: true },
-    start_date: { $lte: now },
-    end_date: { $gte: now },
-    $or: [
-      { applies_to: "all" },
-      { target_ids: product._id },
-      { target_ids: product.category?._id },
-      { target_ids: product.brand?._id },
-    ],
-  }).lean();
+  const offers = await getActiveOffers(product);
 
   // ================= APPLY PRICING =================
-  product.variants = product.variants
-    .map((variant) => {
-      let bestPrice = variant.price;
-      let appliedOffer = null;
-
-      for (const offer of offers) {
-        let discount = 0;
-
-        // 🔹 FULL OFFER
-        if (offer.discount_type === "percentage") {
-          discount = (variant.price * offer.discount) / 100;
-        } else {
-          discount = offer.discount;
-        }
-
-        // 🔹 APPLY CAPS (YOUR LOGIC ✅)
-        const finalDiscount = Math.min(
-          discount,
-          offer.max_discount ?? discount,
-          variant.max_discount_amount ?? discount,
-        );
-
-        const finalPrice = variant.price - finalDiscount;
-
-        if (finalPrice < bestPrice) {
-          bestPrice = finalPrice;
-          appliedOffer = offer;
-        }
-      }
-
-      return {
-        ...variant,
-        regular_price: variant.regular_price || variant.price,
-        finalPrice: Math.max(0, Math.round(bestPrice)),
-        appliedOffer,
-        savings: Math.max(0, variant.price - bestPrice),
-      };
-    })
-    // 🔥 THIS IS THE MAIN FIX
-    .sort((a, b) => a.finalPrice - b.finalPrice);
+  const productWithPricing = applyPricingToProduct(product, offers);
 
   // ================= SIMILAR =================
   const similarProducts = await Products.find({
@@ -449,7 +401,7 @@ export const getProductDetailsServiceUser = async (productId) => {
   console.log(product);
 
   return {
-    product, // ✅ FIXED
+    product: productWithPricing,
     similarProducts,
   };
 };
