@@ -196,20 +196,59 @@
 
                                             <!-- Price -->
                                             <div class="text-left sm:text-right shrink-0 mt-4 sm:mt-0">
-                                                <% const price=item.variantId?.discountPrice || item.variantId?.price ||
-                                                    0; %>
-                                                    <div class="text-2xl font-bold text-gray-900 tracking-tight">₹<span
-                                                            class="item-price">
-                                                            <%= price %>
-                                                        </span></div>
+                                                <% const price=item.variantId?.regular_price || 0; const
+                                                    finalPrice=item.variantId?.finalPrice ?? price; const savings=(price
+                                                    - finalPrice); const discount=price> 0
+                                                    ? Math.round((savings / price) * 100)
+                                                    : 0;
+                                                    %>
 
-                                                    <% if (item.variantId?.discountPrice &&
-                                                        item.variantId?.discountPrice !==item.variantId?.price) { %>
-                                                        <div
-                                                            class="text-sm font-medium text-gray-400 line-through mt-0.5">
-                                                            ₹<%= item.variantId?.price %>
+                                                    <div class="flex flex-col gap-1">
+
+                                                        <!-- PRICE ROW -->
+                                                        <div class="flex items-center gap-2 flex-wrap">
+
+                                                            <!-- FINAL PRICE -->
+                                                            <span
+                                                                class="text-2xl font-bold text-gray-900 tracking-tight">
+                                                                ₹<span class="item-price">
+                                                                    <%= finalPrice.toLocaleString('en-IN') %>
+                                                                </span>
+                                                            </span>
+
+                                                            <!-- ORIGINAL PRICE -->
+                                                            <% if (finalPrice < price) { %>
+                                                                <span
+                                                                    class="text-sm text-gray-400 line-through font-medium">
+                                                                    ₹<%= price.toLocaleString('en-IN') %>
+                                                                </span>
+
+                                                                <!-- DISCOUNT -->
+                                                                <span
+                                                                    class="bg-green-600 text-white text-[10px] font-bold px-2 py-0.5 rounded">
+                                                                    <%= discount %>% OFF
+                                                                </span>
+                                                                <% } %>
+
                                                         </div>
-                                                        <% } %>
+
+                                                        <!-- SAVINGS -->
+                                                        <% if (savings> 0) { %>
+                                                            <span class="text-xs text-green-600 font-semibold">
+                                                                You save ₹<%= savings.toLocaleString('en-IN') %>
+                                                            </span>
+                                                            <% } %>
+                                                                <span class="text-xs text-gray-500">
+                                                                    GST (<%= item.variantId.gstRate %>%): ₹<%=
+                                                                            item.variantId.gstAmount %>
+                                                                </span>
+
+                                                                <!-- TAX TEXT -->
+                                                                <span class="text-[11px] text-gray-500 font-medium">
+                                                                    Inclusive of all taxes
+                                                                </span>
+
+                                                    </div>
                                             </div>
 
                                         </div>
@@ -264,15 +303,32 @@
                         </h2>
 
                         <div class="space-y-4 mb-6">
+
+                            <!-- SUBTOTAL -->
                             <div class="flex justify-between items-center text-gray-600">
                                 <span class="text-sm">Subtotal (<span id="summaryItemCount">0</span> items)</span>
-                                <span class="font-semibold text-gray-900">₹<span id="summarySubtotal">0.00</span></span>
+                                <span class="font-semibold text-gray-900">
+                                    ₹<span id="summarySubtotal">0.00</span>
+                                </span>
                             </div>
+
+                            <!-- TAX -->
+                            <div class="flex justify-between items-center text-gray-600">
+                                <span class="text-sm">Tax (GST 18%)</span>
+                                <span class="font-medium text-gray-900">
+                                    ₹<span id="summaryTax">0.00</span>
+                                </span>
+                            </div>
+
+                            <!-- DELIVERY -->
                             <div class="flex justify-between items-center text-gray-600">
                                 <span class="text-sm">Delivery Charges</span>
-                                <span class="font-medium text-green-600 text-sm bg-green-50 px-2 py-0.5 rounded"
-                                    id="summaryDelivery">Free Delivery</span>
+                                <span id="summaryDelivery"
+                                    class="font-medium text-green-600 text-sm bg-green-50 px-2 py-0.5 rounded">
+                                    Free Delivery
+                                </span>
                             </div>
+
                         </div>
 
                         <div class="border-t border-gray-100 pt-6 mb-8">
@@ -320,239 +376,319 @@
     </main>
 
     <script src="/socket.io/socket.io.js"></script>
+    <% if (typeof error !=="undefined" && error) { %>
+        <script type="module">
+            import { showToast } from "/partials/errorMsg.utils.js";
+            showToast(<% - JSON.stringify(error) %>, "error");
+        </script>
 
-    <script type="module">
-        import { showToast } from "/partials/errorMsg.utils.js";
-        import { confirmAction } from "/partials/confirm.util.js";
+        <% } %>
+            <script type="module">
+                import { showToast } from "/partials/errorMsg.utils.js";
+                import { confirmAction } from "/partials/confirm.util.js";
 
 
-        //  SOCKET SETUP
-        const socket = io();
+                //  SOCKET SETUP
+                const socket = io();
 
-        // 🔥 REAL-TIME STOCK UPDATE
-        socket.on("stockUpdated", ({ productId, variantId, stock }) => {
-            const el = document.querySelector(
-                `.cart-item[data-product-id="${productId}"][data-variant-id="${variantId}"]`
-            );
-            if (!el) return;
+                // 🔥 REAL-TIME STOCK UPDATE
+                socket.on("stockUpdated", ({ productId, variantId, stock }) => {
+                    const el = document.querySelector(
+                        `.cart-item[data-product-id="${productId}"][data-variant-id="${variantId}"]`
+                    );
+                    if (!el) return;
 
-            el.dataset.stock = stock;
+                    el.dataset.stock = stock;
 
-            const qty = Number(el.querySelector('.item-qty').value);
-            const increaseBtn = el.querySelector('.increase-qty');
-            const stockText = el.querySelector(".mt-3.text-xs");
+                    const qty = Number(el.querySelector('.item-qty').value);
+                    const increaseBtn = el.querySelector('.increase-qty');
+                    const stockText = el.querySelector(".mt-3.text-xs");
 
-            // IMAGE CONTAINER =
-            const imageWrapper = el.querySelector("a.relative");
+                    // IMAGE CONTAINER =
+                    const imageWrapper = el.querySelector("a.relative");
 
-            //  HANDLE SOLD OUT BADGE
-            let soldOutBadge = imageWrapper.querySelector(".sold-out-badge");
-            let fewLeftBadge =
-                imageWrapper.querySelector(".few-left-badge")
+                    //  HANDLE SOLD OUT BADGE
+                    let soldOutBadge = imageWrapper.querySelector(".sold-out-badge");
+                    let fewLeftBadge =
+                        imageWrapper.querySelector(".few-left-badge")
 
-            if (stock === 0) {
-                // create if not exists
-                if (!soldOutBadge) {
-                    const div = document.createElement("div");
-                    div.className = "sold-out-badge absolute inset-x-0 bottom-0 bg-red-500/90 py-1.5 backdrop-blur-sm flex justify-center";
-                    div.innerHTML = `
+                    if (stock === 0) {
+                        // create if not exists
+                        if (!soldOutBadge) {
+                            const div = document.createElement("div");
+                            div.className = "sold-out-badge absolute inset-x-0 bottom-0 bg-red-500/90 py-1.5 backdrop-blur-sm flex justify-center";
+                            div.innerHTML = `
                 <span class="text-white text-[10px] font-bold tracking-widest uppercase">
                     Sold Out
                 </span>
             `;
-                    imageWrapper.appendChild(div);
-                }
-            } else {
-                // remove if exists
-                if (soldOutBadge) {
-                    soldOutBadge.remove();
-                }
-            }
+                            imageWrapper.appendChild(div);
+                        }
+                    } else {
+                        // remove if exists
+                        if (soldOutBadge) {
+                            soldOutBadge.remove();
+                        }
+                    }
 
-            // ---------- FEW LEFT ----------
-            if (stock > 0 && stock <= 5) {
-                if (!fewLeftBadge) {
-                    const div = document.createElement("div");
-                    div.className = "few-left-badge absolute top-2 left-2 bg-orange-100 text-orange-700 px-2 py-0.5 rounded-md text-[10px] font-bold shadow-sm";
-                    div.innerText = "Few Left";
-                    imageWrapper.appendChild(div);
-                }
-            } else {
-                if (fewLeftBadge) fewLeftBadge.remove();
-            }
+                    // ---------- FEW LEFT ----------
+                    if (stock > 0 && stock <= 5) {
+                        if (!fewLeftBadge) {
+                            const div = document.createElement("div");
+                            div.className = "few-left-badge absolute top-2 left-2 bg-orange-100 text-orange-700 px-2 py-0.5 rounded-md text-[10px] font-bold shadow-sm";
+                            div.innerText = "Few Left";
+                            imageWrapper.appendChild(div);
+                        }
+                    } else {
+                        if (fewLeftBadge) fewLeftBadge.remove();
+                    }
 
-            //  STOCK TEXT UI
-            if (stockText) {
-                if (stock === 0) {
-                    stockText.innerHTML = `<span class="text-red-600 font-medium bg-red-50 px-2.5 py-1 rounded border border-red-100">Out of Stock</span>`;
-                } else if (stock <= 5) {
-                    stockText.innerHTML = `<span class="text-orange-600 font-medium bg-orange-50 px-2.5 py-1 rounded border border-orange-100">Only ${stock} left in stock</span>`;
-                } else {
-                    stockText.innerHTML = `<span class="text-green-600 font-medium bg-green-50 px-2.5 py-1 rounded border border-green-100"><i class="fa-solid fa-check text-[10px] mr-1"></i>In Stock</span>`;
-                }
-            }
+                    //  STOCK TEXT UI
+                    if (stockText) {
+                        if (stock === 0) {
+                            stockText.innerHTML = `<span class="text-red-600 font-medium bg-red-50 px-2.5 py-1 rounded border border-red-100">Out of Stock</span>`;
+                        } else if (stock <= 5) {
+                            stockText.innerHTML = `<span class="text-orange-600 font-medium bg-orange-50 px-2.5 py-1 rounded border border-orange-100">Only ${stock} left in stock</span>`;
+                        } else {
+                            stockText.innerHTML = `<span class="text-green-600 font-medium bg-green-50 px-2.5 py-1 rounded border border-green-100"><i class="fa-solid fa-check text-[10px] mr-1"></i>In Stock</span>`;
+                        }
+                    }
 
-            // BUTTON CONTROL
-            if (increaseBtn) {
-                qty >= stock
-                    ? increaseBtn.setAttribute("disabled", true)
-                    : increaseBtn.removeAttribute("disabled");
-            }
+                    // BUTTON CONTROL
+                    if (increaseBtn) {
+                        qty >= stock
+                            ? increaseBtn.setAttribute("disabled", true)
+                            : increaseBtn.removeAttribute("disabled");
+                    }
 
-            // HIGHLIGHT
-            el.classList.remove("border-red-500", "bg-red-50", "border-orange-400", "bg-orange-50");
+                    // HIGHLIGHT
+                    el.classList.remove("border-red-500", "bg-red-50", "border-orange-400", "bg-orange-50");
 
-            if (stock === 0) {
-                el.classList.add("border-red-500", "bg-red-50");
-            } else if (qty > stock) {
-                el.classList.add("border-orange-400", "bg-orange-50");
-            }
-        });
-
-        //  QUANTITY HANDLERS
-        document.querySelectorAll('.decrease-qty').forEach(btn => {
-            btn.addEventListener('click', async e => {
-                const el = e.target.closest('.cart-item');
-                const qty = +el.querySelector('.item-qty').value;
-                if (qty > 1) await updateQty(el, qty - 1);
-            });
-        });
-
-        document.querySelectorAll('.increase-qty').forEach(btn => {
-            btn.addEventListener('click', async e => {
-                const el = e.target.closest('.cart-item');
-                const qty = +el.querySelector('.item-qty').value;
-                const stock = +el.dataset.stock;
-
-                if (qty < stock) {
-                    await updateQty(el, qty + 1);
-                } else {
-                    showToast(`Only ${stock} items available`, "warning");
-                }
-            });
-        });
-
-        //  UPDATE QTY
-        async function updateQty(el, qty) {
-            const itemId = el.dataset.itemId;
-
-            try {
-                const res = await fetch("/cart", {
-                    method: "PATCH",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({ itemId, quantity: qty })
+                    if (stock === 0) {
+                        el.classList.add("border-red-500", "bg-red-50");
+                    } else if (qty > stock) {
+                        el.classList.add("border-orange-400", "bg-orange-50");
+                    }
                 });
 
-                const result = await res.json();
-
-                if (result.success) {
-                    el.querySelector('.item-qty').value = qty;
-                    calculateTotals();
-                } else {
-                    showToast(result.message, "error");
-                }
-
-            } catch {
-                showToast("Network error", "error");
-            }
-        }
-
-        //  REMOVE ITEM
-        document.querySelectorAll('.remove-btn').forEach(btn => {
-            btn.addEventListener('click', async e => {
-                const el = e.target.closest('.cart-item');
-                if (await confirmAction("Remove item?")) {
-                    await removeItem(el);
-                }
-            });
-        });
-
-        async function removeItem(el) {
-            const itemId = el.dataset.itemId;
-
-            try {
-                const res = await fetch("/cart", {
-                    method: "DELETE",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({ itemId })
+                //  QUANTITY HANDLERS
+                document.querySelectorAll('.decrease-qty').forEach(btn => {
+                    btn.addEventListener('click', async e => {
+                        const el = e.target.closest('.cart-item');
+                        const qty = +el.querySelector('.item-qty').value;
+                        if (qty > 1) await updateQty(el, qty - 1);
+                    });
                 });
 
-                const result = await res.json();
+                document.querySelectorAll('.increase-qty').forEach(btn => {
+                    btn.addEventListener('click', async e => {
+                        const el = e.target.closest('.cart-item');
+                        const qty = +el.querySelector('.item-qty').value;
+                        const stock = +el.dataset.stock;
 
-                if (result.success) {
-                    el.remove();
+                        if (qty < stock) {
+                            await updateQty(el, qty + 1);
+                        } else {
+                            showToast(`Only ${stock} items available`, "warning");
+                        }
+                    });
+                });
+
+                //  UPDATE QTY
+                async function updateQty(el, qty) {
+                    const itemId = el.dataset.itemId;
+
+                    try {
+                        const res = await fetch("/cart", {
+                            method: "PATCH",
+                            headers: { "Content-Type": "application/json" },
+                            body: JSON.stringify({ itemId, quantity: qty })
+                        });
+
+                        const result = await res.json();
+
+                        if (result.success) {
+                            el.querySelector('.item-qty').value = qty;
+                            calculateTotals();
+                            highlightInvalidItems()
+                        } else {
+                            showToast(result.message, "error");
+                        }
+
+                    } catch {
+                        showToast("Network error", "error");
+                    }
+                }
+
+                //  REMOVE ITEM
+                document.querySelectorAll('.remove-btn').forEach(btn => {
+                    btn.addEventListener('click', async e => {
+                        const el = e.target.closest('.cart-item');
+                        if (await confirmAction("Remove item?")) {
+                            await removeItem(el);
+                        }
+                    });
+                });
+
+                async function removeItem(el) {
+                    const itemId = el.dataset.itemId;
+
+                    try {
+                        const res = await fetch("/cart", {
+                            method: "DELETE",
+                            headers: { "Content-Type": "application/json" },
+                            body: JSON.stringify({ itemId })
+                        });
+
+                        const result = await res.json();
+
+                        if (result.success) {
+                            el.remove();
+                            calculateTotals();
+                            checkEmptyCart();
+                        }
+
+                    } catch {
+                        showToast("Error removing item", "error");
+                    }
+                }
+
+                //  CHECKOUT VALIDATION
+                document.getElementById("checkoutBtn").addEventListener("click", async (e) => {
+                    e.preventDefault();
+
+                    try {
+                        const res = await fetch("/api/user/cart/validate-stock-cart");
+                        const data = await res.json();
+                        console.log(data);
+
+                        if (!data.success) {
+                            showToast(data.items[0]?.reason || "Fix stock issues before checkout", "error");
+
+                            // Optional: highlight items
+                            console.log(data.items);
+
+                            return; // 🚨 stop redirect
+                        }
+
+                        // ✅ only redirect if valid
+                        window.location.href = "/cart/checkout";
+
+                    } catch (err) {
+                        console.error(err);
+                        showToast("Something went wrong", "error");
+                    }
+                });
+                //  HELPERS
+                function calculateTotals() {
+                    let total = 0;
+                    let count = 0;
+
+                    document.querySelectorAll('.cart-item').forEach(el => {
+                        const price = +el.querySelector('.item-price').textContent.replace(/,/g, '');
+                        const qty = +el.querySelector('.item-qty').value;
+
+                        total += price * qty;
+                        count += qty;
+                    });
+
+                    const GST_RATE = 18;
+
+                    // GST INCLUDED CALCULATION
+                    const gstAmount = (total * GST_RATE) / (100 + GST_RATE);
+
+                    // 🚚 DELIVERY LOGIC
+                    let delivery = total >= 500 ? 0 : 40;
+
+                    // 🔥 EMPTY CART FIX
+                    if (count === 0) delivery = 0;
+
+                    const finalTotal = total + delivery;
+
+                    // ================= UI UPDATE =================
+                    document.getElementById('summaryItemCount').textContent = count;
+                    document.getElementById('summarySubtotal').textContent = format(total);
+                    document.getElementById('summaryTax').textContent = format(gstAmount);
+
+                    // 🔥 DELIVERY UI HANDLING
+                    const deliveryEl = document.getElementById('summaryDelivery');
+
+                    if (count === 0) {
+                        deliveryEl.textContent = "--";
+                        deliveryEl.classList.remove("text-green-600", "bg-green-50");
+                        deliveryEl.classList.add("text-gray-400");
+                    } else if (delivery === 0) {
+                        deliveryEl.textContent = "Free";
+                        deliveryEl.classList.add("text-green-600", "bg-green-50");
+                    } else {
+                        deliveryEl.textContent = `₹${delivery}`;
+                        deliveryEl.classList.remove("text-green-600", "bg-green-50");
+                        deliveryEl.classList.add("text-gray-900");
+                    }
+
+                    document.getElementById('summaryTotal').textContent = format(finalTotal);
+                }
+
+                function checkEmptyCart() {
+                    if (!document.querySelectorAll('.cart-item').length) {
+                        document.getElementById('cartItemsContainer').classList.add('hidden');
+                        document.getElementById('emptyCartState').classList.remove('hidden');
+                    }
+                }
+
+                function format(n) {
+                    return n.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+                }
+
+                function highlightInvalidItems() {
+                    document.querySelectorAll('.cart-item').forEach(item => {
+                        const stock = Number(item.dataset.stock);
+                        const qty = Number(item.querySelector('.item-qty').value);
+
+                        item.classList.remove("border-red-500", "bg-red-50", "border-orange-400", "bg-orange-50");
+
+                        if (stock === 0) {
+                            item.classList.add("border-red-500", "bg-red-50");
+                        } else if (qty > stock) {
+                            item.classList.add("border-orange-400", "bg-orange-50");
+                        }
+                    });
+                }
+
+                document.addEventListener('DOMContentLoaded', () => {
                     calculateTotals();
                     checkEmptyCart();
+                    highlightInvalidItems();
+                    document.getElementById('cartCount').textContent = document.querySelectorAll('.cart-item').length;
+                });
+
+
+                function getCookie(name) {
+                    const value = `; ${document.cookie}`;
+                    const parts = value.split(`; ${name}=`);
+                    if (parts.length === 2) return parts.pop().split(';').shift();
                 }
 
-            } catch {
-                showToast("Error removing item", "error");
-            }
-        }
+                const errorCookie = getCookie("cartError");
 
-        //  CHECKOUT VALIDATION
-        document.getElementById("checkoutBtn").addEventListener("click", e => {
-            const invalid = [...document.querySelectorAll('.cart-item')].some(el => {
-                const stock = +el.dataset.stock;
-                const qty = +el.querySelector('.item-qty').value;
-                return stock === 0 || qty > stock;
-            });
+                if (errorCookie) {
+                    try {
+                        const data = JSON.parse(decodeURIComponent(errorCookie));
 
-            if (invalid) {
-                e.preventDefault();
-                showToast("Fix stock issues before checkout", "error");
-            }
-        });
+                        showToast(data.message, "error");
 
-        //  HELPERS
-        function calculateTotals() {
-            let total = 0, count = 0;
+                        // 🔥 show detailed errors
+                        data.items?.forEach(item => {
+                            showToast(`${item.name} → ${item.reason}`, "error");
+                        });
 
-            document.querySelectorAll('.cart-item').forEach(el => {
-                const price = +el.querySelector('.item-price').textContent.replace(/,/g, '');
-                const qty = +el.querySelector('.item-qty').value;
-                total += price * qty;
-                count += qty;
-            });
+                    } catch (err) {
+                        console.error("Cookie parse error:", err);
+                    }
 
-            document.getElementById('summaryItemCount').textContent = count;
-            document.getElementById('summarySubtotal').textContent = format(total);
-            document.getElementById('summaryTotal').textContent = format(total);
-        }
-
-        function checkEmptyCart() {
-            if (!document.querySelectorAll('.cart-item').length) {
-                document.getElementById('cartItemsContainer').classList.add('hidden');
-                document.getElementById('emptyCartState').classList.remove('hidden');
-            }
-        }
-
-        function format(n) {
-            return n.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-        }
-
-        function highlightInvalidItems() {
-            document.querySelectorAll('.cart-item').forEach(item => {
-                const stock = Number(item.dataset.stock);
-                const qty = Number(item.querySelector('.item-qty').value);
-
-                item.classList.remove("border-red-500", "bg-red-50", "border-orange-400", "bg-orange-50");
-
-                if (stock === 0) {
-                    item.classList.add("border-red-500", "bg-red-50");
-                } else if (qty > stock) {
-                    item.classList.add("border-orange-400", "bg-orange-50");
+                    // ❌ clear cookie
+                    document.cookie = "cartError=; path=/; expires=Thu, 01 Jan 1970 00:00:00 UTC;";
                 }
-            });
-        }
+            </script>
 
-        document.addEventListener('DOMContentLoaded', () => {
-            calculateTotals();
-            checkEmptyCart();
-            highlightInvalidItems();
-            document.getElementById('cartCount').textContent = document.querySelectorAll('.cart-item').length;
-        });
-    
-    </script>
-
-    <%- include("../../partials/user/footer.ejs") %>
+            <%- include("../../partials/user/footer.ejs") %>

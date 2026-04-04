@@ -114,7 +114,9 @@ export const getBestVariantPricing = (variant, offers) => {
   };
 };
 
-const calculateBestPrice = (variant, offers = []) => {
+export const calculateBestPrice = (variant, offers = []) => {
+  const GST_RATE = 18;
+
   let bestPrice = variant.price;
   let appliedOffer = null;
 
@@ -130,19 +132,26 @@ const calculateBestPrice = (variant, offers = []) => {
     const finalDiscount = Math.min(
       discount,
       offer.max_discount ?? discount,
-      variant.max_discount_amount ?? discount,
+      variant.max_discount_amount ?? discount
     );
 
-    const finalPrice = variant.price - finalDiscount;
+    const discountedPrice = variant.price - finalDiscount;
 
-    if (finalPrice < bestPrice) {
-      bestPrice = finalPrice;
+    if (discountedPrice < bestPrice) {
+      bestPrice = discountedPrice;
       appliedOffer = offer;
     }
   }
 
+  // ✅ GST APPLY
+  const gstAmount = (bestPrice * GST_RATE) / 100;
+  const finalPrice = bestPrice + gstAmount;
+
   return {
-    finalPrice: Math.max(0, Math.round(bestPrice)),
+    basePrice: Math.round(bestPrice),
+    gstAmount: Math.round(gstAmount),
+    finalPrice: Math.round(finalPrice),
+    gstRate: GST_RATE,
     appliedOffer,
     savings: Math.max(0, variant.price - bestPrice),
   };

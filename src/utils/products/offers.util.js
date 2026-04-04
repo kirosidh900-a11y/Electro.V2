@@ -1,7 +1,9 @@
+import offersSchemaModel from "../../models/offersSchema.model.js";
+
 export const getActiveOffers = async (product) => {
   const now = new Date();
 
-  return Offer.find({
+  return offersSchemaModel.find({
     is_active: true,
     isDeleted: { $ne: true },
     start_date: { $lte: now },

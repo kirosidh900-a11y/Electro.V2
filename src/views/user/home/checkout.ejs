@@ -1,0 +1,564 @@
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+<script src="https://cdn.tailwindcss.com"></script>
+
+<%- include("../../partials/user/header.ejs") %>
+
+<style>
+    body {
+        font-family: 'Outfit', sans-serif;
+        background-color: #f9fafb;
+    }
+
+    .custom-scrollbar::-webkit-scrollbar {
+        width: 4px;
+    }
+
+    .custom-scrollbar::-webkit-scrollbar-thumb {
+        background: #d1d5db;
+        border-radius: 4px;
+    }
+
+    /* Shared Radio Selection Micro-Animations (Addresses & Payments) */
+    .custom-radio:checked + .selectable-card {
+        border-color: #000;
+        background-color: #fafbfc;
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+    }
+    
+    .custom-radio:checked + .selectable-card .check-indicator {
+        border-color: #000;
+    }
+
+    .custom-radio:checked + .selectable-card .check-dot {
+        opacity: 1;
+        transform: scale(1);
+    }
+</style>
+
+<main class="min-h-screen py-10">
+    <div class="max-w-[1280px] mx-auto px-4 sm:px-6 lg:px-8">
+
+        <!-- Checkout Header -->
+        <div class="flex flex-col sm:flex-row sm:items-end justify-between mb-8 sm:mb-10 gap-4">
+            <div>
+                <h1 class="text-3xl font-bold text-gray-900 tracking-tight">Checkout</h1>
+                <p class="text-gray-500 mt-2">Complete your order securely</p>
+            </div>
+            <a href="/cart"
+                class="inline-flex items-center gap-2 text-sm font-medium text-gray-600 hover:text-black transition-colors bg-white px-5 py-2.5 rounded-full border shadow-sm hover:shadow">
+                <i class="fa-solid fa-arrow-left"></i> Back to Cart
+            </a>
+        </div>
+
+        <div class="flex flex-col lg:flex-row gap-10">
+
+            <!-- Left Side: Addresses & Payments -->
+            <div class="lg:w-2/3 flex flex-col gap-6">
+
+                <!-- 1. Address Section -->
+                <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 sm:p-8">
+                    <div class="flex justify-between items-center mb-6">
+                        <h2 class="text-xl font-bold text-gray-900 flex items-center gap-2">
+                            <i class="fa-solid fa-location-dot text-black"></i> Delivery Address
+                        </h2>
+                        <button onclick="openAddressModal()" class="text-sm font-semibold text-blue-600 hover:text-blue-700 flex items-center gap-1 bg-blue-50 px-3 py-1.5 rounded-lg border border-blue-100 hover:bg-blue-100 transition-colors">
+                            <i class="fa-solid fa-plus"></i> Add New
+                        </button>
+                    </div>
+
+                    <div class="space-y-4">
+                        <% if (typeof addresses !== 'undefined' && addresses.length > 0) { %>
+                            <% addresses.forEach((addr, index) => { %>
+                                <label class="block relative cursor-pointer group">
+                                    <input type="radio" name="selectedAddress" value="<%= addr._id %>" class="custom-radio peer sr-only" <%= addr.isDefault || index === 0 ? 'checked' : '' %>>
+                                    
+                                    <div class="selectable-card p-5 rounded-xl border-2 border-gray-100 hover:border-gray-200 transition-all flex flex-col sm:flex-row gap-4">
+                                        <!-- Radio UI -->
+                                        <div class="mt-1 shrink-0">
+                                            <div class="check-indicator w-5 h-5 rounded-full border border-gray-300 flex items-center justify-center transition-colors">
+                                                <div class="check-dot w-2.5 h-2.5 bg-black rounded-full opacity-0 scale-50 transition-all duration-200"></div>
+                                            </div>
+                                        </div>
+
+                                        <!-- Detail Block -->
+                                        <div class="flex-grow">
+                                            <div class="flex flex-wrap items-center gap-3 mb-1.5">
+                                                <span class="font-bold text-gray-900 text-lg"><%= addr.name %></span>
+                                                <span class="bg-gray-100 text-gray-600 text-[10px] font-bold px-2 py-0.5 rounded uppercase tracking-wider"><%= addr.type || 'HOME' %></span>
+                                                <% if (addr.isDefault) { %>
+                                                    <span class="bg-black text-white text-[10px] font-bold px-2 py-0.5 rounded shadow-sm">DEFAULT</span>
+                                                <% } %>
+                                            </div>
+                                            <p class="text-gray-500 text-sm leading-relaxed mb-2">
+                                                <%= addr.street %>, <%= addr.city %><br>
+                                                <%= addr.state %> - <span class="font-medium text-gray-700"><%= addr.pincode %></span>
+                                            </p>
+                                            <div class="flex items-center gap-2 text-sm font-medium text-gray-700">
+                                                <i class="fa-solid fa-phone text-xs text-gray-400"></i> <%= addr.phone %>
+                                            </div>
+                                        </div>
+
+                                        <!-- Edit Actions -->
+                                        <div class="flex flex-row sm:flex-col justify-end gap-2 shrink-0">
+                                            <button type="button" onclick="editAddress('<%= addr._id %>')" class="text-gray-400 hover:text-black p-2 rounded-lg hover:bg-gray-50 transition-colors tooltip-trigger" title="Edit Address">
+                                                <i class="fa-solid fa-pen-to-square"></i>
+                                            </button>
+                                        </div>
+                                    </div>
+                                </label>
+                            <% }) %>
+                        <% } else { %>
+                            <!-- Empty State Address -->
+                            <div class="text-center py-10 bg-gray-50 rounded-xl border border-dashed border-gray-200">
+                                <div class="w-16 h-16 bg-white rounded-full flex items-center justify-center mx-auto mb-4 shadow-sm border border-gray-100">
+                                    <i class="fa-regular fa-address-book text-2xl text-gray-400"></i>
+                                </div>
+                                <h3 class="text-gray-900 font-semibold mb-1">No Address Found</h3>
+                                <p class="text-gray-500 text-sm mb-5">Please add a delivery address to proceed.</p>
+                                <button onclick="openAddressModal()" class="text-sm font-semibold text-white bg-black px-6 py-2.5 rounded-full hover:bg-gray-800 transition-colors shadow-lg hover:shadow-xl">
+                                    Add New Address
+                                </button>
+                            </div>
+                        <% } %>
+                    </div>
+                </div>
+
+                <!-- 2. Payment Method Section -->
+                <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 sm:p-8">
+                    <div class="flex items-center gap-2 mb-6">
+                        <i class="fa-solid fa-wallet text-black text-xl"></i>
+                        <h2 class="text-xl font-bold text-gray-900">Payment Options</h2>
+                    </div>
+                
+                    <div class="space-y-4">
+                        <!-- Online Payment (Razorpay/RuPay) -->
+                        <label class="block relative cursor-pointer group">
+                            <input type="radio" name="paymentMethod" value="razorpay" class="custom-radio peer sr-only" checked>
+                            <div class="selectable-card p-5 rounded-xl border-2 border-gray-100 hover:border-gray-200 transition-all flex items-center gap-4">
+                                <div class="shrink-0 mt-0.5">
+                                    <div class="check-indicator w-5 h-5 rounded-full border border-gray-300 flex items-center justify-center transition-colors">
+                                        <div class="check-dot w-2.5 h-2.5 bg-black rounded-full opacity-0 scale-50 transition-all duration-200"></div>
+                                    </div>
+                                </div>
+                                <div class="flex-grow flex justify-between items-center pr-2">
+                                    <div>
+                                        <span class="font-bold text-gray-900 block mb-0.5 text-base">Razorpay / Online</span>
+                                        <span class="text-xs font-medium text-gray-500">Pay securely via UPI, RuPay, Credit/Debit Cards</span>
+                                    </div>
+                                    <div class="flex gap-2">
+                                        <!-- Payment Icons -->
+                                        <div class="w-10 h-6 bg-gray-50 rounded border border-gray-200 flex items-center justify-center">
+                                            <i class="fa-brands fa-google-pay text-gray-600"></i>
+                                        </div>
+                                        <div class="w-10 h-6 bg-gray-50 rounded border border-gray-200 flex items-center justify-center">
+                                            <i class="fa-regular fa-credit-card text-gray-600 text-xs"></i>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </label>
+                
+                        <!-- Cash on Delivery -->
+                        <label class="block relative cursor-pointer group">
+                            <input type="radio" name="paymentMethod" value="cod" class="custom-radio peer sr-only">
+                            <div class="selectable-card p-5 rounded-xl border-2 border-gray-100 hover:border-gray-200 transition-all flex items-center gap-4">
+                                <div class="shrink-0 mt-0.5">
+                                    <div class="check-indicator w-5 h-5 rounded-full border border-gray-300 flex items-center justify-center transition-colors">
+                                        <div class="check-dot w-2.5 h-2.5 bg-black rounded-full opacity-0 scale-50 transition-all duration-200"></div>
+                                    </div>
+                                </div>
+                                <div class="flex-grow flex justify-between items-center pr-2">
+                                    <div>
+                                        <span class="font-bold text-gray-900 block mb-0.5 text-base">Cash on Delivery (COD)</span>
+                                        <span class="text-xs font-medium text-gray-500">Pay with cash when your order arrives</span>
+                                    </div>
+                                    <div class="w-10 h-6 bg-gray-50 rounded border border-gray-200 flex items-center justify-center">
+                                        <i class="fa-solid fa-money-bill-wave text-green-600 text-xs"></i>
+                                    </div>
+                                </div>
+                            </div>
+                        </label>
+                    </div>
+                </div>
+
+            </div>
+
+            <!-- Right Side: Order Summary & Coupons -->
+            <div class="lg:w-1/3">
+                <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 sm:p-8 sticky top-10">
+                    <h2 class="text-xl font-bold text-gray-900 mb-5 flex items-center gap-2 border-b border-gray-100 pb-4">
+                        Order Summary
+                    </h2>
+
+                    <!-- 1. Mapping Cart Items -->
+                    <div class="max-h-[300px] overflow-y-auto custom-scrollbar pr-2 mb-6 space-y-4 border-b border-gray-100 pb-6">
+                        <% 
+                        let subtotal = 0;
+                        let totalDiscounts = 0;
+                        let totalGstAmount = 0;
+                        let totalQuantity = 0;
+                        
+                        if (typeof cart !== 'undefined' && cart.items && cart.items.length > 0) { 
+                            cart.items.forEach(item => {
+                                const finalPrice = item.variantId?.finalPrice || item.variantId?.regular_price || 0;
+                                const regularPrice = item.variantId?.regular_price || finalPrice;
+                                const qty = item.quantity || 1;
+                                
+                                const itemTotal = finalPrice * qty;
+                                const itemDiscount = (regularPrice - finalPrice) * qty;
+                                
+                                const gstRate = item.variantId?.gstRate || 18;
+                                const gstChunk = item.variantId?.gstAmount ? (item.variantId.gstAmount * qty) : (itemTotal * gstRate) / (100 + gstRate);
+
+                                subtotal += (regularPrice * qty);
+                                totalDiscounts += itemDiscount;
+                                totalGstAmount += gstChunk;
+                                totalQuantity += qty;
+                        %>
+                        <div class="flex gap-4 items-center">
+                            <!-- Prod Image -->
+                            <div class="relative shrink-0 w-16 h-16 bg-[#f8f9fa] rounded-xl flex items-center justify-center p-1.5 border border-gray-50">
+                                <img src="<%= item?.variantId?.images?.[0] || '/images/default.png' %>" alt="<%= item?.productId?.name %>" class="w-full h-full object-contain mix-blend-multiply">
+                                <span class="absolute -top-1.5 -right-1.5 bg-gray-900 text-white text-[10px] font-bold w-5 h-5 flex items-center justify-center rounded-full shadow-sm">
+                                    <%= qty %>
+                                </span>
+                            </div>
+                            <!-- Prod Info -->
+                            <div class="flex-grow flex flex-col">
+                                <% if (item.productId?.brand?.name) { %>
+                                    <span class="text-[9px] font-bold text-gray-400 uppercase tracking-widest"><%= item.productId.brand.name %></span>
+                                <% } %>
+                                <h4 class="text-sm font-semibold text-gray-900 line-clamp-1"><%= item.productId?.name %></h4>
+                                <div class="text-[11px] text-gray-500 mt-0.5 space-x-1">
+                                    <% if (item.variantId?.attributes?.color) { %><span><%= item.variantId.attributes.color %></span><% } %>
+                                    <% if (item.variantId?.attributes?.rom) { %><span>| <%= item.variantId.attributes.rom %></span><% } %>
+                                </div>
+                            </div>
+                            <!-- Prod Price -->
+                            <div class="shrink-0 text-right">
+                                <div class="text-sm font-bold text-gray-900">₹<%= itemTotal.toLocaleString('en-IN') %></div>
+                                <% if (itemDiscount > 0) { %>
+                                    <div class="text-[10px] text-gray-400 line-through">₹<%= (regularPrice * qty).toLocaleString('en-IN') %></div>
+                                <% } %>
+                            </div>
+                        </div>
+                        <% 
+                            }); 
+                        } 
+                        %>
+                    </div>
+
+                    <!-- 2. Apply Coupon Field Block -->
+                    <div class="mb-6">
+                        <label class="block text-sm font-bold text-gray-900 mb-2.5">Have a Coupon?</label>
+                        <div class="flex gap-2">
+                            <input type="text" id="couponInput" placeholder="Enter coupon code" class="flex-grow bg-white border border-gray-300 rounded-lg px-4 py-2.5 focus:ring-2 focus:ring-black focus:border-black outline-none transition-all text-sm font-medium uppercase placeholder:normal-case shadow-sm" value="<%= typeof cart.appliedCoupon !== 'undefined' ? cart.appliedCoupon.code : '' %>" <%= typeof cart.appliedCoupon !== 'undefined' ? 'readonly' : '' %>>
+                            
+                            <% if (typeof cart.appliedCoupon !== 'undefined') { %>
+                                <button type="button" onclick="removeCoupon()" class="bg-red-50 text-red-600 border border-red-100 hover:bg-red-100 px-4 py-2.5 rounded-lg text-sm font-semibold transition-colors">
+                                    Remove
+                                </button>
+                            <% } else { %>
+                                <button type="button" id="applyCouponBtn" class="bg-gray-900 text-white px-5 py-2.5 rounded-lg text-sm font-semibold hover:bg-gray-800 transition-colors shadow-sm focus:ring-2 focus:ring-offset-1 focus:ring-black">
+                                    Apply
+                                </button>
+                            <% } %>
+                        </div>
+                        
+                        <!-- Success Feedback -->
+                        <% if (typeof cart.appliedCoupon !== 'undefined') { %>
+                        <div class="mt-2.5 flex items-center gap-2">
+                            <i class="fa-solid fa-circle-check text-green-500 text-xs"></i>
+                            <span class="text-xs font-semibold text-green-600">Coupon applied successfully!</span>
+                        </div>
+                        <% } %>
+                    </div>
+
+                    <%
+                    // Final Calculation Math Hookups
+                    let couponDiscountAmount = cart.couponDiscountAmount || 0; 
+                    let finalAmountAfterOfferAndCoupon = subtotal - totalDiscounts - couponDiscountAmount;
+                    if (finalAmountAfterOfferAndCoupon < 0) finalAmountAfterOfferAndCoupon = 0;
+                    
+                    let deliveryCharges = finalAmountAfterOfferAndCoupon >= 500 ? 0 : 40;
+                    if (totalQuantity === 0) deliveryCharges = 0;
+                    let finalGrandTotal = finalAmountAfterOfferAndCoupon + deliveryCharges;
+                    %>
+
+                    <!-- 3. Bill Breakup -->
+                    <div class="space-y-3 mb-6 bg-gray-50 p-4 rounded-xl border border-gray-100/50">
+                        <div class="flex justify-between items-center text-gray-600">
+                            <span class="text-sm">Subtotal (<%= totalQuantity %> items)</span>
+                            <span class="font-medium text-gray-900">₹<%= subtotal.toLocaleString('en-IN') %></span>
+                        </div>
+                        
+                        <% if (totalDiscounts > 0) { %>
+                        <div class="flex justify-between items-center text-green-600">
+                            <span class="text-sm">Product Discounts</span>
+                            <span class="font-medium">- ₹<%= totalDiscounts.toLocaleString('en-IN') %></span>
+                        </div>
+                        <% } %>
+
+                        <% if (couponDiscountAmount > 0) { %>
+                        <div class="flex justify-between items-center text-green-600">
+                            <span class="text-sm flex items-center gap-1.5"><i class="fa-solid fa-tag text-[10px]"></i> Coupon Savings</span>
+                            <span class="font-medium">- ₹<%= couponDiscountAmount.toLocaleString('en-IN') %></span>
+                        </div>
+                        <% } %>
+
+                        <div class="flex justify-between items-center text-gray-600">
+                            <span class="text-sm">Tax (GST) <span class="text-[10px] ml-1 text-gray-400">Included</span></span>
+                            <span class="font-medium text-gray-900">₹<%= Math.round(totalGstAmount).toLocaleString('en-IN') %></span>
+                        </div>
+
+                        <div class="flex justify-between items-center text-gray-600 border-t border-gray-200/50 pt-2 mt-2">
+                            <span class="text-sm">Delivery</span>
+                            <% if (deliveryCharges === 0) { %>
+                                <span class="font-medium text-green-600 text-sm bg-green-100/50 px-2 py-0.5 rounded">Free</span>
+                            <% } else { %>
+                                <span class="font-medium text-gray-900">₹<%= deliveryCharges.toLocaleString('en-IN') %></span>
+                            <% } %>
+                        </div>
+                    </div>
+
+                    <!-- 4. Grand Total -->
+                    <div class="flex justify-between items-end mb-8 pt-1">
+                        <div>
+                            <span class="block text-sm font-medium text-gray-500 mb-1">Total Amount</span>
+                            <% if ((totalDiscounts + couponDiscountAmount) > 0) { %>
+                                <span class="text-[11px] text-green-600 font-semibold bg-green-50 px-2 py-1 rounded">Overall save ₹<%= (totalDiscounts + couponDiscountAmount).toLocaleString('en-IN') %></span>
+                            <% } %>
+                        </div>
+                        <span class="font-bold text-3xl text-gray-900 tracking-tight">₹<%= finalGrandTotal.toLocaleString('en-IN') %></span>
+                    </div>
+
+                    <button id="checkoutProceedBtn" class="group relative w-full flex justify-center items-center gap-3 bg-black text-white py-4 rounded-xl font-semibold text-lg hover:bg-gray-800 transition-all shadow-lg hover:shadow-xl overflow-hidden disabled:opacity-50 disabled:cursor-not-allowed" <%= totalQuantity === 0 ? 'disabled' : '' %>>
+                        <span class="relative z-10 flex items-center gap-2">
+                            Place Order
+                            <i class="fa-solid fa-arrow-right text-sm bg-white/20 p-1.5 rounded-full group-hover:bg-white/30 group-hover:translate-x-1 transition-all"></i>
+                        </span>
+                    </button>
+                    
+                    <div class="mt-5 text-center text-[11px] text-gray-400 flex items-center justify-center gap-4">
+                        <span><i class="fa-solid fa-shield-halved mr-1"></i> Secure Checkout</span>
+                        <span><i class="fa-solid fa-truck-fast mr-1"></i> Express Delivery</span>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+</main>
+
+<!-- Modern Address Add/Edit Modal (Remains the same as before) -->
+<div id="addressModal" class="hidden fixed inset-0 z-50 flex items-center justify-center transition-opacity">
+    <div class="absolute inset-0 bg-gray-900/40 backdrop-blur-sm transition-opacity" onclick="closeAddressModal()"></div>
+    
+    <div class="bg-white w-full max-w-xl rounded-2xl shadow-2xl relative z-10 mx-4 max-h-[90vh] flex flex-col transform transition-all scale-100">
+        <!-- Header -->
+        <div class="px-6 py-5 border-b border-gray-100 flex justify-between items-center shrink-0">
+            <h3 class="text-xl font-bold text-gray-900" id="addressModalTitle">Add New Address</h3>
+            <button onclick="closeAddressModal()" class="text-gray-400 hover:text-black transition-colors w-8 h-8 flex items-center justify-center rounded-full hover:bg-gray-100">
+                <i class="fa-solid fa-xmark text-lg"></i>
+            </button>
+        </div>
+        <!-- Form Body -->
+        <div class="p-6 overflow-y-auto custom-scrollbar">
+            <form id="addressForm" class="space-y-5">
+                <input type="hidden" id="addressId" name="addressId">
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-5">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1.5">Full Name</label>
+                        <input type="text" name="name" class="w-full bg-gray-50 border border-gray-200 rounded-lg px-4 py-3 focus:bg-white focus:ring-2 focus:ring-black focus:border-black outline-none transition-all text-sm" placeholder="e.g. John Doe" required>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1.5">Mobile Number</label>
+                        <input type="tel" name="phone" class="w-full bg-gray-50 border border-gray-200 rounded-lg px-4 py-3 focus:bg-white focus:ring-2 focus:ring-black focus:border-black outline-none transition-all text-sm" placeholder="10-digit number" required pattern="[0-9]{10}">
+                    </div>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1.5">Street Address</label>
+                    <textarea name="street" rows="2" class="w-full bg-gray-50 border border-gray-200 rounded-lg px-4 py-3 focus:bg-white focus:ring-2 focus:ring-black focus:border-black outline-none transition-all text-sm resize-none" placeholder="House/Flat No., Building Name, Area" required></textarea>
+                </div>
+                <div class="grid grid-cols-2 gap-5">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1.5">City</label>
+                        <input type="text" name="city" class="w-full bg-gray-50 border border-gray-200 rounded-lg px-4 py-3 focus:bg-white focus:ring-2 focus:ring-black focus:border-black outline-none transition-all text-sm" placeholder="City" required>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1.5">State</label>
+                        <input type="text" name="state" class="w-full bg-gray-50 border border-gray-200 rounded-lg px-4 py-3 focus:bg-white focus:ring-2 focus:ring-black focus:border-black outline-none transition-all text-sm" placeholder="State" required>
+                    </div>
+                </div>
+                <div class="grid grid-cols-2 gap-5 items-end">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1.5">Pincode</label>
+                        <input type="text" name="pincode" class="w-full bg-gray-50 border border-gray-200 rounded-lg px-4 py-3 focus:bg-white focus:ring-2 focus:ring-black focus:border-black outline-none transition-all text-sm" placeholder="6 digits" required pattern="[0-9]{6}">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1.5">Address Type</label>
+                        <select name="type" class="w-full bg-white border border-gray-200 rounded-lg px-4 py-3 focus:ring-2 focus:ring-black focus:border-black outline-none transition-all text-sm cursor-pointer shadow-sm">
+                            <option value="Home">Home (All day delivery)</option>
+                            <option value="Work">Work (Delivery between 10 AM - 5 PM)</option>
+                            <option value="Other">Other</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="pt-2">
+                    <label class="inline-flex items-center gap-3 cursor-pointer group">
+                        <div class="relative flex items-center">
+                            <input type="checkbox" name="isDefault" class="peer w-5 h-5 appearance-none border-2 border-gray-300 rounded focus:ring-0 checked:bg-black checked:border-black transition-all cursor-pointer">
+                            <i class="fa-solid fa-check absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 text-white text-[10px] opacity-0 peer-checked:opacity-100 pointer-events-none transition-opacity"></i>
+                        </div>
+                        <span class="text-sm font-medium text-gray-700 group-hover:text-black transition-colors">Set as default delivery address</span>
+                    </label>
+                </div>
+            </form>
+        </div>
+        <!-- Footer -->
+        <div class="px-6 py-5 border-t border-gray-100 flex justify-end gap-3 shrink-0 bg-gray-50 rounded-b-2xl">
+            <button onclick="closeAddressModal()" class="px-5 py-2.5 text-sm font-semibold text-gray-600 hover:text-black hover:bg-gray-200 rounded-lg transition-colors">Cancel</button>
+            <button onclick="submitAddress()" class="px-6 py-2.5 text-sm font-semibold text-white bg-black hover:bg-gray-800 rounded-lg transition-all shadow-md hover:shadow-lg">Save Address</button>
+        </div>
+    </div>
+</div>
+
+<script type="module">
+    import { showToast } from "/partials/errorMsg.utils.js";
+
+    // ---------------- Address Modals ----------------
+    window.openAddressModal = function(id = null) {
+        document.getElementById('addressModal').classList.remove('hidden');
+        document.getElementById('addressForm').reset();
+        
+        if (id) {
+            document.getElementById('addressModalTitle').textContent = 'Edit Delivery Address';
+            document.getElementById('addressId').value = id;
+        } else {
+            document.getElementById('addressModalTitle').textContent = 'Add New Address';
+            document.getElementById('addressId').value = '';
+        }
+    };
+
+    window.closeAddressModal = function() {
+        document.getElementById('addressModal').classList.add('hidden');
+    };
+
+    window.submitAddress = async function() {
+        const form = document.getElementById('addressForm');
+        if (!form.checkValidity()) { form.reportValidity(); return; }
+
+        const formData = new FormData(form);
+        const requestData = Object.fromEntries(formData.entries());
+        requestData.isDefault = formData.get('isDefault') === 'on';
+
+        const addrId = requestData.addressId;
+        const url = addrId ? `/address/edit/${addrId}` : `/address/add`;
+        const method = addrId ? 'PUT' : 'POST';
+
+        try {
+            const res = await fetch(url, {
+                method,
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(requestData)
+            });
+            const result = await res.json();
+            if (result.success) {
+                showToast(addrId ? "Address updated successfully" : "Address saved successfully", "success");
+                setTimeout(() => window.location.reload(), 800);
+            } else {
+                showToast(result.message || "Could not save address.", "error");
+            }
+        } catch { showToast("Network error while saving address.", "error"); }
+    };
+
+    window.editAddress = function(addressId) {
+        openAddressModal(addressId);
+    };
+
+    // ---------------- Coupon Handlers ----------------
+    const applyCouponBtn = document.getElementById('applyCouponBtn');
+    if(applyCouponBtn) {
+        applyCouponBtn.addEventListener('click', async () => {
+            const code = document.getElementById('couponInput').value.trim();
+            if (!code) return showToast("Please enter a valid coupon code", "warning");
+
+            try {
+                const res = await fetch("/cart/coupon/apply", {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ code })
+                });
+                const result = await res.json();
+                if (result.success) {
+                    showToast("Coupon Applied!", "success");
+                    window.location.reload(); 
+                } else {
+                    showToast(result.message || "Invalid coupon code", "error");
+                }
+            } catch { showToast("Network error applying coupon", "error"); }
+        });
+    }
+
+    window.removeCoupon = async function() {
+        try {
+            const res = await fetch("/cart/coupon/remove", { method: 'DELETE' });
+            const result = await res.json();
+            if(result.success) {
+                showToast("Coupon removed", "success");
+                window.location.reload();
+            }
+        } catch { showToast("Network error", "error"); }
+    };
+
+    // ---------------- Checkout Order Submission ----------------
+    document.getElementById('checkoutProceedBtn').addEventListener('click', async (e) => {
+        const selectedAddress = document.querySelector('input[name="selectedAddress"]:checked');
+        const selectedPayment = document.querySelector('input[name="paymentMethod"]:checked');
+        
+        if (!selectedAddress) {
+            e.preventDefault();
+            return showToast("Please select a delivery address", "warning");
+        }
+
+        if (!selectedPayment) {
+            e.preventDefault();
+            return showToast("Please select a payment method", "warning");
+        }
+
+        const btn = document.getElementById('checkoutProceedBtn');
+        const originalContent = btn.innerHTML;
+        
+        btn.disabled = true;
+        btn.innerHTML = `<span class="relative z-10 flex items-center gap-2"><i class="fa-solid fa-circle-notch fa-spin"></i> Processing Securely...</span>`;
+
+        try {
+            const response = await fetch('/order/place', {
+                method: 'POST',
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ 
+                    addressId: selectedAddress.value,
+                    paymentMethod: selectedPayment.value
+                })
+            });
+
+            const result = await response.json();
+
+            if (result.success) {
+                window.location.href = result.redirectUrl || `/order/success/${result.orderId}`;
+            } else {
+                showToast(result.message || "Failed to initiate payment", "error");
+                btn.disabled = false;
+                btn.innerHTML = originalContent;
+            }
+        } catch (error) {
+            showToast("Server Error processing your request.", "error");
+            btn.disabled = false;
+            btn.innerHTML = originalContent;
+        }
+    });
+
+</script>
+
+<%- include("../../partials/user/footer.ejs") %>

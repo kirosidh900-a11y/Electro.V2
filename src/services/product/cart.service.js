@@ -359,3 +359,77 @@ export const getWishlistService = async (userId) => {
     items: populatedItems.filter(Boolean),
   };
 };
+
+export const validateCartStockServiceCheck = async (userId) => {
+  console.log("Validating cart stock for user:", userId);
+
+  const cart = await Cart.findOne({ userId })
+    .populate("items.productId");
+
+  if (!cart || cart.items.length === 0) {
+    return { success: false, message: "Cart is empty" };
+  }
+
+  let invalidItems = [];
+
+  cart.items.forEach(item => {
+    const product = item.productId;
+
+    // 🔥 find correct variant
+    const variant = product.variants.find(
+      v => v._id.toString() === item.variantId.toString()
+    );
+
+    const stock = variant?.stock ?? 0;
+
+    console.log("Checking:", {
+      product: product.name,
+      variantId: item.variantId,
+      stock,
+      quantity: item.quantity
+    });
+
+    // ❌ no variant found
+    if (!variant) {
+      invalidItems.push({
+        itemId: item._id,
+        name: product.name,
+        reason: "Variant not found"
+      });
+      return;
+    }
+
+    // ❌ out of stock
+    if (stock === 0) {
+      invalidItems.push({
+        itemId: item._id,
+        name: product.name,
+        reason: "Out of stock",
+        stock,
+        quantity: item.quantity
+      });
+    }
+
+    // ❌ quantity exceeds stock
+    else if (item.quantity > stock) {
+      invalidItems.push({
+        itemId: item._id,
+        name: product.name,
+        reason: `Only ${stock} left`,
+        stock,
+        quantity: item.quantity
+      });
+    }
+  });
+
+  console.log("Invalid items:", invalidItems);
+
+  if (invalidItems.length > 0) {
+    return {
+      success: false,
+      items: invalidItems
+    };
+  }
+
+  return { success: true };
+};
