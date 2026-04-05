@@ -1,3 +1,4 @@
+import mongoose from "mongoose";
 import Address from "../../models/addressSchema.model.js";
 import Cart from "../../models/cartSchema.models.js";
 import Products from "../../models/productSchema.model.js";
@@ -15,7 +16,7 @@ export const placeOrderService = async ({
   paymentMethod,
 }) => {
   try {
-    // 🔥 COD ONLY CHECK
+    // COD ONLY CHECK
     if (paymentMethod !== "cod") {
       throw new AppError(
         "Only Cash on Delivery is available currently",
@@ -23,27 +24,27 @@ export const placeOrderService = async ({
       );
     }
 
-    // 🔥 GET CART
+    // GET CART
     const cart = await Cart.findOne({ userId }).populate("items.productId");
 
     if (!cart || cart.items.length === 0) {
       throw new AppError("Cart is empty", HTTP_STATUS.BAD_REQUEST);
     }
 
-    // 🔥 GET ADDRESS
+    // GET ADDRESS
     const address = await Address.findOne({ _id: addressId, userId });
 
     if (!address) {
       throw new AppError("Invalid address", HTTP_STATUS.NOT_FOUND);
     }
 
-    // 🔥 GET ALL OFFERS ONCE
+    // GET ALL OFFERS ONCE
     const allOffers = await getActiveOffers();
 
     let orderItems = [];
     let subtotal = 0;
 
-    // 🔥 LOOP ITEMS
+    // LOOP ITEMS
     for (const item of cart.items) {
       const product = item.productId;
 
@@ -51,7 +52,7 @@ export const placeOrderService = async ({
         throw new AppError("Product not found", HTTP_STATUS.NOT_FOUND);
       }
 
-      // ✅ FIND INDEX (BEST APPROACH)
+      // FIND INDEX
       const index = product.variants.findIndex(
         (v) => String(v._id) === String(item.variantId),
       );
@@ -62,7 +63,7 @@ export const placeOrderService = async ({
 
       const variant = product.variants[index];
 
-      // 🔥 APPLY PRICING
+      // APPLY PRICING
       const pricedProduct = applyPricingToProduct(product, allOffers);
       const pricedVariant = pricedProduct.variants[index];
 
@@ -79,7 +80,7 @@ export const placeOrderService = async ({
       const itemTotal = price * qty;
       subtotal += itemTotal;
 
-      // 🔥 ATOMIC STOCK UPDATE
+      // ATOMIC STOCK UPDATE
       const update = await Products.updateOne(
         {
           _id: product._id,
@@ -98,7 +99,7 @@ export const placeOrderService = async ({
         );
       }
 
-      // 🔥 ORDER ITEM SNAPSHOT
+      // ORDER ITEM SNAPSHOT
       orderItems.push({
         productId: product._id,
         variantId: variant._id,
@@ -120,12 +121,16 @@ export const placeOrderService = async ({
       });
     }
 
-    // 🔥 PRICING SUMMARY
+    // PRICING SUMMARY
     const couponDiscount = cart.couponDiscountAmount || 0;
     const deliveryCharge = subtotal > 500 ? 0 : 40;
     const finalAmount = subtotal - couponDiscount + deliveryCharge;
 
-    // 🔥 CREATE ORDER
+    //CALCULATE DELIVERY DATE
+    const expectedDate = new Date();
+    expectedDate.setDate(expectedDate.getDate() + 5);
+
+    //CREATE ORDER
     const order = await Order.create({
       userId,
 
@@ -158,9 +163,14 @@ export const placeOrderService = async ({
       },
 
       orderStatus: "placed",
+
+      // STORE DELIVERY INFO
+      delivery: {
+        expectedDate: expectedDate,
+      },
     });
 
-    // 🔥 CLEAR CART
+    // CLEAR CART
     cart.items = [];
     cart.couponDiscountAmount = 0;
     await cart.save();
@@ -174,4 +184,17 @@ export const placeOrderService = async ({
     console.error("Order Service Error:", err);
     throw err;
   }
+};
+
+export const getOrderSuccessService = async ({ userId, orderId }) => {
+  const order = await Order.findOne({
+    _id: orderId,
+    userId,
+  }).lean();
+
+  if (!order) {
+    throw new AppError("Order not found", HTTP_STATUS.NOT_FOUND);
+  }
+
+  return order;
 };

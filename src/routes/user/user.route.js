@@ -32,7 +32,7 @@ import upload from "../../middlewares/cloudinaryUpload.middleware.js";
 import locationRoutes from "./location.route.js";
 import productRouter from "../../routes/product/user/product.route.js";
 import wishlistRouter from "./wishlist.route.js";
-import orderRouter from "./order.route.js";
+import orderRouter from "../product/user/order.route.js";
 
 import {
   validate,

@@ -1030,7 +1030,7 @@
                                 const result = await response.json();
 
                                 if (result.success) {
-                                        window.location.href = result.redirectUrl || `/order/success/${result.orderId}`;
+                                        window.location.href = result.redirectUrl;
                                 } else {
                                         throw new Error(result.message);
                                 }
