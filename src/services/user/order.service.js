@@ -1,4 +1,3 @@
-import mongoose from "mongoose";
 import Address from "../../models/addressSchema.model.js";
 import Cart from "../../models/cartSchema.models.js";
 import Products from "../../models/productSchema.model.js";
@@ -9,6 +8,7 @@ import { getActiveOffers } from "../../utils/products/offers.util.js";
 
 import AppError from "../../utils/partials/AppError.utils.js";
 import HTTP_STATUS from "../../constant/statusCode.js";
+import mongoose from "mongoose";
 
 export const placeOrderService = async ({
   userId,
@@ -191,6 +191,50 @@ export const getOrderSuccessService = async ({ userId, orderId }) => {
     _id: orderId,
     userId,
   }).lean();
+
+  if (!order) {
+    throw new AppError("Order not found", HTTP_STATUS.NOT_FOUND);
+  }
+
+  return order;
+};
+
+export const getOrderListService = async ({ userId, page, limit, search }) => {
+  const skip = (page - 1) * limit;
+
+  const filter = {
+    userId,
+  };
+
+  // 🔥 SEARCH
+  if (search && search.trim() !== "") {
+    filter.$or = [
+      { orderNumber: { $regex: search, $options: "i" } },
+      { "items.name": { $regex: search, $options: "i" } },
+    ];
+  }
+
+  const [orders, total] = await Promise.all([
+    Order.find(filter).sort({ createdAt: -1 }).skip(skip).limit(limit).lean(),
+
+    Order.countDocuments(filter),
+  ]);
+
+  return {
+    orders,
+    total,
+    totalPages: Math.ceil(total / limit),
+  };
+};
+
+export const getOrderDetailsService = async ({ userId, orderId }) => {
+  // 🔥 FIND ORDER (SECURE: user-specific)
+  const order = await Order.findOne({
+    _id: new mongoose.Types.ObjectId(orderId),
+    userId,
+  }).lean();
+
+  console.log("Seveices:",order)
 
   if (!order) {
     throw new AppError("Order not found", HTTP_STATUS.NOT_FOUND);
