@@ -22,6 +22,8 @@ import {
 import setCookieMSG from "../../../utils/partials/setCookieMsg.utils.js";
 import Wishlist from "../../../models/wishlistSchema.model.js";
 import Cart from "../../../models/cartSchema.models.js";
+import { applyPricingToProduct } from "../../../utils/products/pricing.util.js";
+import { getActiveOffers } from "../../../utils/products/offers.util.js";
 
 //Product
 export const getProductsListingPage = async (req, res) => {
@@ -200,14 +202,27 @@ export const getCartPage = async (req, res, next) => {
       cart = { items: [] };
     }
 
-    cart.items = (cart.items || [])
-      .map((item) => {
-        const product = item.productId;
+    // ================= OFFERS MAP =================
+    const products = cart.items.map((i) => i.productId);
+    const offersMap = new Map();
 
+    for (const product of products) {
+      const offers = await getActiveOffers(product);
+      offersMap.set(product._id.toString(), offers);
+    }
+
+    // ================= APPLY PRICING =================
+    const updatedItems = await Promise.all(
+      (cart.items || []).map(async (item) => {
+        const product = item.productId;
         if (!product) return null;
 
-        // 🔍 find matching variant inside product
-        const variant = product.variants.find(
+        const offers = offersMap.get(product._id.toString());
+
+        const productWithPricing = applyPricingToProduct(product, offers);
+
+        // find correct variant
+        const variant = productWithPricing.variants.find(
           (v) => v._id.toString() === item.variantId.toString(),
         );
 
@@ -217,13 +232,14 @@ export const getCartPage = async (req, res, next) => {
           ...item,
           variantId: {
             ...variant,
-
-            // normalize images for frontend
             images: variant.product_images?.map((img) => img.url) || [],
           },
         };
-      })
-      .filter(Boolean);
+      }),
+    );
+
+    cart.items = updatedItems.filter(Boolean);
+    console.log("Cart with pricing:", cart.items[0]);
 
     res.render("user/home/cart", { cart });
   } catch (error) {

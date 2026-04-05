@@ -2,7 +2,6 @@ import Products from "../../models/productSchema.model.js";
 import AppError from "../../utils/partials/AppError.utils.js";
 import HTTP_STATUS from "../../constant/statusCode.js";
 import {
-  uploadToCloudinary,
   deleteFromCloudinary,
 } from "../partials/cloudinary.service.js";
 
@@ -112,6 +111,7 @@ export const replaceVariantImageService = async ({
     await deleteFromCloudinary(oldImage.imageId);
   } catch (err) {
     console.warn("Old image delete failed:", err);
+    throw new Error("Failed to delete old image from cloudinary");
   }
 
   return {
