@@ -11,6 +11,24 @@ import HTTP_STATUS from "../../constant/statusCode.js";
 import mongoose from "mongoose";
 import orderItem from "../../models/orderItemSchema.model.js";
 
+const generateOrderNumber = async () => {
+  let isUnique = false;
+  let orderNumber;
+
+  while (!isUnique) {
+    const datePart = new Date().toISOString().slice(0, 10).replace(/-/g, "");
+    const randomPart = Math.floor(1000 + Math.random() * 9000);
+
+    orderNumber = `ORD-${datePart}-${randomPart}`;
+
+    const exists = await Order.findOne({ orderNumber });
+
+    if (!exists) isUnique = true;
+  }
+
+  return orderNumber;
+};
+
 export const placeOrderService = async ({
   userId,
   addressId,
@@ -44,6 +62,9 @@ export const placeOrderService = async ({
     let orderItems = [];
     let subtotal = 0;
     let gstTotal = 0;
+
+    // ✅ GENERATE ONCE
+    const orderNumber = await generateOrderNumber();
 
     // ================= LOOP ITEMS =================
     for (const item of cart.items) {
@@ -84,7 +105,7 @@ export const placeOrderService = async ({
       subtotal += itemSubtotal;
       gstTotal += itemGST;
 
-      // 🔥 STOCK UPDATE
+      // 🔥 STOCK UPDATE (atomic)
       const update = await Products.updateOne(
         {
           _id: product._id,
@@ -112,8 +133,10 @@ export const placeOrderService = async ({
         name: product.name,
         brand: product.brand?.title,
 
-        attributes: Object.fromEntries(variant.attributes || {}),
+        attributes: variant.attributes || {},
         images: variant.product_images?.map((img) => img.url) || [],
+
+        orderNumber, // optional (same for all items)
 
         quantity: qty,
 
@@ -144,6 +167,7 @@ export const placeOrderService = async ({
     // ================= CREATE ORDER =================
     const order = await Order.create({
       userId,
+      orderNumber, // ✅ CORRECT PLACE
 
       pricing: {
         subtotal,
@@ -195,6 +219,7 @@ export const placeOrderService = async ({
     return {
       success: true,
       orderId: order._id,
+      orderNumber,
       redirectUrl: `/order/success/${order._id}`,
     };
   } catch (err) {
@@ -219,26 +244,63 @@ export const getOrderSuccessService = async ({ userId, orderId }) => {
 export const getOrderListService = async ({ userId, page, limit, search }) => {
   const skip = (page - 1) * limit;
 
-  const filter = {
-    userId,
-  };
+  // BASE FILTER
+  let orderFilter = { userId };
 
-  // 🔥 SEARCH
+  // SEARCH HANDLING
+  let orderIds = [];
+
   if (search && search.trim() !== "") {
-    filter.$or = [
-      { orderNumber: { $regex: search, $options: "i" } },
-      { "items.name": { $regex: search, $options: "i" } },
-    ];
+    // search in orders
+    const orders = await Order.find({
+      userId,
+      orderNumber: { $regex: search, $options: "i" },
+    }).select("_id");
+
+    const orderIdsFromOrder = orders.map((o) => o._id);
+
+    // search in items
+    const items = await orderItem
+      .find({
+        userId,
+        name: { $regex: search, $options: "i" },
+      })
+      .select("orderId");
+
+    const orderIdsFromItems = items.map((i) => i.orderId);
+
+    // merge
+    orderIds = [...new Set([...orderIdsFromOrder, ...orderIdsFromItems])];
+
+    orderFilter._id = { $in: orderIds };
   }
 
-  const [orders, total] = await Promise.all([
-    Order.find(filter).sort({ createdAt: -1 }).skip(skip).limit(limit).lean(),
+  // GET ORDERS
+  const orders = await Order.find(orderFilter)
+    .sort({ createdAt: -1 })
+    .skip(skip)
+    .limit(limit)
+    .lean();
 
-    Order.countDocuments(filter),
-  ]);
+  const orderIdsList = orders.map((o) => o._id);
+
+  // GET ITEMS SEPARATELY
+  const items = await orderItem
+    .find({
+      orderId: { $in: orderIdsList },
+    })
+    .lean();
+
+  // MERGE (IMPORTANT)
+  const ordersWithItems = orders.map((order) => ({
+    ...order,
+    items: items.filter((item) => String(item.orderId) === String(order._id)),
+  }));
+
+  const total = await Order.countDocuments(orderFilter);
 
   return {
-    orders,
+    orders: ordersWithItems,
     total,
     totalPages: Math.ceil(total / limit),
   };
