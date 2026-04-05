@@ -58,6 +58,7 @@ router.use("/product", productRouter);
 router.use("/address", requireAuth, addresRouter);
 router.use("/location", requireAuth, locationRoutes);
 router.use("/wishlist", requireAuth, wishlistRouter);
+router.use("/orders", requireAuth, orderRouter);
 router.use("/order", requireAuth, orderRouter);
 
 //Home side

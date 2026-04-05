@@ -4,6 +4,7 @@ import {
   getOrderSuccessService,
   getOrderListService,
   getOrderDetailsService,
+  cancelOrderService,
 } from "../../services/user/order.service.js";
 import renderView from "../../utils/admin/renderView.util.js";
 
@@ -57,7 +58,7 @@ export const getOrderListingPage = async (req, res) => {
     const search = req.query.search || "";
 
     const userId = req.user._id;
-    console.log('Enterd')
+    console.log("Enterd");
 
     // 🔥 AJAX MODE
     if (req.headers.accept?.includes("application/json")) {
@@ -111,32 +112,68 @@ export const getOrderListingPage = async (req, res) => {
   }
 };
 
-export const getOrderDetailsPage = async (req, res) => {
+export const getOrderDetailsPage = async (req, res, next) => {
   try {
     const userId = req.user._id;
-    const { orderId } = req.params;
+    const { orderItemId } = req.params;
 
-    // VALIDATE OBJECT ID
-    if (!mongoose.Types.ObjectId.isValid(orderId)) {
+    // VALIDATE ID
+    if (!mongoose.Types.ObjectId.isValid(orderItemId)) {
       return res.redirect("/orders");
     }
 
-    const order = await getOrderDetailsService({
+    //GET FULL DATA
+    const data = await getOrderDetailsService({
       userId,
-      orderId,
+      orderItemId,
     });
 
-    console.log(order)
-
-    if (!order) {
+    if (!data) {
       return res.redirect("/orders");
     }
 
-    return res.render("user/orders/orderDetails", {
-      order,
+    // SEND TO EJS
+    res.render("user/orders/orderDetails", {
+      order: {
+        _id: data.orderId,
+        orderNumber: data.orderNumber,
+        shippingAddress: data.shippingAddress,
+        payment: data.payment,
+        orderStatus: data.orderStatus,
+        delivery: data.delivery,
+        pricing: data.pricing,
+      },
+      product: data.product,
     });
   } catch (error) {
     console.error("Order Details Error:", error);
-    next(error)
+    next(error);
+  }
+};
+
+export const cancelOrder = async (req, res, next) => {
+  try {
+    const userId = req.user._id;
+    const { orderId } = req.params;
+    const { reason, comments } = req.body;
+
+    await cancelOrderService({
+      userId,
+      orderId,
+      reason,
+      comments,
+    });
+
+    res.status(200).json({
+      success: true,
+      message: "Order cancelled successfully",
+    });
+  } catch (error) {
+    console.error("Cancel Order Error:", error);
+
+    res.status(400).json({
+      success: false,
+      message: error.message,
+    });
   }
 };

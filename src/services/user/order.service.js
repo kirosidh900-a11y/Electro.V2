@@ -244,80 +244,120 @@ export const getOrderSuccessService = async ({ userId, orderId }) => {
 export const getOrderListService = async ({ userId, page, limit, search }) => {
   const skip = (page - 1) * limit;
 
-  // BASE FILTER
-  let orderFilter = { userId };
+  let matchedItems = [];
 
-  // SEARCH HANDLING
-  let orderIds = [];
-
+  //SEARCH ITEMS DIRECTLY
   if (search && search.trim() !== "") {
-    // search in orders
-    const orders = await Order.find({
-      userId,
-      orderNumber: { $regex: search, $options: "i" },
-    }).select("_id");
-
-    const orderIdsFromOrder = orders.map((o) => o._id);
-
-    // search in items
-    const items = await orderItem
+    matchedItems = await orderItem
       .find({
         userId,
         name: { $regex: search, $options: "i" },
       })
-      .select("orderId");
-
-    const orderIdsFromItems = items.map((i) => i.orderId);
-
-    // merge
-    orderIds = [...new Set([...orderIdsFromOrder, ...orderIdsFromItems])];
-
-    orderFilter._id = { $in: orderIds };
+      .lean();
+  } else {
+    matchedItems = await orderItem.find({ userId }).lean();
   }
 
-  // GET ORDERS
-  const orders = await Order.find(orderFilter)
-    .sort({ createdAt: -1 })
-    .skip(skip)
-    .limit(limit)
-    .lean();
+  //PAGINATION ON ITEMS
+  const paginatedItems = matchedItems
+    .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
+    .slice(skip, skip + limit);
 
-  const orderIdsList = orders.map((o) => o._id);
+  const orderIds = [...new Set(paginatedItems.map((i) => i.orderId))];
 
-  // GET ITEMS SEPARATELY
-  const items = await orderItem
-    .find({
-      orderId: { $in: orderIdsList },
-    })
-    .lean();
+  // GET RELATED ORDERS
+  const orders = await Order.find({
+    _id: { $in: orderIds },
+  }).lean();
 
-  // MERGE (IMPORTANT)
-  const ordersWithItems = orders.map((order) => ({
-    ...order,
-    items: items.filter((item) => String(item.orderId) === String(order._id)),
-  }));
+  //  MERGE ONLY MATCHED ITEMS
+  const finalOrders = paginatedItems.map((item) => {
+    const order = orders.find((o) => String(o._id) === String(item.orderId));
 
-  const total = await Order.countDocuments(orderFilter);
+    return {
+      ...order,
+      items: [item],
+    };
+  });
 
   return {
-    orders: ordersWithItems,
-    total,
-    totalPages: Math.ceil(total / limit),
+    orders: finalOrders,
+    total: matchedItems.length,
+    totalPages: Math.ceil(matchedItems.length / limit),
   };
 };
 
-export const getOrderDetailsService = async ({ userId, orderId }) => {
-  // 🔥 FIND ORDER (SECURE: user-specific)
-  const order = await Order.findOne({
-    _id: new mongoose.Types.ObjectId(orderId),
-    userId,
-  }).lean();
+export const getOrderDetailsService = async ({ userId, orderItemId }) => {
+  // ✅ GET SINGLE ORDER ITEM (NO POPULATE)
+  const item = await orderItem
+    .findOne({
+      _id: orderItemId,
+      userId,
+    })
+    .lean();
 
-  console.log("Seveices:", order);
+  if (!item) {
+    throw new AppError("Order item not found", HTTP_STATUS.NOT_FOUND);
+  }
+
+  // ✅ GET ORDER (only for extra details)
+  const order = await Order.findById(item.orderId).lean();
 
   if (!order) {
     throw new AppError("Order not found", HTTP_STATUS.NOT_FOUND);
   }
+
+  // ✅ RETURN CLEAN RESPONSE
+  return {
+    orderId: order._id,
+    orderNumber: order.orderNumber,
+    pricing: item.pricing,
+
+    // 🔥 use item directly (already has all data)
+    product: {
+      name: item.name,
+      attributes: item.attributes,
+      images: item.images,
+      quantity: item.quantity,
+      pricing: item.pricing,
+      itemStatus: item.itemStatus,
+      createdAt: item.createdAt,
+    },
+
+    // order level info
+    shippingAddress: order.shippingAddress,
+    payment: order.payment,
+    orderStatus: order.orderStatus,
+    delivery: order.delivery,
+  };
+};
+
+export const cancelOrderService = async ({ userId, orderId, reason, comments }) => {
+  const order = await Order.findOne({ _id: orderId, userId });
+
+  if (!order) {
+    throw new Error("Order not found");
+  }
+
+  // Normalize status (important)
+  const status = order.orderStatus.toLowerCase();
+
+  if (status === "delivered") {
+    throw new Error("Delivered orders cannot be cancelled");
+  }
+
+  if (order.isCancelled) {
+    throw new Error("Order already cancelled");
+  }
+
+  // ✅ Update order
+  order.orderStatus = "cancelled";
+  order.isCancelled = true;
+  order.cancelReason = reason;
+  order.cancelComments = comments;
+  order.cancelledAt = new Date();
+
+  await order.save();
 
   return order;
 };
