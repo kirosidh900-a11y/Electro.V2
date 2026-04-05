@@ -16,9 +16,7 @@ import {
 import {
   getProductsListingPage,
   updateCart,
-  updateWishlist,
   getCartStatus,
-  getWishlistStatus,
   getCartPage,
   updateCartQuantity,
   removeCartItem,
@@ -34,6 +32,7 @@ import upload from "../../middlewares/cloudinaryUpload.middleware.js";
 import locationRoutes from "./location.route.js";
 import productRouter from "../../routes/product/user/product.route.js";
 import wishlistRouter from "./wishlist.route.js";
+import orderRouter from "./order.route.js";
 
 import {
   validate,
@@ -58,6 +57,7 @@ router.use("/product", productRouter);
 router.use("/address", requireAuth, addresRouter);
 router.use("/location", requireAuth, locationRoutes);
 router.use("/wishlist", requireAuth, wishlistRouter);
+router.use("/order", requireAuth, orderRouter);
 
 //Home side
 router.get("/", showHomePage);
