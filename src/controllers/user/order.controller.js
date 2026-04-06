@@ -142,6 +142,10 @@ export const getOrderDetailsPage = async (req, res, next) => {
         orderStatus: data.orderStatus,
         delivery: data.delivery,
         pricing: data.pricing,
+
+        
+        updatedAt: data.updatedAt,
+        cancelledAt: data.cancelledAt,
       },
       product: data.product,
     });
@@ -170,10 +174,6 @@ export const cancelOrder = async (req, res, next) => {
     });
   } catch (error) {
     console.error("Cancel Order Error:", error);
-
-    res.status(400).json({
-      success: false,
-      message: error.message,
-    });
+    next(error);
   }
 };

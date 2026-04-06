@@ -329,17 +329,25 @@ export const getOrderDetailsService = async ({ userId, orderItemId }) => {
     payment: order.payment,
     orderStatus: order.orderStatus,
     delivery: order.delivery,
+
+    
+    updatedAt: order.updatedAt,
+    cancelledAt: order.cancelledAt,
   };
 };
 
-export const cancelOrderService = async ({ userId, orderId, reason, comments }) => {
+export const cancelOrderService = async ({
+  userId,
+  orderId,
+  reason,
+  comments,
+}) => {
   const order = await Order.findOne({ _id: orderId, userId });
 
   if (!order) {
     throw new Error("Order not found");
   }
 
-  // Normalize status (important)
   const status = order.orderStatus.toLowerCase();
 
   if (status === "delivered") {
@@ -350,7 +358,52 @@ export const cancelOrderService = async ({ userId, orderId, reason, comments }) 
     throw new Error("Order already cancelled");
   }
 
-  // ✅ Update order
+  // GET ITEMS
+  const items = await orderItem.find({ orderId });
+
+  for (const item of items) {
+    let updatedVariant = null;
+
+    // STOCK ROLLBACK
+    if (item.variantId) {
+      const product = await Products.findOneAndUpdate(
+        {
+          _id: item.productId,
+          "variants._id": item.variantId,
+        },
+        {
+          $inc: {
+            "variants.$.stock": item.quantity,
+          },
+        },
+        { new: true },
+      );
+
+      updatedVariant = product.variants.find(
+        (v) => v._id.toString() === item.variantId.toString(),
+      );
+    } else {
+      await Products.updateOne(
+        { _id: item.productId },
+        { $inc: { stock: item.quantity } },
+      );
+    }
+
+    // 🔥 3. UPDATE ITEM STATUS
+    item.itemStatus = "cancelled";
+    await item.save();
+
+    // SOCKET EMIT (REAL-TIME UPDATE)
+    if (global.io && updatedVariant) {
+      global.io.emit("stockUpdated", {
+        productId: item.productId,
+        variantId: item.variantId,
+        stock: updatedVariant.stock,
+      });
+    }
+  }
+
+  //UPDATE ORDER
   order.orderStatus = "cancelled";
   order.isCancelled = true;
   order.cancelReason = reason;

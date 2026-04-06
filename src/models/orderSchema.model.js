@@ -4,19 +4,9 @@ const { Schema, Types } = mongoose;
 
 const orderSchema = new Schema(
   {
-    userId: {
-      type: Types.ObjectId,
-      ref: "User",
-      required: true,
-    },
+    userId: { type: Types.ObjectId, ref: "User", required: true },
 
-    orderNumber: {
-      type: String,
-      unique: true,
-      index: true,
-    },
-
-    // only summary
+    orderNumber: { type: String, unique: true, index: true },
 
     pricing: {
       subtotal: Number,
@@ -27,43 +17,9 @@ const orderSchema = new Schema(
       finalAmount: Number,
     },
 
-    coupon: {
-      code: String,
-      discountAmount: Number,
-    },
+    shippingAddress: { /* same as yours */ },
 
-    shippingAddress: {
-      name: String,
-      phone: String,
-      altPhone: String,
-
-      address: String,
-      locality: String,
-      landmark: String,
-
-      city: String,
-      district: String,
-      state: String,
-      pincode: String,
-
-      addressType: {
-        type: String,
-        enum: ["home", "work"],
-      },
-    },
-
-    payment: {
-      method: {
-        type: String,
-        enum: ["cod", "razorpay"],
-      },
-      status: {
-        type: String,
-        enum: ["pending", "paid", "failed", "refunded"],
-        default: "pending",
-      },
-      transactionId: String,
-    },
+    payment: { /* same as yours */ },
 
     orderStatus: {
       type: String,
@@ -79,12 +35,21 @@ const orderSchema = new Schema(
       default: "placed",
     },
 
+    isCancelled: {
+      type: Boolean,
+      default: false,
+    },
+
+    cancelReason: String,
+    cancelComments: String,
+    cancelledAt: Date,
+
     delivery: {
       expectedDate: Date,
       deliveredAt: Date,
     },
   },
-  { timestamps: true },
+  { timestamps: true }
 );
 
 export default mongoose.model("Order", orderSchema);

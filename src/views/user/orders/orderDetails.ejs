@@ -42,8 +42,38 @@
             overflow-y: hidden !important;
         }
     </style>
+<div class="bg-[#F1F3F6] min-h-screen py-4">
+
+  <!-- 🔥 BREADCRUMBS (MATCHED STYLE) -->
+  <div class="max-w-[1280px] mx-auto px-4 mb-3 text-xs text-gray-500">
+    
+    <a href="/" class="hover:text-blue-600 transition">
+      Home
+    </a>
+
+    <span class="mx-1">&rsaquo;</span>
+
+    <a href="/myProfile" class="hover:text-blue-600 transition">
+      My Account
+    </a>
+
+    <span class="mx-1">&rsaquo;</span>
+
+    <a href="/profile/orders" class="hover:text-blue-600 transition">
+      My Orders
+    </a>
+
+    <span class="mx-1">&rsaquo;</span>
+
+    <span class="text-gray-800 font-medium">
+      <%= order.orderNumber %>
+    </span>
+
+  </div>
+    
 
     <div class="max-w-[1280px] mx-auto px-4 flex flex-col lg:flex-row gap-6 items-start pb-10">
+        
 
         <div class="w-full lg:flex-1 space-y-6">
 
@@ -125,50 +155,85 @@
     </div>
 
     <div class="mt-6 text-center">
-      <p class="text-red-600 font-semibold">
-        Order was cancelled on 
-        <%= new Date(order.cancelledAt || order.updatedAt).toLocaleDateString('en-IN') %>
-      </p>
+      <% const cancelDate = order.cancelledAt || order.updatedAt; %>
+
+<p class="text-red-600 font-semibold">
+  Order was cancelled on 
+  <%= new Date(cancelDate).toLocaleDateString('en-IN', {
+    day: 'numeric',
+    month: 'short',
+    year: 'numeric'
+  }) %>
+</p>
     </div>
 
   <% } else { %>
 
     <!-- 🟢 NORMAL TIMELINE -->
-    <% const lifecycle = ['confirmed','shipped','out for delivery','delivered']; %>
-    <% const currentIndex = lifecycle.indexOf(status); %>
+    <% 
+  const status = order.orderStatus.toLowerCase();
 
-    <div class="relative flex justify-between items-center max-w-3xl mx-auto">
+  let lifecycle = [];
 
-      <div class="absolute top-1/2 left-0 w-full h-1 bg-gray-200 -translate-y-1/2"></div>
+  // 🔴 CANCELLED (already handled above, but safe fallback)
+  if (status === "cancelled") {
+    lifecycle = ['confirmed', 'cancelled'];
+  }
 
-      <div class="absolute top-1/2 left-0 h-1 bg-green-500 -translate-y-1/2"
-        style="width: <%= currentIndex >= 0 ? (currentIndex / (lifecycle.length - 1)) * 100 : 0 %>%">
+  // 🟡 BEFORE ADMIN CONFIRM
+  else if (status === "placed") {
+    lifecycle = ['placed','confirmed','shipped','out for delivery','delivered'];
+  }
+
+  // 🟢 AFTER ADMIN CONFIRM
+  else {
+    lifecycle = ['confirmed','shipped','out for delivery','delivered'];
+  }
+
+  const currentIndex = lifecycle.indexOf(status);
+%>
+
+<div class="relative flex justify-between items-center max-w-3xl mx-auto">
+
+  <div class="absolute top-1/2 left-0 w-full h-1 bg-gray-200 -translate-y-1/2"></div>
+
+  <div class="absolute top-1/2 left-0 h-1 bg-green-500 -translate-y-1/2"
+    style="width: <%= currentIndex >= 0 ? (currentIndex / (lifecycle.length - 1)) * 100 : 0 %>%">
+  </div>
+
+  <% lifecycle.forEach((step, index) => { %>
+
+    <% const isCompleted = index <= currentIndex; %>
+
+    <div class="flex flex-col items-center z-10">
+
+      <div class="w-10 h-10 rounded-full flex items-center justify-center border-4
+        <%= isCompleted 
+          ? (step === 'cancelled' 
+              ? 'bg-red-500 text-white border-red-100' 
+              : 'bg-green-500 text-white border-green-100')
+          : 'bg-white text-gray-400 border-gray-200' %>">
+
+        <% if(isCompleted) { %>
+          <i class="fa-solid <%= step === 'cancelled' ? 'fa-xmark' : 'fa-check' %>"></i>
+        <% } else { %>
+          <span><%= index + 1 %></span>
+        <% } %>
+
       </div>
 
-      <% lifecycle.forEach((step, index) => { %>
-        <% const isCompleted = index <= currentIndex; %>
-
-        <div class="flex flex-col items-center z-10">
-          <div class="w-10 h-10 rounded-full flex items-center justify-center border-4
-            <%= isCompleted ? 'bg-green-500 text-white border-green-100' : 'bg-white text-gray-400 border-gray-200' %>">
-
-            <% if(isCompleted) { %>
-              <i class="fa-solid fa-check"></i>
-            <% } else { %>
-              <span><%= index + 1 %></span>
-            <% } %>
-
-          </div>
-
-          <p class="text-xs mt-2 uppercase <%= isCompleted ? 'text-black' : 'text-gray-400' %>">
-            <%= step %>
-          </p>
-        </div>
-
-      <% }) %>
+      <p class="text-xs mt-2 uppercase
+        <%= step === 'cancelled' 
+            ? 'text-red-600 font-bold' 
+            : (isCompleted ? 'text-black' : 'text-gray-400') %>">
+        <%= step %>
+      </p>
 
     </div>
 
+  <% }) %>
+
+</div>
   <% } %>
 
 </div>
