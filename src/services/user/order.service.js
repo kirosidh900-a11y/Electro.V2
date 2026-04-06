@@ -413,3 +413,19 @@ export const cancelOrderService = async ({
 
   return order;
 };
+
+export const returnOrderItemService = async ({ userId, orderItemId, returnReason, returnComments }) => {
+  const item = await orderItem.findOne({ _id: orderItemId, userId });
+
+  if (!item) throw new AppError("Order item not found", HTTP_STATUS.NOT_FOUND);
+
+  if (item.itemStatus !== "delivered") {
+    throw new AppError("Only delivered items can be returned", HTTP_STATUS.BAD_REQUEST);
+  }
+
+  item.itemStatus = "returned";
+  item.returnReason = returnReason + (returnComments ? ` — ${returnComments}` : "");
+  await item.save();
+
+  return item;
+};

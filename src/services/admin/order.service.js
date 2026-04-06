@@ -158,10 +158,30 @@ export const updateOrderStatusService = async (orderId, status) => {
   const validStatuses = ["placed", "confirmed", "shipped", "out_for_delivery", "delivered", "cancelled"];
   if (!validStatuses.includes(status)) throw new Error("Invalid status");
 
-  const update = { orderStatus: status };
-  if (status === "delivered") update["delivery.deliveredAt"] = new Date();
+  // ORDER LEVEL UPDATE
+  const orderUpdate = { orderStatus: status };
+  if (status === "delivered") orderUpdate["delivery.deliveredAt"] = new Date();
 
-  await Order.findByIdAndUpdate(orderId, update);
+  await Order.findByIdAndUpdate(orderId, orderUpdate);
+
+  // ITEM STATUS MAPPING (item enum: placed, confirmed, shipped, delivered, cancelled, returned)
+  const itemStatusMap = {
+    placed:           "placed",
+    confirmed:        "confirmed",
+    shipped:          "shipped",
+    out_for_delivery: "shipped",   // no out_for_delivery in item enum
+    delivered:        "delivered",
+    cancelled:        "cancelled",
+  };
+
+  const itemStatus = itemStatusMap[status];
+  if (itemStatus) {
+    // only update items that are not already cancelled or returned
+    await orderItem.updateMany(
+      { orderId, itemStatus: { $nin: ["cancelled", "returned"] } },
+      { itemStatus }
+    );
+  }
 };
 
 export const cancelOrderService = async (orderId, reason, comments) => {
@@ -173,5 +193,9 @@ export const cancelOrderService = async (orderId, reason, comments) => {
     cancelledAt: new Date(),
   });
 
-  await orderItem.updateMany({ orderId }, { itemStatus: "cancelled", cancelReason: reason });
+  // only cancel items not already returned
+  await orderItem.updateMany(
+    { orderId, itemStatus: { $ne: "returned" } },
+    { itemStatus: "cancelled", cancelReason: reason }
+  );
 };

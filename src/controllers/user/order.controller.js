@@ -5,6 +5,7 @@ import {
   getOrderListService,
   getOrderDetailsService,
   cancelOrderService,
+  returnOrderItemService,
 } from "../../services/user/order.service.js";
 import renderView from "../../utils/admin/renderView.util.js";
 
@@ -149,6 +150,7 @@ export const getOrderDetailsPage = async (req, res, next) => {
         updatedAt: data.updatedAt,
       },
       product: data.product,
+      orderItemId,
     });
   } catch (error) {
     console.error("Order Details Error:", error);
@@ -162,19 +164,26 @@ export const cancelOrder = async (req, res, next) => {
     const { orderId } = req.params;
     const { reason, comments } = req.body;
 
-    await cancelOrderService({
-      userId,
-      orderId,
-      reason,
-      comments,
-    });
+    await cancelOrderService({ userId, orderId, reason, comments });
 
-    res.status(200).json({
-      success: true,
-      message: "Order cancelled successfully",
-    });
+    res.status(200).json({ success: true, message: "Order cancelled successfully" });
   } catch (error) {
     console.error("Cancel Order Error:", error);
+    next(error);
+  }
+};
+
+export const returnOrderItem = async (req, res, next) => {
+  try {
+    const userId = req.user._id;
+    const { orderItemId } = req.params;
+    const { returnReason, returnComments } = req.body;
+
+    await returnOrderItemService({ userId, orderItemId, returnReason, returnComments });
+
+    res.status(200).json({ success: true, message: "Return request submitted successfully" });
+  } catch (error) {
+    console.error("Return Order Error:", error);
     next(error);
   }
 };

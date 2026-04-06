@@ -366,7 +366,7 @@
         <i class="fa-solid fa-circle-info mt-0.5 shrink-0"></i>
         <p>Your return request will be evaluated based on item condition and reason.</p>
       </div>
-      <form action="/order/return/<%= order._id %>" method="POST">
+      <form onsubmit="submitReturn(event)">
         <div class="mb-4">
           <label class="block text-sm font-medium text-gray-700 mb-1.5">Return Reason <span class="text-red-500">*</span></label>
           <select required name="returnReason" class="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:border-blue-500">
@@ -385,7 +385,7 @@
         </div>
         <div class="flex gap-3 justify-end border-t pt-4">
           <button type="button" onclick="toggleModal('returnModal')" class="px-4 py-2 text-sm text-gray-600 hover:bg-gray-100 rounded-lg transition">Close</button>
-          <button type="submit" class="px-5 py-2 bg-[#2874F0] text-white text-sm font-semibold rounded-lg hover:bg-blue-700 transition">Confirm Return</button>
+          <button type="submit" id="return-submit-btn" class="px-5 py-2 bg-[#2874F0] text-white text-sm font-semibold rounded-lg hover:bg-blue-700 transition">Confirm Return</button>
         </div>
       </form>
     </div>
@@ -399,6 +399,8 @@
 </script>
 
 <script>
+  const _orderItemId = '<%= orderItemId %>';
+
   function toggleModal(id) {
     const modal = document.getElementById(id);
     if (!modal) return;
@@ -430,6 +432,36 @@
       setTimeout(() => location.reload(), 600);
     } catch (err) {
       btn.textContent = 'Confirm Cancellation';
+      btn.disabled = false;
+      if (window.showToast) showToast(err.message, 'error');
+      else alert(err.message);
+    }
+  }
+
+  async function submitReturn(e) {
+    e.preventDefault();
+    const form = e.target;
+    const returnReason = form.returnReason.value;
+    const returnComments = form.returnComments.value;
+    const btn = document.getElementById('return-submit-btn');
+
+    btn.textContent = 'Submitting...';
+    btn.disabled = true;
+
+    try {
+      const res = await fetch(`/orders/${_orderItemId}/return`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+        body: JSON.stringify({ returnReason, returnComments }),
+        credentials: 'include'
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.message || 'Return request failed');
+      toggleModal('returnModal');
+      if (window.showToast) showToast('Return request submitted', 'success');
+      setTimeout(() => location.reload(), 800);
+    } catch (err) {
+      btn.textContent = 'Confirm Return';
       btn.disabled = false;
       if (window.showToast) showToast(err.message, 'error');
       else alert(err.message);
