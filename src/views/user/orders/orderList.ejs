@@ -1,0 +1,213 @@
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+<script src="https://cdn.tailwindcss.com"></script>
+
+<%- include("../../partials/user/header.ejs") %>
+
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+
+        .custom-scrollbar::-webkit-scrollbar {
+            width: 4px;
+        }
+
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background: #d1d5db;
+            border-radius: 4px;
+        }
+    </style>
+
+    <div class="bg-[#F1F3F6] min-h-screen py-4">
+        <!-- Breadcrumbs -->
+        <div class="max-w-[1280px] mx-auto px-4 mb-3 text-xs text-gray-500">
+            <a href="/" class="hover:text-blue-600 transition">Home</a>
+            <span class="mx-1">&rsaquo;</span>
+            <a href="/myProfile" class="hover:text-blue-600 transition">My Account</a>
+            <span class="mx-1">&rsaquo;</span>
+            <span class="text-gray-800 font-medium">My Orders</span>
+        </div>
+
+        <div class="max-w-[1280px] mx-auto px-4 flex flex-col lg:flex-row gap-4">
+
+            <!-- Sidebar Filters -->
+            <!-- <aside class="hidden lg:block w-full lg:w-[260px] shrink-0">
+                <div class="bg-white border rounded shadow-sm sticky top-4">
+                    <div class="p-4 border-b">
+                        <h2 class="text-lg font-medium text-gray-800">Filters</h2>
+                    </div>
+
+                    <div class="p-4 border-b">
+                        <h3 class="text-xs font-semibold text-gray-800 uppercase tracking-wider mb-4">Order Status</h3>
+                        <div class="space-y-3">
+                            <label class="flex items-center gap-3 cursor-pointer group">
+                                <input type="checkbox"
+                                    class="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500">
+                                <span class="text-gray-700 text-sm group-hover:text-blue-600 transition">On the
+                                    way</span>
+                            </label>
+                            <label class="flex items-center gap-3 cursor-pointer group">
+                                <input type="checkbox"
+                                    class="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500">
+                                <span
+                                    class="text-gray-700 text-sm group-hover:text-blue-600 transition">Delivered</span>
+                            </label>
+                            <label class="flex items-center gap-3 cursor-pointer group">
+                                <input type="checkbox"
+                                    class="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500">
+                                <span
+                                    class="text-gray-700 text-sm group-hover:text-blue-600 transition">Cancelled</span>
+                            </label>
+                            <label class="flex items-center gap-3 cursor-pointer group">
+                                <input type="checkbox"
+                                    class="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500">
+                                <span class="text-gray-700 text-sm group-hover:text-blue-600 transition">Returned</span>
+                            </label>
+                        </div>
+                    </div>
+
+                    <div class="p-4">
+                        <h3 class="text-xs font-semibold text-gray-800 uppercase tracking-wider mb-4">Order Time</h3>
+                        <div class="space-y-3">
+                            <label class="flex items-center gap-3 cursor-pointer group">
+                                <input type="checkbox"
+                                    class="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500">
+                                <span class="text-gray-700 text-sm group-hover:text-blue-600 transition">Last 30
+                                    days</span>
+                            </label>
+                            <label class="flex items-center gap-3 cursor-pointer group">
+                                <input type="checkbox"
+                                    class="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500">
+                                <span class="text-gray-700 text-sm group-hover:text-blue-600 transition">2024</span>
+                            </label>
+                            <label class="flex items-center gap-3 cursor-pointer group">
+                                <input type="checkbox"
+                                    class="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500">
+                                <span class="text-gray-700 text-sm group-hover:text-blue-600 transition">2023</span>
+                            </label>
+                            <label class="flex items-center gap-3 cursor-pointer group">
+                                <input type="checkbox"
+                                    class="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500">
+                                <span class="text-gray-700 text-sm group-hover:text-blue-600 transition">Older</span>
+                            </label>
+                        </div>
+                    </div>
+                </div>
+            </aside> -->
+
+            <!-- Mobile Filter Button -->
+            <div class="lg:hidden flex justify-end">
+                <button
+                    class="bg-white border shadow-sm px-4 py-2 rounded text-sm font-medium text-gray-700 flex items-center gap-2">
+                    <i class="fa fa-filter"></i> Filters
+                </button>
+            </div>
+
+            <!-- Main Content Layout -->
+            <main class="flex-grow flex flex-col gap-4">
+
+                <!-- Search -->
+                <div class="bg-white border rounded shadow-sm p-2 flex items-center h-[56px]">
+                    <input id="searchInput" type="text" placeholder="Search your orders here"
+                        class="flex-grow px-4 h-full text-sm focus:outline-none text-gray-700">
+
+                    <button onclick="loadOrders(1)" class="bg-[#2874F0] text-white px-6 h-full rounded text-sm">
+                        Search
+                    </button>
+                </div>
+
+                <!-- Orders Container -->
+                <div id="orderContainer" class="flex flex-col gap-4"></div>
+
+                <!-- Pagination -->
+                <div id="pagination" class="flex justify-center mt-6"></div>
+
+            </main>
+        </div>
+    </div>
+
+    <%- include("../../partials/user/footer.ejs") %>
+
+
+        <script>
+            const container = document.getElementById("orderContainer");
+
+            function showSkeletons() {
+                container.innerHTML = "";
+
+                for (let i = 0; i < 5; i++) {
+                    container.innerHTML += `
+        <div class="bg-white p-4 rounded shadow animate-pulse">
+            <div class="flex gap-4">
+                <div class="w-20 h-20 bg-gray-200"></div>
+                <div class="flex-1">
+                    <div class="h-4 bg-gray-200 mb-2"></div>
+                    <div class="h-4 bg-gray-200 w-1/2"></div>
+                </div>
+            </div>
+        </div>`;
+                }
+            }
+
+            async function loadOrders(page = 1) {
+                try {
+                    showSkeletons();
+
+                    const search = document.getElementById("searchInput").value || "";
+
+                    const params = new URLSearchParams({
+                        page,
+                        search
+                    });
+
+                    const res = await fetch(`/profile/orders?${params.toString()}`, {
+                        headers: { "Accept": "application/json" }
+                    });
+
+                    const data = await res.json();
+
+                    if (!data.success) throw new Error();
+
+                    // 🔥 inject cards
+                    const temp = document.createElement("div");
+                    temp.innerHTML = data.cards;
+                    container.replaceChildren(...temp.children);
+
+                    // 🔥 pagination
+                    document.getElementById("pagination").innerHTML = data.pagination;
+
+                    // 🔥 empty state
+                    if (data.currentCount === 0) {
+                        container.innerHTML = `
+                <div class="bg-white p-6 text-center rounded">
+                    No orders found
+                </div>`;
+                    }
+
+                } catch (err) {
+                    container.innerHTML = `
+            <p class="text-center text-red-500">
+                Failed to load orders
+            </p>`;
+                }
+            }
+
+            // 🔥 SEARCH (debounce)
+            let timer;
+            document.getElementById("searchInput").addEventListener("input", () => {
+                clearTimeout(timer);
+                timer = setTimeout(() => loadOrders(1), 400);
+            });
+
+            // 🔥 PAGINATION
+            document.getElementById("pagination").addEventListener("click", (e) => {
+                const btn = e.target.closest(".pagination-link");
+                if (btn) loadOrders(btn.dataset.page);
+            });
+
+            // INIT
+            document.addEventListener("DOMContentLoaded", () => {
+                loadOrders(1);
+            });
+        </script>

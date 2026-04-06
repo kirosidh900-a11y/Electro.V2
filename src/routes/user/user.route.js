@@ -46,6 +46,7 @@ import {
 } from "../../services/product/cart.service.js";
 
 import { getCheckoutPage, validateCartStockCheck } from "../../controllers/product/user/checkout.controller.js";
+import { getOrderListingPage } from "../../controllers/user/order.controller.js";
 
 const router = Router();
 
@@ -57,6 +58,7 @@ router.use("/product", productRouter);
 router.use("/address", requireAuth, addresRouter);
 router.use("/location", requireAuth, locationRoutes);
 router.use("/wishlist", requireAuth, wishlistRouter);
+router.use("/orders", requireAuth, orderRouter);
 router.use("/order", requireAuth, orderRouter);
 
 //Home side
@@ -84,6 +86,8 @@ router.post("/cart/checkout", validateCartBeforeCheckout, (req, res) => {
   res.status(200).json({ message: "Cart validated. Ready for checkout." });
 });
 
+
+
 //Profile Side
 router.get("/myProfile", userAuth, profilePage);
 router.patch("/name", userAuth, editName);
@@ -105,5 +109,7 @@ router
   .route("/photo")
   .patch(setUploadFolder("profile"), upload.single("photo"), updateProfilePhoto)
   .delete(deleteProfilePhoto);
+
+router.get('/profile/orders', requireAuth, getOrderListingPage);
 
 export default router;

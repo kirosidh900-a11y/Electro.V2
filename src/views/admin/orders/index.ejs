@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+
+<head>
+  <%- include('../../partials/head') %>
+</head>
+
+<body class="min-h-screen flex">
+
+  <%- include('../../partials/admin/sidebar') %>
+
+  <div id="mainContent" class="flex-1 flex flex-col min-w-0 transition-all duration-300">
+    <%- include('../../partials/admin/header') %>
+
+    <main class="flex-1 p-4 sm:p-6 lg:p-8 w-full space-y-6">
+
+      <%- include('./partials/header', { title }) %>
+
+      <!-- Filters -->
+      <div class="w-full bg-[#0b1220] border border-white/5 rounded-3xl shadow-xl p-5 flex flex-wrap gap-4 items-end">
+        <div class="flex-1 min-w-[200px]">
+          <label class="text-xs text-gray-400 uppercase tracking-widest mb-1.5 block">Search</label>
+          <input id="searchInput" type="text" value="<%= search %>" placeholder="Order # or customer..."
+            class="w-full bg-[#0f172a] border border-white/10 text-gray-200 text-sm rounded-lg px-3 py-2 focus:outline-none focus:border-cyan-500 placeholder-gray-600">
+        </div>
+        <div class="min-w-[140px]">
+          <label class="text-xs text-gray-400 uppercase tracking-widest mb-1.5 block">Status</label>
+          <select id="statusFilter" class="w-full bg-[#0f172a] border border-white/10 text-gray-200 text-sm rounded-lg px-3 py-2 focus:outline-none focus:border-cyan-500">
+            <option value="" <%= status === '' ? 'selected' : '' %>>All</option>
+            <option value="placed"           <%= status === 'placed'           ? 'selected' : '' %>>Placed</option>
+            <option value="confirmed"        <%= status === 'confirmed'        ? 'selected' : '' %>>Confirmed</option>
+            <option value="shipped"          <%= status === 'shipped'          ? 'selected' : '' %>>Shipped</option>
+            <option value="out_for_delivery" <%= status === 'out_for_delivery' ? 'selected' : '' %>>Out for Delivery</option>
+            <option value="delivered"        <%= status === 'delivered'        ? 'selected' : '' %>>Delivered</option>
+            <option value="cancelled"        <%= status === 'cancelled'        ? 'selected' : '' %>>Cancelled</option>
+          </select>
+        </div>
+        <div class="min-w-[140px]">
+          <label class="text-xs text-gray-400 uppercase tracking-widest mb-1.5 block">Payment</label>
+          <select id="paymentStatusFilter" class="w-full bg-[#0f172a] border border-white/10 text-gray-200 text-sm rounded-lg px-3 py-2 focus:outline-none focus:border-cyan-500">
+            <option value="" <%= paymentStatus === '' ? 'selected' : '' %>>All</option>
+            <option value="pending"  <%= paymentStatus === 'pending'  ? 'selected' : '' %>>Pending</option>
+            <option value="paid"     <%= paymentStatus === 'paid'     ? 'selected' : '' %>>Paid</option>
+            <option value="failed"   <%= paymentStatus === 'failed'   ? 'selected' : '' %>>Failed</option>
+            <option value="refunded" <%= paymentStatus === 'refunded' ? 'selected' : '' %>>Refunded</option>
+          </select>
+        </div>
+        <div class="min-w-[140px]">
+          <label class="text-xs text-gray-400 uppercase tracking-widest mb-1.5 block">Date Range</label>
+          <select id="dateRangeFilter" class="w-full bg-[#0f172a] border border-white/10 text-gray-200 text-sm rounded-lg px-3 py-2 focus:outline-none focus:border-cyan-500">
+            <option value="" <%= dateRange === '' ? 'selected' : '' %>>All Time</option>
+            <option value="today" <%= dateRange === 'today' ? 'selected' : '' %>>Today</option>
+            <option value="7d"    <%= dateRange === '7d'    ? 'selected' : '' %>>Last 7 Days</option>
+            <option value="30d"   <%= dateRange === '30d'   ? 'selected' : '' %>>Last 30 Days</option>
+          </select>
+        </div>
+        <button onclick="resetFilters()" class="px-4 py-2 text-xs text-gray-400 hover:text-white border border-white/10 rounded-lg hover:bg-white/5 transition">
+          <i class="fas fa-rotate-left mr-1"></i> Reset
+        </button>
+      </div>
+
+      <!-- Table -->
+      <div class="w-full bg-[#0b1220] border border-white/5 rounded-3xl shadow-xl overflow-x-auto">
+        <table class="w-full text-sm text-left text-gray-300">
+          <thead class="bg-white/5 text-gray-400 uppercase text-xs tracking-widest">
+            <tr>
+              <th class="px-6 py-4">#</th>
+              <th class="px-6 py-4">Order</th>
+              <th class="px-6 py-4">Customer</th>
+              <th class="px-6 py-4">Items</th>
+              <th class="px-6 py-4">Amount</th>
+              <th class="px-6 py-4">Payment</th>
+              <th class="px-6 py-4">Status</th>
+              <th class="px-6 py-4">Date</th>
+              <th class="px-6 py-4 text-right">Action</th>
+            </tr>
+          </thead>
+          <tbody id="ordersTableBody" class="text-gray-300">
+            <%- include('./partials/orderRows', { orders, currentPage, limit }) %>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Pagination -->
+      <div id="paginationContainer" class="flex flex-wrap justify-center items-center gap-2 mt-2">
+        <%- include('./partials/pagination', { currentPage, totalPages, query: { search, status, paymentStatus, paymentMethod, dateRange, limit } }) %>
+      </div>
+
+    </main>
+  </div>
+
+  <script>
+    let debounceTimer;
+
+    function getFilters(page = 1) {
+      return {
+        search: document.getElementById('searchInput').value,
+        status: document.getElementById('statusFilter').value,
+        paymentStatus: document.getElementById('paymentStatusFilter').value,
+        dateRange: document.getElementById('dateRangeFilter').value,
+        page,
+        ajax: 1,
+      };
+    }
+
+    async function fetchOrders(page = 1) {
+      const params = new URLSearchParams(getFilters(page));
+      const res = await fetch(`/admin/orders?${params}`, { headers: { Accept: 'application/json' } });
+      const data = await res.json();
+      if (data.success) {
+        document.getElementById('ordersTableBody').innerHTML = data.rows;
+        document.getElementById('paginationContainer').innerHTML = data.pagination;
+        bindPagination();
+      }
+    }
+
+    function bindPagination() {
+      document.querySelectorAll('.pagination-link').forEach(link => {
+        link.addEventListener('click', e => {
+          e.preventDefault();
+          fetchOrders(link.dataset.page);
+        });
+      });
+    }
+
+    function resetFilters() {
+      document.getElementById('searchInput').value = '';
+      document.getElementById('statusFilter').value = '';
+      document.getElementById('paymentStatusFilter').value = '';
+      document.getElementById('dateRangeFilter').value = '';
+      fetchOrders(1);
+    }
+
+    document.getElementById('searchInput').addEventListener('input', () => {
+      clearTimeout(debounceTimer);
+      debounceTimer = setTimeout(() => fetchOrders(1), 400);
+    });
+
+    ['statusFilter', 'paymentStatusFilter', 'dateRangeFilter'].forEach(id => {
+      document.getElementById(id).addEventListener('change', () => fetchOrders(1));
+    });
+
+    bindPagination();
+  </script>
+
+</body>
+</html>

@@ -1,0 +1,39 @@
+<%
+  const makeLink = (page) => {
+    const params = new URLSearchParams(query || {});
+    params.set("page", page);
+    return `/admin/orders?${params.toString()}`;
+  };
+%>
+
+<% if (totalPages > 1) { %>
+  <% if (currentPage > 1) { %>
+    <a
+      href="<%= makeLink(currentPage - 1) %>"
+      data-page="<%= currentPage - 1 %>"
+      class="pagination-link px-4 py-2 rounded-lg bg-white/5 text-gray-200 hover:bg-white/10"
+    >
+      Prev
+    </a>
+  <% } %>
+
+  <% for (let i = 1; i <= totalPages; i++) { %>
+    <a
+      href="<%= makeLink(i) %>"
+      data-page="<%= i %>"
+      class="pagination-link px-4 py-2 rounded-lg <%= i === currentPage ? 'bg-cyan-600 text-white' : 'bg-white/5 text-gray-200 hover:bg-white/10' %>"
+    >
+      <%= i %>
+    </a>
+  <% } %>
+
+  <% if (currentPage < totalPages) { %>
+    <a
+      href="<%= makeLink(currentPage + 1) %>"
+      data-page="<%= currentPage + 1 %>"
+      class="pagination-link px-4 py-2 rounded-lg bg-white/5 text-gray-200 hover:bg-white/10"
+    >
+      Next
+    </a>
+  <% } %>
+<% } %>

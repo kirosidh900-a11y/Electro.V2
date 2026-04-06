@@ -1,0 +1,103 @@
+<% if (!orders || orders.length===0) { %>
+  <div class="bg-white p-6 text-center rounded shadow-sm">
+    <p class="text-gray-600 font-medium">No orders found</p>
+  </div>
+  <% } %>
+
+    <% orders.forEach(order=> { %>
+
+      <% order.items.forEach(item=> { %>
+
+        <a href="/order/details/<%= item._id %>"
+          class="block bg-white border border-gray-200 rounded-lg shadow-sm hover:shadow-md hover:border-blue-400 transition-all duration-200">
+
+          <div class="p-4 md:p-5 flex flex-col sm:flex-row gap-4 items-start sm:items-center">
+
+            <!-- IMAGE -->
+            <div class="w-20 h-20 sm:w-24 sm:h-24 flex-shrink-0 bg-gray-50 rounded flex items-center justify-center">
+              <img src="<%= item.images?.[0] || 'https://via.placeholder.com/150' %>"
+                class="max-h-full max-w-full object-contain">
+            </div>
+
+            <!-- CONTENT -->
+            <div class="flex-1 w-full">
+
+              <!-- TOP -->
+              <div class="flex flex-col sm:flex-row sm:justify-between gap-2">
+
+                <h3 class="text-sm sm:text-base font-semibold text-gray-800 line-clamp-2">
+                  <%= item.name %>
+                </h3>
+
+                <!-- ✅ FIXED PRICE -->
+                <p class="text-sm font-semibold text-gray-900">
+                  ₹<%= item.pricing.finalPrice %>
+                </p>
+
+              </div>
+
+              <!-- STATUS -->
+              <div class="flex items-start gap-2 mt-2">
+
+                <% let statusColor="bg-gray-400" ; let statusText=order.orderStatus; if(order.orderStatus==="placed" ) {
+                  statusColor="bg-yellow-500" ; statusText="Order Placed" ; } else if(order.orderStatus==="shipped" ) {
+                  statusColor="bg-blue-500" ; statusText="Shipped" ; } else if(order.orderStatus==="out_for_delivery" )
+                  { statusColor="bg-purple-500" ; statusText="Out for delivery" ; } else
+                  if(order.orderStatus==="delivered" ) { statusColor="bg-green-500" ; statusText="Delivered" ; } else
+                  if(order.orderStatus==="cancelled" ) { statusColor="bg-red-500" ; statusText="Cancelled" ; } %>
+
+                  <div class="w-2.5 h-2.5 rounded-full mt-1 <%= statusColor %>"></div>
+
+                  <div class="text-sm">
+                    <p class="font-medium text-gray-800">
+                      <%= statusText %>
+                    </p>
+
+                    <% const status=order.orderStatus?.toLowerCase(); %>
+
+                      <% if(status==="cancelled" ) { %>
+
+                        <% const cancelDate=order.cancelledAt || order.updatedAt; %>
+
+                          <p class="text-xs text-red-600">
+                            Order cancelled on
+                            <%= new Date(cancelDate).toDateString() %>
+                          </p>
+
+                          <% } else if(order.delivery?.expectedDate && status !=="delivered" ) { %>
+
+                            <p class="text-xs text-gray-500">
+                              Expected by
+                              <%= new Date(order.delivery.expectedDate).toDateString() %>
+                            </p>
+
+                            <% } %>
+
+                              <% if(order.orderStatus==="delivered" ) { %>
+                                <p class="text-xs text-gray-500">
+                                  Delivered on <%= new Date(order.updatedAt).toDateString() %>
+                                </p>
+                                <% } %>
+                  </div>
+
+              </div>
+
+              <!-- META -->
+              <div class="flex flex-wrap justify-between items-center mt-3 text-xs text-gray-500 gap-2">
+
+                <span>Order ID: <%= order.orderNumber %></span>
+
+                <span>
+                  <%= new Date(order.createdAt).toLocaleDateString() %>
+                </span>
+
+              </div>
+
+            </div>
+
+          </div>
+        </a>
+
+        <% }) %>
+
+          <% }) %>
