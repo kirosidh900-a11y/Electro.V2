@@ -19,7 +19,6 @@ export const createAddress = async (req, res, next) => {
     const { _id: userId } = res.locals.user;
 
     if (!userId) {
-      console.log("user not found!");
       errorResponse(res, "User not logged in!", HTTP_STATUS.CONFLICT);
     }
 

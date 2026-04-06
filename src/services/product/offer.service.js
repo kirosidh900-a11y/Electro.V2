@@ -5,7 +5,6 @@ import Product from "../../models/productSchema.model.js";
 
 import {
   getCache,
-  setCache,
   deleteCacheByPattern,
 } from "../../utils/Redis/cache.js";
 

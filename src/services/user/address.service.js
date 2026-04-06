@@ -5,7 +5,6 @@ import HTTP_STATUS from "../../constant/statusCode.js";
 // CREATE
 export const createAddressService = async (userId, data) => {
   const address = await Address.create({ ...data, userId });
-  console.log(userId);
 
   // ensure single default
   if (data.isDefault) {

@@ -372,7 +372,6 @@ export const getProductDetailsServiceUser = async (productId) => {
     throw new AppError("Product not found", HTTP_STATUS.NOT_FOUND);
   }
 
-  const now = new Date();
 
   // ================= OFFERS =================
   const offers = await getActiveOffers(product);
@@ -398,7 +397,6 @@ export const getProductDetailsServiceUser = async (productId) => {
     .sort({ "variants.price": 1 })
     .lean();
 
-  console.log(product);
 
   return {
     product: productWithPricing,
@@ -559,7 +557,7 @@ export const editVariantService = async (productId, variantId, data) => {
       try {
         await deleteFromCloudinary(imageId);
       } catch (err) {
-        console.error("Cloudinary delete failed:", imageId);
+        console.error("Cloudinary delete failed:", err);
       }
     }
   }
@@ -587,7 +585,7 @@ export const editVariantService = async (productId, variantId, data) => {
       try {
         await deleteFromCloudinary(imageId);
       } catch (err) {
-        console.error("Cloudinary delete failed:", imageId);
+        console.error("Cloudinary delete failed:", err);
       }
 
       variant.product_images[imgIndex] = {

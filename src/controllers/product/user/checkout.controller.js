@@ -1,6 +1,5 @@
 import addressSchemaModel from "../../../models/addressSchema.model.js";
 import {
-  validateCartStockService,
   validateCartStockServiceCheck,
 } from "../../../services/product/cart.service.js";
 import { getCartWithPricing } from "../../../utils/products/getCartWithPricing.js";
@@ -8,12 +7,11 @@ import { getCartWithPricing } from "../../../utils/products/getCartWithPricing.j
 export const getCheckoutPage = async (req, res) => {
   const userId = req.user._id;
 
-  // 🔥 validate stock
+  // validate stock
   const result = await validateCartStockServiceCheck(userId);
-  console.log("Cart stock validation result:", result);
 
   if (!result.success) {
-    // 🍪 store error message in cookie
+    // store error message in cookie
     return res.redirect("/cart");
   }
 
