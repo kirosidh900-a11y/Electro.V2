@@ -45,7 +45,7 @@ const buildDateMatch = (dateRange) => {
   }
 };
 
-// 🔥 MAIN SERVICE
+// MAIN SERVICE
 export const getAdminOrdersService = async ({
   page = 1,
   limit = 5,
@@ -56,7 +56,7 @@ export const getAdminOrdersService = async ({
 }) => {
   const skip = (page - 1) * limit;
 
-  const pipeline = []; 
+  const pipeline = [];
 
   // OIN USER
   pipeline.push(
@@ -111,7 +111,7 @@ export const getAdminOrdersService = async ({
   // EXECUTE
   const orders = await Order.aggregate(pipeline);
 
-  // TOTAL COUNT 
+  // TOTAL COUNT
   const total = await Order.countDocuments(match);
 
   // FORMAT
@@ -136,4 +136,42 @@ export const getAdminOrdersService = async ({
     total,
     totalPages: Math.ceil(total / limit),
   };
+};
+
+export const getAdminOrderDetailsService = async (orderId) => {
+  const order = await Order.findById(orderId)
+    .populate("userId", "name email phone createdAt isBlock")
+    .lean();
+
+  if (!order) throw new Error("Order not found");
+
+  const items = await orderItem.find({ orderId }).lean();
+
+  return {
+    order,
+    items,
+    user: order.userId,
+  };
+};
+
+export const updateOrderStatusService = async (orderId, status) => {
+  const validStatuses = ["placed", "confirmed", "shipped", "out_for_delivery", "delivered", "cancelled"];
+  if (!validStatuses.includes(status)) throw new Error("Invalid status");
+
+  const update = { orderStatus: status };
+  if (status === "delivered") update["delivery.deliveredAt"] = new Date();
+
+  await Order.findByIdAndUpdate(orderId, update);
+};
+
+export const cancelOrderService = async (orderId, reason, comments) => {
+  await Order.findByIdAndUpdate(orderId, {
+    orderStatus: "cancelled",
+    isCancelled: true,
+    cancelReason: reason,
+    cancelComments: comments,
+    cancelledAt: new Date(),
+  });
+
+  await orderItem.updateMany({ orderId }, { itemStatus: "cancelled", cancelReason: reason });
 };

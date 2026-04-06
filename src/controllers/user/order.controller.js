@@ -142,10 +142,11 @@ export const getOrderDetailsPage = async (req, res, next) => {
         orderStatus: data.orderStatus,
         delivery: data.delivery,
         pricing: data.pricing,
-
-        
-        updatedAt: data.updatedAt,
+        isCancelled: data.isCancelled,
+        cancelReason: data.cancelReason,
+        cancelComments: data.cancelComments,
         cancelledAt: data.cancelledAt,
+        updatedAt: data.updatedAt,
       },
       product: data.product,
     });

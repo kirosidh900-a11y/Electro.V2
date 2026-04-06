@@ -313,7 +313,6 @@ export const getOrderDetailsService = async ({ userId, orderItemId }) => {
     orderNumber: order.orderNumber,
     pricing: item.pricing,
 
-    // 🔥 use item directly (already has all data)
     product: {
       name: item.name,
       attributes: item.attributes,
@@ -324,13 +323,13 @@ export const getOrderDetailsService = async ({ userId, orderItemId }) => {
       createdAt: item.createdAt,
     },
 
-    // order level info
     shippingAddress: order.shippingAddress,
     payment: order.payment,
     orderStatus: order.orderStatus,
     delivery: order.delivery,
-
-    
+    isCancelled: order.isCancelled,
+    cancelReason: order.cancelReason,
+    cancelComments: order.cancelComments,
     updatedAt: order.updatedAt,
     cancelledAt: order.cancelledAt,
   };

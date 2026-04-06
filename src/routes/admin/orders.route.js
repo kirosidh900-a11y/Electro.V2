@@ -1,13 +1,16 @@
 import { Router } from "express";
 const router = Router();
 import { isAuth } from "../../middlewares/admin/authAdmin.middleware.js";
-import { getAdminOrdersPage } from "../../controllers/admin/order.controller.js";
+import {
+  getAdminOrdersPage,
+  getAdminOrderDetailsPage,
+  updateOrderStatus,
+  cancelOrder,
+} from "../../controllers/admin/order.controller.js";
 
 router.get("/", isAuth, getAdminOrdersPage);
-
-// 🔥 ORDER DETAILS (NEXT STEP)
-router.get("/:orderId", isAuth, (req, res) => {
-  res.send("Order Details Page");
-});
+router.get("/:orderId", isAuth, getAdminOrderDetailsPage);
+router.patch("/:orderId/status", isAuth, updateOrderStatus);
+router.patch("/:orderId/cancel", isAuth, cancelOrder);
 
 export default router;

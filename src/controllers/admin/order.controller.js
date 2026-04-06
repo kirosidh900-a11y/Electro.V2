@@ -1,4 +1,10 @@
-import { getAdminOrdersService } from "../../services/admin/order.service.js";
+import {
+  getAdminOrderDetailsService,
+  getAdminOrdersService,
+  updateOrderStatusService,
+  cancelOrderService,
+} from "../../services/admin/order.service.js";
+import renderView from "../../utils/admin/renderView.util.js";
 
 export const getAdminOrdersPage = async (req, res, next) => {
   try {
@@ -25,46 +31,34 @@ export const getAdminOrdersPage = async (req, res, next) => {
 
     // CHECK AJAX REQUEST
     const isAjax =
-      req.xhr ||
-      req.headers.accept?.includes("json") ||
-      req.query.ajax === "1";
+      req.xhr || req.headers.accept?.includes("json") || req.query.ajax === "1";
 
     if (isAjax) {
       // RENDER PARTIALS TO STRING
-      const rows = await new Promise((resolve, reject) => {
-        res.render(
-          "admin/orders/partials/orderRows",
-          { orders, currentPage: page, limit },
-          (err, html) => {
-            if (err) return reject(err);
-            resolve(html);
-          }
-        );
+      const rows = await renderView(res, "admin/orders/partials/orderRows", {
+        orders,
+        currentPage: page,
+        limit,
       });
 
-      const pagination = await new Promise((resolve, reject) => {
-        res.render(
-          "admin/orders/partials/pagination",
-          {
-            currentPage: page,
-            totalPages,
-            query: {
-              search,
-              status,
-              paymentStatus,
-              paymentMethod,
-              dateRange,
-              limit,
-            },
+      const pagination = await renderView(
+        res,
+        "admin/orders/partials/pagination",
+        {
+          currentPage: page,
+          totalPages,
+          query: {
+            search,
+            status,
+            paymentStatus,
+            paymentMethod,
+            dateRange,
+            limit,
           },
-          (err, html) => {
-            if (err) return reject(err);
-            resolve(html);
-          }
-        );
-      });
+        },
+      );
 
-      // 🔥 SEND JSON RESPONSE
+      // SEND JSON RESPONSE
       return res.json({
         success: true,
         rows,
@@ -73,7 +67,7 @@ export const getAdminOrdersPage = async (req, res, next) => {
       });
     }
 
-    // 🔥 NORMAL PAGE LOAD
+    //NORMAL PAGE LOAD
     return res.render("admin/orders/index", {
       title: "Orders",
       orders,
@@ -86,12 +80,54 @@ export const getAdminOrdersPage = async (req, res, next) => {
       dateRange,
       limit,
     });
-
   } catch (error) {
     console.error("Admin Orders Error:", error);
 
     if (!res.headersSent) {
       return next(error);
     }
+  }
+};
+
+export const updateOrderStatus = async (req, res, next) => {
+  try {
+    const { orderId } = req.params;
+    const { status } = req.body;
+
+    await updateOrderStatusService(orderId, status);
+
+    return res.json({ success: true, message: "Order status updated" });
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const cancelOrder = async (req, res, next) => {
+  try {
+    const { orderId } = req.params;
+    const { reason, comments } = req.body;
+
+    await cancelOrderService(orderId, reason, comments);
+
+    return res.json({ success: true, message: "Order cancelled" });
+  } catch (error) {
+    next(error);
+  }
+};
+export const getAdminOrderDetailsPage = async (req, res, next) => {
+  try {
+    const { orderId } = req.params;
+
+    const data = await getAdminOrderDetailsService(orderId);
+
+    return res.render("admin/orders/details", {
+      title: "Order Details",
+      order: data.order,
+      items: data.items,
+      user: data.user,
+    });
+  } catch (error) {
+    console.error("Admin Order Details Error:", error);
+    next(error);
   }
 };
