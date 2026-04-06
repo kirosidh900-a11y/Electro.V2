@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+
+<head>
+        <%- include('../../partials/head') %>
+</head>
+
+<body class="min-h-screen flex">
+        <%- include('../../partials/admin/sidebar') %>
+
+                <div id="mainContent" class="flex-1 flex flex-col min-w-0 transition-all duration-300">
+                        <%- include('../../partials/admin/header') %>
+
+                                <main class="flex-1 p-4 sm:p-6 lg:p-8 w-full">
+                                        <%- include("./partials/header", { title }) %>
+
+                                                <!-- FILTER BAR -->
+                                                <div
+                                                        class="w-full bg-[#0b1220] border border-white/5 rounded-3xl shadow-xl p-4 mb-6">
+                                                        <div
+                                                                class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-5 gap-3">
+                                                                <div class="xl:col-span-2">
+                                                                        <label
+                                                                                class="block text-xs text-gray-400 mb-1">Search</label>
+                                                                        <input id="searchInput" type="text"
+                                                                                value="<%= search || '' %>"
+                                                                                placeholder="Order ID, user name, email"
+                                                                                class="w-full bg-[#0f172a] border border-white/10 px-3 py-2 rounded-lg text-sm text-gray-200 placeholder:text-gray-500 focus:outline-none">
+                                                                </div>
+
+                                                                <div>
+                                                                        <label class="block text-xs text-gray-400 mb-1">Order
+                                                                                Status</label>
+                                                                        <select id="statusFilter"
+                                                                                class="w-full bg-[#0f172a] border border-white/10 px-3 py-2 rounded-lg text-sm text-gray-200">
+                                                                                <option value="">All</option>
+                                                                                <option value="placed"
+                                                                                        <%=status==='placed'
+                                                                                        ? 'selected' : '' %>>Placed
+                                                                                </option>
+                                                                                <option value="confirmed"
+                                                                                        <%=status==='confirmed'
+                                                                                        ? 'selected' : '' %>>Confirmed
+                                                                                </option>
+                                                                                <option value="shipped"
+                                                                                        <%=status==='shipped'
+                                                                                        ? 'selected' : '' %>>Shipped
+                                                                                </option>
+                                                                                <option value="out_for_delivery"
+                                                                                        <%=status==='out_for_delivery'
+                                                                                        ? 'selected' : '' %>>Out for
+                                                                                        Delivery</option>
+                                                                                <option value="delivered"
+                                                                                        <%=status==='delivered'
+                                                                                        ? 'selected' : '' %>>Delivered
+                                                                                </option>
+                                                                                <option value="cancelled"
+                                                                                        <%=status==='cancelled'
+                                                                                        ? 'selected' : '' %>>Cancelled
+                                                                                </option>
+                                                                        </select>
+                                                                </div>
+                                                                <!-- 
+          <div>
+            <label class="block text-xs text-gray-400 mb-1">Payment Status</label>
+            <select id="paymentStatusFilter" class="w-full bg-[#0f172a] border border-white/10 px-3 py-2 rounded-lg text-sm text-gray-200">
+              <option value="">All</option>
+              <option value="pending" <%= paymentStatus === 'pending' ? 'selected' : '' %>>Pending</option>
+              <option value="paid" <%= paymentStatus === 'paid' ? 'selected' : '' %>>Paid</option>
+              <option value="failed" <%= paymentStatus === 'failed' ? 'selected' : '' %>>Failed</option>
+              <option value="refunded" <%= paymentStatus === 'refunded' ? 'selected' : '' %>>Refunded</option>
+            </select>
+          </div> -->
+
+                                                                <div>
+                                                                        <label class="block text-xs text-gray-400 mb-1">Date
+                                                                                Range</label>
+                                                                        <select id="dateRangeFilter"
+                                                                                class="w-full bg-[#0f172a] border border-white/10 px-3 py-2 rounded-lg text-sm text-gray-200">
+                                                                                <option value="">All Time</option>
+                                                                                <option value="today"
+                                                                                        <%=dateRange==='today'
+                                                                                        ? 'selected' : '' %>>Today
+                                                                                </option>
+                                                                                <option value="7d" <%=dateRange==='7d'
+                                                                                        ? 'selected' : '' %>>Last 7 Days
+                                                                                </option>
+                                                                                <option value="30d" <%=dateRange==='30d'
+                                                                                        ? 'selected' : '' %>>Last 30
+                                                                                        Days</option>
+                                                                                <option value="90d" <%=dateRange==='90d'
+                                                                                        ? 'selected' : '' %>>Last 90
+                                                                                        Days</option>
+                                                                                <option value="thisYear"
+                                                                                        <%=dateRange==='thisYear'
+                                                                                        ? 'selected' : '' %>>This Year
+                                                                                </option>
+                                                                        </select>
+                                                                </div>
+                                                        </div>
+
+                                                        <div class="flex items-center gap-3 mt-4">
+                                                                <button id="clearFiltersBtn"
+                                                                        class="px-4 py-2 bg-white/5 hover:bg-white/10 text-gray-200 rounded-lg text-sm">
+                                                                        Clear Filters
+                                                                </button>
+
+                                                                <button id="applyFiltersBtn"
+                                                                        class="px-4 py-2 bg-cyan-600 hover:bg-cyan-700 text-white rounded-lg text-sm">
+                                                                        Apply
+                                                                </button>
+                                                        </div>
+                                                </div>
+
+                                                <!-- TABLE -->
+                                                <div
+                                                        class="w-full bg-[#0b1220] border border-white/5 rounded-3xl shadow-xl overflow-x-auto">
+                                                        <table class="w-full text-sm text-left text-gray-300">
+                                                                <thead
+                                                                        class="border-b border-white/10 text-gray-400 uppercase text-xs">
+                                                                        <tr>
+                                                                                <th class="px-6 py-4">#</th>
+                                                                                <th class="px-6 py-4">Order ID</th>
+                                                                                <th class="px-6 py-4">User</th>
+                                                                                <th class="px-6 py-4">Items</th>
+                                                                                <th class="px-6 py-4">Amount</th>
+                                                                                <th class="px-6 py-4">Payment</th>
+                                                                                <th class="px-6 py-4">Status</th>
+                                                                                <th class="px-6 py-4">Date</th>
+                                                                                <th class="px-6 py-4 text-right">Actions
+                                                                                </th>
+                                                                        </tr>
+                                                                </thead>
+
+                                                                <tbody id="ordersTableBody">
+                                                                        <%- include("./partials/orderRows", { orders,
+                                                                                currentPage, limit }) %>
+                                                                </tbody>
+                                                        </table>
+                                                </div>
+
+                                                <!-- PAGINATION -->
+                                                <div id="pagination" class="flex flex-wrap justify-center gap-2 mt-8">
+                                                        <%- include("./partials/pagination", { currentPage, totalPages,
+                                                                query: { search, status, paymentMethod, paymentStatus,
+                                                                dateRange, limit  } }) %>
+                                                </div>
+                                </main>
+                </div>
+
+<script>
+  const searchInput = document.getElementById("searchInput");
+  const statusFilter = document.getElementById("statusFilter");
+  const dateRangeFilter = document.getElementById("dateRangeFilter");
+  const applyFiltersBtn = document.getElementById("applyFiltersBtn");
+  const clearFiltersBtn = document.getElementById("clearFiltersBtn");
+  const ordersTableBody = document.getElementById("ordersTableBody");
+  const pagination = document.getElementById("pagination");
+
+  const queryState = {
+    page: <%= currentPage %>,
+    limit: <%= limit %>,
+  };
+
+  function buildQuery(page = 1) {
+    const params = new URLSearchParams({
+      page,
+      limit: queryState.limit,
+      search: searchInput.value.trim(),
+      status: statusFilter.value,
+      dateRange: dateRangeFilter.value,
+      ajax: "1",
+    });
+
+    return params.toString();
+  }
+
+  async function loadOrders(page = 1) {
+    try {
+      const res = await fetch(`/admin/orders?${buildQuery(page)}`, {
+        headers: {
+          "X-Requested-With": "XMLHttpRequest",
+          "Accept": "application/json",
+        },
+      });
+
+      const data = await res.json();
+
+      if (!data.success) throw new Error("Failed");
+
+      ordersTableBody.innerHTML = data.rows;
+      pagination.innerHTML = data.pagination;
+      queryState.page = page;
+
+    } catch (error) {
+      ordersTableBody.innerHTML = `
+        <tr>
+          <td colspan="9" class="text-center py-12 text-red-400">
+            Failed to load orders
+          </td>
+        </tr>
+      `;
+    }
+  }
+
+  // 🔥 SEARCH (debounce)
+  let timer;
+  searchInput.addEventListener("input", () => {
+    clearTimeout(timer);
+    timer = setTimeout(() => loadOrders(1), 300);
+  });
+
+  // 🔥 FILTER CHANGE
+  [statusFilter, dateRangeFilter].forEach(el =>
+    el.addEventListener("change", () => loadOrders(1))
+  );
+
+  // 🔥 APPLY BUTTON
+  applyFiltersBtn.addEventListener("click", () => loadOrders(1));
+
+  // 🔥 CLEAR BUTTON (ONLY ONCE)
+  clearFiltersBtn.addEventListener("click", () => {
+    searchInput.value = "";
+    statusFilter.value = "";
+    dateRangeFilter.value = "";
+    loadOrders(1);
+  });
+
+  // 🔥 PAGINATION
+  pagination.addEventListener("click", (e) => {
+    const link = e.target.closest(".pagination-link");
+    if (!link) return;
+
+    e.preventDefault();
+    loadOrders(Number(link.dataset.page));
+  });
+</script>
+</body>
+
+</html>
