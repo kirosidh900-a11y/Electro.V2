@@ -983,7 +983,7 @@
                                 return showToast("Please select a payment method", "warning");
                         }
 
-                        // 🔥 STEP 1: USER CONFIRMATION
+                        // USER CONFIRMATION
                         const confirm = await customConfirm(
                                 "Confirm Order",
                                 `You are about to place an order using ${selectedPayment.value.toUpperCase()} payment. Continue?`
@@ -998,7 +998,7 @@
                         btn.innerHTML = `<span class="flex items-center gap-2"><i class="fa-solid fa-circle-notch fa-spin"></i> Validating...</span>`;
 
                         try {
-                                // 🔥 STEP 2: VALIDATE STOCK AGAIN
+                                //VALIDATE STOCK AGAIN
                                 const stockRes = await fetch("/api/user/cart/validate-stock-cart");
                                 const stockData = await stockRes.json();
 
@@ -1008,7 +1008,7 @@
                                         btn.disabled = false;
                                         btn.innerHTML = originalContent;
 
-                                        // 🔥 redirect to cart
+                                        // redirect to cart
                                         setTimeout(() => {
                                                 window.location.href = "/cart";
                                         }, 2500);
@@ -1016,7 +1016,7 @@
                                         return;
                                 }
 
-                                // 🔥 STEP 3: PLACE ORDER
+                                //  PLACE ORDER
                                 btn.innerHTML = `<span class="flex items-center gap-2"><i class="fa-solid fa-circle-notch fa-spin"></i> Processing Payment...</span>`;
                                 const response = await fetch('/api/user/order/place', {
                                         method: 'POST',

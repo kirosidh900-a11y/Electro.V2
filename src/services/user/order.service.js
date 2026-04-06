@@ -8,7 +8,6 @@ import { getActiveOffers } from "../../utils/products/offers.util.js";
 
 import AppError from "../../utils/partials/AppError.utils.js";
 import HTTP_STATUS from "../../constant/statusCode.js";
-import mongoose from "mongoose";
 import orderItem from "../../models/orderItemSchema.model.js";
 
 const generateOrderNumber = async () => {

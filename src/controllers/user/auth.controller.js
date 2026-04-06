@@ -135,8 +135,6 @@ export const resendOtp = async (req, res, next) => {
   try {
     const { email, purpose, phone } = req.body;
 
-    console.log(req.body);
-
     const otpDoc = await findOtp(email, purpose);
     const otpDoc2 = await findOtp(phone, purpose);
 

@@ -41,10 +41,6 @@ import {
 
 import { cartSchema } from "../../validations/products.validator.js";
 
-import {
-  validateCartBeforeCheckout,
-} from "../../services/product/cart.service.js";
-
 import { getCheckoutPage, validateCartStockCheck } from "../../controllers/product/user/checkout.controller.js";
 import { getOrderListingPage } from "../../controllers/user/order.controller.js";
 
@@ -80,11 +76,6 @@ router
 router.get("/cart/validate-stock", requireAuth, validateCartStock);
 router.get("/cart/validate-stock-cart", requireAuth, validateCartStockCheck);
 router.get("/cart/checkout", requireAuth, getCheckoutPage);
-
-router.post("/cart/checkout", validateCartBeforeCheckout, (req, res) => {
-  console.log("Cart validated successfully. Proceeding to checkout.");
-  res.status(200).json({ message: "Cart validated. Ready for checkout." });
-});
 
 
 

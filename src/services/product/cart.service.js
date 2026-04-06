@@ -361,7 +361,6 @@ export const getWishlistService = async (userId) => {
 };
 
 export const validateCartStockServiceCheck = async (userId) => {
-  console.log("Validating cart stock for user:", userId);
 
   const cart = await Cart.findOne({ userId })
     .populate("items.productId");
@@ -381,13 +380,6 @@ export const validateCartStockServiceCheck = async (userId) => {
     );
 
     const stock = variant?.stock ?? 0;
-
-    console.log("Checking:", {
-      product: product.name,
-      variantId: item.variantId,
-      stock,
-      quantity: item.quantity
-    });
 
     // ❌ no variant found
     if (!variant) {
@@ -421,8 +413,6 @@ export const validateCartStockServiceCheck = async (userId) => {
       });
     }
   });
-
-  console.log("Invalid items:", invalidItems);
 
   if (invalidItems.length > 0) {
     return {

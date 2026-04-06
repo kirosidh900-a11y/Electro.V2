@@ -239,7 +239,6 @@ export const getCartPage = async (req, res, next) => {
     );
 
     cart.items = updatedItems.filter(Boolean);
-    console.log("Cart with pricing:", cart.items[0]);
 
     res.render("user/home/cart", { cart });
   } catch (error) {

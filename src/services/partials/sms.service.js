@@ -21,7 +21,7 @@ export const sendSMS = async ({ phone, message }) => {
       to: `+91${phone}`, // 🇮🇳 India format
     });
 
-    console.log("Sent SMS OTP Response: ", res.body);
+    console.warn("Sent SMS OTP Response: ", res.body);
 
     return res;
   } catch (error) {

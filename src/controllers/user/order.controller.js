@@ -12,7 +12,6 @@ import renderView from "../../utils/admin/renderView.util.js";
 export const placeOrder = async (req, res, next) => {
   try {
     const userId = req.user._id;
-    console.log("Place oder hited", userId);
     const { addressId, paymentMethod } = req.body;
 
     const order = await placeOrderService({
@@ -28,11 +27,11 @@ export const placeOrder = async (req, res, next) => {
     });
   } catch (err) {
     console.error("Order Error:", err);
-    res.status(400).json({ success: false, message: err.message });
+    next(err);
   }
 };
 
-export const getOrderSuccessPage = async (req, res, next) => {
+export const getOrderSuccessPage = async (req, res) => {
   try {
     const userId = req.user._id;
     const orderId = req.params.orderId;
@@ -59,8 +58,7 @@ export const getOrderListingPage = async (req, res) => {
     const search = req.query.search || "";
 
     const userId = req.user._id;
-    console.log("Enterd");
-
+    
     // 🔥 AJAX MODE
     if (req.headers.accept?.includes("application/json")) {
       const orderData = await getOrderListService({

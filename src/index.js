@@ -26,7 +26,7 @@ async function connectServer() {
 
   // connection listener
   io.on("connection", (socket) => {
-    console.log("User connected:", socket.id);
+    console.warn("User connected stocket:", socket.id);
   });
 
   // start server
