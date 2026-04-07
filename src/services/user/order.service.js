@@ -338,48 +338,53 @@ export const getOrderDetailsService = async ({ userId, orderId }) => {
 export const cancelOrderService = async ({
   userId,
   orderId,
+  itemId,
   reason,
   comments,
 }) => {
   const order = await Order.findOne({ _id: orderId, userId });
 
   if (!order) {
-    throw new Error("Order not found");
+    throw new AppError("Order not found", HTTP_STATUS.NOT_FOUND);
   }
 
-  const status = order.orderStatus.toLowerCase();
-
-  if (status === "delivered") {
-    throw new Error("Delivered orders cannot be cancelled");
+  if (order.orderStatus.toLowerCase() === "delivered") {
+    throw new AppError(
+      "Delivered orders cannot be cancelled",
+      HTTP_STATUS.BAD_REQUEST,
+    );
   }
 
-  if (order.isCancelled) {
-    throw new Error("Order already cancelled");
-  }
 
-  // GET ITEMS
-  const items = await orderItem.find({ orderId });
+  // 🔥 ITEM LEVEL CANCEL
+  if (itemId) {
+    const item = await orderItem.findOne({
+      _id: itemId,
+      orderId,
+      userId,
+    });
 
-  for (const item of items) {
-    let updatedVariant = null;
+    if (!item) {
+      throw new AppError("Item not found", HTTP_STATUS.NOT_FOUND);
+    }
+
+    if (!["placed", "confirmed"].includes(item.itemStatus)) {
+      throw new AppError(
+        "Item cannot be cancelled at this stage",
+        HTTP_STATUS.BAD_REQUEST,
+      );
+    }
 
     // STOCK ROLLBACK
     if (item.variantId) {
-      const product = await Products.findOneAndUpdate(
+      await Products.updateOne(
         {
           _id: item.productId,
           "variants._id": item.variantId,
         },
         {
-          $inc: {
-            "variants.$.stock": item.quantity,
-          },
+          $inc: { "variants.$.stock": item.quantity },
         },
-        { new: true },
-      );
-
-      updatedVariant = product.variants.find(
-        (v) => v._id.toString() === item.variantId.toString(),
       );
     } else {
       await Products.updateOne(
@@ -388,21 +393,79 @@ export const cancelOrderService = async ({
       );
     }
 
-    // UPDATE ITEM STATUS
+    //UPDATE ITEM ONLY
     item.itemStatus = "cancelled";
+    item.cancel = {
+      reason,
+      comments,
+      requestedAt: new Date(),
+      cancelledAt: new Date(),
+    };
+
     await item.save();
 
-    // SOCKET EMIT (REAL-TIME UPDATE)
-    if (global.io && updatedVariant) {
-      global.io.emit("stockUpdated", {
-        productId: item.productId,
-        variantId: item.variantId,
-        stock: updatedVariant.stock,
-      });
-    }
+    //UPDATE ORDER PRICING ONLY (IMPORTANT)
+    order.pricing.finalAmount -= item.pricing.total;
+    order.pricing.subtotal -= item.pricing.total;
+
+    // (optional) adjust GST if needed
+    order.pricing.gstTotal -= item.pricing.gstAmount || 0;
+
+    await order.save();
+
+    return {
+      message: "Item cancelled successfully",
+    };
   }
 
-  //UPDATE ORDER
+  // 🔥 =============================
+  // 🔥 FULL ORDER CANCEL
+  // 🔥 =============================
+
+  const items = await orderItem.find({ orderId, userId });
+
+  let cancelledCount = 0;
+
+  for (const item of items) {
+    if (!["placed", "confirmed"].includes(item.itemStatus)) continue;
+
+    if (item.variantId) {
+      await Products.updateOne(
+        {
+          _id: item.productId,
+          "variants._id": item.variantId,
+        },
+        {
+          $inc: { "variants.$.stock": item.quantity },
+        },
+      );
+    } else {
+      await Products.updateOne(
+        { _id: item.productId },
+        { $inc: { stock: item.quantity } },
+      );
+    }
+
+    item.itemStatus = "cancelled";
+    item.cancel = {
+      reason,
+      comments,
+      requestedAt: new Date(),
+      cancelledAt: new Date(),
+    };
+
+    await item.save();
+    cancelledCount++;
+  }
+
+  if (cancelledCount === 0) {
+    throw new AppError(
+      "No items eligible for cancellation",
+      HTTP_STATUS.BAD_REQUEST,
+    );
+  }
+
+  // 🔥 UPDATE ORDER FULL CANCEL
   order.orderStatus = "cancelled";
   order.isCancelled = true;
   order.cancelReason = reason;
@@ -411,7 +474,9 @@ export const cancelOrderService = async ({
 
   await order.save();
 
-  return order;
+  return {
+    message: `${cancelledCount} item(s) cancelled successfully`,
+  };
 };
 
 export const returnOrderItemService = async ({

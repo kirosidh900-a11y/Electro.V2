@@ -129,7 +129,7 @@
         <div class="px-6 py-4 border-b flex items-center justify-between">
           <h2 class="text-sm font-bold text-gray-800">Order Items (<%= items.length %>)</h2>
           <% if(['placed','confirmed'].includes(order.orderStatus) && !order.isCancelled) { %>
-            <button onclick="openCancelModal()"
+            <button onclick="openCancelModal(false)"
               class="text-xs text-red-600 border border-red-200 px-3 py-1.5 rounded-lg hover:bg-red-50 font-semibold transition flex items-center gap-1.5">
               <i class="fa-solid fa-ban text-[10px]"></i> Cancel Order
             </button>
@@ -182,8 +182,14 @@
                     class="text-xs text-blue-600 border border-blue-200 px-2.5 py-1 rounded-lg hover:bg-blue-50 font-medium transition">
                     Return
                   </button>
+                 
                 <% } %>
-              </div>
+                <% if(['placed','confirmed'].includes(order.orderStatus) && item.itemStatus !=='cancelled' && items.length > 1) { %>
+                  <button onclick="openCancelModal(true, '<%= item._id %>')"
+                    class="text-xs text-red-600 border border-red-200 px-2.5 py-1 rounded-lg hover:bg-red-50 font-medium transition">
+                    Cancel Item
+                  </button>
+                  <% } %>     </div>
             </div>
           <% }) %>
         </div>
@@ -414,36 +420,78 @@
     document.body.classList.toggle('modal-active');
   }
 
-  function openCancelModal() { toggleModal('cancelModal'); }
+  let cancelContext = {
+  isSingle: false,
+  itemId: null
+};
 
+function openCancelModal(isSingle = false, itemId = null) {
+  cancelContext.isSingle = isSingle;
+  cancelContext.itemId = itemId;
+
+  //  update modal title
+  const title = document.querySelector("#cancelModal h3");
+    const form = document.querySelector("#cancelModal form");
+    form.reset(); // 🔥 clear old values
+
+  if (title) {
+    title.innerText = isSingle ? "Cancel Item" : "Cancel Order";
+  }
+
+  toggleModal('cancelModal');
+}
   function openReturnModal(itemId) {
     document.getElementById('returnItemId').value = itemId;
     toggleModal('returnModal');
   }
 
   async function submitCancel(e, orderId) {
-    e.preventDefault();
-    const form = e.target;
-    const btn = document.getElementById('cancel-submit-btn');
-    btn.textContent = 'Cancelling...';
-    btn.disabled = true;
-    try {
-      const res = await fetch(`/orders/${orderId}/cancel`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
-        body: JSON.stringify({ reason: form.cancelReason.value, comments: form.cancelComments.value }),
-        credentials: 'include'
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.message || 'Cancel failed');
-      toggleModal('cancelModal');
-      setTimeout(() => location.reload(), 600);
-    } catch (err) {
-      btn.textContent = 'Confirm Cancellation';
-      btn.disabled = false;
-      window.showToast ? showToast(err.message, 'error') : alert(err.message);
+  e.preventDefault();
+
+  const form = e.target;
+  const btn = document.getElementById('cancel-submit-btn');
+
+  btn.textContent = 'Cancelling...';
+  btn.disabled = true;
+
+  try {
+    let url = "";
+    let body = {
+      reason: form.cancelReason.value,
+      comments: form.cancelComments.value
+    };
+
+    if (cancelContext.isSingle) {
+      // ITEM CANCEL
+      url = `/orders/${orderId}/item/${cancelContext.itemId}/cancel`;
+    } else {
+      // ORDER CANCEL
+      url = `/orders/${orderId}/cancel`;
     }
+
+    const res = await fetch(url, {
+      method: 'PATCH',
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json'
+      },
+      body: JSON.stringify(body),
+      credentials: 'include'
+    });
+
+    const data = await res.json();
+
+    if (!res.ok) throw new Error(data.message || 'Cancel failed');
+
+    toggleModal('cancelModal');
+    setTimeout(() => location.reload(), 600);
+
+  } catch (err) {
+    btn.textContent = 'Confirm Cancellation';
+    btn.disabled = false;
+    showToast(err.message, 'error');
   }
+}
 
   async function submitReturn(e) {
     e.preventDefault();

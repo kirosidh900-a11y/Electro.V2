@@ -135,12 +135,24 @@ export const getOrderDetailsPage = async (req, res, next) => {
 export const cancelOrder = async (req, res, next) => {
   try {
     const userId = req.user._id;
-    const { orderId } = req.params;
+    const { orderId, itemId } = req.params; 
     const { reason, comments } = req.body;
 
-    await cancelOrderService({ userId, orderId, reason, comments });
+    console.log("Cancel Order Request:", { userId, orderId, itemId, reason, comments });
 
-    res.status(200).json({ success: true, message: "Order cancelled successfully" });
+    const result = await cancelOrderService({
+      userId,
+      orderId,
+      itemId,  
+      reason,
+      comments,
+    });
+
+    return res.status(200).json({
+      success: true,
+      message: result.message,
+    });
+
   } catch (error) {
     console.error("Cancel Order Error:", error);
     next(error);

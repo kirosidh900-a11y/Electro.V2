@@ -30,7 +30,10 @@ const orderItemSchema = new Schema(
     attributes: Object,
     images: [String],
 
-    quantity: Number,
+    quantity: {
+      type: Number,
+      required: true,
+    },
 
     pricing: {
       regularPrice: Number,
@@ -42,24 +45,62 @@ const orderItemSchema = new Schema(
       discountAmount: Number,
     },
 
-    // ITEM LEVEL STATUS
+    // ITEM STATUS 
     itemStatus: {
       type: String,
       enum: [
         "placed",
         "confirmed",
         "shipped",
+        "out_for_delivery",
         "delivered",
+
+        "cancel_requested",
         "cancelled",
+
+        "return_requested",
+        "return_approved",
+        "return_rejected",
         "returned",
+
+        "refund_pending",
+        "refund_processed",
       ],
       default: "placed",
+      index: true,
     },
 
-    cancelReason: String,
-    returnReason: String,
+    // 🔴 CANCEL INFO
+    cancel: {
+      reason: String,
+      comments: String,
+      requestedAt: Date,
+      cancelledAt: Date,
+    },
+
+    // 🟣 RETURN INFO
+    return: {
+      reason: String,
+      comments: String,
+      requestedAt: Date,
+      approvedAt: Date,
+      rejectedAt: Date,
+      completedAt: Date,
+      rejectReason: String, 
+    },
+
+    // REFUND INFO
+    refund: {
+      status: {
+        type: String,
+        enum: ["none", "pending", "processed"],
+        default: "none",
+      },
+      amount: Number,
+      processedAt: Date,
+    },
   },
-  { timestamps: true },
+  { timestamps: true }
 );
 
 export default mongoose.model("OrderItem", orderItemSchema);
