@@ -240,98 +240,99 @@ export const getOrderSuccessService = async ({ userId, orderId }) => {
   return order;
 };
 
-export const getOrderListService = async ({ userId, page, limit, search }) => {
+export const getOrderListService = async ({
+  userId,
+  page = 1,
+  limit = 5,
+  search,
+}) => {
   const skip = (page - 1) * limit;
 
-  let matchedItems = [];
+  let orderIdsFromItems = [];
 
-  //SEARCH ITEMS DIRECTLY
+  // SEARCH IN ORDER ITEMS (PRODUCT NAME)
   if (search && search.trim() !== "") {
-    matchedItems = await orderItem
+    const normalizedSearch = search.trim();
+
+    const matchedItems = await orderItem
       .find({
         userId,
-        name: { $regex: search, $options: "i" },
+        name: { $regex: normalizedSearch, $options: "i" },
       })
-      .lean();
-  } else {
-    matchedItems = await orderItem.find({ userId }).lean();
+      .select("orderId");
+
+    orderIdsFromItems = matchedItems.map((i) => i.orderId);
   }
 
-  //PAGINATION ON ITEMS
-  const paginatedItems = matchedItems
-    .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
-    .slice(skip, skip + limit);
+  // BUILD ORDER QUERY
+  const query = { userId };
 
-  const orderIds = [...new Set(paginatedItems.map((i) => i.orderId))];
+  if (search && search.trim() !== "") {
+    const normalizedSearch = search.trim();
 
-  // GET RELATED ORDERS
-  const orders = await Order.find({
-    _id: { $in: orderIds },
-  }).lean();
+    query.$or = [
+      { orderNumber: { $regex: normalizedSearch, $options: "i" } },
+      { _id: { $in: orderIdsFromItems } }, //MATCH FROM ITEMS
+    ];
+  }
 
-  //  MERGE ONLY MATCHED ITEMS
-  const finalOrders = paginatedItems.map((item) => {
-    const order = orders.find((o) => String(o._id) === String(item.orderId));
+  // GET ORDERS
+  const total = await Order.countDocuments(query);
+
+  const orders = await Order.find(query)
+    .sort({ createdAt: -1 })
+    .skip(skip)
+    .limit(limit)
+    .lean();
+
+  // GET ITEMS
+  const orderIds = orders.map((o) => o._id);
+
+  const orderItems = await orderItem
+    .find({
+      orderId: { $in: orderIds },
+    })
+    .lean();
+
+  // GROUP ITEMS
+  const itemsMap = {};
+  orderItems.forEach((item) => {
+    const key = String(item.orderId);
+    if (!itemsMap[key]) itemsMap[key] = [];
+    itemsMap[key].push(item);
+  });
+
+  //FINAL FORMAT
+  const formattedOrders = orders.map((order) => {
+    const items = itemsMap[String(order._id)] || [];
 
     return {
       ...order,
-      items: [item],
+      items,
+      itemCount: items.length,
+      previewImages: items
+        .slice(0, 5)
+        .map((i) => i.images?.[0])
+        .filter(Boolean),
     };
   });
 
   return {
-    orders: finalOrders,
-    total: matchedItems.length,
-    totalPages: Math.ceil(matchedItems.length / limit),
+    orders: formattedOrders,
+    total,
+    currentPage: page,
+    totalPages: Math.ceil(total / limit),
   };
 };
 
-export const getOrderDetailsService = async ({ userId, orderItemId }) => {
-  // ✅ GET SINGLE ORDER ITEM (NO POPULATE)
-  const item = await orderItem
-    .findOne({
-      _id: orderItemId,
-      userId,
-    })
-    .lean();
+export const getOrderDetailsService = async ({ userId, orderId }) => {
+  const order = await Order.findOne({ _id: orderId, userId }).lean();
 
-  if (!item) {
-    throw new AppError("Order item not found", HTTP_STATUS.NOT_FOUND);
-  }
+  if (!order) throw new AppError("Order not found", HTTP_STATUS.NOT_FOUND);
 
-  // ✅ GET ORDER (only for extra details)
-  const order = await Order.findById(item.orderId).lean();
+  const items = await orderItem.find({ orderId: order._id }).lean();
 
-  if (!order) {
-    throw new AppError("Order not found", HTTP_STATUS.NOT_FOUND);
-  }
-
-  // ✅ RETURN CLEAN RESPONSE
-  return {
-    orderId: order._id,
-    orderNumber: order.orderNumber,
-    pricing: item.pricing,
-
-    product: {
-      name: item.name,
-      attributes: item.attributes,
-      images: item.images,
-      quantity: item.quantity,
-      pricing: item.pricing,
-      itemStatus: item.itemStatus,
-      createdAt: item.createdAt,
-    },
-
-    shippingAddress: order.shippingAddress,
-    payment: order.payment,
-    orderStatus: order.orderStatus,
-    delivery: order.delivery,
-    isCancelled: order.isCancelled,
-    cancelReason: order.cancelReason,
-    cancelComments: order.cancelComments,
-    updatedAt: order.updatedAt,
-    cancelledAt: order.cancelledAt,
-  };
+  return { order, items };
 };
 
 export const cancelOrderService = async ({
@@ -387,7 +388,7 @@ export const cancelOrderService = async ({
       );
     }
 
-    // 🔥 3. UPDATE ITEM STATUS
+    // UPDATE ITEM STATUS
     item.itemStatus = "cancelled";
     await item.save();
 
@@ -413,17 +414,26 @@ export const cancelOrderService = async ({
   return order;
 };
 
-export const returnOrderItemService = async ({ userId, orderItemId, returnReason, returnComments }) => {
+export const returnOrderItemService = async ({
+  userId,
+  orderItemId,
+  returnReason,
+  returnComments,
+}) => {
   const item = await orderItem.findOne({ _id: orderItemId, userId });
 
   if (!item) throw new AppError("Order item not found", HTTP_STATUS.NOT_FOUND);
 
   if (item.itemStatus !== "delivered") {
-    throw new AppError("Only delivered items can be returned", HTTP_STATUS.BAD_REQUEST);
+    throw new AppError(
+      "Only delivered items can be returned",
+      HTTP_STATUS.BAD_REQUEST,
+    );
   }
 
   item.itemStatus = "returned";
-  item.returnReason = returnReason + (returnComments ? ` — ${returnComments}` : "");
+  item.returnReason =
+    returnReason + (returnComments ? ` — ${returnComments}` : "");
   await item.save();
 
   return item;

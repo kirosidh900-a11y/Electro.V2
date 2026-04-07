@@ -51,7 +51,7 @@ export const getOrderSuccessPage = async (req, res) => {
   }
 };
 
-export const getOrderListingPage = async (req, res) => {
+export const getOrderListingPage = async (req, res, next) => {
   try {
     const page = parseInt(req.query.page) || 1;
     const limit = 4;
@@ -59,7 +59,7 @@ export const getOrderListingPage = async (req, res) => {
 
     const userId = req.user._id;
     
-    // 🔥 AJAX MODE
+    // AJAX MODE
     if (req.headers.accept?.includes("application/json")) {
       const orderData = await getOrderListService({
         userId,
@@ -92,7 +92,7 @@ export const getOrderListingPage = async (req, res) => {
       });
     }
 
-    // 🔥 INITIAL SERVER RENDER (IMPORTANT FIX)
+    // INITIAL SERVER RENDER 
     const orderData = await getOrderListService({
       userId,
       page,
@@ -100,59 +100,35 @@ export const getOrderListingPage = async (req, res) => {
       search,
     });
 
-    res.render("user/orders/orderList", {
-      orders: orderData.orders, // ✅ send real data
+    return res.render("user/orders/orderList", {
+      orders: orderData.orders, 
       currentPage: page,
       totalPages: orderData.totalPages,
     });
   } catch (error) {
     console.error("Order List Controller Error:", error);
-    res.status(500).json({ success: false, message: "Server Error" });
+    next(error);
   }
 };
 
 export const getOrderDetailsPage = async (req, res, next) => {
   try {
     const userId = req.user._id;
-    const { orderItemId } = req.params;
+    const { orderId } = req.params;
 
-    // VALIDATE ID
-    if (!mongoose.Types.ObjectId.isValid(orderItemId)) {
-      return res.redirect("/orders");
-    }
+    if (!mongoose.Types.ObjectId.isValid(orderId)) return res.redirect("/orders");
 
-    //GET FULL DATA
-    const data = await getOrderDetailsService({
-      userId,
-      orderItemId,
-    });
+    const data = await getOrderDetailsService({ userId, orderId });
 
-    if (!data) {
-      return res.redirect("/orders");
-    }
+    if (!data) return res.redirect("/orders");
 
-    // SEND TO EJS
-    res.render("user/orders/orderDetails", {
-      order: {
-        _id: data.orderId,
-        orderNumber: data.orderNumber,
-        shippingAddress: data.shippingAddress,
-        payment: data.payment,
-        orderStatus: data.orderStatus,
-        delivery: data.delivery,
-        pricing: data.pricing,
-        isCancelled: data.isCancelled,
-        cancelReason: data.cancelReason,
-        cancelComments: data.cancelComments,
-        cancelledAt: data.cancelledAt,
-        updatedAt: data.updatedAt,
-      },
-      product: data.product,
-      orderItemId,
+    return res.render("user/orders/orderDetails", {
+      order: data.order,
+      items: data.items,
     });
   } catch (error) {
     console.error("Order Details Error:", error);
-    next(error);
+    return next(error);
   }
 };
 

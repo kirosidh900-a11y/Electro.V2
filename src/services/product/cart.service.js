@@ -199,9 +199,9 @@ export const updateCartQuantityService = async (userId, itemId, quantity) => {
     throw new AppError("Out of stock", 400);
   }
 
-  if (qty > variant.stock) {
-    throw new AppError(`Only ${variant.stock} available`, 400);
-  }
+  // if (qty > variant.stock) {
+  //   throw new AppError(`Only ${variant.stock} available`, 400);
+  // }
 
   const MAX_LIMIT = 3;
   if (qty > MAX_LIMIT) {
@@ -299,11 +299,19 @@ export const validateCartStockService = async (userId) => {
   for (const item of cart.items) {
     const product = await Products.findById(item.productId);
 
-    const variant = product.variants.find(
+    const variant = product?.variants.find(
       (v) => v._id.toString() === item.variantId.toString(),
     );
 
     if (!variant) continue;
+
+    let reason = null;
+
+    if (variant.stock === 0) {
+      reason = `${product.name} is out of stock`;
+    } else if (item.quantity > variant.stock) {
+      reason = `Only ${variant.stock} available for ${product.name}`;
+    }
 
     updates.push({
       itemId: item._id,
@@ -311,6 +319,7 @@ export const validateCartStockService = async (userId) => {
       quantity: item.quantity,
       isOutOfStock: variant.stock === 0,
       exceedsStock: item.quantity > variant.stock,
+      reason, // 🔥 IMPORTANT
     });
   }
 
@@ -361,9 +370,7 @@ export const getWishlistService = async (userId) => {
 };
 
 export const validateCartStockServiceCheck = async (userId) => {
-
-  const cart = await Cart.findOne({ userId })
-    .populate("items.productId");
+  const cart = await Cart.findOne({ userId }).populate("items.productId");
 
   if (!cart || cart.items.length === 0) {
     return { success: false, message: "Cart is empty" };
@@ -371,12 +378,12 @@ export const validateCartStockServiceCheck = async (userId) => {
 
   let invalidItems = [];
 
-  cart.items.forEach(item => {
+  cart.items.forEach((item) => {
     const product = item.productId;
 
     // 🔥 find correct variant
     const variant = product.variants.find(
-      v => v._id.toString() === item.variantId.toString()
+      (v) => v._id.toString() === item.variantId.toString(),
     );
 
     const stock = variant?.stock ?? 0;
@@ -386,7 +393,7 @@ export const validateCartStockServiceCheck = async (userId) => {
       invalidItems.push({
         itemId: item._id,
         name: product.name,
-        reason: "Variant not found"
+        reason: "Variant not found",
       });
       return;
     }
@@ -398,7 +405,7 @@ export const validateCartStockServiceCheck = async (userId) => {
         name: product.name,
         reason: "Out of stock",
         stock,
-        quantity: item.quantity
+        quantity: item.quantity,
       });
     }
 
@@ -407,9 +414,9 @@ export const validateCartStockServiceCheck = async (userId) => {
       invalidItems.push({
         itemId: item._id,
         name: product.name,
-        reason: `Only ${stock} left`,
+        reason: `${product.name} has only ${stock} items left in stock.`,
         stock,
-        quantity: item.quantity
+        quantity: item.quantity,
       });
     }
   });
@@ -417,7 +424,7 @@ export const validateCartStockServiceCheck = async (userId) => {
   if (invalidItems.length > 0) {
     return {
       success: false,
-      items: invalidItems
+      items: invalidItems,
     };
   }
 

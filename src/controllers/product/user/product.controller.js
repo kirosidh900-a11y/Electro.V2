@@ -342,11 +342,20 @@ export const validateCartStock = async (req, res, next) => {
   try {
     const userId = req.user._id;
 
-    const data = await validateCartStockService(userId);
+    const items = await validateCartStockService(userId);
+
+    // CHECK IF ANY ISSUE
+    const hasError = items.some((i) => i.isOutOfStock || i.exceedsStock);
+
+    if (hasError) {
+      return res.json({
+        success: false,
+        items, 
+      });
+    }
 
     res.json({
       success: true,
-      data,
     });
   } catch (err) {
     next(err);

@@ -342,14 +342,14 @@
                             </div>
                         </div>
 
-                        <a id="checkoutBtn"
+                        <button id="checkoutBtn"
                             class="group relative w-full flex justify-center items-center gap-3 bg-black text-white py-4 rounded-xl font-semibold text-lg hover:bg-gray-800 transition-all shadow-lg hover:shadow-xl overflow-hidden disabled:opacity-50 disabled:cursor-not-allowed">
                             <span class="relative z-10 flex items-center gap-2">
                                 Secure Checkout
                                 <i
                                     class="fa-solid fa-lock text-sm bg-white/20 p-1.5 rounded-full group-hover:bg-white/30 transition-colors"></i>
                             </span>
-                        </a>
+                        </button>
 
                         <div class="mt-8 pt-6 border-t border-gray-100 grid grid-cols-2 gap-4">
                             <div class="flex items-center gap-3 text-gray-500">
@@ -391,7 +391,7 @@
                 //  SOCKET SETUP
                 const socket = io();
 
-                // 🔥 REAL-TIME STOCK UPDATE
+                // REAL-TIME STOCK UPDATE
                 socket.on("stockUpdated", ({ productId, variantId, stock }) => {
                     const el = document.querySelector(
                         `.cart-item[data-product-id="${productId}"][data-variant-id="${variantId}"]`
@@ -476,7 +476,8 @@
                     btn.addEventListener('click', async e => {
                         const el = e.target.closest('.cart-item');
                         const qty = +el.querySelector('.item-qty').value;
-                        if (qty > 1) await updateQty(el, qty - 1);
+                        console.log(qty);
+                        await updateQty(el, qty - 1, 'dec');
                     });
                 });
 
@@ -485,6 +486,7 @@
                         const el = e.target.closest('.cart-item');
                         const qty = +el.querySelector('.item-qty').value;
                         const stock = +el.dataset.stock;
+
 
                         if (qty < stock) {
                             await updateQty(el, qty + 1);
@@ -495,8 +497,27 @@
                 });
 
                 //  UPDATE QTY
-                async function updateQty(el, qty) {
+                async function updateQty(el, qty, mode = 'inc') {
                     const itemId = el.dataset.itemId;
+                    const stock = Number(el.dataset.stock);
+
+                    // MIN LIMIT
+                    if (qty < 1) {
+                        showToast(`Minimum 1 item required`, "warning");
+                        return;
+                    }
+
+                    // STOCK CHECK (ONLY FOR INCREASE 🔥)
+                    if (mode === 'inc' && qty > stock) {
+                        showToast(`Only ${stock} items available`, "warning");
+                        return;
+                    }
+
+                    // MAX LIMIT
+                    if (qty > 3) {
+                        showToast(`Maximum 3 items allowed`, "warning");
+                        return;
+                    }
 
                     try {
                         const res = await fetch("/cart", {
@@ -509,8 +530,13 @@
 
                         if (result.success) {
                             el.querySelector('.item-qty').value = qty;
+
+                            // ENABLE BUTTONS AGAIN
+                            el.querySelector('.decrease-qty')?.removeAttribute("disabled");
+                            el.querySelector('.increase-qty')?.removeAttribute("disabled");
+
                             calculateTotals();
-                            highlightInvalidItems()
+                            highlightInvalidItems();
                         } else {
                             showToast(result.message, "error");
                         }
@@ -560,15 +586,17 @@
                     try {
                         const res = await fetch("/api/user/cart/validate-stock-cart");
                         const data = await res.json();
-                        console.log(data);
 
-                        if (!data.success) {
-                            showToast(data.items[0]?.reason || "Fix stock issues before checkout", "error");
+                        if(!data.success) {
 
-                            // Optional: highlight items
-                            console.log(data.items);
+                            const errorItems = data.items || [];
 
-                            return; // 🚨 stop redirect
+                            showToast(
+                                errorItems[0]?.reason || "Some items have stock issues",
+                                "warning"
+                            );
+
+                            return;
                         }
 
                         // ✅ only redirect if valid
@@ -579,6 +607,8 @@
                         showToast("Something went wrong", "error");
                     }
                 });
+                
+            
                 //  HELPERS
                 function calculateTotals() {
                     let total = 0;
@@ -689,6 +719,7 @@
                     // ❌ clear cookie
                     document.cookie = "cartError=; path=/; expires=Thu, 01 Jan 1970 00:00:00 UTC;";
                 }
+            
             </script>
 
             <%- include("../../partials/user/footer.ejs") %>

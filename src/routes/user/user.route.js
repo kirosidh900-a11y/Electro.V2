@@ -57,6 +57,7 @@ router.use("/wishlist", requireAuth, wishlistRouter);
 router.use("/orders", requireAuth, orderRouter);
 router.use("/order", requireAuth, orderRouter);
 
+
 //Home side
 router.get("/", showHomePage);
 
@@ -101,6 +102,5 @@ router
   .patch(setUploadFolder("profile"), upload.single("photo"), updateProfilePhoto)
   .delete(deleteProfilePhoto);
 
-router.get('/profile/orders', requireAuth, getOrderListingPage);
 
 export default router;
