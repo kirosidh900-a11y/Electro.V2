@@ -14,6 +14,7 @@ router.get('/', getOrderListingPage);
 router.post("/place", placeOrder);
 router.get("/success/:orderId", getOrderSuccessPage);
 router.get("/details/:orderId", getOrderDetailsPage);
+router.patch("/:orderId/item/:itemId/cancel", cancelOrder);
 router.patch("/:orderId/cancel", cancelOrder);
 router.patch("/:orderItemId/return", returnOrderItem);
 

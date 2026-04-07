@@ -1,5 +1,6 @@
 import Order from "../../models/orderSchema.model.js";
 import orderItem from "../../models/orderItemSchema.model.js";
+import AppError from "../../utils/partials/AppError.utils.js";
 // LABELS (MOVE HERE)
 const STATUS_LABELS = {
   placed: "Placed",
@@ -156,7 +157,7 @@ export const getAdminOrderDetailsService = async (orderId) => {
 
 export const updateOrderStatusService = async (orderId, status) => {
   const validStatuses = ["placed", "confirmed", "shipped", "out_for_delivery", "delivered", "cancelled"];
-  if (!validStatuses.includes(status)) throw new Error("Invalid status");
+  if (!validStatuses.includes(status)) throw new AppError("Invalid status");
 
   // ORDER LEVEL UPDATE
   const orderUpdate = { orderStatus: status };
