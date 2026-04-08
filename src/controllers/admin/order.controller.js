@@ -3,6 +3,9 @@ import {
   getAdminOrdersService,
   updateOrderStatusService,
   cancelOrderService,
+  handleReturnRequestService,
+  schedulePickupService,
+  completeReturnService
 } from "../../services/admin/order.service.js";
 import renderView from "../../utils/admin/renderView.util.js";
 
@@ -114,6 +117,7 @@ export const cancelOrder = async (req, res, next) => {
     next(error);
   }
 };
+
 export const getAdminOrderDetailsPage = async (req, res, next) => {
   try {
     const { orderId } = req.params;
@@ -129,5 +133,47 @@ export const getAdminOrderDetailsPage = async (req, res, next) => {
   } catch (error) {
     console.error("Admin Order Details Error:", error);
     next(error);
+  }
+};
+
+export const handleReturnController = async (req, res, next) => {
+  try {
+    const { itemId } = req.params;
+    const { action, rejectReason } = req.body;
+
+    await handleReturnRequestService({
+      orderItemId: itemId,
+      action,
+      rejectReason,
+    });
+
+    res.json({ success: true });
+  } catch (err) {
+    next(err);
+  }
+};
+
+export const schedulePickupController = async (req, res, next) => {
+  try {
+    const { itemId } = req.params;
+    const { pickupDate } = req.body;
+
+    await schedulePickupService({ orderItemId: itemId, pickupDate });
+
+    res.json({ success: true });
+  } catch (err) {
+    next(err);
+  }
+};
+
+export const completeReturnController = async (req, res, next) => {
+  try {
+    const { itemId } = req.params;
+
+    await completeReturnService(itemId);
+
+    res.json({ success: true });
+  } catch (err) {
+    next(err);
   }
 };

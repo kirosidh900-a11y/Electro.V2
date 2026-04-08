@@ -158,10 +158,13 @@
                     <% }) %>
                   <% } %>
                   <span class="text-xs px-2 py-0.5 rounded font-semibold
-                    <%= item.itemStatus === 'cancelled' ? 'bg-red-100 text-red-600' :
-                        item.itemStatus === 'returned'  ? 'bg-purple-100 text-purple-600' :
-                        item.itemStatus === 'delivered' ? 'bg-green-100 text-green-700' :
-                        'bg-yellow-100 text-yellow-700' %>">
+  <%= item.itemStatus === 'cancelled'        ? 'bg-red-100 text-red-600' :
+      item.itemStatus === 'returned'         ? 'bg-purple-100 text-purple-600' :
+      item.itemStatus === 'return_requested' ? 'bg-yellow-100 text-yellow-700' :
+      item.itemStatus === 'return_approved'  ? 'bg-blue-100 text-blue-700' :
+      item.itemStatus === 'return_rejected'  ? 'bg-red-100 text-red-600' :
+      item.itemStatus === 'delivered'        ? 'bg-green-100 text-green-700' :
+      'bg-gray-100 text-gray-600' %>">
                     <%= item.itemStatus %>
                   </span>
                 </div>
@@ -171,6 +174,64 @@
                   <% if(item.pricing?.discountAmount > 0) { %>
                     <span class="text-green-600 ml-1">(-₹<%= item.pricing.discountAmount.toLocaleString('en-IN') %>)</span>
                   <% } %>
+
+                  <% if(item.itemStatus.includes('return') && item.return) { %>
+  <div class="mt-2 border rounded-lg p-2 text-xs
+    <%= item.itemStatus === 'return_rejected' ? 'bg-red-50 border-red-100' :
+        item.itemStatus === 'return_approved' ? 'bg-blue-50 border-blue-100' :
+        'bg-yellow-50 border-yellow-100' %>">
+
+    <!-- STATUS TITLE -->
+    <p class="font-semibold
+      <%= item.itemStatus === 'return_rejected' ? 'text-red-600' :
+          item.itemStatus === 'return_approved' ? 'text-blue-600' :
+          'text-yellow-700' %>">
+
+      <%= item.itemStatus.replace(/_/g, ' ') %>
+    </p>
+
+    <!-- USER REASON -->
+    <% if(item.return.reason) { %>
+      <p class="text-gray-600 mt-1">
+        Reason: <%= item.return.reason.replace(/_/g, ' ') %>
+      </p>
+    <% } %>
+
+    <!-- USER COMMENT -->
+    <% if(item.return.comments) { %>
+      <p class="text-gray-500 mt-1">
+        Comment: <%= item.return.comments %>
+      </p>
+    <% } %>
+
+    <!-- ❌ REJECT REASON -->
+    <% if(item.itemStatus === 'return_rejected' && item.return.rejectReason) { %>
+  <p class="text-red-500 mt-1 font-medium">
+    Reject Reason: <%= item.return.rejectReason %>
+  </p>
+
+  <!-- 🔥 CONTACT SUPPORT BUTTON -->
+  <div class="mt-2 inline-flex items-center gap-1 text-xs bg-blue-600 text-white px-3 py-1 rounded hover:bg-blue-700 transition">
+      <i class="fa-solid fa-headset"></i>
+      Contact Support
+  </div>
+<% } %>
+  </div>
+<% } %>
+
+<!-- 📦 PICKUP STATUS -->
+<% if(item.itemStatus === 'pickup_scheduled' && item.return?.pickupDate) { %>
+  <p class="text-xs text-yellow-400 mt-1">
+    Pickup Scheduled: <%= new Date(item.return.pickupDate).toLocaleDateString('en-IN') %>
+  </p>
+<% } %>
+
+<!-- ✅ PICKUP COMPLETED -->
+<% if(item.itemStatus === 'returned' && item.return?.pickupCompletedAt) { %>
+  <p class="text-xs text-green-400 mt-1">
+    Pickup Completed: <%= new Date(item.return.pickupCompletedAt).toLocaleDateString('en-IN') %>
+  </p>
+<% } %>
                 </div>
               </div>
 

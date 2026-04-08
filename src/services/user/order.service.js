@@ -10,6 +10,7 @@ import AppError from "../../utils/partials/AppError.utils.js";
 import HTTP_STATUS from "../../constant/statusCode.js";
 import orderItem from "../../models/orderItemSchema.model.js";
 
+
 const generateOrderNumber = async () => {
   let isUnique = false;
   let orderNumber;
@@ -40,6 +41,15 @@ export const placeOrderService = async ({
         HTTP_STATUS.BAD_REQUEST,
       );
     }
+
+    console.log(
+      "Placing order for user:",
+      userId,
+      "with address:",
+      addressId,
+      "and payment method:",
+      paymentMethod,
+    );
 
     // 🛒 GET CART
     const cart = await Cart.findOne({ userId }).populate("items.productId");
@@ -104,12 +114,15 @@ export const placeOrderService = async ({
       subtotal += itemSubtotal;
       gstTotal += itemGST;
 
-      // 🔥 STOCK UPDATE (atomic)
       const update = await Products.updateOne(
         {
           _id: product._id,
-          "variants._id": variant._id,
-          "variants.stock": { $gte: qty },
+          variants: {
+            $elemMatch: {
+              _id: variant._id,
+              stock: { $gte: qty },
+            },
+          },
         },
         {
           $inc: { "variants.$.stock": -qty },
@@ -117,10 +130,7 @@ export const placeOrderService = async ({
       );
 
       if (update.modifiedCount === 0) {
-        throw new AppError(
-          "Stock changed during checkout",
-          HTTP_STATUS.CONFLICT,
-        );
+        throw new AppError("Stock changed or insufficient", 409);
       }
 
       // 📦 PREPARE ORDER ITEM
@@ -349,42 +359,14 @@ export const cancelOrderService = async ({
   }
 
   if (order.orderStatus.toLowerCase() === "delivered") {
-    throw new AppError(
-      "Delivered orders cannot be cancelled",
-      HTTP_STATUS.BAD_REQUEST,
-    );
+    throw new AppError("Delivered orders cannot be cancelled");
   }
 
-
-  // 🔥 ITEM LEVEL CANCEL
-  if (itemId) {
-    const item = await orderItem.findOne({
-      _id: itemId,
-      orderId,
-      userId,
-    });
-
-    if (!item) {
-      throw new AppError("Item not found", HTTP_STATUS.NOT_FOUND);
-    }
-
-    if (!["placed", "confirmed"].includes(item.itemStatus)) {
-      throw new AppError(
-        "Item cannot be cancelled at this stage",
-        HTTP_STATUS.BAD_REQUEST,
-      );
-    }
-
-    // STOCK ROLLBACK
+  const rollbackStock = async (item) => {
     if (item.variantId) {
       await Products.updateOne(
-        {
-          _id: item.productId,
-          "variants._id": item.variantId,
-        },
-        {
-          $inc: { "variants.$.stock": item.quantity },
-        },
+        { _id: item.productId, "variants._id": item.variantId },
+        { $inc: { "variants.$.stock": item.quantity } },
       );
     } else {
       await Products.updateOne(
@@ -392,8 +374,59 @@ export const cancelOrderService = async ({
         { $inc: { stock: item.quantity } },
       );
     }
+  };
 
-    //UPDATE ITEM ONLY
+  const recalculateOrder = async () => {
+    const activeItems = await orderItem.find({
+      orderId,
+      userId,
+      itemStatus: { $ne: "cancelled" },
+    });
+
+    let subtotal = 0;
+    let gstTotal = 0;
+
+    activeItems.forEach((i) => {
+      subtotal += i.pricing.total;
+      gstTotal += i.pricing.gstAmount || 0;
+    });
+
+    // ✅NORMAL CASE
+    if (activeItems.length > 0) {
+      order.pricing.subtotal = subtotal;
+      order.pricing.gstTotal = gstTotal;
+      order.pricing.finalAmount = subtotal + gstTotal;
+    }
+
+    // FULL CANCEL CASE (IMPORTANT)
+    if (activeItems.length === 0) {
+      order.pricing.subtotal = 0;
+      order.pricing.gstTotal = 0;
+      order.pricing.finalAmount = 0;
+
+      order.orderStatus = "cancelled";
+      order.isCancelled = true;
+      order.cancelReason = reason;
+      order.cancelComments = comments;
+      order.cancelledAt = new Date();
+    }
+
+    return activeItems.length;
+  };
+
+  // =============================
+  // 🔥 ITEM CANCEL
+  // =============================
+  if (itemId) {
+    const item = await orderItem.findOne({ _id: itemId, orderId, userId });
+
+    if (!item) throw new AppError("Item not found");
+
+    if (!["placed", "confirmed"].includes(item.itemStatus)) {
+      throw new AppError("Item cannot be cancelled");
+    }
+
+    // ✅ STEP 1: Update item
     item.itemStatus = "cancelled";
     item.cancel = {
       reason,
@@ -401,27 +434,26 @@ export const cancelOrderService = async ({
       requestedAt: new Date(),
       cancelledAt: new Date(),
     };
-
     await item.save();
 
-    //UPDATE ORDER PRICING ONLY (IMPORTANT)
-    order.pricing.finalAmount -= item.pricing.total;
-    order.pricing.subtotal -= item.pricing.total;
-
-    // (optional) adjust GST if needed
-    order.pricing.gstTotal -= item.pricing.gstAmount || 0;
-
+    // ✅ STEP 2: Recalculate order
+    const remaining = await recalculateOrder();
     await order.save();
 
+    // ✅ STEP 3: Rollback stock (LAST)
+    await rollbackStock(item);
+
     return {
-      message: "Item cancelled successfully",
+      message:
+        remaining === 0
+          ? "Order fully cancelled"
+          : "Item cancelled & recalculated",
     };
   }
 
-  // 🔥 =============================
+  // =============================
   // 🔥 FULL ORDER CANCEL
-  // 🔥 =============================
-
+  // =============================
   const items = await orderItem.find({ orderId, userId });
 
   let cancelledCount = 0;
@@ -429,23 +461,7 @@ export const cancelOrderService = async ({
   for (const item of items) {
     if (!["placed", "confirmed"].includes(item.itemStatus)) continue;
 
-    if (item.variantId) {
-      await Products.updateOne(
-        {
-          _id: item.productId,
-          "variants._id": item.variantId,
-        },
-        {
-          $inc: { "variants.$.stock": item.quantity },
-        },
-      );
-    } else {
-      await Products.updateOne(
-        { _id: item.productId },
-        { $inc: { stock: item.quantity } },
-      );
-    }
-
+    // ✅ update first
     item.itemStatus = "cancelled";
     item.cancel = {
       reason,
@@ -455,23 +471,18 @@ export const cancelOrderService = async ({
     };
 
     await item.save();
+
+    // ✅ stock last
+    await rollbackStock(item);
+
     cancelledCount++;
   }
 
   if (cancelledCount === 0) {
-    throw new AppError(
-      "No items eligible for cancellation",
-      HTTP_STATUS.BAD_REQUEST,
-    );
+    throw new AppError("No items eligible");
   }
 
-  // 🔥 UPDATE ORDER FULL CANCEL
-  order.orderStatus = "cancelled";
-  order.isCancelled = true;
-  order.cancelReason = reason;
-  order.cancelComments = comments;
-  order.cancelledAt = new Date();
-
+  await recalculateOrder();
   await order.save();
 
   return {
@@ -487,18 +498,31 @@ export const returnOrderItemService = async ({
 }) => {
   const item = await orderItem.findOne({ _id: orderItemId, userId });
 
-  if (!item) throw new AppError("Order item not found", HTTP_STATUS.NOT_FOUND);
+  if (!item) {
+    throw new AppError("Order item not found", HTTP_STATUS.NOT_FOUND);
+  }
 
   if (item.itemStatus !== "delivered") {
     throw new AppError(
       "Only delivered items can be returned",
-      HTTP_STATUS.BAD_REQUEST,
+      HTTP_STATUS.BAD_REQUEST
     );
   }
 
-  item.itemStatus = "returned";
-  item.returnReason =
-    returnReason + (returnComments ? ` — ${returnComments}` : "");
+  // prevent duplicate request
+  if (item.return?.requestedAt) {
+    throw new AppError("Return already requested");
+  }
+
+  // USER ONLY REQUESTS
+  item.itemStatus = "return_requested";
+
+  item.return = {
+    reason: returnReason,
+    comments: returnComments,
+    requestedAt: new Date(),
+  };
+
   await item.save();
 
   return item;
