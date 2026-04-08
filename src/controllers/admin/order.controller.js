@@ -114,6 +114,7 @@ export const cancelOrder = async (req, res, next) => {
     next(error);
   }
 };
+
 export const getAdminOrderDetailsPage = async (req, res, next) => {
   try {
     const { orderId } = req.params;

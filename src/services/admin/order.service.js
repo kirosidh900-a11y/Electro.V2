@@ -165,12 +165,12 @@ export const updateOrderStatusService = async (orderId, status) => {
 
   await Order.findByIdAndUpdate(orderId, orderUpdate);
 
-  // ITEM STATUS MAPPING (item enum: placed, confirmed, shipped, delivered, cancelled, returned)
+  // ITEM STATUS MAPPING 
   const itemStatusMap = {
     placed:           "placed",
     confirmed:        "confirmed",
     shipped:          "shipped",
-    out_for_delivery: "shipped",   // no out_for_delivery in item enum
+    out_for_delivery: "out_for_delivery",
     delivered:        "delivered",
     cancelled:        "cancelled",
   };
