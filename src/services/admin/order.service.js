@@ -156,7 +156,14 @@ export const getAdminOrderDetailsService = async (orderId) => {
 };
 
 export const updateOrderStatusService = async (orderId, status) => {
-  const validStatuses = ["placed", "confirmed", "shipped", "out_for_delivery", "delivered", "cancelled"];
+  const validStatuses = [
+    "placed",
+    "confirmed",
+    "shipped",
+    "out_for_delivery",
+    "delivered",
+    "cancelled",
+  ];
   if (!validStatuses.includes(status)) throw new AppError("Invalid status");
 
   // ORDER LEVEL UPDATE
@@ -165,14 +172,14 @@ export const updateOrderStatusService = async (orderId, status) => {
 
   await Order.findByIdAndUpdate(orderId, orderUpdate);
 
-  // ITEM STATUS MAPPING 
+  // ITEM STATUS MAPPING
   const itemStatusMap = {
-    placed:           "placed",
-    confirmed:        "confirmed",
-    shipped:          "shipped",
+    placed: "placed",
+    confirmed: "confirmed",
+    shipped: "shipped",
     out_for_delivery: "out_for_delivery",
-    delivered:        "delivered",
-    cancelled:        "cancelled",
+    delivered: "delivered",
+    cancelled: "cancelled",
   };
 
   const itemStatus = itemStatusMap[status];
@@ -180,7 +187,7 @@ export const updateOrderStatusService = async (orderId, status) => {
     // only update items that are not already cancelled or returned
     await orderItem.updateMany(
       { orderId, itemStatus: { $nin: ["cancelled", "returned"] } },
-      { itemStatus }
+      { itemStatus },
     );
   }
 };
@@ -197,6 +204,103 @@ export const cancelOrderService = async (orderId, reason, comments) => {
   // only cancel items not already returned
   await orderItem.updateMany(
     { orderId, itemStatus: { $ne: "returned" } },
-    { itemStatus: "cancelled", cancelReason: reason }
+    { itemStatus: "cancelled", cancelReason: reason },
   );
+};
+
+const handleReturnStock = async (item) => {
+  const reason = item.return?.reason;
+
+  // DO NOT RESTOCK
+  if (
+    reason === "wrong_item" ||
+    reason === "defective" ||
+    reason === "damaged"
+  ) {
+    return; // no stock update
+  }
+
+  // ✅ RESTOCK (valid return)
+  if (item.variantId) {
+    await Products.updateOne(
+      { _id: item.productId, "variants._id": item.variantId },
+      { $inc: { "variants.$.stock": item.quantity } },
+    );
+  } else {
+    await Products.updateOne(
+      { _id: item.productId },
+      { $inc: { stock: item.quantity } },
+    );
+  }
+};
+
+export const handleReturnRequestService = async ({
+  orderItemId,
+  action,
+  rejectReason,
+}) => {
+  const item = await orderItem.findById(orderItemId);
+
+  if (!item) throw new AppError("Item not found");
+
+  if (item.itemStatus !== "return_requested") {
+    throw new AppError("Invalid return state");
+  }
+
+  // APPROVE
+  if (action === "approve") {
+    item.itemStatus = "return_approved";
+    item.return.approvedAt = new Date();
+  }
+
+  // ❌ REJECT
+  if (action === "reject") {
+    item.itemStatus = "return_rejected";
+    item.return.rejectedAt = new Date();
+    item.return.rejectReason = rejectReason;
+  }
+
+  await item.save();
+
+  return item;
+};
+
+export const schedulePickupService = async ({ orderItemId, pickupDate }) => {
+  const item = await orderItem.findById(orderItemId);
+
+  if (!item) throw new AppError("Item not found");
+
+  if (item.itemStatus !== "return_approved") {
+    throw new AppError("Return not approved yet");
+  }
+
+  item.itemStatus = "pickup_scheduled";
+  item.return.pickupDate = new Date(pickupDate);
+  item.return.pickupScheduledAt = new Date();
+
+  await item.save();
+
+  return item;
+};
+
+export const completeReturnService = async (orderItemId) => {
+  const item = await orderItem.findById(orderItemId);
+
+  if (!item) throw new AppError("Item not found");
+
+  if (item.itemStatus !== "pickup_scheduled") {
+    throw new AppError("Pickup not scheduled");
+  }
+
+  // NOW mark returned
+  item.itemStatus = "returned";
+  item.return.completedAt = new Date();
+  item.return.pickupCompletedAt = new Date();
+
+  // NOW handle stock
+  await handleReturnStock(item);
+
+  await item.save();
+
+  return item;
 };

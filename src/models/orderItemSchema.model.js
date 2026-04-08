@@ -45,7 +45,9 @@ const orderItemSchema = new Schema(
       discountAmount: Number,
     },
 
-    // ITEM STATUS 
+    // =============================
+    // 📦 ITEM STATUS
+    // =============================
     itemStatus: {
       type: String,
       enum: [
@@ -60,6 +62,7 @@ const orderItemSchema = new Schema(
 
         "return_requested",
         "return_approved",
+        "pickup_scheduled",   // 🔥 NEW
         "return_rejected",
         "returned",
 
@@ -70,7 +73,9 @@ const orderItemSchema = new Schema(
       index: true,
     },
 
+    // =============================
     // 🔴 CANCEL INFO
+    // =============================
     cancel: {
       reason: String,
       comments: String,
@@ -78,18 +83,28 @@ const orderItemSchema = new Schema(
       cancelledAt: Date,
     },
 
+    // =============================
     // 🟣 RETURN INFO
+    // =============================
     return: {
       reason: String,
       comments: String,
       requestedAt: Date,
+
       approvedAt: Date,
       rejectedAt: Date,
+
+      pickupDate: Date,          // 🔥 NEW
+      pickupScheduledAt: Date,   // 🔥 NEW
+      pickupCompletedAt: Date,   // 🔥 NEW (optional)
+
       completedAt: Date,
-      rejectReason: String, 
+      rejectReason: String,
     },
 
-    // REFUND INFO
+    // =============================
+    // 💰 REFUND INFO
+    // =============================
     refund: {
       status: {
         type: String,
@@ -102,5 +117,7 @@ const orderItemSchema = new Schema(
   },
   { timestamps: true }
 );
+
+orderItemSchema.index({ itemStatus: 1, "return.pickupDate": 1 });
 
 export default mongoose.model("OrderItem", orderItemSchema);

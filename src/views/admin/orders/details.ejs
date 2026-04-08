@@ -41,6 +41,7 @@
               <i class="fas fa-ban"></i> Cancel Order
             </button>
           <% } %>
+          
         </div>
       </div>
 
@@ -102,9 +103,13 @@
                           <span class="text-xs text-emerald-400">-₹<%= item.pricing.discountAmount.toLocaleString('en-IN') %> off</span>
                         <% } %>
                         <span class="inline-block text-[10px] font-bold uppercase px-2 py-0.5 rounded
-                          <%= item.itemStatus === 'cancelled' ? 'bg-red-500/20 text-red-400' :
-                              item.itemStatus === 'delivered' ? 'bg-emerald-500/20 text-emerald-400' :
-                              'bg-yellow-500/20 text-yellow-400' %>">
+  <%= item.itemStatus === 'cancelled'        ? 'bg-red-500/20 text-red-400' :
+      item.itemStatus === 'delivered'        ? 'bg-emerald-500/20 text-emerald-400' :
+      item.itemStatus === 'return_requested' ? 'bg-yellow-500/20 text-yellow-400' :
+      item.itemStatus === 'return_approved'  ? 'bg-blue-500/20 text-blue-400' :
+      item.itemStatus === 'return_rejected'  ? 'bg-red-500/20 text-red-400' :
+      item.itemStatus === 'returned'         ? 'bg-purple-500/20 text-purple-400' :
+      'bg-gray-500/20 text-gray-400' %>">
                           <%= item.itemStatus %>
                           <% if(item.itemStatus === 'cancelled' && item.cancel) { %>
   <div class="mt-2 bg-red-50 border border-red-100 rounded-lg p-2 text-xs">
@@ -118,6 +123,74 @@
     <% } %>
   </div>
 <% } %>
+<% if(item.itemStatus.includes('return') && item.return) { %>
+  <div class="mt-2 bg-blue-50 border border-blue-100 rounded-lg p-2 text-xs">
+    <p class="text-blue-600 font-semibold">
+      Reason: <%= item.return.reason?.replace(/_/g, ' ') %>
+    </p>
+    <% if(item.return.comments) { %>
+      <p class="text-gray-600 mt-1">
+        Comment: <%= item.return.comments %>
+      </p>
+    <% } %>
+  </div>
+<% } %>
+
+<% if(item.itemStatus === 'return_requested') { %>
+  <div class="flex gap-2 mt-2">
+
+    <!-- ✅ APPROVE -->
+    <button onclick="handleReturnAction('<%= item._id %>', 'approve')"
+      class="px-3 py-1 text-xs rounded bg-green-600 hover:bg-green-700 text-white font-semibold">
+      Approve
+    </button>
+
+    <!-- ❌ REJECT -->
+    <button onclick="openRejectModal('<%= item._id %>')"
+      class="px-3 py-1 text-xs rounded bg-red-600 hover:bg-red-700 text-white font-semibold">
+      Reject
+    </button>
+
+  </div>
+<% } %>
+
+<% if(item.itemStatus === 'return_rejected' && item.return) { %>
+  <div class="mt-2 bg-red-50 border border-red-100 rounded-lg p-2 text-xs">
+    
+    <p class="text-red-600 font-semibold">
+      Return Rejected
+    </p>
+
+    <p class="text-gray-600 mt-1">
+      Reason: <%= item.return.rejectReason || 'Not specified' %>
+    </p>
+
+  </div>
+<% } %>
+
+<% if(item.itemStatus === 'return_approved') { %>
+  <div class="mt-2 flex gap-2">
+    <button onclick="openPickupModal('<%= item._id %>')"
+      class="px-3 py-1.5 text-xs font-semibold rounded-lg 
+             bg-blue-600 hover:bg-blue-700 text-white transition shadow">
+      📦 Schedule Pickup
+    </button>
+  </div>
+<% } %>
+
+<% if(item.itemStatus === 'pickup_scheduled') { %>
+  <div class="mt-2 flex gap-2">
+    <button onclick="markReturned('<%= item._id %>')"
+      class="px-3 py-1.5 text-xs font-semibold rounded-lg 
+             bg-emerald-600 hover:bg-emerald-700 text-white transition shadow">
+      ✅ Mark as Returned
+    </button>
+  </div>
+<% } %>
+
+
+
+
                         </span>
                       </div>
                     </div>
@@ -338,46 +411,274 @@
     </div>
   </div>
 
-  <script>
-    const orderId = '<%= order._id %>';
+ <!-- REJECT Return MODAL -->
+  <div id="rejectModal" class="fixed inset-0 hidden items-center justify-center bg-black/60 z-50">
+  <div class="bg-[#0b1220] border border-white/10 rounded-xl w-[90%] max-w-md p-6 shadow-2xl">
+    <h2 class="text-white font-semibold text-lg mb-4">Reject Return</h2>
 
-    function openUpdateModal()  { const m = document.getElementById('updateModal'); m.classList.remove('hidden'); m.classList.add('flex'); }
-    function closeUpdateModal() { const m = document.getElementById('updateModal'); m.classList.add('hidden'); m.classList.remove('flex'); }
-    function openCancelModal()  { const m = document.getElementById('cancelModal'); m.classList.remove('hidden'); m.classList.add('flex'); }
-    function closeCancelModal() { const m = document.getElementById('cancelModal'); m.classList.add('hidden'); m.classList.remove('flex'); }
+    <textarea id="rejectReasonInput" rows="3"
+      placeholder="Enter reject reason"
+      class="w-full bg-[#0f172a] border border-white/10 text-gray-200 rounded-lg px-3 py-2 text-sm"></textarea>
 
-    async function submitStatusUpdate() {
-      const status = document.getElementById('statusSelect').value;
-      try {
-        const res = await fetch(`/admin/orders/${orderId}/status`, {
-          method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ status })
-        });
-        const data = await res.json();
-        if (data.success) { closeUpdateModal(); location.reload(); }
-        else alert(data.message || 'Failed to update status');
-      } catch(e) { alert('Something went wrong'); }
-    }
+    <div class="flex justify-end gap-3 mt-4">
+      <button onclick="closeRejectModal()" class="px-4 py-2 bg-gray-600 text-white rounded">Cancel</button>
+      <button onclick="submitReject()" class="px-4 py-2 bg-red-600 text-white rounded">Reject</button>
+    </div>
+  </div>
+  </div>
+  
+ <!-- Pick UP Sedule  MODAL -->
+  <div id="pickupModal" class="fixed inset-0 hidden items-center justify-center bg-black/60 z-50">
+  <div class="bg-[#0b1220] border border-white/10 rounded-xl w-[90%] max-w-md p-6 shadow-2xl">
 
-    async function submitCancel() {
-      const reason = document.getElementById('cancelReason').value;
-      const comments = document.getElementById('cancelComments').value;
-      if (!reason) { alert('Please select a reason'); return; }
-      try {
-        const res = await fetch(`/admin/orders/${orderId}/cancel`, {
-          method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ reason, comments })
-        });
-        const data = await res.json();
-        if (data.success) { closeCancelModal(); location.reload(); }
-        else alert(data.message || 'Failed to cancel order');
-      } catch(e) { alert('Something went wrong'); }
-    }
+    <h2 class="text-white font-semibold text-lg mb-4">
+      📦 Schedule Pickup
+    </h2>
 
-    ['updateModal','cancelModal'].forEach(id => {
-      document.getElementById(id)?.addEventListener('click', function(e) {
-        if (e.target === this) { this.classList.add('hidden'); this.classList.remove('flex'); }
+    <!-- DATE INPUT -->
+    <label class="text-xs text-gray-400">Pickup Date</label>
+    <input type="date" id="pickupDate"
+      class="w-full mt-1 bg-[#0f172a] border border-white/10 text-gray-200 rounded-lg px-3 py-2 text-sm" />
+
+    <!-- ACTIONS -->
+    <div class="flex justify-end gap-3 mt-5">
+      <button onclick="closePickupModal()"
+        class="px-4 py-2 bg-gray-600 hover:bg-gray-700 text-white rounded-lg text-sm">
+        Cancel
+      </button>
+
+      <button onclick="submitPickup()"
+        class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm">
+        Confirm
+      </button>
+    </div>
+
+  </div>
+  </div>
+
+<script type="module">
+  import { showToast } from "/partials/errorMsg.utils.js";
+  import { confirmAction } from "/partials/confirm.util.js";
+
+  const orderId = '<%= order._id %>';
+  let currentItemId = null;
+
+  // =============================
+  // 🔹 MODAL HELPERS
+  // =============================
+  const openModal = (id) => {
+    const m = document.getElementById(id);
+    m?.classList.remove('hidden');
+    m?.classList.add('flex');
+  };
+
+  const closeModal = (id) => {
+    const m = document.getElementById(id);
+    m?.classList.add('hidden');
+    m?.classList.remove('flex');
+  };
+
+  // =============================
+  // 🔹 ORDER STATUS UPDATE
+  // =============================
+  async function submitStatusUpdate() {
+    const status = document.getElementById('statusSelect').value;
+
+    try {
+      const res = await fetch(`/admin/orders/${orderId}/status`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status })
       });
+
+      const data = await res.json();
+
+      if (!res.ok) throw new Error(data.message);
+
+      showToast("Order status updated successfully", "success");
+      closeModal('updateModal');
+      setTimeout(() => location.reload(), 600);
+
+    } catch (err) {
+      showToast(err.message || "Failed to update status", "error");
+    }
+  }
+
+  // =============================
+  // 🔹 ORDER CANCEL
+  // =============================
+  async function submitCancel() {
+    const reason = document.getElementById('cancelReason').value;
+    const comments = document.getElementById('cancelComments').value;
+
+    if (!reason) {
+      showToast("Please select a reason", "error");
+      return;
+    }
+
+    const confirm = await confirmAction("Cancel this order?");
+    if (!confirm) return;
+
+    try {
+      const res = await fetch(`/admin/orders/${orderId}/cancel`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ reason, comments })
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) throw new Error(data.message);
+
+      showToast("Order cancelled successfully", "success");
+      closeModal('cancelModal');
+      setTimeout(() => location.reload(), 600);
+
+    } catch (err) {
+      showToast(err.message || "Cancel failed", "error");
+    }
+  }
+
+  // =============================
+  // 🔹 RETURN APPROVE / REJECT
+  // =============================
+  async function handleReturnAction(itemId, action, rejectReason = '') {
+    try {
+      const res = await fetch(`/admin/orders/returns/${itemId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action, rejectReason })
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) throw new Error(data.message);
+
+      showToast(
+        action === "approve" ? "Return approved" : "Return rejected",
+        "success"
+      );
+
+      setTimeout(() => location.reload(), 600);
+
+    } catch (err) {
+      showToast(err.message || "Action failed", "error");
+    }
+  }
+
+  // =============================
+  // 🔹 REJECT MODAL
+  // =============================
+  function openRejectModal(itemId) {
+    currentItemId = itemId;
+    openModal('rejectModal');
+  }
+
+  function closeRejectModal() {
+    closeModal('rejectModal');
+  }
+
+  function submitReject() {
+    const reason = document.getElementById("rejectReasonInput").value;
+
+    if (!reason) {
+      showToast("Enter reject reason", "error");
+      return;
+    }
+
+    handleReturnAction(currentItemId, "reject", reason);
+  }
+
+  // =============================
+  // 🔹 PICKUP SCHEDULING
+  // =============================
+  function openPickupModal(itemId) {
+    currentItemId = itemId;
+    openModal("pickupModal");
+  }
+
+  function closePickupModal() {
+    closeModal("pickupModal");
+  }
+
+  async function submitPickup() {
+    const pickupDate = document.getElementById("pickupDate").value;
+
+    if (!pickupDate) {
+      showToast("Please select pickup date", "error");
+      return;
+    }
+
+    try {
+      const res = await fetch(`/admin/orders/returns/pickup/${currentItemId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ pickupDate }),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) throw new Error(data.message);
+
+      showToast("Pickup scheduled successfully", "success");
+      closePickupModal();
+      setTimeout(() => location.reload(), 600);
+
+    } catch (err) {
+      showToast(err.message || "Pickup failed", "error");
+    }
+  }
+
+  // =============================
+  // 🔹 MARK RETURNED
+  // =============================
+  async function markReturned(itemId) {
+    const confirm = await confirmAction("Confirm item received?");
+
+    if (!confirm) return;
+
+    try {
+      const res = await fetch(`/admin/orders/returns/complete/${itemId}`, {
+        method: "PATCH",
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) throw new Error(data.message);
+
+      showToast("Item marked as returned", "success");
+      setTimeout(() => location.reload(), 600);
+
+    } catch (err) {
+      showToast(err.message || "Update failed", "error");
+    }
+  }
+
+  // =============================
+  // 🔹 OUTSIDE CLICK CLOSE
+  // =============================
+  ['updateModal','cancelModal','rejectModal','pickupModal'].forEach(id => {
+    document.getElementById(id)?.addEventListener('click', function(e) {
+      if (e.target === this) closeModal(id);
     });
-  </script>
+  });
+
+  // =============================
+  // 🔹 GLOBAL ACCESS (EJS onclick)
+  // =============================
+  window.openRejectModal = openRejectModal;
+  window.closeRejectModal = closeRejectModal;
+  window.submitReject = submitReject;
+
+  window.openPickupModal = openPickupModal;
+  window.closePickupModal = closePickupModal;
+  window.submitPickup = submitPickup;
+
+  window.markReturned = markReturned;
+
+  window.submitStatusUpdate = submitStatusUpdate;
+  window.submitCancel = submitCancel;
+</script>
 
 </body>
 </html>

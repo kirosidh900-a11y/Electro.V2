@@ -9,7 +9,7 @@ import { getActiveOffers } from "../../utils/products/offers.util.js";
 import AppError from "../../utils/partials/AppError.utils.js";
 import HTTP_STATUS from "../../constant/statusCode.js";
 import orderItem from "../../models/orderItemSchema.model.js";
-import mongoose from "mongoose";
+
 
 const generateOrderNumber = async () => {
   let isUnique = false;
@@ -41,6 +41,15 @@ export const placeOrderService = async ({
         HTTP_STATUS.BAD_REQUEST,
       );
     }
+
+    console.log(
+      "Placing order for user:",
+      userId,
+      "with address:",
+      addressId,
+      "and payment method:",
+      paymentMethod,
+    );
 
     // 🛒 GET CART
     const cart = await Cart.findOne({ userId }).populate("items.productId");
@@ -105,12 +114,15 @@ export const placeOrderService = async ({
       subtotal += itemSubtotal;
       gstTotal += itemGST;
 
-      // 🔥 STOCK UPDATE (atomic)
       const update = await Products.updateOne(
         {
           _id: product._id,
-          "variants._id": variant._id,
-          "variants.stock": { $gte: qty },
+          variants: {
+            $elemMatch: {
+              _id: variant._id,
+              stock: { $gte: qty },
+            },
+          },
         },
         {
           $inc: { "variants.$.stock": -qty },
@@ -118,10 +130,7 @@ export const placeOrderService = async ({
       );
 
       if (update.modifiedCount === 0) {
-        throw new AppError(
-          "Stock changed during checkout",
-          HTTP_STATUS.CONFLICT,
-        );
+        throw new AppError("Stock changed or insufficient", 409);
       }
 
       // 📦 PREPARE ORDER ITEM
@@ -518,4 +527,3 @@ export const returnOrderItemService = async ({
 
   return item;
 };
-
