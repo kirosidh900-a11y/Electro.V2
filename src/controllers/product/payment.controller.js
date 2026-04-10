@@ -2,43 +2,43 @@ import { createRazorpayOrder } from "../../services/payment/crete.payment.servic
 import {
   verifyPaymentSignature,
   handlePaymentSuccessService,
-  handlePaymentFailureService
+  handlePaymentFailureService,
+  handleExperienceTimeout,
 } from "../../services/payment/payment.service.js";
 import { placeOrderService } from "../../services/user/order.service.js";
+import AppError from "../../utils/partials/AppError.utils.js";
 
 export const createPaymentOrder = async (req, res, next) => {
   try {
     const { addressId } = req.body;
     const userId = req.user._id;
-    
+
     console.log("ENV KEY:", process.env.RAZORPAY_KEY);
 
     // ================= CREATE ORDER IN DB =================
     const result = await placeOrderService({
       userId,
       addressId,
-      paymentMethod: "razorpay", 
+      paymentMethod: "razorpay",
     });
 
     const order = result.order;
 
     // ================= CREATE RAZORPAY ORDER =================
-    const razorpayOrder = await createRazorpayOrder(
-      order.pricing.finalAmount
-    );
+    const razorpayOrder = await createRazorpayOrder(order.pricing.finalAmount);
 
-    // ================= SAVE RAZORPAY ORDER ID =================
-    order.payment.razorpayOrderId = razorpayOrder.id;
-    await order.save();
+    await handleExperienceTimeout({
+      orderId: order._id,
+      razorpayOrderId: razorpayOrder.id,
+    });
 
     // ================= SEND RESPONSE =================
     res.json({
-      key: process.env.RAZORPAY_KEY, 
+      key: process.env.RAZORPAY_KEY,
       amount: order.pricing.finalAmount * 100,
       razorpayOrderId: razorpayOrder.id,
       orderId: order._id,
     });
-
   } catch (err) {
     console.error("Create Payment Order Error:", err);
     next(err);
@@ -46,37 +46,36 @@ export const createPaymentOrder = async (req, res, next) => {
 };
 
 // VERIFY PAYMENT
-export const verifyPaymentController = async (req, res) => {
+export const verifyPaymentController = async (req, res, next) => {
   try {
     const {
       razorpay_order_id,
       razorpay_payment_id,
       razorpay_signature,
-      orderId
+      orderId,
     } = req.body;
 
     const isValid = verifyPaymentSignature({
       razorpay_order_id,
       razorpay_payment_id,
-      razorpay_signature
+      razorpay_signature,
     });
 
     if (!isValid) {
-      throw new Error("Payment verification failed");
+      throw new AppError("Payment verification failed", 400);
     }
 
     await handlePaymentSuccessService({
       orderId,
-      paymentId: razorpay_payment_id
+      paymentId: razorpay_payment_id,
+      razorpayOrderId: razorpay_order_id,
+      razorpay_signature,
     });
 
     res.json({ success: true });
-
   } catch (error) {
-    res.status(400).json({
-      success: false,
-      message: error.message
-    });
+    console.error("Payment Verification Error:", error);
+    next(error);
   }
 };
 
@@ -88,11 +87,10 @@ export const paymentFailureController = async (req, res) => {
     await handlePaymentFailureService({ orderId });
 
     res.json({ success: true });
-
   } catch (error) {
     res.status(400).json({
       success: false,
-      message: error.message
+      message: error.message,
     });
   }
 };

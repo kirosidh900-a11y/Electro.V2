@@ -372,7 +372,6 @@ export const getProductDetailsServiceUser = async (productId) => {
     throw new AppError("Product not found", HTTP_STATUS.NOT_FOUND);
   }
 
-
   // ================= OFFERS =================
   const offers = await getActiveOffers(product);
 
@@ -396,7 +395,6 @@ export const getProductDetailsServiceUser = async (productId) => {
     })
     .sort({ "variants.price": 1 })
     .lean();
-
 
   return {
     product: productWithPricing,

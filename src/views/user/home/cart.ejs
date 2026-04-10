@@ -88,7 +88,7 @@
                                         <img src="<%= item?.variantId?.images?.[0] || item?.variantId?.product_images?.[0]?.url || '/images/default.png' %>"
                                             alt="<%= item?.productId?.name || 'Product' %>"
                                             class="w-full h-full object-contain p-3 group-hover:scale-110 transition-transform duration-500 mix-blend-multiply">
-                                        <% if (item.variantId?.stock===0) { %>
+                                        <% if (item.variantId?.stock ===0) { %>
                                             <div
                                                 class="absolute sold-out-badge inset-x-0 bottom-0 bg-red-500/90 py-1.5 backdrop-blur-sm flex justify-center">
                                                 <span
@@ -379,7 +379,7 @@
     <% if (typeof error !=="undefined" && error) { %>
         <script type="module">
             import { showToast } from "/partials/errorMsg.utils.js";
-            showToast(<% - JSON.stringify(error) %>, "error");
+            showToast(<%- JSON.stringify(error) %>, "error");
         </script>
         <% } %>
             <script type="module">

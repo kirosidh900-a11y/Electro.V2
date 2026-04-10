@@ -17,16 +17,51 @@ const orderSchema = new Schema(
       finalAmount: Number,
     },
 
-    shippingAddress: { /* same as yours */ },
+    shippingAddress: {
+      name: String,
+      phone: String,
+      altPhone: String,
 
-    payment: { /* same as yours */ },
+      address: String,
+      locality: String,
+      landmark: String,
 
+      city: String,
+      district: String,
+      state: String,
+      pincode: String,
+
+      addressType: {
+        type: String,
+        enum: ["home", "work"],
+      },
+    },
+
+    payment: {
+      method: {
+        type: String,
+        enum: ["cod", "razorpay"],
+        required: true,
+      },
+
+      status: {
+        type: String,
+        enum: ["pending", "paid", "failed", "refunded"],
+        default: "pending",
+      },
+
+      transactionId: String, // razorpay_payment_id
+      paymentGatewayOrderId: String, // razorpay_order_id
+      signature: String, // 🔥 add this (important)
+      refundedAt: Date, // 🔥 for refund tracking
+      expiresAt: Date // 🔥 ADD THIS
+    },
     orderStatus: {
       type: String,
       enum: [
         "pending",
         "placed",
-        'pending_payment',
+        "pending_payment",
         "confirmed",
         "shipped",
         "out_for_delivery",
@@ -50,7 +85,7 @@ const orderSchema = new Schema(
       deliveredAt: Date,
     },
   },
-  { timestamps: true }
+  { timestamps: true },
 );
 
 export default mongoose.model("Order", orderSchema);

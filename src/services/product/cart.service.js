@@ -305,21 +305,27 @@ export const validateCartStockService = async (userId) => {
 
     if (!variant) continue;
 
+    // 🔥 ALWAYS CALCULATE AVAILABLE
+    const availableStock = Math.max(variant.stock - (variant.reserved || 0), 0);
+
     let reason = null;
 
-    if (variant.stock === 0) {
+    if (availableStock === 0) {
       reason = `${product.name} is out of stock`;
-    } else if (item.quantity > variant.stock) {
-      reason = `Only ${variant.stock} available for ${product.name}`;
+    } else if (item.quantity > availableStock) {
+      reason = `Only ${availableStock} available for ${product.name}`;
     }
 
     updates.push({
       itemId: item._id,
-      stock: variant.stock,
+
+      stock: availableStock,
       quantity: item.quantity,
-      isOutOfStock: variant.stock === 0,
-      exceedsStock: item.quantity > variant.stock,
-      reason, // 🔥 IMPORTANT
+
+      isOutOfStock: availableStock === 0,
+      exceedsStock: item.quantity > availableStock,
+
+      reason,
     });
   }
 
@@ -381,14 +387,11 @@ export const validateCartStockServiceCheck = async (userId) => {
   cart.items.forEach((item) => {
     const product = item.productId;
 
-    // 🔥 find correct variant
     const variant = product.variants.find(
       (v) => v._id.toString() === item.variantId.toString(),
     );
 
-    const stock = variant?.stock ?? 0;
-
-    // ❌ no variant found
+    // ❌ no variant
     if (!variant) {
       invalidItems.push({
         itemId: item._id,
@@ -398,24 +401,27 @@ export const validateCartStockServiceCheck = async (userId) => {
       return;
     }
 
-    // ❌ out of stock
-    if (stock === 0) {
+    // 🔥 CALCULATE AVAILABLE STOCK
+    const availableStock = Math.max(variant.stock - (variant.reserved || 0), 0);
+
+    // ❌ OUT OF STOCK
+    if (availableStock === 0) {
       invalidItems.push({
         itemId: item._id,
         name: product.name,
-        reason: "Out of stock",
-        stock,
+        reason: `${product.name} is out of stock`,
+        stock: availableStock,
         quantity: item.quantity,
       });
     }
 
-    // ❌ quantity exceeds stock
-    else if (item.quantity > stock) {
+    // ❌ EXCEEDS AVAILABLE
+    else if (item.quantity > availableStock) {
       invalidItems.push({
         itemId: item._id,
         name: product.name,
-        reason: `${product.name} has only ${stock} items left in stock.`,
-        stock,
+        reason: `${product.name} has only ${availableStock} items left`,
+        stock: availableStock,
         quantity: item.quantity,
       });
     }

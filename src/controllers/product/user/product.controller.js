@@ -232,6 +232,7 @@ export const getCartPage = async (req, res, next) => {
           ...item,
           variantId: {
             ...variant,
+            stock: Math.max(variant.stock - (variant.reserved || 0), 0),
             images: variant.product_images?.map((img) => img.url) || [],
           },
         };

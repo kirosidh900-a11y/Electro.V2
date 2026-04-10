@@ -2,6 +2,7 @@ import addressSchemaModel from "../../../models/addressSchema.model.js";
 import {
   validateCartStockServiceCheck,
 } from "../../../services/product/cart.service.js";
+import setCookieMSG from "../../../utils/partials/setCookieMsg.utils.js";
 import { getCartWithPricing } from "../../../utils/products/getCartWithPricing.js";
 
 export const getCheckoutPage = async (req, res) => {
@@ -11,7 +12,7 @@ export const getCheckoutPage = async (req, res) => {
   const result = await validateCartStockServiceCheck(userId);
 
   if (!result.success) {
-    // store error message in cookie
+    setCookieMSG(res, "Some items in your cart are out of stock. Please review your cart.");
     return res.redirect("/cart");
   }
 

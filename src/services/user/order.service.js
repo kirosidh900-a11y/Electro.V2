@@ -113,7 +113,6 @@ export const placeOrderService = async ({
       let update;
 
       if (paymentMethod === "cod") {
-        // ✅ COD → reduce stock immediately
         update = await Products.updateOne(
           {
             _id: product._id,
@@ -128,8 +127,23 @@ export const placeOrderService = async ({
             $inc: { "variants.$.stock": -qty },
           },
         );
+
+        // 🔥 GET UPDATED VALUE
+        const updatedProduct = await Products.findById(product._id);
+        const updatedVariant = updatedProduct.variants.id(variant._id);
+
+        const availableStock =
+          updatedVariant.stock - (updatedVariant.reserved || 0);
+
+        // 🔥 SOCKET (FINAL STOCK ONLY)
+        if (global.io) {
+          global.io.emit("stockUpdated", {
+            productId: product._id,
+            variantId: variant._id,
+            stock: Math.max(availableStock, 0),
+          });
+        }
       } else if (paymentMethod === "razorpay") {
-        // 🔥 RAZORPAY → reserve stock (DO NOT Reduce)
         update = await Products.updateOne(
           {
             _id: product._id,
@@ -139,11 +153,27 @@ export const placeOrderService = async ({
             $inc: { "variants.$.reserved": qty },
           },
         );
+
+        // 🔥 GET UPDATED VALUE
+        const updatedProduct = await Products.findById(product._id);
+        const updatedVariant = updatedProduct.variants.id(variant._id);
+
+        const availableStock =
+          updatedVariant.stock - (updatedVariant.reserved || 0);
+
+        // 🔥 SOCKET (IMPORTANT)
+        if (global.io) {
+          global.io.emit("stockUpdated", {
+            productId: product._id,
+            variantId: variant._id,
+            stock: Math.max(availableStock, 0),
+          });
+        }
       }
 
       // ❗ COMMON CHECK
       if (update.modifiedCount === 0) {
-        throw new AppError("Stock not available", 409);
+        throw new AppError("Stock not available", HTTP_STATUS.CONFLICT);
       }
 
       // 📦 PREPARE ORDER ITEM
@@ -219,7 +249,7 @@ export const placeOrderService = async ({
       },
 
       orderStatus: paymentMethod === "cod" ? "placed" : "pending_payment",
-      
+
       delivery: {
         expectedDate,
       },
@@ -240,7 +270,7 @@ export const placeOrderService = async ({
 
     return {
       success: true,
-      order, // 🔥 FULL ORDER OBJECT
+      order, 
       orderId: order._id,
       orderNumber,
       redirectUrl: `/order/success/${order._id}`,

@@ -42,6 +42,8 @@ export const getOrderSuccessPage = async (req, res) => {
       order,
       orderId: order._id,
       orderNumber: order.orderNumber,
+      paymentMethod : order.payment.method,
+      paymentId : order.payment.transactionId,
       expectedDelivery: order.delivery?.expectedDate,
     });
   } catch (err) {

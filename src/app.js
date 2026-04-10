@@ -11,6 +11,8 @@ import authRouter from "./routes/user/auth.route.js";
 import userRouter from "./routes/user/user.route.js";
 import adminRouter from "./routes/admin/admin.route.js";
 import wishlistRoutes from "./routes/user/wishlist.route.js";
+import startPaymentExpiryJob from "./jobs/paymentExpiry.job.js";
+
 
 import errorMiddleware from "./middlewares/error.middleware.js";
 import AppError from "./utils/partials/AppError.utils.js";
@@ -19,6 +21,8 @@ import HTTP_STATUS from "./constant/statusCode.js";
 import passport from "passport";
 
 const app = express();
+startPaymentExpiryJob(); // 🔥 START CRON
+
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
