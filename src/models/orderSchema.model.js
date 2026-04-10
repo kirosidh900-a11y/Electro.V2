@@ -26,6 +26,7 @@ const orderSchema = new Schema(
       enum: [
         "pending",
         "placed",
+        'pending_payment',
         "confirmed",
         "shipped",
         "out_for_delivery",

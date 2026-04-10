@@ -38,6 +38,11 @@ const variantSchema = new mongoose.Schema(
       min: 0,
     },
 
+    reserved: {
+      type: Number,
+      default: 0,
+    },
+
     description: {
       type: String,
       trim: true,

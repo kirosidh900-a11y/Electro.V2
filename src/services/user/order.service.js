@@ -10,7 +10,6 @@ import AppError from "../../utils/partials/AppError.utils.js";
 import HTTP_STATUS from "../../constant/statusCode.js";
 import orderItem from "../../models/orderItemSchema.model.js";
 
-
 const generateOrderNumber = async () => {
   let isUnique = false;
   let orderNumber;
@@ -35,11 +34,8 @@ export const placeOrderService = async ({
   paymentMethod,
 }) => {
   try {
-    if (paymentMethod !== "cod") {
-      throw new AppError(
-        "Only Cash on Delivery is available currently",
-        HTTP_STATUS.BAD_REQUEST,
-      );
+    if (!["cod", "razorpay"].includes(paymentMethod)) {
+      throw new AppError("Invalid payment method", HTTP_STATUS.BAD_REQUEST);
     }
 
     console.log(
@@ -114,23 +110,40 @@ export const placeOrderService = async ({
       subtotal += itemSubtotal;
       gstTotal += itemGST;
 
-      const update = await Products.updateOne(
-        {
-          _id: product._id,
-          variants: {
-            $elemMatch: {
-              _id: variant._id,
-              stock: { $gte: qty },
+      let update;
+
+      if (paymentMethod === "cod") {
+        // ✅ COD → reduce stock immediately
+        update = await Products.updateOne(
+          {
+            _id: product._id,
+            variants: {
+              $elemMatch: {
+                _id: variant._id,
+                stock: { $gte: qty },
+              },
             },
           },
-        },
-        {
-          $inc: { "variants.$.stock": -qty },
-        },
-      );
+          {
+            $inc: { "variants.$.stock": -qty },
+          },
+        );
+      } else if (paymentMethod === "razorpay") {
+        // 🔥 RAZORPAY → reserve stock (DO NOT Reduce)
+        update = await Products.updateOne(
+          {
+            _id: product._id,
+            "variants._id": variant._id,
+          },
+          {
+            $inc: { "variants.$.reserved": qty },
+          },
+        );
+      }
 
+      // ❗ COMMON CHECK
       if (update.modifiedCount === 0) {
-        throw new AppError("Stock changed or insufficient", 409);
+        throw new AppError("Stock not available", 409);
       }
 
       // 📦 PREPARE ORDER ITEM
@@ -171,7 +184,7 @@ export const placeOrderService = async ({
 
     // 📅 DELIVERY DATE
     const expectedDate = new Date();
-    expectedDate.setDate(expectedDate.getDate() + 5);
+    expectedDate.setDate(expectedDate.getDate() + 7);
 
     // ================= CREATE ORDER =================
     const order = await Order.create({
@@ -201,12 +214,12 @@ export const placeOrderService = async ({
       },
 
       payment: {
-        method: "cod",
-        status: "pending",
+        method: paymentMethod,
+        status: paymentMethod === "cod" ? "pending" : "pending",
       },
 
-      orderStatus: "placed",
-
+      orderStatus: paymentMethod === "cod" ? "placed" : "pending_payment",
+      
       delivery: {
         expectedDate,
       },
@@ -227,6 +240,7 @@ export const placeOrderService = async ({
 
     return {
       success: true,
+      order, // 🔥 FULL ORDER OBJECT
       orderId: order._id,
       orderNumber,
       redirectUrl: `/order/success/${order._id}`,
@@ -505,7 +519,7 @@ export const returnOrderItemService = async ({
   if (item.itemStatus !== "delivered") {
     throw new AppError(
       "Only delivered items can be returned",
-      HTTP_STATUS.BAD_REQUEST
+      HTTP_STATUS.BAD_REQUEST,
     );
   }
 

@@ -41,8 +41,12 @@ import {
 
 import { cartSchema } from "../../validations/products.validator.js";
 
-import { getCheckoutPage, validateCartStockCheck } from "../../controllers/product/user/checkout.controller.js";
+import {
+  getCheckoutPage,
+  validateCartStockCheck,
+} from "../../controllers/product/user/checkout.controller.js";
 import { getOrderListingPage } from "../../controllers/user/order.controller.js";
+import paymentRouter from "../product/payment.route.js";
 
 const router = Router();
 
@@ -56,7 +60,7 @@ router.use("/location", requireAuth, locationRoutes);
 router.use("/wishlist", requireAuth, wishlistRouter);
 router.use("/orders", requireAuth, orderRouter);
 router.use("/order", requireAuth, orderRouter);
-
+router.use("/payment", requireAuth, paymentRouter);
 
 //Home side
 router.get("/", showHomePage);
@@ -77,8 +81,6 @@ router
 router.get("/cart/validate-stock", requireAuth, validateCartStock);
 router.get("/cart/validate-stock-cart", requireAuth, validateCartStockCheck);
 router.get("/cart/checkout", requireAuth, getCheckoutPage);
-
-
 
 //Profile Side
 router.get("/myProfile", userAuth, profilePage);
@@ -101,6 +103,5 @@ router
   .route("/photo")
   .patch(setUploadFolder("profile"), upload.single("photo"), updateProfilePhoto)
   .delete(deleteProfilePhoto);
-
 
 export default router;

@@ -734,6 +734,7 @@
                 </div>
         </div>
 
+        <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
 
         <script type="module">
                 import { showToast } from "/partials/errorMsg.utils.js";
@@ -971,74 +972,122 @@
                 };
 
                 // ---------------- Checkout Order Submission ----------------
-                document.getElementById('checkoutProceedBtn').addEventListener('click', async (e) => {
+                document.getElementById('checkoutProceedBtn').addEventListener('click', async () => {
                         const selectedAddress = document.querySelector('input[name="selectedAddress"]:checked');
                         const selectedPayment = document.querySelector('input[name="paymentMethod"]:checked');
 
-                        if (!selectedAddress) {
-                                return showToast("Please select a delivery address", "warning");
-                        }
-
-                        if (!selectedPayment) {
-                                return showToast("Please select a payment method", "warning");
-                        }
-
-                        // USER CONFIRMATION
-                        const confirm = await customConfirm(
-                                "Confirm Order",
-                                `You are about to place an order using ${selectedPayment.value.toUpperCase()} payment. Continue?`
-                        );
-
-                        if (!confirm) return;
+                        if (!selectedAddress) return showToast("Select address", "warning");
+                        if (!selectedPayment) return showToast("Select payment method", "warning");
 
                         const btn = document.getElementById('checkoutProceedBtn');
-                        const originalContent = btn.innerHTML;
+                        const original = btn.innerHTML;
 
                         btn.disabled = true;
-                        btn.innerHTML = `<span class="flex items-center gap-2"><i class="fa-solid fa-circle-notch fa-spin"></i> Validating...</span>`;
+                        btn.innerHTML = "Processing...";
 
                         try {
-                                //VALIDATE STOCK AGAIN
+                                // ✅ STOCK VALIDATION
                                 const stockRes = await fetch("/api/user/cart/validate-stock-cart");
                                 const stockData = await stockRes.json();
 
                                 if (!stockData.success) {
-                                        showToast("Some items are out of stock. Please review your cart.", "error");
-
-                                        btn.disabled = false;
-                                        btn.innerHTML = originalContent;
-
-                                        // redirect to cart
-                                        setTimeout(() => {
-                                                window.location.href = "/cart";
-                                        }, 2500);
-
+                                        showToast("Stock issue. Redirecting...", "error");
+                                        setTimeout(() => location.href = "/cart", 2000);
                                         return;
                                 }
 
-                                //  PLACE ORDER
-                                btn.innerHTML = `<span class="flex items-center gap-2"><i class="fa-solid fa-circle-notch fa-spin"></i> Processing Payment...</span>`;
-                                const response = await fetch('/api/user/order/place', {
-                                        method: 'POST',
-                                        headers: { "Content-Type": "application/json", 'Accept': 'application/json' },
-                                        body: JSON.stringify({
-                                                addressId: selectedAddress.value,
-                                                paymentMethod: selectedPayment.value
-                                        })
-                                });
+                                // ================= COD =================
+                                if (selectedPayment.value === "cod") {
 
-                                const result = await response.json();
+                                        const res = await fetch('/api/user/order/place', {
+                                                method: 'POST',
+                                                headers: { "Content-Type": "application/json" },
+                                                body: JSON.stringify({
+                                                        addressId: selectedAddress.value,
+                                                        paymentMethod: "cod"
+                                                })
+                                        });
 
-                                if (result.success) {
+                                        const result = await res.json();
+
+                                        if (!result.success) throw new Error(result.message);
+
                                         window.location.href = result.redirectUrl;
-                                } else {
-                                        throw new Error(result.message);
                                 }
 
-                        } catch (error) {
-                                showToast(error.message || "Order failed", "error");
+                                // ================= RAZORPAY =================
+                                else {
+                                        const res = await fetch('/api/user/payment/create-order', {
+                                                method: 'POST',
+                                                headers: { "Content-Type": "application/json" },
+                                                body: JSON.stringify({
+                                                        addressId: selectedAddress.value
+                                                })
+                                        });
+
+                                        const data = await res.json();
+
+                                        const rzp = new Razorpay({
+                                                key: data.key,
+                                                amount: data.amount,
+                                                currency: "INR",
+                                                order_id: data.razorpayOrderId,
+
+                                                // 🔥 PREFILL (IMPORTANT FIX)
+                                                prefill: {
+                                                        name: "Sidharth T",
+                                                        email: "sidharth@test.com",
+                                                        contact: "8848096746"
+                                                },
+
+                                                // 🔥 SUCCESS HANDLER
+                                                handler: async function (response) {
+                                                        console.log("PAYMENT SUCCESS:", response);
+
+                                                        await fetch('/api/user/payment/verify', {
+                                                                method: 'POST',
+                                                                headers: { "Content-Type": "application/json" },
+                                                                body: JSON.stringify({
+                                                                        ...response,
+                                                                        orderId: data.orderId
+                                                                })
+                                                        });
+
+                                                        window.location.href = `/orders/success/${data.orderId}`;
+                                                },
+
+                                                // 🔥 OPTIONAL UI SETTINGS
+                                                theme: {
+                                                        color: "#3399cc"
+                                                }
+                                        });
+
+                                        // 🔥 FAILURE HANDLING (VERY IMPORTANT)
+                                        let failureHandled = false;
+
+                                        rzp.on("payment.failed", async function (response) {
+                                                console.log("PAYMENT FAILED:", response);
+
+                                                if (failureHandled) return;
+                                                failureHandled = true;
+
+                                                await fetch("/api/user/payment/failure", {
+                                                        method: "POST",
+                                                        headers: { "Content-Type": "application/json" },
+                                                        body: JSON.stringify({
+                                                                orderId: data.orderId
+                                                        })
+                                                });
+                                        });
+
+                                        // 🔥 OPEN CHECKOUT
+                                        rzp.open();
+                                }
+
+                        } catch (err) {
+                                showToast(err.message || "Something went wrong", "error");
                                 btn.disabled = false;
-                                btn.innerHTML = originalContent;
+                                btn.innerHTML = original;
                         }
                 });
 

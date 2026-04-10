@@ -52,6 +52,7 @@ const orderItemSchema = new Schema(
       type: String,
       enum: [
         "placed",
+        "pending_payment",
         "confirmed",
         "shipped",
         "out_for_delivery",
