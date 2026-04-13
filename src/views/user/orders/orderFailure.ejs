@@ -1,0 +1,287 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Payment Failed</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    body { font-family: 'Outfit', sans-serif; background-color: #f3f4f6; }
+
+    @keyframes dash {
+      to { stroke-dashoffset: 0; }
+    }
+    .draw-x path {
+      stroke-dasharray: 30;
+      stroke-dashoffset: 30;
+      animation: dash 0.45s ease forwards;
+    }
+    .draw-x path:nth-child(2) { animation-delay: 0.2s; }
+  </style>
+</head>
+<body>
+
+<%- include("../../partials/user/header.ejs") %>
+
+<main class="min-h-[90vh] flex items-center justify-center px-4 py-16 bg-gray-100">
+  <div class="w-full max-w-[960px] flex flex-col lg:flex-row gap-6 items-start">
+
+    <!-- Left: Failure Card -->
+    <div class="flex-1 bg-white rounded-2xl border border-gray-200 shadow-sm p-8">
+
+      <!-- Status Badge -->
+      <div class="flex items-center gap-2 mb-6">
+        <div class="w-8 h-8 rounded-full bg-red-100 flex items-center justify-center">
+          <svg class="draw-x w-4 h-4 text-red-600" fill="none" stroke="currentColor" stroke-width="2.5"
+            stroke-linecap="round" viewBox="0 0 24 24">
+            <path d="M6 6l12 12"/>
+            <path d="M18 6L6 18"/>
+          </svg>
+        </div>
+        <span class="text-sm font-semibold text-red-600 uppercase tracking-wide">Payment Failed</span>
+      </div>
+
+      <h1 class="text-2xl font-bold text-gray-900 mb-1">Transaction Unsuccessful</h1>
+      <p class="text-gray-500 text-sm mb-8">
+        We couldn't process your payment. Please review the details below and try again.
+      </p>
+
+      <!-- Order Details -->
+      <div class="border border-gray-200 rounded-xl divide-y divide-gray-100 mb-8">
+
+        <div class="flex items-center justify-between px-5 py-4">
+          <div class="flex items-center gap-3">
+            <i class="fa-solid fa-receipt text-gray-400 text-sm"></i>
+            <span class="text-sm text-gray-500">Order Number</span>
+          </div>
+          <span class="text-sm font-semibold text-gray-900"><%= orderNumber || "N/A" %></span>
+        </div>
+
+        <div class="flex items-center justify-between px-5 py-4">
+          <div class="flex items-center gap-3">
+            <i class="fa-solid fa-circle-exclamation text-red-400 text-sm"></i>
+            <span class="text-sm text-gray-500">Failure Reason</span>
+          </div>
+          <span class="text-sm font-medium text-red-500"><%= errorMessage || "Transaction failed or cancelled" %></span>
+        </div>
+
+        <div class="flex items-center justify-between px-5 py-4">
+          <div class="flex items-center gap-3">
+            <i class="fa-solid fa-shield-halved text-gray-400 text-sm"></i>
+            <span class="text-sm text-gray-500">Payment Method</span>
+          </div>
+          <span class="text-sm font-medium text-gray-700">Online Payment (Razorpay)</span>
+        </div>
+
+      </div>
+
+      <!-- Actions -->
+      <div class="flex flex-col sm:flex-row gap-3">
+        <button id="retryBtn"
+          onclick="initiateRetry()"
+          class="flex-1 flex items-center justify-center gap-2 px-6 py-3 bg-gray-900 hover:bg-gray-800 text-white rounded-xl text-sm font-semibold transition disabled:opacity-40 disabled:cursor-not-allowed">
+          <i class="fa-solid fa-rotate-right text-xs"></i>
+          <span id="retryBtnText">Retry Payment</span>
+        </button>
+        <a href="/orders"
+          class="flex-1 flex items-center justify-center gap-2 px-6 py-3 bg-white border border-gray-300 hover:border-gray-900 text-gray-700 hover:text-gray-900 rounded-xl text-sm font-semibold transition">
+          <i class="fa-solid fa-bag-shopping text-xs"></i>
+          My Orders
+        </a>
+      </div>
+
+      <!-- Countdown -->
+      <div id="countdownWrap" class="mt-4 text-center text-xs text-gray-400 hidden">
+        Retry available for <span id="countdown" class="font-semibold text-gray-600"></span>
+      </div>
+      <div id="expiredMsg" class="mt-4 text-center text-xs text-red-400 hidden">
+        Retry window expired. Please <a href="/cart" class="underline text-red-500">place a new order</a>.
+      </div>
+
+    </div>
+
+    <!-- Right: Order Summary -->
+    <div class="w-full lg:w-[320px] bg-white rounded-2xl border border-gray-200 shadow-sm p-6">
+
+      <h2 class="text-base font-bold text-gray-900 mb-5">Order Summary</h2>
+
+      <!-- Item -->
+      <div class="flex items-center gap-3 mb-5 pb-5 border-b border-gray-100">
+        <div class="w-14 h-14 rounded-lg bg-gray-100 flex items-center justify-center shrink-0">
+          <i class="fa-solid fa-box text-gray-400"></i>
+        </div>
+        <div class="flex-1 min-w-0">
+          <p class="text-sm font-semibold text-gray-900 truncate"><%= itemName || "Your Item" %></p>
+          <p class="text-xs text-gray-400 mt-0.5"><%= itemMeta || "" %></p>
+        </div>
+        <span class="text-sm font-bold text-gray-900 shrink-0">₹<%= itemPrice || "—" %></span>
+      </div>
+
+      <!-- Breakdown -->
+      <div class="space-y-3 text-sm mb-5">
+        <div class="flex justify-between text-gray-500">
+          <span>Subtotal</span>
+          <span class="text-gray-900 font-medium">₹<%= subtotal || "—" %></span>
+        </div>
+        <div class="flex justify-between text-gray-500">
+          <span>Product Discounts</span>
+          <span class="text-green-600 font-medium">- ₹<%= discount || "0" %></span>
+        </div>
+        <div class="flex justify-between text-gray-500">
+          <span>Tax (GST)</span>
+          <span class="text-gray-900 font-medium">₹<%= tax || "0" %></span>
+        </div>
+        <div class="flex justify-between text-gray-500">
+          <span>Delivery</span>
+          <span class="text-green-600 font-semibold">Free</span>
+        </div>
+      </div>
+
+      <div class="border-t border-gray-100 pt-4 flex justify-between items-center">
+        <div>
+          <p class="text-xs text-gray-400">Total Amount</p>
+          <% if (savings) { %>
+          <p class="text-xs text-green-600 font-medium">Overall save ₹<%= savings %></p>
+          <% } %>
+        </div>
+        <span class="text-xl font-bold text-gray-900">₹<%= totalAmount || "—" %></span>
+      </div>
+
+      <!-- Secure badges -->
+      <div class="flex items-center justify-center gap-4 mt-5 pt-4 border-t border-gray-100">
+        <span class="flex items-center gap-1.5 text-xs text-gray-400">
+          <i class="fa-solid fa-lock text-gray-300"></i> Secure Checkout
+        </span>
+        <span class="flex items-center gap-1.5 text-xs text-gray-400">
+          <i class="fa-solid fa-bolt text-gray-300"></i> Express Delivery
+        </span>
+      </div>
+
+    </div>
+
+  </div>
+</main>
+
+<%- include("../../partials/user/footer.ejs") %>
+
+<script src="https://checkout.razorpay.com/v1/checkout.js"></script>
+<script>
+  const ORDER_ID = "<%= orderId %>";
+  const ORDER_UPDATED_AT = <%- JSON.stringify(orderUpdatedAt ? new Date(orderUpdatedAt).toISOString() : null) %>;
+  const FIFTEEN_MIN = 15 * 60 * 1000;
+
+  const retryBtn = document.getElementById("retryBtn");
+  const retryBtnText = document.getElementById("retryBtnText");
+  const countdownWrap = document.getElementById("countdownWrap");
+  const countdownEl = document.getElementById("countdown");
+  const expiredMsg = document.getElementById("expiredMsg");
+
+  function getRemainingMs() {
+    if (!ORDER_UPDATED_AT || ORDER_UPDATED_AT === "null") return 0;
+    const elapsed = Date.now() - new Date(ORDER_UPDATED_AT).getTime();
+    return Math.max(FIFTEEN_MIN - elapsed, 0);
+  }
+
+  function formatTime(ms) {
+    const totalSec = Math.floor(ms / 1000);
+    const m = Math.floor(totalSec / 60).toString().padStart(2, "0");
+    const s = (totalSec % 60).toString().padStart(2, "0");
+    return `${m}:${s}`;
+  }
+
+  function updateUI() {
+    const remaining = getRemainingMs();
+    if (remaining <= 0) {
+      retryBtn.disabled = true;
+      countdownWrap.classList.add("hidden");
+      expiredMsg.classList.remove("hidden");
+    } else {
+      retryBtn.disabled = false;
+      countdownWrap.classList.remove("hidden");
+      expiredMsg.classList.add("hidden");
+      countdownEl.textContent = formatTime(remaining);
+    }
+  }
+
+  updateUI();
+  const timer = setInterval(() => {
+    updateUI();
+    if (getRemainingMs() <= 0) clearInterval(timer);
+  }, 1000);
+
+  async function initiateRetry() {
+    if (getRemainingMs() <= 0) return;
+
+    retryBtn.disabled = true;
+    retryBtnText.textContent = "Processing...";
+
+    try {
+      const res = await fetch(`/payment/retry/${ORDER_ID}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) throw new Error(data.message || "Retry failed");
+
+      const options = {
+        key: data.key,
+        amount: data.amount,
+        currency: "INR",
+        order_id: data.razorpayOrderId,
+        name: "Electro Shop",
+        description: `Order #${data.orderNumber}`,
+        handler: async function (response) {
+          try {
+            const verifyRes = await fetch("/payment/verify", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              credentials: "include",
+              body: JSON.stringify({
+                razorpay_order_id: response.razorpay_order_id,
+                razorpay_payment_id: response.razorpay_payment_id,
+                razorpay_signature: response.razorpay_signature,
+                orderId: data.orderId,
+              }),
+            });
+            const verifyData = await verifyRes.json();
+            if (verifyData.success) {
+              window.location.href = `/order/success/${data.orderId}`;
+            } else {
+              throw new Error("Verification failed");
+            }
+          } catch (e) {
+            window.location.href = `/order/failure/${data.orderId}?orderNumber=${data.orderNumber}&error=${encodeURIComponent(e.message)}`;
+          }
+        },
+        modal: {
+          ondismiss: async function () {
+            await fetch("/payment/failure", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              credentials: "include",
+              body: JSON.stringify({ orderId: data.orderId }),
+            });
+            retryBtn.disabled = false;
+            retryBtnText.textContent = "Retry Payment";
+          },
+        },
+        theme: { color: "#111827" },
+      };
+
+      const rzp = new Razorpay(options);
+      rzp.open();
+
+    } catch (err) {
+      alert(err.message || "Something went wrong. Please try again.");
+      retryBtn.disabled = false;
+      retryBtnText.textContent = "Retry Payment";
+    }
+  }
+</script>
+
+</body>
+</html>

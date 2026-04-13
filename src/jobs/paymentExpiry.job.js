@@ -8,6 +8,7 @@ const startPaymentExpiryJob = () => {
     console.log("⏳ Checking expired payments...");
 
     const expiredOrders = await Order.find({
+      orderStatus: "pending_payment",
       "payment.status": "pending",
       "payment.expiresAt": { $lt: new Date() },
     });
@@ -19,7 +20,12 @@ const startPaymentExpiryJob = () => {
         await Products.updateOne(
           {
             _id: item.productId,
-            "variants._id": item.variantId,
+            variants: {
+              $elemMatch: {
+                _id: item.variantId,
+                reserved: { $gte: item.quantity }, // 🔥 SAFE CHECK
+              },
+            },
           },
           {
             $inc: {

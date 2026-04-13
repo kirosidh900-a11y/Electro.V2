@@ -48,6 +48,8 @@ import {
 import { getOrderListingPage } from "../../controllers/user/order.controller.js";
 import paymentRouter from "../product/payment.route.js";
 
+import { getWalletPage, addMoneyToWallet } from "../../controllers/user/wallet.controller.js";
+
 const router = Router();
 
 // Prevent caching of protected pages
@@ -84,6 +86,8 @@ router.get("/cart/checkout", requireAuth, getCheckoutPage);
 
 //Profile Side
 router.get("/myProfile", userAuth, profilePage);
+router.get("/wallet", userAuth, getWalletPage);
+router.post("/wallet/add", userAuth, addMoneyToWallet);
 router.patch("/name", userAuth, editName);
 
 router

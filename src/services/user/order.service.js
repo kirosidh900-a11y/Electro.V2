@@ -38,40 +38,27 @@ export const placeOrderService = async ({
       throw new AppError("Invalid payment method", HTTP_STATUS.BAD_REQUEST);
     }
 
-    console.log(
-      "Placing order for user:",
-      userId,
-      "with address:",
-      addressId,
-      "and payment method:",
-      paymentMethod,
-    );
-
-    // 🛒 GET CART
     const cart = await Cart.findOne({ userId }).populate("items.productId");
 
     if (!cart || cart.items.length === 0) {
       throw new AppError("Cart is empty", HTTP_STATUS.BAD_REQUEST);
     }
 
-    // 📍 GET ADDRESS
     const address = await Address.findOne({ _id: addressId, userId });
 
     if (!address) {
       throw new AppError("Invalid address", HTTP_STATUS.NOT_FOUND);
     }
 
-    // 🎯 GET OFFERS
     const allOffers = await getActiveOffers();
 
     let orderItems = [];
     let subtotal = 0;
     let gstTotal = 0;
 
-    // ✅ GENERATE ONCE
     const orderNumber = await generateOrderNumber();
 
-    // ================= LOOP ITEMS =================
+    // ================= LOOP =================
     for (const item of cart.items) {
       const product = item.productId;
 
@@ -89,13 +76,26 @@ export const placeOrderService = async ({
 
       const variant = product.variants[index];
 
-      // 🔥 APPLY PRICING
+      // 🔥 AVAILABLE STOCK CHECK (VERY IMPORTANT)
+      const availableStock = variant.stock - (variant.reserved || 0);
+
+      if (availableStock <= 0) {
+        throw new AppError(
+          `${product.name} is out of stock`,
+          HTTP_STATUS.CONFLICT,
+        );
+      }
+
+      if (item.quantity > availableStock) {
+        throw new AppError(
+          `Only ${availableStock} available for ${product.name}`,
+          HTTP_STATUS.CONFLICT,
+        );
+      }
+
+      // 🔥 PRICING
       const pricedProduct = applyPricingToProduct(product, allOffers);
       const pricedVariant = pricedProduct.variants[index];
-
-      if (!pricedVariant) {
-        throw new AppError("Pricing error", HTTP_STATUS.BAD_REQUEST);
-      }
 
       const qty = item.quantity;
 
@@ -110,73 +110,61 @@ export const placeOrderService = async ({
       subtotal += itemSubtotal;
       gstTotal += itemGST;
 
-      let update;
+      let updatedProduct;
 
+      // ================= COD =================
       if (paymentMethod === "cod") {
-        update = await Products.updateOne(
+        updatedProduct = await Products.findOneAndUpdate(
           {
             _id: product._id,
-            variants: {
-              $elemMatch: {
-                _id: variant._id,
-                stock: { $gte: qty },
-              },
-            },
+            "variants._id": variant._id,
+            "variants.stock": { $gte: qty }, // safe check
           },
           {
             $inc: { "variants.$.stock": -qty },
           },
+          { returnDocument: "after" },
         );
+      }
 
-        // 🔥 GET UPDATED VALUE
-        const updatedProduct = await Products.findById(product._id);
-        const updatedVariant = updatedProduct.variants.id(variant._id);
-
-        const availableStock =
-          updatedVariant.stock - (updatedVariant.reserved || 0);
-
-        // 🔥 SOCKET (FINAL STOCK ONLY)
-        if (global.io) {
-          global.io.emit("stockUpdated", {
-            productId: product._id,
-            variantId: variant._id,
-            stock: Math.max(availableStock, 0),
-          });
-        }
-      } else if (paymentMethod === "razorpay") {
-        update = await Products.updateOne(
+      // ================= RAZORPAY =================
+      else if (paymentMethod === "razorpay") {
+        updatedProduct = await Products.findOneAndUpdate(
           {
             _id: product._id,
             "variants._id": variant._id,
+            "variants.reserved": {
+              $lte: variant.stock - qty, // 🔥 prevent over-reserve
+            },
           },
           {
             $inc: { "variants.$.reserved": qty },
           },
+          { returnDocument: "after" },
         );
-
-        // 🔥 GET UPDATED VALUE
-        const updatedProduct = await Products.findById(product._id);
-        const updatedVariant = updatedProduct.variants.id(variant._id);
-
-        const availableStock =
-          updatedVariant.stock - (updatedVariant.reserved || 0);
-
-        // 🔥 SOCKET (IMPORTANT)
-        if (global.io) {
-          global.io.emit("stockUpdated", {
-            productId: product._id,
-            variantId: variant._id,
-            stock: Math.max(availableStock, 0),
-          });
-        }
       }
 
-      // ❗ COMMON CHECK
-      if (update.modifiedCount === 0) {
-        throw new AppError("Stock not available", HTTP_STATUS.CONFLICT);
+      // ❗ CHECK UPDATE SUCCESS
+      if (!updatedProduct) {
+        throw new AppError("Stock conflict, try again", HTTP_STATUS.CONFLICT);
       }
 
-      // 📦 PREPARE ORDER ITEM
+      // 🔥 UPDATED VARIANT
+      const updatedVariant = updatedProduct.variants.id(variant._id);
+
+      const finalAvailable =
+        updatedVariant.stock - (updatedVariant.reserved || 0);
+
+      // 🔥 SOCKET UPDATE
+      if (global.io) {
+        global.io.emit("stockUpdated", {
+          productId: product._id,
+          variantId: variant._id,
+          stock: Math.max(finalAvailable, 0),
+        });
+      }
+
+      // ================= ORDER ITEM =================
       orderItems.push({
         productId: product._id,
         variantId: variant._id,
@@ -188,8 +176,7 @@ export const placeOrderService = async ({
         attributes: variant.attributes || {},
         images: variant.product_images?.map((img) => img.url) || [],
 
-        orderNumber, // optional (same for all items)
-
+        orderNumber,
         quantity: qty,
 
         pricing: {
@@ -202,24 +189,22 @@ export const placeOrderService = async ({
           discountAmount: (variant.regular_price || variant.price) - basePrice,
         },
 
-        itemStatus: "placed",
+        itemStatus: paymentMethod === "cod" ? "placed" : "pending_payment",
       });
     }
 
-    // ================= FINAL CALC =================
+    // ================= FINAL =================
     const couponDiscount = cart.couponDiscountAmount || 0;
     const deliveryCharge = subtotal > 500 ? 0 : 40;
 
     const finalAmount = subtotal - couponDiscount + deliveryCharge + gstTotal;
 
-    // 📅 DELIVERY DATE
     const expectedDate = new Date();
     expectedDate.setDate(expectedDate.getDate() + 7);
 
-    // ================= CREATE ORDER =================
     const order = await Order.create({
       userId,
-      orderNumber, // ✅ CORRECT PLACE
+      orderNumber,
 
       pricing: {
         subtotal,
@@ -245,7 +230,7 @@ export const placeOrderService = async ({
 
       payment: {
         method: paymentMethod,
-        status: paymentMethod === "cod" ? "pending" : "pending",
+        status: "pending",
       },
 
       orderStatus: paymentMethod === "cod" ? "placed" : "pending_payment",
@@ -255,7 +240,6 @@ export const placeOrderService = async ({
       },
     });
 
-    // ================= CREATE ORDER ITEMS =================
     await orderItem.insertMany(
       orderItems.map((item) => ({
         ...item,
@@ -270,7 +254,7 @@ export const placeOrderService = async ({
 
     return {
       success: true,
-      order, 
+      order,
       orderId: order._id,
       orderNumber,
       redirectUrl: `/order/success/${order._id}`,

@@ -1019,7 +1019,7 @@
                                 else {
                                         const res = await fetch('/api/user/payment/create-order', {
                                                 method: 'POST',
-                                                headers: { "Content-Type": "application/json" },
+                                                headers: { "Content-Type": "application/json", "Accept": "application/json" },
                                                 body: JSON.stringify({
                                                         addressId: selectedAddress.value
                                                 })
@@ -1027,67 +1027,122 @@
 
                                         const data = await res.json();
 
+
+                                        if (!data.success) throw new Error("Failed to create payment order");
+
+
+
                                         const rzp = new Razorpay({
                                                 key: data.key,
                                                 amount: data.amount,
                                                 currency: "INR",
                                                 order_id: data.razorpayOrderId,
 
-                                                // 🔥 PREFILL (IMPORTANT FIX)
                                                 prefill: {
                                                         name: "Sidharth T",
                                                         email: "sidharth@test.com",
                                                         contact: "8848096746"
                                                 },
 
-                                                // 🔥 SUCCESS HANDLER
-                                                handler: async function (response) {
-                                                        console.log("PAYMENT SUCCESS:", response);
-
-                                                        await fetch('/api/user/payment/verify', {
-                                                                method: 'POST',
-                                                                headers: { "Content-Type": "application/json" },
-                                                                body: JSON.stringify({
-                                                                        ...response,
-                                                                        orderId: data.orderId
-                                                                })
-                                                        });
-
-                                                        window.location.href = `/orders/success/${data.orderId}`;
-                                                },
-
-                                                // 🔥 OPTIONAL UI SETTINGS
                                                 theme: {
                                                         color: "#3399cc"
+                                                },
+
+                                                // ✅ SUCCESS
+                                                handler: async function (response) {
+                                                        try {
+                                                                const verifyRes = await fetch('/api/user/payment/verify', {
+                                                                        method: 'POST',
+                                                                        headers: {
+                                                                                "Content-Type": "application/json",
+                                                                                "Accept": "application/json"
+                                                                        },
+                                                                        body: JSON.stringify({
+                                                                                ...response,
+                                                                                orderId: data.orderId
+                                                                        })
+                                                                });
+
+                                                                const result = await verifyRes.json();
+
+                                                                if (!verifyRes.ok || !result.success) {
+                                                                        window.location.href =  `/order/failure/${data.orderId}?error=Payment failed&orderNumber=${data.orderNumber}`;
+                                                                        return;
+                                                                }
+
+                                                                // ✅ SUCCESS PAGE
+                                                                window.location.href = data.redirectUrl;
+
+                                                        } catch (err) {
+                                                                window.location.href =  `/order/failure/${data.orderId}?error=Payment failed&orderNumber=${data.orderNumber}`;
+                                                        }
+                                                },
+
+                                                // ✅ USER CLOSED POPUP
+                                                modal: {
+                                                        ondismiss: async function () {
+                                                                await fetch("/api/user/payment/failure", {
+                                                                        method: "POST",
+                                                                        headers: { "Content-Type": "application/json" },
+                                                                        body: JSON.stringify({ orderId: data.orderId })
+                                                                });
+
+                                                                window.location.href =  `/order/failure/${data.orderId}?error=Payment failed&orderNumber=${data.orderNumber}`;
+                                                        }
                                                 }
                                         });
 
-                                        // 🔥 FAILURE HANDLING (VERY IMPORTANT)
-                                        let failureHandled = false;
 
+                                        // ✅ FAILURE EVENT (VERY IMPORTANT)
                                         rzp.on("payment.failed", async function (response) {
                                                 console.log("PAYMENT FAILED:", response);
-
-                                                if (failureHandled) return;
-                                                failureHandled = true;
 
                                                 await fetch("/api/user/payment/failure", {
                                                         method: "POST",
                                                         headers: { "Content-Type": "application/json" },
-                                                        body: JSON.stringify({
-                                                                orderId: data.orderId
-                                                        })
+                                                        body: JSON.stringify({ orderId: data.orderId })
                                                 });
+
+                                                window.location.href = `/order/failed/${data.orderId}`;
                                         });
 
-                                        // 🔥 OPEN CHECKOUT
-                                        rzp.open();
-                                }
 
-                        } catch (err) {
-                                showToast(err.message || "Something went wrong", "error");
-                                btn.disabled = false;
+                                        // ✅ OPEN
+                                        rzp.open();
+
+
+                                        // ✅ TIMER FIX
+                                        const expiryTime = new Date(data.expiresAt).getTime();
+                                        const now = Date.now();
+                                        const remainingTime = expiryTime - now;
+
+                                        if (remainingTime > 0) {
+                                                console.log(`Payment window expires in ${Math.floor(remainingTime / 1000)} seconds`);
+                                                for(let i = 0 ; i <= remainingTime ; i += 1000) {
+                                                        setTimeout(() => {
+                                                                const timeLeft = expiryTime - Date.now();
+                                                                if (timeLeft > 0) {
+                                                                        console.log(`Time left: ${Math.floor(timeLeft / 1000)} seconds`);
+                                                                }
+                                                        }, i);
+                                                }
+                                                setTimeout(async () => {
+                                                        rzp.close();
+
+                                                        await fetch("/api/user/payment/failure", {
+                                                                method: "POST",
+                                                                headers: { "Content-Type": "application/json" },
+                                                                body: JSON.stringify({ orderId: data.orderId })
+                                                        });
+
+                                                        window.location.href =  `/order/failure/${data.orderId}?error=Payment failed&orderNumber=${data.orderNumber}`;
+                                                }, remainingTime);
+                                        }
+                                }
+                        } catch (error) {
+                                showToast(error.message, "error");
                                 btn.innerHTML = original;
+                                btn.disabled = false;
                         }
                 });
 

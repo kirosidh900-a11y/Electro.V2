@@ -241,6 +241,8 @@ export const getCartPage = async (req, res, next) => {
 
     cart.items = updatedItems.filter(Boolean);
 
+    console.log("Cart Items with Pricing:", cart.items);
+
     res.render("user/home/cart", { cart });
   } catch (error) {
     console.error("Cart Page Error:", error);

@@ -1,0 +1,297 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>My Wallet</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+  <style>
+    body { font-family: 'Inter', sans-serif; background-color: #F1F3F6; }
+  </style>
+</head>
+<body class="min-h-screen">
+
+<%- include("../../partials/user/header") %>
+
+<main class="min-h-screen py-10">
+  <div class="max-w-7xl mx-auto px-4 lg:px-8">
+    <div class="flex flex-col lg:flex-row gap-8">
+
+      <%- include("./partials/profileSidebar") %>
+
+      <!-- MAIN CONTENT -->
+      <section class="flex-grow space-y-5">
+
+        <!-- Header row -->
+        <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
+          <div class="flex justify-between items-start">
+            <div>
+              <h2 class="text-2xl font-bold text-gray-800">Wallet</h2>
+              <p class="text-sm text-gray-500 mt-1">Manage your balance and transactions</p>
+            </div>
+            <button onclick="document.getElementById('addMoneyModal').classList.remove('hidden')"
+              class="text-[#2874F0] text-sm font-semibold hover:underline flex items-center gap-1">
+              <i class="fa-solid fa-plus text-xs"></i> Add Money
+            </button>
+          </div>
+
+          <!-- Balance Cards -->
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-6">
+
+            <div class="bg-white border border-gray-200 rounded-xl p-5 flex items-center gap-4 shadow-sm">
+              <div class="w-11 h-11 bg-[#2874F0] rounded-xl flex items-center justify-center shrink-0">
+                <i class="fa-solid fa-wallet text-white text-lg"></i>
+              </div>
+              <div>
+                <p class="text-xs text-gray-500 font-medium">Total Balance</p>
+                <p class="text-2xl font-black text-gray-900 mt-0.5">
+                  ₹<%= balance.toLocaleString('en-IN', { minimumFractionDigits: 2 }) %>
+                </p>
+              </div>
+            </div>
+
+            <div class="bg-white border border-gray-200 rounded-xl p-5 flex items-center gap-4 shadow-sm">
+              <div class="w-11 h-11 bg-blue-50 rounded-xl flex items-center justify-center shrink-0">
+                <i class="fa-solid fa-credit-card text-[#2874F0] text-lg"></i>
+              </div>
+              <div>
+                <p class="text-xs text-gray-500 font-medium">Wallet Balance</p>
+                <p class="text-2xl font-black text-gray-900 mt-0.5">
+                  ₹<%= balance.toLocaleString('en-IN', { minimumFractionDigits: 2 }) %>
+                </p>
+              </div>
+            </div>
+
+          </div>
+        </div>
+
+        <!-- Transaction History -->
+        <div class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+
+          <div class="px-6 py-4 border-b border-gray-100 flex items-center justify-between">
+            <h3 class="text-base font-bold text-gray-800">Recent Transactions</h3>
+            <span class="text-xs text-gray-400 bg-gray-100 px-2.5 py-1 rounded-full"><%= total %> total</span>
+          </div>
+
+          <% if (transactions.length === 0) { %>
+            <div class="flex flex-col items-center justify-center py-16 text-center px-6">
+              <div class="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mb-4">
+                <i class="fa-solid fa-receipt text-gray-300 text-2xl"></i>
+              </div>
+              <p class="text-gray-600 font-semibold">No transactions yet</p>
+              <p class="text-xs text-gray-400 mt-1">Add money or make a purchase to see activity here</p>
+            </div>
+          <% } else { %>
+            <div class="divide-y divide-gray-50">
+              <% transactions.forEach(tx => { %>
+                <div class="flex items-center gap-4 px-6 py-4 hover:bg-gray-50 transition">
+
+                  <div class="w-10 h-10 rounded-full flex items-center justify-center shrink-0
+                    <%= tx.type === 'credit' ? 'bg-green-100' : 'bg-red-100' %>">
+                    <i class="fa-solid text-sm
+                      <%= tx.type === 'credit' ? 'fa-arrow-down-long text-green-600' : 'fa-arrow-up-long text-red-500' %>"></i>
+                  </div>
+
+                  <div class="flex-1 min-w-0">
+                    <p class="text-sm font-semibold text-gray-800 truncate"><%= tx.description %></p>
+                    <div class="flex items-center gap-2 mt-0.5 flex-wrap">
+                      <span class="text-xs text-gray-400">
+                        <%= new Date(tx.createdAt).toLocaleString('en-IN', { day:'numeric', month:'short', year:'numeric', hour:'2-digit', minute:'2-digit' }) %>
+                      </span>
+                      <span class="text-[10px] px-2 py-0.5 rounded-full capitalize font-medium
+                        <%= tx.source === 'refund'        ? 'bg-blue-100 text-blue-600' :
+                            tx.source === 'referral'      ? 'bg-purple-100 text-purple-600' :
+                            tx.source === 'cashback'      ? 'bg-yellow-100 text-yellow-700' :
+                            tx.source === 'order_payment' ? 'bg-gray-100 text-gray-600' :
+                            'bg-gray-100 text-gray-500' %>">
+                        <%= tx.source.replace(/_/g, ' ') %>
+                      </span>
+                    </div>
+                  </div>
+
+                  <div class="text-right shrink-0">
+                    <p class="text-sm font-bold <%= tx.type === 'credit' ? 'text-green-600' : 'text-red-500' %>">
+                      <%= tx.type === 'credit' ? '+' : '-' %>₹<%= tx.amount.toLocaleString('en-IN') %>
+                    </p>
+                    <p class="text-[10px] text-gray-400 mt-0.5">Bal: ₹<%= tx.balanceAfter.toLocaleString('en-IN') %></p>
+                  </div>
+
+                </div>
+              <% }) %>
+            </div>
+
+            <!-- Pagination -->
+            <% if (totalPages > 1) { %>
+              <div class="px-6 py-4 border-t border-gray-100 flex items-center justify-between">
+                <p class="text-xs text-gray-400">Page <%= currentPage %> of <%= totalPages %></p>
+                <div class="flex gap-2">
+                  <% if (currentPage > 1) { %>
+                    <a href="/wallet?page=<%= currentPage - 1 %>"
+                      class="px-3 py-1.5 text-xs border border-gray-200 rounded-lg hover:bg-gray-50 transition text-gray-600">
+                      <i class="fa-solid fa-chevron-left mr-1"></i> Prev
+                    </a>
+                  <% } %>
+                  <% if (currentPage < totalPages) { %>
+                    <a href="/wallet?page=<%= currentPage + 1 %>"
+                      class="px-3 py-1.5 text-xs bg-[#2874F0] text-white rounded-lg hover:bg-blue-700 transition">
+                      Next <i class="fa-solid fa-chevron-right ml-1"></i>
+                    </a>
+                  <% } %>
+                </div>
+              </div>
+            <% } %>
+          <% } %>
+
+        </div>
+
+      </section>
+    </div>
+  </div>
+</main>
+
+<%- include("../../partials/user/footer") %>
+
+<!-- Add Money Modal -->
+<div id="addMoneyModal" class="hidden fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+  <div class="bg-white rounded-2xl shadow-2xl w-full max-w-md p-8 relative">
+
+    <!-- Close -->
+    <button onclick="closeModal()"
+      class="absolute top-4 right-4 text-gray-400 hover:text-gray-600 transition">
+      <i class="fa-solid fa-xmark text-lg"></i>
+    </button>
+
+    <!-- Title -->
+    <div class="text-center mb-7">
+      <h2 class="text-2xl font-black text-gray-900">Add Money to Wallet</h2>
+      <p class="text-sm text-gray-400 mt-1">Secure and instant wallet top-up</p>
+    </div>
+
+    <!-- Amount -->
+    <label class="block text-sm font-bold text-gray-700 mb-2">Amount</label>
+    <div class="flex items-center border border-gray-300 rounded-lg overflow-hidden focus-within:border-[#2874F0] focus-within:ring-2 focus-within:ring-blue-100 transition mb-3">
+      <span class="px-4 text-gray-400 font-semibold border-r border-gray-200 bg-gray-50 py-3 text-lg">₹</span>
+      <input id="modalAmountInput" type="number" min="1" placeholder="Enter amount"
+        class="flex-1 px-4 py-3 text-sm outline-none bg-white text-gray-800 placeholder-gray-400">
+    </div>
+
+    <!-- Quick chips -->
+    <div class="flex gap-2 mb-6 flex-wrap">
+      <% [500, 1000, 2000].forEach(amt => { %>
+        <button onclick="document.getElementById('modalAmountInput').value = '<%= amt %>'"
+          class="px-4 py-1.5 bg-gray-100 text-gray-600 rounded-lg text-sm font-semibold hover:bg-[#2874F0] hover:text-white transition">
+          ₹<%= amt %>
+        </button>
+      <% }) %>
+    </div>
+
+    <!-- Payment method — Razorpay only -->
+    <label class="block text-sm font-bold text-gray-700 mb-3">Payment Method</label>
+    <div class="flex items-center gap-3 border border-[#2874F0] bg-blue-50 rounded-lg px-4 py-3 mb-6">
+      <div class="w-5 h-5 rounded-full border-2 border-[#2874F0] flex items-center justify-center shrink-0">
+        <div class="w-2.5 h-2.5 rounded-full bg-[#2874F0]"></div>
+      </div>
+      <img src="https://razorpay.com/favicon.ico" class="w-5 h-5 rounded" alt="Razorpay">
+      <span class="text-sm font-semibold text-gray-800">Razorpay</span>
+      <span class="ml-auto text-[10px] bg-[#2874F0] text-white px-2 py-0.5 rounded-full">Cards · UPI · NetBanking</span>
+    </div>
+
+    <!-- Add button -->
+    <button id="addMoneyBtn" onclick="handleAddMoney()"
+      class="w-full bg-[#2874F0] hover:bg-blue-700 text-white font-bold py-3.5 rounded-xl transition text-sm">
+      Add Money
+    </button>
+
+    <!-- Secure note -->
+    <p class="text-center text-xs text-gray-400 mt-4 flex items-center justify-center gap-1.5">
+      <i class="fa-solid fa-lock"></i> 100% secure payments powered by Razorpay
+    </p>
+
+  </div>
+</div>
+
+<script src="https://checkout.razorpay.com/v1/checkout.js"></script>
+<script type="module">
+  import { showToast } from "/partials/errorMsg.utils.js";
+
+  window.closeModal = () => {
+    document.getElementById('addMoneyModal').classList.add('hidden');
+    document.getElementById('modalAmountInput').value = '';
+  };
+
+  window.handleAddMoney = async () => {
+    const amount = parseFloat(document.getElementById('modalAmountInput').value);
+    const btn = document.getElementById('addMoneyBtn');
+
+    if (!amount || amount < 1) {
+      showToast('Enter a valid amount', 'error');
+      return;
+    }
+
+    btn.disabled = true;
+    btn.textContent = 'Processing...';
+
+    try {
+      // Step 1: create razorpay order
+      const orderRes = await fetch('/payment/wallet/create-order', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ amount }),
+      });
+      const orderData = await orderRes.json();
+      if (!orderRes.ok) throw new Error(orderData.message || 'Failed to create order');
+
+      // Step 2: open razorpay
+      const options = {
+        key: orderData.key,
+        amount: orderData.amount,
+        currency: 'INR',
+        order_id: orderData.razorpayOrderId,
+        name: 'Wallet Top-up',
+        description: `Adding ₹${amount} to your wallet`,
+        theme: { color: '#2874F0' },
+        handler: async (response) => {
+          try {
+            const verifyRes = await fetch('/payment/wallet/verify', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              credentials: 'include',
+              body: JSON.stringify({
+                razorpay_order_id: response.razorpay_order_id,
+                razorpay_payment_id: response.razorpay_payment_id,
+                razorpay_signature: response.razorpay_signature,
+                amount,
+              }),
+            });
+            const verifyData = await verifyRes.json();
+            if (!verifyRes.ok) throw new Error(verifyData.message);
+
+            showToast(`₹${amount} added to wallet!`, 'success');
+            window.closeModal();
+            setTimeout(() => location.reload(), 900);
+          } catch (e) {
+            showToast(e.message || 'Verification failed', 'error');
+          }
+        },
+        modal: {
+          ondismiss: () => {
+            btn.disabled = false;
+            btn.textContent = 'Add Money';
+          },
+        },
+      };
+
+      new Razorpay(options).open();
+
+    } catch (err) {
+      showToast(err.message || 'Something went wrong', 'error');
+      btn.disabled = false;
+      btn.textContent = 'Add Money';
+    }
+  };
+</script>
+
+</body>
+</html>
