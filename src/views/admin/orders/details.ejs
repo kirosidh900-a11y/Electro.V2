@@ -254,7 +254,15 @@
 
           <!-- Customer Details -->
           <div class="bg-[#0b1220] border border-white/5 rounded-3xl shadow-xl p-6">
-            <h2 class="text-xs text-gray-400 uppercase tracking-widest font-bold mb-4">Customer Details</h2>
+            <div class="flex items-center justify-between mb-4">
+              <h2 class="text-xs text-gray-400 uppercase tracking-widest font-bold">Customer Details</h2>
+              <% if(user?._id) { %>
+                <a href="/admin/customers/<%= user._id %>"
+                  class="flex items-center gap-1.5 text-xs text-cyan-400 hover:text-cyan-300 bg-cyan-500/10 hover:bg-cyan-500/20 px-3 py-1.5 rounded-lg transition">
+                  <i class="fas fa-arrow-up-right-from-square text-[10px]"></i> View Profile
+                </a>
+              <% } %>
+            </div>
             <div class="flex items-center gap-3 mb-4">
               <div class="w-10 h-10 rounded-full bg-cyan-600/20 flex items-center justify-center text-cyan-400 font-bold text-sm shrink-0">
                 <%= user?.name?.charAt(0)?.toUpperCase() || 'G' %>

@@ -3,6 +3,7 @@ import renderView from "../../utils/admin/renderView.util.js";
 import {
   getCustomersService,
   toggleBlockCustomerService,
+  getCustomerDetailService,
 } from "../../services/admin/customer.service.js";
 
 //Customers
@@ -54,15 +55,19 @@ export const customers = async (req, res) => {
 export const toggleBlockCustomer = async (req, res, next) => {
   try {
     const { id } = req.params;
-
     const isBlock = await toggleBlockCustomerService(id);
-
-    res.json({
-      success: true,
-      isBlock,
-    });
+    res.json({ success: true, isBlock });
   } catch (error) {
     console.error("toggleBlockCustomerError:", error);
     next(error);
+  }
+};
+
+export const getCustomerDetail = async (req, res, next) => {
+  try {
+    const data = await getCustomerDetailService(req.params.id);
+    res.render("admin/home/customerDetail", { ...data, title: "Customer Profile" });
+  } catch (err) {
+    next(err);
   }
 };

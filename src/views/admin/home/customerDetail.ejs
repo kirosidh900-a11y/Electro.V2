@@ -1,0 +1,260 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head><%- include('../../partials/head') %></head>
+<body class="min-h-screen flex">
+
+<%- include('../../partials/admin/sidebar') %>
+
+<div id="mainContent" class="flex-1 flex flex-col min-w-0 transition-all duration-300">
+  <%- include('../../partials/admin/header') %>
+
+  <main class="flex-1 p-4 sm:p-6 lg:p-8 w-full space-y-6">
+
+    <!-- Breadcrumb + Actions -->
+    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+      <div>
+        <a href="/admin/customers"
+          class="text-xs text-gray-500 hover:text-cyan-400 transition inline-flex items-center gap-1.5 mb-2">
+          <i class="fas fa-arrow-left text-[10px]"></i> Back to Customers
+        </a>
+        <h1 class="text-2xl font-bold text-white tracking-tight">Customer Profile</h1>
+      </div>
+      <button id="blockBtn" onclick="toggleBlock('<%= customer._id %>', this)"
+        class="flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-bold text-white transition shadow-lg
+               <%= customer.isBlock ? 'bg-emerald-600 hover:bg-emerald-700 shadow-emerald-900/30' : 'bg-red-600 hover:bg-red-700 shadow-red-900/30' %>">
+        <i class="fas <%= customer.isBlock ? 'fa-unlock' : 'fa-ban' %>"></i>
+        <%= customer.isBlock ? 'Unblock User' : 'Block User' %>
+      </button>
+    </div>
+
+    <!-- Profile Hero Card -->
+    <div class="bg-[#0b1220] border border-white/5 rounded-3xl p-6 flex flex-col sm:flex-row items-start sm:items-center gap-6">
+      <!-- Avatar -->
+      <div class="relative shrink-0">
+        <% if (customer.photo) { %>
+          <img src="<%= customer.photo %>" class="w-20 h-20 rounded-2xl object-cover border-2 border-white/10">
+        <% } else { %>
+          <div class="w-20 h-20 rounded-2xl bg-gradient-to-br from-cyan-600/40 to-blue-600/40 border border-cyan-500/20 flex items-center justify-center text-3xl font-black text-cyan-400">
+            <%= customer.name?.charAt(0)?.toUpperCase() %>
+          </div>
+        <% } %>
+        <span class="absolute -bottom-1.5 -right-1.5 w-5 h-5 rounded-full border-2 border-[#0b1220] flex items-center justify-center
+          <%= customer.isBlock ? 'bg-red-500' : 'bg-emerald-500' %>">
+        </span>
+      </div>
+
+      <!-- Name + Meta -->
+      <div class="flex-1 min-w-0">
+        <div class="flex items-center gap-3 flex-wrap">
+          <h2 class="text-xl font-bold text-white"><%= customer.name %></h2>
+          <span class="text-xs font-bold px-2.5 py-1 rounded-full
+            <%= customer.isBlock ? 'bg-red-500/20 text-red-400' : 'bg-emerald-500/20 text-emerald-400' %>">
+            <%= customer.isBlock ? 'Blocked' : 'Active' %>
+          </span>
+        </div>
+        <p class="text-gray-400 text-sm mt-1"><%= customer.email %></p>
+        <div class="flex flex-wrap gap-4 mt-3 text-xs text-gray-500">
+          <span><i class="fas fa-phone mr-1.5"></i><%= customer.phone || '—' %></span>
+          <span><i class="fas fa-calendar mr-1.5"></i>Joined <%= new Date(customer.createdAt).toLocaleDateString('en-IN', { day:'numeric', month:'short', year:'numeric' }) %></span>
+          <span class="font-mono text-gray-600"><i class="fas fa-id-badge mr-1.5"></i><%= customer._id %></span>
+        </div>
+      </div>
+
+      <!-- Quick Stats inline -->
+      <div class="flex gap-4 shrink-0 flex-wrap">
+        <div class="text-center bg-white/5 rounded-2xl px-5 py-3 min-w-[90px]">
+          <p class="text-2xl font-black text-white"><%= totalOrders %></p>
+          <p class="text-[10px] text-gray-500 uppercase tracking-widest mt-0.5">Orders</p>
+        </div>
+        <div class="text-center bg-white/5 rounded-2xl px-5 py-3 min-w-[90px]">
+          <p class="text-2xl font-black text-emerald-400">₹<%= (totalSpent/1000).toFixed(1) %>k</p>
+          <p class="text-[10px] text-gray-500 uppercase tracking-widest mt-0.5">Spent</p>
+        </div>
+        <div class="text-center bg-white/5 rounded-2xl px-5 py-3 min-w-[90px]">
+          <p class="text-2xl font-black text-cyan-400">₹<%= walletBalance.toLocaleString('en-IN') %></p>
+          <p class="text-[10px] text-gray-500 uppercase tracking-widest mt-0.5">Wallet</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+
+      <!-- LEFT: Purchases -->
+      <div class="lg:col-span-8 space-y-6">
+
+        <!-- Recent Purchases -->
+        <div class="bg-[#0b1220] border border-white/5 rounded-3xl overflow-hidden">
+          <div class="px-6 py-4 border-b border-white/5 flex items-center justify-between">
+            <h2 class="text-white font-semibold">Recent Purchases</h2>
+            <span class="text-xs text-gray-500 bg-white/5 px-2.5 py-1 rounded-full"><%= totalOrders %> total</span>
+          </div>
+
+          <% if (orders.length === 0) { %>
+            <div class="text-center py-16 text-gray-600">
+              <i class="fas fa-box-open text-3xl mb-3 block"></i>
+              <p class="text-sm">No orders yet</p>
+            </div>
+          <% } else { %>
+            <div class="divide-y divide-white/5">
+              <% orders.forEach(order => { %>
+                <div class="p-5 hover:bg-white/[0.02] transition">
+                  <!-- Order header row -->
+                  <div class="flex items-center justify-between mb-3 flex-wrap gap-2">
+                    <div class="flex items-center gap-3">
+                      <span class="font-mono text-cyan-400 text-xs font-bold"><%= order.orderNumber %></span>
+                      <span class="text-[10px] font-bold uppercase px-2 py-0.5 rounded-full
+                        <%= order.orderStatus === 'delivered'        ? 'bg-emerald-500/20 text-emerald-400' :
+                            order.orderStatus === 'cancelled'        ? 'bg-red-500/20 text-red-400' :
+                            order.orderStatus === 'confirmed'        ? 'bg-cyan-500/20 text-cyan-400' :
+                            order.orderStatus === 'shipped' || order.orderStatus === 'out_for_delivery' ? 'bg-violet-500/20 text-violet-400' :
+                            'bg-yellow-500/20 text-yellow-400' %>">
+                        <%= order.orderStatus.replace(/_/g,' ') %>
+                      </span>
+                      <span class="text-[10px] font-bold uppercase px-2 py-0.5 rounded-full
+                        <%= order.payment?.status === 'paid' ? 'bg-emerald-500/10 text-emerald-500' : 'bg-gray-500/10 text-gray-500' %>">
+                        <%= order.payment?.status %>
+                      </span>
+                    </div>
+                    <div class="flex items-center gap-3">
+                      <span class="text-gray-500 text-xs">
+                        <%= new Date(order.createdAt).toLocaleDateString('en-IN', { day:'numeric', month:'short', year:'numeric' }) %>
+                      </span>
+                      <span class="text-emerald-400 font-bold text-sm">₹<%= order.pricing?.finalAmount?.toLocaleString('en-IN') %></span>
+                      <a href="/admin/orders/<%= order._id %>"
+                        class="text-xs text-cyan-400 hover:text-cyan-300 bg-cyan-500/10 hover:bg-cyan-500/20 px-3 py-1.5 rounded-lg transition">
+                        View <i class="fas fa-arrow-right text-[9px] ml-1"></i>
+                      </a>
+                    </div>
+                  </div>
+
+                  <!-- Items -->
+                  <div class="space-y-2">
+                    <% order.items.forEach(item => { %>
+                      <div class="flex items-center gap-3 bg-white/[0.03] rounded-xl px-3 py-2">
+                        <div class="w-10 h-10 rounded-lg border border-white/10 bg-[#0f172a] overflow-hidden shrink-0">
+                          <img src="<%= item.images?.[0] || '/images/placeholder.png' %>"
+                               class="w-full h-full object-cover" alt="<%= item.name %>">
+                        </div>
+                        <div class="flex-1 min-w-0">
+                          <p class="text-gray-200 text-xs font-medium truncate"><%= item.name %></p>
+                          <% if (item.attributes && Object.keys(item.attributes).length) { %>
+                            <p class="text-gray-600 text-[10px] mt-0.5">
+                              <% Object.entries(item.attributes).slice(0,3).forEach(([k,v]) => { %>
+                                <span class="mr-2 capitalize"><%= k %>: <%= v %></span>
+                              <% }) %>
+                            </p>
+                          <% } %>
+                        </div>
+                        <div class="text-right shrink-0">
+                          <p class="text-gray-300 text-xs font-semibold">₹<%= item.pricing?.finalPrice?.toLocaleString('en-IN') %></p>
+                          <p class="text-gray-600 text-[10px]">× <%= item.quantity %></p>
+                        </div>
+                      </div>
+                    <% }) %>
+                  </div>
+                </div>
+              <% }) %>
+            </div>
+          <% } %>
+        </div>
+
+      </div>
+
+      <!-- RIGHT: Info + Addresses -->
+      <div class="lg:col-span-4 space-y-5 lg:sticky lg:top-6">
+
+        <!-- Account Info -->
+        <div class="bg-[#0b1220] border border-white/5 rounded-3xl p-5">
+          <h2 class="text-xs text-gray-400 uppercase tracking-widest font-bold mb-4">Account Info</h2>
+          <div class="space-y-3 text-sm">
+            <div class="flex justify-between items-center">
+              <span class="text-gray-500">Provider</span>
+              <span class="text-gray-200 font-medium capitalize">
+                <%= customer.googleId ? 'Google' : 'Email' %>
+              </span>
+            </div>
+            <div class="flex justify-between items-center">
+              <span class="text-gray-500">Referral Code</span>
+              <span class="font-mono text-cyan-400 text-xs bg-cyan-500/10 px-2 py-0.5 rounded">
+                <%= customer.referralCode || '—' %>
+              </span>
+            </div>
+            <div class="flex justify-between items-center">
+              <span class="text-gray-500">Referred By</span>
+              <span class="text-gray-300 text-xs"><%= customer.referral_by || '—' %></span>
+            </div>
+            <div class="flex justify-between items-center pt-2 border-t border-white/5">
+              <span class="text-gray-500">Account Status</span>
+              <span class="text-xs font-bold px-2.5 py-1 rounded-full
+                <%= customer.isBlock ? 'bg-red-500/20 text-red-400' : 'bg-emerald-500/20 text-emerald-400' %>">
+                <%= customer.isBlock ? 'Blocked' : 'Active' %>
+              </span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Addresses -->
+        <div class="bg-[#0b1220] border border-white/5 rounded-3xl p-5">
+          <h2 class="text-xs text-gray-400 uppercase tracking-widest font-bold mb-4">
+            Saved Addresses <span class="text-gray-600 normal-case font-normal">(<%= addresses.length %>)</span>
+          </h2>
+          <% if (addresses.length === 0) { %>
+            <p class="text-gray-600 text-sm text-center py-4">No addresses saved</p>
+          <% } else { %>
+            <div class="space-y-3">
+              <% addresses.forEach(addr => { %>
+                <div class="bg-white/[0.04] border border-white/5 rounded-xl p-3.5">
+                  <div class="flex items-center gap-2 mb-2">
+                    <i class="fas <%= addr.addressType === 'home' ? 'fa-home' : 'fa-briefcase' %> text-[10px] text-gray-500"></i>
+                    <span class="text-[10px] font-bold uppercase text-cyan-400">
+                      <%= addr.addressType || 'home' %>
+                    </span>
+                    <% if (addr.isDefault) { %>
+                      <span class="text-[10px] text-gray-500 bg-white/5 px-1.5 py-0.5 rounded ml-auto">Default</span>
+                    <% } %>
+                  </div>
+                  <p class="text-gray-200 text-sm font-medium"><%= addr.name %></p>
+                  <p class="text-gray-500 text-xs mt-1 leading-relaxed">
+                    <%= addr.address %><% if(addr.locality) { %>, <%= addr.locality %><% } %><br>
+                    <%= addr.city %>, <%= addr.state %> — <span class="font-mono text-gray-400"><%= addr.pincode %></span>
+                  </p>
+                  <p class="text-gray-600 text-xs mt-1.5">
+                    <i class="fas fa-phone mr-1"></i><%= addr.phone %>
+                  </p>
+                </div>
+              <% }) %>
+            </div>
+          <% } %>
+        </div>
+
+      </div>
+    </div>
+
+  </main>
+</div>
+
+<script type="module">
+  import { showToast } from "../../partials/errorMsg.utils.js";
+  import { confirmAction } from "../../partials/confirm.util.js";
+
+  window.toggleBlock = async (userId, btn) => {
+    const isBlocked = btn.textContent.trim().includes('Unblock');
+    const action    = isBlocked ? 'unblock' : 'block';
+
+    const confirmed = await confirmAction(`${action.charAt(0).toUpperCase() + action.slice(1)} this customer?`);
+    if (!confirmed) return;
+
+    try {
+      const res  = await fetch(`/admin/customers/toggle-block/${userId}`, { method: 'PATCH' });
+      const data = await res.json();
+      if (!data.success) throw new Error(data.message);
+      showToast(`Customer ${action}ed successfully`, 'success');
+      setTimeout(() => location.reload(), 600);
+    } catch (err) {
+      showToast(err.message || 'Failed', 'error');
+    }
+  };
+</script>
+
+</body>
+</html>
