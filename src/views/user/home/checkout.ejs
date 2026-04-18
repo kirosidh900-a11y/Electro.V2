@@ -298,28 +298,24 @@
                                                                 let totalQuantity=0; if (typeof cart !=='undefined' &&
                                                                 cart.items && cart.items.length> 0) {
                                                                 cart.items.forEach(item => {
-                                                                const finalPrice = item.variantId?.finalPrice ||
-                                                                item.variantId?.regular_price || 0;
-                                                                const regularPrice = item.variantId?.regular_price ||
-                                                                finalPrice;
-                                                                const qty = item.quantity || 1;
+                                                                const regularPrice = item.variantId?.regular_price ?? item.variantId?.price ?? 0;
+                                                                const finalPrice   = item.variantId?.finalPrice   ?? regularPrice;
+                                                                const qty          = item.quantity || 1;
 
-                                                                const itemTotal = finalPrice * qty;
-                                                                const itemDiscount = (regularPrice - finalPrice) * qty;
+                                                                const itemTotal    = finalPrice * qty;
+                                                                const itemDiscount = Math.max(regularPrice - finalPrice, 0) * qty;
 
-                                                                const gstRate = item.variantId?.gstRate || 18;
-                                                                const gstChunk = item.variantId?.gstAmount ?
-                                                                (item.variantId.gstAmount * qty) : (itemTotal * gstRate)
-                                                                / (100 + gstRate);
+                                                                const gstAmount    = item.variantId?.gstAmount ?? 0;
+                                                                const gstChunk     = gstAmount * qty;
 
-                                                                subtotal += (regularPrice * qty);
-                                                                totalDiscounts += itemDiscount;
-                                                                totalGstAmount += gstChunk;
-                                                                totalQuantity += qty;
+                                                                subtotal        += finalPrice * qty;
+                                                                totalDiscounts  += itemDiscount;
+                                                                totalGstAmount  += gstChunk;
+                                                                totalQuantity   += qty;
                                                                 %>
                                                                 <div class="flex gap-4 items-center">
-                                                                        <div
-                                                                                class="relative shrink-0 w-16 h-16 bg-[#f8f9fa] rounded-xl flex items-center justify-center p-1.5 border border-gray-50">
+                                                                        <a href="/product/<%= item?.productId?._id %>"
+                                                                                class="relative shrink-0 w-16 h-16 bg-[#f8f9fa] rounded-xl flex items-center justify-center p-1.5 border border-gray-50 hover:opacity-80 transition">
                                                                                 <img src="<%= item?.variantId?.images?.[0] || '/images/default.png' %>"
                                                                                         alt="<%= item?.productId?.name %>"
                                                                                         class="w-full h-full object-contain mix-blend-multiply">
@@ -327,7 +323,7 @@
                                                                                         class="absolute -top-1.5 -right-1.5 bg-gray-900 text-white text-[10px] font-bold w-5 h-5 flex items-center justify-center rounded-full shadow-sm">
                                                                                         <%= qty %>
                                                                                 </span>
-                                                                        </div>
+                                                                        </a>
                                                                         <div class="flex-grow flex flex-col">
                                                                                 <% if (item.productId?.brand?.name) { %>
                                                                                         <span
@@ -336,11 +332,11 @@
                                                                                                         %>
                                                                                         </span>
                                                                                         <% } %>
-                                                                                                <h4
-                                                                                                        class="text-sm font-semibold text-gray-900 line-clamp-1">
+                                                                                                <a href="/product/<%= item?.productId?._id %>"
+                                                                                                        class="text-sm font-semibold text-gray-900 line-clamp-1 hover:text-blue-600 transition">
                                                                                                         <%= item.productId?.name
                                                                                                                 %>
-                                                                                                </h4>
+                                                                                                </a>
                                                                                                 <div
                                                                                                         class="text-[11px] text-gray-500 mt-0.5 space-x-1">
                                                                                                         <% if (item.variantId?.attributes?.color)

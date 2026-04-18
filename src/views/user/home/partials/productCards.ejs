@@ -32,10 +32,14 @@
             const variant = product.variants?.[0];
 
             const image = variant?.product_images?.[0]?.url || '/images/placeholder.png';
-            const price = variant?.price || 0;
-            const finalPrice = variant?.finalPrice ?? price;
-            const original = product.regularPrice || (price + 2000);
-            const discount = product.discountPercentage || Math.round(((original - price) / original) * 100);
+            const sellingPrice  = variant?.price || 0;
+            const regularPrice  = variant?.regular_price || sellingPrice;
+            const finalPrice    = variant?.finalPrice ?? sellingPrice;
+            const savings       = variant?.savings || 0;
+            const appliedOffer  = variant?.appliedOffer || null;
+            const discountPct   = regularPrice > 0
+              ? Math.round(((regularPrice - finalPrice) / regularPrice) * 100)
+              : 0;
 
 
             const rating = product.rating || (Math.random() * (5 - 3.8) + 3.8).toFixed(1);
@@ -111,12 +115,12 @@ shadow-sm transition-all duration-300 cursor-pointer group relative
                                 <img src="<%= image %>" class="max-h-full max-w-full object-contain transition duration-500 ease-in-out
 <%= isOutOfStock ? 'grayscale opacity-70' : 'group-hover:scale-110' %>">
 
-                                <!-- DISCOUNT -->
-                                <!-- <% if(discount> 0) { %>
-                        <span class="absolute bottom-2 left-2 bg-green-600 text-white text-[10px] px-2 py-0.5 rounded">
-                            <%= discount %>% OFF
-                        </span>
-                        <% } %> -->
+                                <!-- DISCOUNT BADGE -->
+                                <% if (discountPct > 0) { %>
+                                    <span class="absolute bottom-2 left-2 bg-green-600 text-white text-[10px] font-bold px-2 py-0.5 rounded">
+                                        <%= discountPct %>% OFF
+                                    </span>
+                                <% } %>
                     </div>
 
                     <!-- CONTENT -->
@@ -150,35 +154,26 @@ shadow-sm transition-all duration-300 cursor-pointer group relative
                         </div>
 
                         <!-- PRICE -->
-                        <div class="mt-3 flex items-center gap-2">
-                            <span class="text-lg font-bold text-gray-900">
-                                <% if (finalPrice < price) { %>
-
-                                    <span class="text-lg font-bold text-gray-900">
-                                        ₹<%= finalPrice.toLocaleString('en-IN') %>
-                                    </span>
-
+                        <div class="mt-3 flex flex-col gap-1">
+                            <div class="flex items-center gap-2 flex-wrap">
+                                <span class="text-lg font-bold text-gray-900">
+                                    ₹<%= finalPrice.toLocaleString('en-IN') %>
+                                </span>
+                                <% if (discountPct > 0) { %>
                                     <span class="text-xs text-gray-400 line-through">
-                                        ₹<%= price.toLocaleString('en-IN') %>
+                                        ₹<%= regularPrice.toLocaleString('en-IN') %>
                                     </span>
-
-                                    <% } else { %>
-
-                                        <span class="text-lg font-bold text-gray-900">
-                                            ₹<%= price.toLocaleString('en-IN') %>
-                                        </span>
-
-                                        <% } %>
-                            </span>
-                            <!-- <span class="text-xs text-gray-400 line-through">
-                            ₹<%= original.toLocaleString('en-IN') %>
-                        </span> -->
+                                    <span class="bg-green-600 text-white text-[10px] font-bold px-1.5 py-0.5 rounded">
+                                        <%= discountPct %>% OFF
+                                    </span>
+                                <% } %>
+                            </div>
+                            <% if (savings > 0) { %>
+                                <p class="text-[11px] text-green-600 font-medium">
+                                    You save ₹<%= savings.toLocaleString('en-IN') %>
+                                </p>
+                            <% } %>
                         </div>
-
-                        <!-- SAVE -->
-                        <!-- <p class="text-[11px] text-green-600 font-medium">
-                        You save ₹<%= (original - price).toLocaleString('en-IN') %>
-                    </p> -->
 
                     </div>
 

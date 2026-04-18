@@ -10,7 +10,11 @@
     "lint": "eslint .",
     "test": "echo \"Error: no test specified\" && exit 1",
     "dev": "nodemon src/index.js",
-    "build:css": "npx tailwindcss -i ./src/public/user/css/input.css -o ./src/public/user/css/output.css --watch",
+    "build:css:user": "npx tailwindcss -i ./src/public/user/css/input.css -o ./src/public/user/css/output.css",
+    "build:css:admin": "npx tailwindcss -i ./src/public/admin/css/input.css -o ./src/public/admin/css/output.css",
+    "build:css": "npm run build:css:user && npm run build:css:admin",
+    "watch:css:user": "npx tailwindcss -i ./src/public/user/css/input.css -o ./src/public/user/css/output.css --watch",
+    "watch:css:admin": "npx tailwindcss -i ./src/public/admin/css/input.css -o ./src/public/admin/css/output.css --watch",
     "prepare": "husky"
   },
   "lint-staged": {

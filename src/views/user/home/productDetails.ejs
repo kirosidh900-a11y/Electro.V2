@@ -85,14 +85,22 @@
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
 
       <!-- Breadcrumb -->
-      <nav class="flex text-sm text-slate-500 mb-8 items-center space-x-2 font-medium">
-        <a href="/" class="hover:text-brand-600 transition">Home</a>
+      <nav class="flex text-sm text-slate-500 mb-8 items-center space-x-2 font-medium flex-wrap gap-y-1">
+        <a href="/" class="hover:text-blue-600 transition">Home</a>
         <span><i class="fas fa-chevron-right text-[10px] text-slate-300"></i></span>
-        <a href="/shop" class="hover:text-brand-600 transition">Products</a>
+        <a href="/shop" class="hover:text-blue-600 transition">Products</a>
+        <% if (product.category?.title) { %>
+          <span><i class="fas fa-chevron-right text-[10px] text-slate-300"></i></span>
+          <a href="/shop?category=<%= product.category._id %>"
+            class="hover:text-blue-600 transition"><%= product.category.title %></a>
+        <% } %>
+        <% if (product.brand?.title) { %>
+          <span><i class="fas fa-chevron-right text-[10px] text-slate-300"></i></span>
+          <a href="/shop?brand=<%= product.brand._id %>"
+            class="hover:text-blue-600 transition"><%= product.brand.title %></a>
+        <% } %>
         <span><i class="fas fa-chevron-right text-[10px] text-slate-300"></i></span>
-        <span class="text-slate-900 font-bold truncate">
-          <%= product.name %>
-        </span>
+        <span class="text-slate-900 font-bold truncate max-w-[200px]"><%= product.name %></span>
       </nav>
 
       <!-- Main Product Section -->

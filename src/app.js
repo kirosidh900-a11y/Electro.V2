@@ -2,8 +2,6 @@ import express from "express";
 import path from "path";
 import { fileURLToPath } from "url";
 import cookieParser from "cookie-parser";
-// import helmet from "helmet";
-import nocache from "nocache";
 import morgan from "morgan";
 import compression from "compression";
 
@@ -21,31 +19,52 @@ import HTTP_STATUS from "./constant/statusCode.js";
 import passport from "passport";
 
 const app = express();
-startPaymentExpiryJob(); // 🔥 START CRON
+startPaymentExpiryJob();
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
+
+// ✅ Static files FIRST — before any middleware touches them
+// nocache is NOT applied here so browser can cache CSS/JS/images
+// Static Files — long cache for assets, no-cache for HTML
+app.use(express.static(path.join(__dirname, "public"), {
+  maxAge: "7d",
+  etag: true,
+  lastModified: true,
+  setHeaders: (res, filePath) => {
+    // JS/CSS partials used as ES modules — shorter cache so updates propagate
+    if (filePath.includes('/partials/')) {
+      res.setHeader('Cache-Control', 'public, max-age=0, must-revalidate');
+    }
+  }
+}));
+app.use("/uploads", express.static("public/uploads", { maxAge: "7d" }));
 
 // Logging
 const morganFormat = process.env.NODE_ENV === "production" ? "combined" : "dev";
 app.use(morgan(morganFormat));
 
-//  Security Middlewares
+// Security Middlewares
 // app.use(helmet());
-app.use(nocache());
+
+// ✅ nocache only for HTML pages, NOT static assets (already served above)
+app.use((req, res, next) => {
+  if (req.path.match(/\.(css|js|png|jpg|jpeg|gif|ico|svg|woff|woff2|ttf)$/)) {
+    return next(); // static assets already handled, skip nocache
+  }
+  res.set('Cache-Control', 'no-store');
+  next();
+});
+
 app.use(cookieParser());
 app.use(compression());
 
-// Body Parsers with limits
+// Body Parsers
 app.use(express.json({ limit: "10mb" }));
 app.use(express.urlencoded({ extended: true, limit: "10mb" }));
 
 // Authentication
 app.use(passport.initialize());
-
-// Static Files (with cache control)
-app.use("/uploads", express.static("public/uploads", { maxAge: "1d" }));
-app.use(express.static(path.join(__dirname, "public"), { maxAge: "1d" }));
 
 // View Engine
 app.set("view engine", "ejs");

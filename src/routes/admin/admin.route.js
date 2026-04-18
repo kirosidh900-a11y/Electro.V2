@@ -9,6 +9,7 @@ import dashboardRouter from "./dashbord.route.js";
 import offersRouter from "../product/offer.route.js";
 import authRouter from "./auth.route.js";
 import ordersRouter from './orders.route.js';
+import couponRouter from './coupon.route.js';
 
 const router = Router();
 
@@ -23,6 +24,7 @@ router.use("/brand", brandsRouter);
 router.use("/products", productsRouter);
 router.use("/offers", offersRouter);
 router.use("/orders", ordersRouter);
+router.use("/coupons", couponRouter);
 router.use("/", authRouter);
 
 export default router;

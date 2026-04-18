@@ -339,7 +339,6 @@ export const getWishlistService = async (userId) => {
     return { items: [] };
   }
 
-  //  SORT (NEW → OLD)
   const sortedItems = wishlist.items.sort(
     (a, b) => new Date(b.addedAt) - new Date(a.addedAt),
   );
@@ -347,7 +346,8 @@ export const getWishlistService = async (userId) => {
   const populatedItems = await Promise.all(
     sortedItems.map(async (item) => {
       const product = await Products.findById(item.productId)
-        .populate("brand", "title")
+        .populate("brand", "_id title")
+        .populate("category", "_id title")
         .lean();
 
       if (!product) return null;
@@ -358,13 +358,27 @@ export const getWishlistService = async (userId) => {
 
       if (!variant) return null;
 
+      // Apply active offers to get correct pricing
+      const { getActiveOffers } = await import("../../utils/products/offers.util.js");
+      const { applyPricingToProduct } = await import("../../utils/products/pricing.util.js");
+
+      const offers = await getActiveOffers(product);
+      const productWithPricing = applyPricingToProduct(product, offers);
+
+      const pricedVariant = productWithPricing.variants.find(
+        (v) => v._id.toString() === item.variantId.toString(),
+      ) || variant;
+
       return {
         productId: {
           _id: product._id,
           name: product.name,
           brand: product.brand,
         },
-        variantId: variant,
+        variantId: {
+          ...pricedVariant,
+          images: pricedVariant.product_images?.map((img) => img.url) || [],
+        },
         addedAt: item.addedAt,
       };
     }),

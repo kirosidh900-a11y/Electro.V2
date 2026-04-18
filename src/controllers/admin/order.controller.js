@@ -12,7 +12,7 @@ import renderView from "../../utils/admin/renderView.util.js";
 export const getAdminOrdersPage = async (req, res, next) => {
   try {
     const page = parseInt(req.query.page) || 1;
-    const limit = parseInt(req.query.limit) || 10;
+    const limit = parseInt(req.query.limit) || 4;
 
     const {
       search = "",

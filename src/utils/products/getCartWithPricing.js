@@ -7,11 +7,11 @@ export const getCartWithPricing = async (userId) => {
     .findOne({ userId })
     .populate({
       path: "items.productId",
-      select: "name brand variants",
-      populate: {
-        path: "brand",
-        select: "name",
-      },
+      select: "name brand category variants",
+      populate: [
+        { path: "brand", select: "_id name" },
+        { path: "category", select: "_id title" },
+      ],
     })
     .lean();
 

@@ -1,66 +1,76 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<script defer src="https://cdn.tailwindcss.com"></script>
+
+<!-- Critical: paint correct bg instantly, hide until CSS ready -->
+<style>
+  html { background: #020406; }
+  body { background: #020406; margin: 0; padding: 0; opacity: 0; }
+</style>
+
+<!-- Compiled Tailwind — local file, cached by browser, zero network cost -->
+<link rel="stylesheet" href="/admin/css/output.css">
+
+<!-- Reveal body after CSS parsed — no FOUC, no flash -->
+<script>
+  document.addEventListener('DOMContentLoaded', function () {
+    document.body.style.transition = 'opacity 0.1s ease';
+    document.body.style.opacity = '1';
+  });
+</script>
+
+<!-- Font Awesome — load synchronously so icons are always ready -->
+<link rel="preconnect" href="https://cdnjs.cloudflare.com" crossorigin>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+<!-- Non-critical scripts — all deferred, never block render -->
+<link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
 <script defer src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/toastify-js"></script>
+<style>
+  /* Toastify minimal critical styles inlined — avoids extra CDN request */
+  .toastify{padding:12px 20px;color:#fff;display:inline-block;box-shadow:0 3px 6px -1px rgba(0,0,0,.12);background:linear-gradient(135deg,#73a5ff,#5477f5);position:fixed;opacity:0;transition:all .4s cubic-bezier(.215,.61,.355,1);border-radius:2px;cursor:pointer;text-decoration:none;max-width:calc(50% - 20px);z-index:2147483647}
+  .toastify.on{opacity:1}
+  .toast-close{background:transparent;border:0;color:#fff;cursor:pointer;font-size:1em;opacity:.4;padding:0 5px}
+  .toastify-right{right:15px}
+  .toastify-top{top:-150px}
+  .toastify.on.toastify-top{top:15px}
+</style>
 
 <style>
-    :root {
-        color-scheme: dark;
-    }
+  :root { color-scheme: dark; }
 
-    body {
-        background-color: #020406;
-        color: #e2e8f0;
-        font-family: 'Inter', sans-serif;
-        margin: 0;
-    }
+  body {
+    background-color: #020406;
+    color: #e2e8f0;
+    font-family: 'Inter', sans-serif;
+    margin: 0;
+  }
 
-    /* Layout Logic */
-    #sidebar {
-        transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-        width: 288px;
-        /* w-72 */
-    }
+  #sidebar {
+    transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    width: 288px;
+  }
 
-    #mainContent {
-        transition: margin-left 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-    }
+  #mainContent {
+    transition: margin-left 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  }
 
-    /* Desktop Toggle State */
-    .sidebar-closed #sidebar {
-        transform: translateX(-100%);
-    }
+  .sidebar-closed #sidebar     { transform: translateX(-100%); }
+  .sidebar-closed #mainContent { margin-left: 0 !important; }
 
-    .sidebar-closed #mainContent {
-        margin-left: 0 !important;
-    }
+  @media (max-width: 1023px) {
+    #sidebar     { transform: translateX(-100%); }
+    #mainContent { margin-left: 0 !important; }
+    .mobile-open #sidebar { transform: translateX(0); }
+  }
 
-    /* Mobile Toggle State */
-    @media (max-width: 1023px) {
-        #sidebar {
-            transform: translateX(-100%);
-        }
+  @media (min-width: 1024px) {
+    #mainContent { margin-left: 288px; }
+  }
 
-        #mainContent {
-            margin-left: 0 !important;
-        }
-
-        .mobile-open #sidebar {
-            transform: translateX(0);
-        }
-    }
-
-    /* Tablet & Desktop Default */
-    @media (min-width: 1024px) {
-        #mainContent {
-            margin-left: 288px;
-        }
-    }
-
-    .glass-card {
-        background: rgba(10, 14, 20, 0.8);
-        border: 1px solid rgba(255, 255, 255, 0.05);
-        backdrop-filter: blur(10px);
-    }
+  .glass-card {
+    background: rgba(10, 14, 20, 0.8);
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    backdrop-filter: blur(10px);
+  }
 </style>

@@ -417,9 +417,49 @@
 
                 /* ================= INIT ================= */
                 document.addEventListener("DOMContentLoaded", () => {
+                        // Read URL params and pre-apply filters
+                        const urlParams = new URLSearchParams(window.location.search);
+
+                        // Category
+                        const urlCategory = urlParams.get("category");
+                        if (urlCategory) {
+                                selectedCategory = urlCategory;
+                                const catEl = document.querySelector(`.category-item[data-category="${urlCategory}"]`);
+                                if (catEl) catEl.classList.add("text-blue-600", "bg-blue-300");
+                        }
+
+                        // Brand(s) — supports comma-separated or single
+                        const urlBrand = urlParams.get("brand");
+                        if (urlBrand) {
+                                selectedBrands = urlBrand.split(",").filter(Boolean);
+                                selectedBrands.forEach(brandId => {
+                                        const brandEl = document.querySelector(`.brand-item[data-brand="${brandId}"]`);
+                                        if (brandEl) {
+                                                brandEl.querySelector(".brand-checkbox").checked = true;
+                                        }
+                                });
+                        }
+
+                        // Sort
+                        const urlSort = urlParams.get("sort");
+                        if (urlSort) {
+                                currentSort = urlSort;
+                                document.getElementById("sortSelect").value = urlSort;
+                        }
+
+                        // Price
+                        const urlMin = urlParams.get("minPrice");
+                        const urlMax = urlParams.get("maxPrice");
+                        if (urlMin) { selectedMinPrice = urlMin; document.getElementById("minPriceSelect").value = urlMin; }
+                        if (urlMax) { selectedMaxPrice = urlMax; document.getElementById("maxPriceSelect").value = urlMax; }
+
+                        // Search
+                        const urlSearch = urlParams.get("search");
+                        if (urlSearch) document.getElementById("searchInput").value = urlSearch;
+
                         loadProducts(1);
                         updateClearButtonState();
-                        getToastFromCookie()
+                        getToastFromCookie();
                 });
 
 

@@ -140,14 +140,18 @@
           <% items.forEach(item => { %>
             <div class="p-5 flex gap-4 items-start">
               <!-- Image -->
-              <div class="w-20 h-20 border rounded-lg p-1.5 bg-gray-50 flex-shrink-0">
+              <a href="/product/<%= item.productId %>"
+                class="w-20 h-20 border rounded-lg p-1.5 bg-gray-50 flex-shrink-0 hover:opacity-80 transition">
                 <img src="<%= item.images?.[0] || 'https://via.placeholder.com/150' %>"
                      class="w-full h-full object-contain mix-blend-multiply" alt="<%= item.name %>">
-              </div>
+              </a>
 
               <!-- Info -->
               <div class="flex-1 min-w-0">
-                <p class="text-sm font-semibold text-gray-900 leading-tight"><%= item.name %></p>
+                <a href="/product/<%= item.productId %>"
+                  class="text-sm font-semibold text-gray-900 leading-tight hover:text-blue-600 transition">
+                  <%= item.name %>
+                </a>
                 <% if(item.brand) { %><p class="text-xs text-gray-400 mt-0.5"><%= item.brand %></p><% } %>
 
                 <div class="flex flex-wrap gap-1.5 mt-1.5">

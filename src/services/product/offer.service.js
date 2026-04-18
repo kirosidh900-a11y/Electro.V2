@@ -47,14 +47,14 @@ export const fetchOffersService = async ({ queryParams, isXHR }) => {
   if (type) query.target_model = type;
 
   if (status === "active") {
-    query.$and = [
-      ...(query.$and || []),
-      { start_date: { $lte: now } },
-      { end_date: { $gte: now } },
-    ];
+    query.is_active = true;
+    query.start_date = { $lte: now };
+    query.end_date   = { $gte: now };
   } else if (status === "expired") {
-    query.end_date = { $lt: now };
+    query.is_active = true;
+    query.end_date  = { $lt: now };
   } else if (status === "upcoming") {
+    query.is_active  = true;
     query.start_date = { $gt: now };
   } else if (status === "inactive") {
     query.is_active = false;
