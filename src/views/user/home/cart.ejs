@@ -78,7 +78,9 @@
                         <% if (typeof cart !=='undefined' && cart && cart.items && cart.items.length> 0) { %>
                             <% cart.items.forEach(item=> { %>
                                 <div class="bg-white p-5 sm:p-6 rounded-2xl shadow-sm border border-gray-100 flex flex-col sm:flex-row gap-6 cart-item hover:shadow-md"
-                                    data-item-id="<%= item._id %>" data-stock="<%= item.variantId?.stock %>"
+                                    data-item-id="<%= item._id %>"
+                                    data-stock="<%= item.variantId?.stock %>"
+                                    data-mrp="<%= item.variantId?.regular_price || item.variantId?.price || 0 %>"
                                     data-product-id="<%= item.productId?._id %>"
                                     data-variant-id="<%= item.variantId?._id %>">
 
@@ -272,7 +274,7 @@
 
                                                 <button
                                                     class="w-8 h-8 flex items-center justify-center rounded-md hover:bg-white hover:shadow-sm text-gray-600 transition-all disabled:opacity-30 disabled:hover:bg-transparent disabled:hover:shadow-none increase-qty"
-                                                    <%=item.quantity>= Math.min(item.variantId?.stock || 1, 5) ?
+                                                    <%=item.quantity >= Math.min(item.variantId?.stock || 1, 3) ?
                                                     'disabled' : '' %>>
                                                     <i class="fa-solid fa-plus text-[10px]"></i>
                                                 </button>
@@ -302,43 +304,46 @@
                             Summary
                         </h2>
 
-                        <div class="space-y-4 mb-6">
+                        <div class="space-y-3 mb-6">
 
-                            <!-- SUBTOTAL -->
+                            <!-- SUBTOTAL (MRP) -->
                             <div class="flex justify-between items-center text-gray-600">
                                 <span class="text-sm">Subtotal (<span id="summaryItemCount">0</span> items)</span>
-                                <span class="font-semibold text-gray-900">
-                                    ₹<span id="summarySubtotal">0.00</span>
-                                </span>
+                                <span class="font-semibold text-gray-900">₹<span id="summarySubtotal">0.00</span></span>
+                            </div>
+
+                            <!-- PRODUCT DISCOUNTS -->
+                            <div id="summaryDiscountRow" class="hidden flex justify-between items-center text-green-600">
+                                <span class="text-sm">Product Discounts</span>
+                                <span class="font-medium">- ₹<span id="summaryDiscount">0</span></span>
                             </div>
 
                             <!-- TAX -->
                             <div class="flex justify-between items-center text-gray-600">
-                                <span class="text-sm">Tax (GST 18%)</span>
-                                <span class="font-medium text-gray-900">
-                                    ₹<span id="summaryTax">0.00</span>
-                                </span>
+                                <span class="text-sm">Tax (GST) <span class="text-[10px] text-gray-400">Included</span></span>
+                                <span class="font-medium text-gray-900">₹ <span id="summaryTax">0.00</span></span>
                             </div>
 
                             <!-- DELIVERY -->
-                            <div class="flex justify-between items-center text-gray-600">
-                                <span class="text-sm">Delivery Charges</span>
+                            <div class="flex justify-between items-center text-gray-600 border-t border-gray-100 pt-3 mt-1">
+                                <span class="text-sm">Delivery</span>
                                 <span id="summaryDelivery"
                                     class="font-medium text-green-600 text-sm bg-green-50 px-2 py-0.5 rounded">
-                                    Free Delivery
+                                    Free
                                 </span>
                             </div>
 
                         </div>
 
-                        <div class="border-t border-gray-100 pt-6 mb-8">
+                        <div class="border-t border-gray-100 pt-5 mb-8">
                             <div class="flex justify-between items-end">
                                 <div>
                                     <span class="block text-sm font-medium text-gray-500 mb-1">Total Amount</span>
-                                    <span class="text-[10px] text-gray-400">Including taxes</span>
+                                    <span id="overallSaveBadge" class="hidden text-[11px] text-green-600 font-semibold bg-green-50 px-2 py-0.5 rounded">
+                                        Overall save ₹<span id="overallSaveAmt">0</span>
+                                    </span>
                                 </div>
-                                <span class="font-bold text-3xl text-gray-900 tracking-tight">₹<span
-                                        id="summaryTotal">0.00</span></span>
+                                <span class="font-bold text-3xl text-gray-900 tracking-tight">₹<span id="summaryTotal">0.00</span></span>
                             </div>
                         </div>
 
@@ -473,48 +478,60 @@
                 //  QUANTITY HANDLERS
                 document.querySelectorAll('.decrease-qty').forEach(btn => {
                     btn.addEventListener('click', async e => {
-                        const el = e.target.closest('.cart-item');
-                        const qty = +el.querySelector('.item-qty').value;
-                        console.log(qty);
-                        await updateQty(el, qty - 1, 'dec');
+                        const el    = e.target.closest('.cart-item');
+                        const qty   = +el.querySelector('.item-qty').value;
+                        const stock = +el.dataset.stock;
+                        const limit = Math.min(stock, 3);
+
+                        // If current qty already exceeds available stock, snap to limit
+                        const targetQty = qty > limit ? limit : qty - 1;
+
+                        if (targetQty < 1) return; // already at minimum
+                        await updateQty(el, targetQty, 'dec');
                     });
                 });
 
                 document.querySelectorAll('.increase-qty').forEach(btn => {
                     btn.addEventListener('click', async e => {
                         const el = e.target.closest('.cart-item');
-                        const qty = +el.querySelector('.item-qty').value;
+                        const qty   = +el.querySelector('.item-qty').value;
                         const stock = +el.dataset.stock;
+                        const limit = Math.min(stock, 3);
 
-
-                        if (qty < stock) {
-                            await updateQty(el, qty + 1);
-                        } else {
-                            showToast(`Only ${stock} items available`, "warning");
+                        if (qty >= limit) {
+                            showToast(
+                                stock < 3
+                                    ? `Only ${stock} item(s) available in stock`
+                                    : `Maximum 3 items allowed`,
+                                "warning"
+                            );
+                            // Disable + button immediately
+                            btn.setAttribute('disabled', '');
+                            return;
                         }
+                        await updateQty(el, qty + 1);
                     });
                 });
 
                 //  UPDATE QTY
                 async function updateQty(el, qty, mode = 'inc') {
                     const itemId = el.dataset.itemId;
-                    const stock = Number(el.dataset.stock);
+                    const stock  = Number(el.dataset.stock);
+                    const limit  = Math.min(stock, 3);
 
-                    // MIN LIMIT
                     if (qty < 1) {
                         showToast(`Minimum 1 item required`, "warning");
                         return;
                     }
 
-                    // STOCK CHECK (ONLY FOR INCREASE 🔥)
-                    if (mode === 'inc' && qty > stock) {
-                        showToast(`Only ${stock} items available`, "warning");
-                        return;
-                    }
-
-                    // MAX LIMIT
-                    if (qty > 3) {
-                        showToast(`Maximum 3 items allowed`, "warning");
+                    // Stock check only for increase
+                    if (mode === 'inc' && qty > limit) {
+                        showToast(
+                            stock < 3
+                                ? `Only ${stock} item(s) available in stock`
+                                : `Maximum 3 items allowed`,
+                            "warning"
+                        );
                         return;
                     }
 
@@ -530,14 +547,24 @@
                         if (result.success) {
                             el.querySelector('.item-qty').value = qty;
 
-                            // ENABLE BUTTONS AGAIN
-                            el.querySelector('.decrease-qty')?.removeAttribute("disabled");
-                            el.querySelector('.increase-qty')?.removeAttribute("disabled");
+                            // Update button states based on new qty
+                            const decreaseBtn = el.querySelector('.decrease-qty');
+                            const increaseBtn = el.querySelector('.increase-qty');
+
+                            qty <= 1    ? decreaseBtn?.setAttribute('disabled', '') : decreaseBtn?.removeAttribute('disabled');
+                            qty >= limit ? increaseBtn?.setAttribute('disabled', '') : increaseBtn?.removeAttribute('disabled');
 
                             calculateTotals();
                             highlightInvalidItems();
                         } else {
                             showToast(result.message, "error");
+                            // If backend rejects increase, cap to available stock
+                            if (mode === 'inc') {
+                                const capQty = Math.min(stock, 3);
+                                el.querySelector('.item-qty').value = capQty;
+                                el.querySelector('.increase-qty')?.setAttribute('disabled', '');
+                                calculateTotals();
+                            }
                         }
 
                     } catch {
@@ -609,52 +636,63 @@
                 
                 //  HELPERS
                 function calculateTotals() {
-                    let total = 0;
-                    let count = 0;
+                    let mrpTotal      = 0;  // sum of regular_price * qty
+                    let finalTotal    = 0;  // sum of finalPrice * qty (post-offer)
+                    let totalDiscount = 0;
+                    let count         = 0;
 
                     document.querySelectorAll('.cart-item').forEach(el => {
-                        const price = +el.querySelector('.item-price').textContent.replace(/,/g, '');
-                        const qty = +el.querySelector('.item-qty').value;
+                        const finalPrice = +el.querySelector('.item-price').textContent.replace(/,/g, '');
+                        const mrpPrice   = +(el.dataset.mrp || finalPrice);
+                        const qty        = +el.querySelector('.item-qty').value;
 
-                        total += price * qty;
-                        count += qty;
+                        finalTotal    += finalPrice * qty;
+                        mrpTotal      += mrpPrice   * qty;
+                        totalDiscount += Math.max(mrpPrice - finalPrice, 0) * qty;
+                        count         += qty;
                     });
 
-                    const GST_RATE = 18;
+                    const GST_RATE  = 18;
+                    const gstAmount = (finalTotal * GST_RATE) / (100 + GST_RATE);
+                    const delivery  = count === 0 ? 0 : (finalTotal >= 500 ? 0 : 40);
+                    const grandTotal = finalTotal + delivery;
 
-                    // GST INCLUDED CALCULATION
-                    const gstAmount = (total * GST_RATE) / (100 + GST_RATE);
-
-                    // 🚚 DELIVERY LOGIC
-                    let delivery = total >= 500 ? 0 : 40;
-
-                    // 🔥 EMPTY CART FIX
-                    if (count === 0) delivery = 0;
-
-                    const finalTotal = total + delivery;
-
-                    // ================= UI UPDATE =================
+                    // ── UI UPDATE ──
                     document.getElementById('summaryItemCount').textContent = count;
-                    document.getElementById('summarySubtotal').textContent = format(total);
-                    document.getElementById('summaryTax').textContent = format(gstAmount);
+                    document.getElementById('summarySubtotal').textContent  = format(mrpTotal);
+                    document.getElementById('summaryTax').textContent       = format(gstAmount);
+                    document.getElementById('summaryTotal').textContent     = format(grandTotal);
 
-                    // 🔥 DELIVERY UI HANDLING
-                    const deliveryEl = document.getElementById('summaryDelivery');
-
-                    if (count === 0) {
-                        deliveryEl.textContent = "--";
-                        deliveryEl.classList.remove("text-green-600", "bg-green-50");
-                        deliveryEl.classList.add("text-gray-400");
-                    } else if (delivery === 0) {
-                        deliveryEl.textContent = "Free";
-                        deliveryEl.classList.add("text-green-600", "bg-green-50");
+                    // Discount row
+                    const discountRow = document.getElementById('summaryDiscountRow');
+                    if (totalDiscount > 0) {
+                        document.getElementById('summaryDiscount').textContent = format(totalDiscount);
+                        discountRow.classList.remove('hidden');
                     } else {
-                        deliveryEl.textContent = `₹${delivery}`;
-                        deliveryEl.classList.remove("text-green-600", "bg-green-50");
-                        deliveryEl.classList.add("text-gray-900");
+                        discountRow.classList.add('hidden');
                     }
 
-                    document.getElementById('summaryTotal').textContent = format(finalTotal);
+                    // Overall save badge
+                    const saveBadge = document.getElementById('overallSaveBadge');
+                    if (totalDiscount > 0) {
+                        document.getElementById('overallSaveAmt').textContent = format(totalDiscount);
+                        saveBadge.classList.remove('hidden');
+                    } else {
+                        saveBadge.classList.add('hidden');
+                    }
+
+                    // Delivery UI
+                    const deliveryEl = document.getElementById('summaryDelivery');
+                    if (count === 0) {
+                        deliveryEl.textContent = '--';
+                        deliveryEl.className   = 'font-medium text-gray-400 text-sm';
+                    } else if (delivery === 0) {
+                        deliveryEl.textContent = 'Free';
+                        deliveryEl.className   = 'font-medium text-green-600 text-sm bg-green-50 px-2 py-0.5 rounded';
+                    } else {
+                        deliveryEl.textContent = '₹' + format(delivery);
+                        deliveryEl.className   = 'font-medium text-gray-900 text-sm';
+                    }
                 }
 
                 function checkEmptyCart() {

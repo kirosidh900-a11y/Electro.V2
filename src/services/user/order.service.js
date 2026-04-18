@@ -248,9 +248,17 @@ export const placeOrderService = async ({
     );
 
     // 🧹 CLEAR CART
+    const appliedCouponId = cart.appliedCoupon?.couponId || null;
     cart.items = [];
     cart.couponDiscountAmount = 0;
+    cart.appliedCoupon = { code: null, couponId: null, discountAmount: 0 };
     await cart.save();
+
+    // Mark coupon as used
+    if (appliedCouponId) {
+      const { markCouponUsed } = await import("../product/coupon.service.js");
+      await markCouponUsed({ userId, couponId: appliedCouponId });
+    }
 
     return {
       success: true,

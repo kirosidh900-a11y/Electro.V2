@@ -47,6 +47,7 @@ import {
 } from "../../controllers/product/user/checkout.controller.js";
 import { getOrderListingPage } from "../../controllers/user/order.controller.js";
 import paymentRouter from "../product/payment.route.js";
+import { applyCoupon, removeCoupon } from "../../controllers/product/user/coupon.controller.js";
 
 import { getWalletPage, addMoneyToWallet } from "../../controllers/user/wallet.controller.js";
 
@@ -83,6 +84,8 @@ router
 router.get("/cart/validate-stock", requireAuth, validateCartStock);
 router.get("/cart/validate-stock-cart", requireAuth, validateCartStockCheck);
 router.get("/cart/checkout", requireAuth, getCheckoutPage);
+router.post("/cart/coupon/apply",  requireAuth, applyCoupon);
+router.delete("/cart/coupon/remove", requireAuth, removeCoupon);
 
 //Profile Side
 router.get("/myProfile", userAuth, profilePage);

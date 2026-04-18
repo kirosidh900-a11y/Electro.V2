@@ -58,11 +58,12 @@ export const handlePaymentSuccessService = async ({
       {
         _id: item.productId,
         "variants._id": item.variantId,
-        "variants.stock": { $gte: item.quantity }, // 🔥 prevent oversell
+        "variants.stock":    { $gte: item.quantity }, // prevent oversell
+        "variants.reserved": { $gte: item.quantity }, // prevent reserved going negative
       },
       {
         $inc: {
-          "variants.$.stock": -item.quantity,
+          "variants.$.stock":    -item.quantity,
           "variants.$.reserved": -item.quantity,
         },
       },
@@ -102,10 +103,15 @@ export const handlePaymentSuccessService = async ({
   order.payment.transactionId = paymentId;
   order.payment.paymentGatewayOrderId = razorpayOrderId;
   order.payment.signature = razorpay_signature;
-
   order.orderStatus = "confirmed";
 
   await order.save();
+
+  // Update all order items from pending_payment → placed
+  await orderItem.updateMany(
+    { orderId, itemStatus: "pending_payment" },
+    { $set: { itemStatus: "placed" } }
+  );
 
   return order;
 };
@@ -117,19 +123,22 @@ export const handlePaymentFailureService = async ({ orderId }) => {
 
   const items = await orderItem.find({ orderId });
 
-  // 🔥 RELEASE RESERVED STOCK
+  // 🔥 RELEASE RESERVED STOCK — use $max to prevent going below 0
   for (const item of items) {
-    await Products.updateOne(
-      {
-        _id: item.productId,
-        "variants._id": item.variantId,
-      },
-      {
-        $inc: {
-          "variants.$.reserved": -item.quantity,
-        },
-      },
+    // First get current reserved value
+    const product = await Products.findOne(
+      { _id: item.productId, "variants._id": item.variantId },
+      { "variants.$": 1 }
     );
+    const currentReserved = product?.variants?.[0]?.reserved ?? 0;
+    const safeDecrement = Math.min(item.quantity, currentReserved);
+
+    if (safeDecrement > 0) {
+      await Products.updateOne(
+        { _id: item.productId, "variants._id": item.variantId },
+        { $inc: { "variants.$.reserved": -safeDecrement } }
+      );
+    }
   }
 
   order.payment.status = "pending";

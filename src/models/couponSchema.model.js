@@ -120,18 +120,15 @@ couponSchema.index({ startDate: 1, expiryDate: 1 });
 
 
 //  VALIDATIONS
-// Expiry date must be after start date
-couponSchema.pre("validate", function (next) {
+couponSchema.pre("validate", function () {
   if (this.startDate && this.expiryDate && this.expiryDate < this.startDate) {
-    return next(new Error("Expiry date must be after start date"));
+    throw new Error("Expiry date must be after start date");
   }
 
-  // maxDiscount only for percentage type
+  // maxDiscount only applies to percentage type
   if (this.discountType === "fixed") {
     this.maxDiscount = null;
   }
-
-  next();
 });
 
 

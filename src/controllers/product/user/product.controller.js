@@ -232,7 +232,7 @@ export const getCartPage = async (req, res, next) => {
           ...item,
           variantId: {
             ...variant,
-            stock: Math.max(variant.stock - (variant.reserved || 0), 0),
+            stock: Math.max((variant.stock || 0) - (variant.reserved || 0), 0),
             images: variant.product_images?.map((img) => img.url) || [],
           },
         };
@@ -240,8 +240,6 @@ export const getCartPage = async (req, res, next) => {
     );
 
     cart.items = updatedItems.filter(Boolean);
-
-    console.log("Cart Items with Pricing:", cart.items);
 
     res.render("user/home/cart", { cart });
   } catch (error) {

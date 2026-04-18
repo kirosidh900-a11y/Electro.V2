@@ -425,11 +425,16 @@
           <!-- SKU -->
           <div>
             <label class="text-sm text-gray-400">SKU</label>
-
-            <input type="text" id="variant-sku"
-              class="w-full mt-1 bg-[#0f172a] border border-white/10 px-3 py-2 rounded-lg text-sm">
-
-            <!-- 🔥 STATUS -->
+            <div class="flex gap-2 mt-1">
+              <input type="text" id="variant-sku"
+                class="flex-1 bg-[#0f172a] border border-white/10 px-3 py-2 rounded-lg text-sm uppercase"
+                placeholder="e.g. SKU001">
+              <button type="button" id="generateSkuBtn"
+                title="Auto-generate SKU"
+                class="px-3 py-2 bg-white/5 hover:bg-cyan-500/20 text-gray-400 hover:text-cyan-400 rounded-lg text-xs transition">
+                <i class="fas fa-wand-magic-sparkles"></i>
+              </button>
+            </div>
             <p id="skuStatus" class="text-xs mt-1"></p>
           </div>
 
@@ -1598,6 +1603,38 @@
       }, 500);
 
       skuInput.addEventListener("input", checkSku);
+
+      // Auto-generate SKU — format: SKU + 6 alphanumeric chars, unique check
+      document.getElementById('generateSkuBtn').addEventListener('click', async () => {
+        const btn = document.getElementById('generateSkuBtn');
+        btn.disabled = true;
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+
+        const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+
+        try {
+          for (let i = 0; i < 10; i++) {
+            const suffix = Array.from({ length: 6 }, () => chars[Math.floor(Math.random() * chars.length)]).join('');
+            const sku    = 'SKU' + suffix;
+
+            const res    = await fetch(`/admin/products/check-sku?sku=${sku}`);
+            const result = await res.json();
+
+            if (result.data?.available) {
+              skuInput.value          = sku;
+              skuStatus.textContent   = '✅ SKU available';
+              skuStatus.className     = 'text-xs mt-1 text-emerald-400';
+              break;
+            }
+          }
+        } catch (err) {
+          skuStatus.textContent = 'Error generating SKU';
+          skuStatus.className   = 'text-xs mt-1 text-red-400';
+        } finally {
+          btn.disabled = false;
+          btn.innerHTML = '<i class="fas fa-wand-magic-sparkles"></i>';
+        }
+      });
 
     </script>
 

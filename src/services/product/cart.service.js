@@ -51,10 +51,12 @@ export const updateCartService = async ({
 
   const variant = product.variants[0];
 
-  // ================= STOCK CHECK =================
-  if (quantity > variant.stock) {
+  // Available stock = stock minus reserved
+  const availableStock = Math.max(variant.stock - (variant.reserved || 0), 0);
+
+  if (quantity > availableStock) {
     throw new AppError(
-      `Only ${variant.stock} items available in stock`,
+      `Only ${availableStock} item(s) available in stock`,
       HTTP_STATUS.BAD_REQUEST,
     );
   }
@@ -101,9 +103,9 @@ export const updateCartService = async ({
         );
       }
 
-      if (newQty > variant.stock) {
+      if (newQty > availableStock) {
         throw new AppError(
-          `Only ${variant.stock} items available`,
+          `Only ${availableStock} item(s) available in stock`,
           HTTP_STATUS.BAD_REQUEST,
         );
       }
@@ -195,17 +197,24 @@ export const updateCartQuantityService = async (userId, itemId, quantity) => {
 
   if (!variant) throw new AppError("Variant not found", 404);
 
-  if (variant.stock === 0) {
+  // Available stock = stock minus reserved
+  const availableStock = Math.max(variant.stock - (variant.reserved || 0), 0);
+
+  if (availableStock === 0) {
     throw new AppError("Out of stock", 400);
   }
 
-  // if (qty > variant.stock) {
-  //   throw new AppError(`Only ${variant.stock} available`, 400);
-  // }
-
   const MAX_LIMIT = 3;
-  if (qty > MAX_LIMIT) {
-    throw new AppError(`Maximum ${MAX_LIMIT} items allowed`, 400);
+  const effectiveLimit = Math.min(MAX_LIMIT, availableStock);
+
+  if (qty > effectiveLimit) {
+    // Allow reducing to effectiveLimit — only block if trying to go above it
+    throw new AppError(
+      availableStock < MAX_LIMIT
+        ? `Only ${availableStock} item(s) available in stock`
+        : `Maximum ${MAX_LIMIT} items allowed per product`,
+      400
+    );
   }
 
   item.quantity = qty;

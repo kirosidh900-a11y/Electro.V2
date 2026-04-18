@@ -308,7 +308,8 @@
                                                                 const gstAmount    = item.variantId?.gstAmount ?? 0;
                                                                 const gstChunk     = gstAmount * qty;
 
-                                                                subtotal        += finalPrice * qty;
+                                                                // subtotal = MRP total (so discount row makes sense)
+                                                                subtotal        += regularPrice * qty;
                                                                 totalDiscounts  += itemDiscount;
                                                                 totalGstAmount  += gstChunk;
                                                                 totalQuantity   += qty;
@@ -375,52 +376,28 @@
                                                                 <% }); } %>
                                                 </div>
 
-                                                <!-- 2. Apply Coupon Field Block -->
-                                                <div class="mb-6">
-                                                        <label class="block text-sm font-bold text-gray-900 mb-2.5">Have
-                                                                a Coupon?</label>
+                                                <!-- 2. Coupon Block — fully dynamic, no reload needed -->
+                                                <div class="mb-6" id="couponBlock">
+                                                        <label class="block text-sm font-bold text-gray-900 mb-2.5">Have a Coupon?</label>
                                                         <div class="flex gap-2">
                                                                 <input type="text" id="couponInput"
                                                                         placeholder="Enter coupon code"
-                                                                        class="flex-grow bg-white border border-gray-300 rounded-lg px-4 py-2.5 focus:ring-2 focus:ring-black focus:border-black outline-none transition-all text-sm font-medium uppercase placeholder:normal-case shadow-sm"
-                                                                        value="<%= typeof cart.appliedCoupon !== 'undefined' ? cart.appliedCoupon.code : '' %>"
-                                                                        <%=typeof cart.appliedCoupon !=='undefined'
-                                                                        ? 'readonly' : '' %>>
-
-                                                                <% if (typeof cart.appliedCoupon !=='undefined' ) { %>
-                                                                        <button type="button" onclick="removeCoupon()"
-                                                                                class="bg-red-50 text-red-600 border border-red-100 hover:bg-red-100 px-4 py-2.5 rounded-lg text-sm font-semibold transition-colors">
-                                                                                Remove
-                                                                        </button>
-                                                                        <% } else { %>
-                                                                                <button type="button"
-                                                                                        id="applyCouponBtn"
-                                                                                        class="bg-gray-900 text-white px-5 py-2.5 rounded-lg text-sm font-semibold hover:bg-gray-800 transition-colors shadow-sm focus:ring-2 focus:ring-offset-1 focus:ring-black">
-                                                                                        Apply
-                                                                                </button>
-                                                                                <% } %>
+                                                                        class="flex-grow bg-white border border-gray-300 rounded-lg px-4 py-2.5 focus:ring-2 focus:ring-black focus:border-black outline-none transition-all text-sm font-medium uppercase placeholder:normal-case shadow-sm">
+                                                                <button type="button" id="couponActionBtn"
+                                                                        class="bg-gray-900 text-white px-5 py-2.5 rounded-lg text-sm font-semibold hover:bg-gray-800 transition-colors shadow-sm">
+                                                                        Apply
+                                                                </button>
                                                         </div>
-
-                                                        <% if (typeof cart.appliedCoupon !=='undefined' ) { %>
-                                                                <div class="mt-2.5 flex items-center gap-2">
-                                                                        <i
-                                                                                class="fa-solid fa-circle-check text-green-500 text-xs"></i>
-                                                                        <span
-                                                                                class="text-xs font-semibold text-green-600">Coupon
-                                                                                applied successfully!</span>
-                                                                </div>
-                                                                <% } %>
+                                                        <div id="couponMsg" class="mt-2.5 hidden"></div>
                                                 </div>
 
-                                                <% // Final Calculation Math Hookups let
-                                                        couponDiscountAmount=cart.couponDiscountAmount || 0; let
-                                                        finalAmountAfterOfferAndCoupon=subtotal - totalDiscounts -
-                                                        couponDiscountAmount; if (finalAmountAfterOfferAndCoupon < 0)
-                                                        finalAmountAfterOfferAndCoupon=0; let
-                                                        deliveryCharges=finalAmountAfterOfferAndCoupon>= 500 ? 0 : 40;
+                                                <% // Final Calculation
+                                                        const couponDiscountAmount = cart?.appliedCoupon?.code ? (cart.couponDiscountAmount || 0) : 0;
+                                                        let finalAmountAfterOfferAndCoupon = subtotal - totalDiscounts - couponDiscountAmount;
+                                                        if (finalAmountAfterOfferAndCoupon < 0) finalAmountAfterOfferAndCoupon = 0;
+                                                        let deliveryCharges = finalAmountAfterOfferAndCoupon >= 500 ? 0 : 40;
                                                         if (totalQuantity === 0) deliveryCharges = 0;
-                                                        let finalGrandTotal = finalAmountAfterOfferAndCoupon +
-                                                        deliveryCharges;
+                                                        let finalGrandTotal = finalAmountAfterOfferAndCoupon + deliveryCharges;
                                                         %>
 
                                                         <!-- 3. Bill Breakup -->
@@ -447,7 +424,7 @@
                                                                         <% } %>
 
                                                                                 <% if (couponDiscountAmount> 0) { %>
-                                                                                        <div
+                                                                                        <div id="couponSavingsRow"
                                                                                                 class="flex justify-between items-center text-green-600">
                                                                                                 <span
                                                                                                         class="text-sm flex items-center gap-1.5"><i
@@ -455,10 +432,15 @@
                                                                                                         Coupon
                                                                                                         Savings</span>
                                                                                                 <span
-                                                                                                        class="font-medium">-
+                                                                                                        class="font-medium" id="couponSavingsAmt">-
                                                                                                         ₹<%= couponDiscountAmount.toLocaleString('en-IN')
                                                                                                                 %>
                                                                                                 </span>
+                                                                                        </div>
+                                                                                        <% } else { %>
+                                                                                        <div id="couponSavingsRow" class="hidden flex justify-between items-center text-green-600">
+                                                                                                <span class="text-sm flex items-center gap-1.5"><i class="fa-solid fa-tag text-[10px]"></i> Coupon Savings</span>
+                                                                                                <span class="font-medium" id="couponSavingsAmt"></span>
                                                                                         </div>
                                                                                         <% } %>
 
@@ -500,21 +482,16 @@
                                                         <!-- 4. Grand Total -->
                                                         <div class="flex justify-between items-end mb-8 pt-1">
                                                                 <div>
-                                                                        <span
-                                                                                class="block text-sm font-medium text-gray-500 mb-1">Total
-                                                                                Amount</span>
-                                                                        <% if ((totalDiscounts + couponDiscountAmount)>
-                                                                                0) { %>
-                                                                                <span
-                                                                                        class="text-[11px] text-green-600 font-semibold bg-green-50 px-2 py-1 rounded">Overall
-                                                                                        save ₹<%= (totalDiscounts +
-                                                                                                couponDiscountAmount).toLocaleString('en-IN')
-                                                                                                %></span>
-                                                                                <% } %>
+                                                                        <span class="block text-sm font-medium text-gray-500 mb-1">Total Amount</span>
+                                                                        <span id="overallSaveLabel"
+                                                                                class="text-[11px] text-green-600 font-semibold bg-green-50 px-2 py-1 rounded
+                                                                                <%= (totalDiscounts + couponDiscountAmount) > 0 ? '' : 'hidden' %>">
+                                                                                Overall save ₹<%= (totalDiscounts + couponDiscountAmount).toLocaleString('en-IN') %>
+                                                                        </span>
                                                                 </div>
-                                                                <span
-                                                                        class="font-bold text-3xl text-gray-900 tracking-tight">₹
-                                                                        <%= finalGrandTotal.toLocaleString('en-IN') %>
+                                                                <span id="grandTotalDisplay"
+                                                                        class="font-bold text-3xl text-gray-900 tracking-tight">
+                                                                        ₹<%= finalGrandTotal.toLocaleString('en-IN') %>
                                                                 </span>
                                                         </div>
 
@@ -932,40 +909,138 @@
                         }
                 };
 
-                // ---------------- Coupon Handlers ----------------
-                const applyCouponBtn = document.getElementById('applyCouponBtn');
-                if (applyCouponBtn) {
-                        applyCouponBtn.addEventListener('click', async () => {
-                                const code = document.getElementById('couponInput').value.trim();
-                                if (!code) return showToast("Please enter a valid coupon code", "warning");
+                // ---------------- Coupon Handlers (dynamic, no reload) ----------------
+                const couponInput     = document.getElementById('couponInput');
+                const couponActionBtn = document.getElementById('couponActionBtn');
+                const couponMsg       = document.getElementById('couponMsg');
+                const couponSavingsRow = document.getElementById('couponSavingsRow');
+                const couponSavingsAmt = document.getElementById('couponSavingsAmt');
+                const grandTotalDisplay = document.getElementById('grandTotalDisplay');
+                const overallSaveLabel  = document.getElementById('overallSaveLabel');
 
+                // Base totals from server — subtotal is MRP, discounts are offer savings
+                const BASE_SUBTOTAL   = <%= subtotal %>;
+                const BASE_DISCOUNTS  = <%= totalDiscounts %>;
+                const BASE_GST        = <%= Math.round(totalGstAmount) %>;
+                let   activeCouponDiscount = <%= couponDiscountAmount %>;
+
+                // Store initial coupon state — applied after functions are defined below
+                const INITIAL_COUPON_CODE     = <%- JSON.stringify(cart?.appliedCoupon?.code || null) %>;
+                const INITIAL_COUPON_DISCOUNT = <%= cart?.couponDiscountAmount || 0 %>;
+
+                function fmt(n) {
+                        return n.toLocaleString('en-IN');
+                }
+
+                function recalcTotal(couponDiscount) {
+                        activeCouponDiscount = couponDiscount;
+                        const afterDiscount  = Math.max(0, BASE_SUBTOTAL - BASE_DISCOUNTS - couponDiscount);
+                        const delivery       = afterDiscount >= 500 ? 0 : 40;
+                        const grand          = afterDiscount + delivery;
+                        const totalSavings   = BASE_DISCOUNTS + couponDiscount;
+
+                        grandTotalDisplay.textContent = '₹' + fmt(grand);
+
+                        if (couponDiscount > 0) {
+                                couponSavingsRow.classList.remove('hidden');
+                                couponSavingsAmt.textContent = '- ₹' + fmt(couponDiscount);
+                        } else {
+                                couponSavingsRow.classList.add('hidden');
+                        }
+
+                        if (totalSavings > 0) {
+                                overallSaveLabel.textContent = 'Overall save ₹' + fmt(totalSavings);
+                                overallSaveLabel.classList.remove('hidden');
+                        } else {
+                                overallSaveLabel.classList.add('hidden');
+                        }
+                }
+
+                function setCouponAppliedState(code, discount) {
+                        couponInput.value    = code;
+                        couponInput.readOnly = true;
+                        couponActionBtn.dataset.state = 'applied';
+                        couponActionBtn.textContent   = 'Remove';
+                        couponActionBtn.className     = 'bg-red-50 text-red-600 border border-red-100 hover:bg-red-100 px-4 py-2.5 rounded-lg text-sm font-semibold transition-colors';
+                        couponActionBtn.disabled      = false;
+                        couponMsg.innerHTML  = '<i class="fa-solid fa-circle-check text-green-500 text-xs mr-1.5"></i><span class="text-xs font-semibold text-green-600">Coupon applied! You save ₹' + fmt(discount) + '</span>';
+                        couponMsg.classList.remove('hidden');
+                        recalcTotal(discount);
+                }
+
+                function setCouponRemovedState() {
+                        couponInput.value    = '';
+                        couponInput.readOnly = false;
+                        couponActionBtn.dataset.state = 'idle';
+                        couponActionBtn.textContent   = 'Apply';
+                        couponActionBtn.className     = 'bg-gray-900 text-white px-5 py-2.5 rounded-lg text-sm font-semibold hover:bg-gray-800 transition-colors shadow-sm';
+                        couponActionBtn.disabled      = false;
+                        couponMsg.classList.add('hidden');
+                        recalcTotal(0);
+                        couponInput.focus();
+                }
+
+                // Pre-fill applied coupon state on page load (after functions defined)
+                if (INITIAL_COUPON_CODE) {
+                        setCouponAppliedState(INITIAL_COUPON_CODE, INITIAL_COUPON_DISCOUNT);
+                }
+
+                couponActionBtn.addEventListener('click', async () => {
+                        const isApplied = couponActionBtn.dataset.state === 'applied';
+
+                        if (isApplied) {
+                                couponActionBtn.disabled    = true;
+                                couponActionBtn.textContent = 'Removing...';
                                 try {
-                                        const res = await fetch("/cart/coupon/apply", {
-                                                method: 'POST',
+                                        const res    = await fetch('/cart/coupon/remove', { method: 'DELETE' });
+                                        const result = await res.json();
+                                        if (result.success) {
+                                                showToast('Coupon removed', 'success');
+                                                setCouponRemovedState();
+                                        } else {
+                                                showToast(result.message || 'Failed to remove', 'error');
+                                                couponActionBtn.disabled    = false;
+                                                couponActionBtn.textContent = 'Remove';
+                                        }
+                                } catch {
+                                        showToast('Network error', 'error');
+                                        couponActionBtn.disabled    = false;
+                                        couponActionBtn.textContent = 'Remove';
+                                }
+
+                        } else {
+                                const code = couponInput.value.trim();
+                                if (!code) return showToast('Please enter a coupon code', 'warning');
+
+                                couponActionBtn.disabled    = true;
+                                couponActionBtn.textContent = 'Applying...';
+                                try {
+                                        const res    = await fetch('/cart/coupon/apply', {
+                                                method:  'POST',
                                                 headers: { 'Content-Type': 'application/json' },
-                                                body: JSON.stringify({ code })
+                                                body:    JSON.stringify({ code }),
                                         });
                                         const result = await res.json();
                                         if (result.success) {
-                                                showToast("Coupon Applied!", "success");
-                                                window.location.reload();
+                                                showToast(result.message, 'success');
+                                                setCouponAppliedState(code.toUpperCase(), result.discountAmount);
                                         } else {
-                                                showToast(result.message || "Invalid coupon code", "error");
+                                                showToast(result.message || 'Invalid coupon', 'error');
+                                                couponActionBtn.disabled    = false;
+                                                couponActionBtn.textContent = 'Apply';
                                         }
-                                } catch { showToast("Network error applying coupon", "error"); }
-                        });
-                }
-
-                window.removeCoupon = async function () {
-                        try {
-                                const res = await fetch("/cart/coupon/remove", { method: 'DELETE' });
-                                const result = await res.json();
-                                if (result.success) {
-                                        showToast("Coupon removed", "success");
-                                        window.location.reload();
+                                } catch {
+                                        showToast('Network error applying coupon', 'error');
+                                        couponActionBtn.disabled    = false;
+                                        couponActionBtn.textContent = 'Apply';
                                 }
-                        } catch { showToast("Network error", "error"); }
-                };
+                        }
+                });
+
+                // uppercase as user types
+                couponInput.addEventListener('input', () => {
+                        couponInput.value = couponInput.value.toUpperCase();
+                });
 
                 // ---------------- Checkout Order Submission ----------------
                 document.getElementById('checkoutProceedBtn').addEventListener('click', async () => {
@@ -1016,65 +1091,39 @@
                                         const res = await fetch('/api/user/payment/create-order', {
                                                 method: 'POST',
                                                 headers: { "Content-Type": "application/json", "Accept": "application/json" },
-                                                body: JSON.stringify({
-                                                        addressId: selectedAddress.value
-                                                })
+                                                body: JSON.stringify({ addressId: selectedAddress.value })
                                         });
 
                                         const data = await res.json();
 
-
-                                        if (!data.success) throw new Error("Failed to create payment order");
-
-
+                                        if (!data.success) throw new Error(data.message || "Failed to create payment order");
 
                                         const rzp = new Razorpay({
                                                 key: data.key,
                                                 amount: data.amount,
                                                 currency: "INR",
                                                 order_id: data.razorpayOrderId,
+                                                theme: { color: "#3399cc" },
 
-                                                prefill: {
-                                                        name: "Sidharth T",
-                                                        email: "sidharth@test.com",
-                                                        contact: "8848096746"
-                                                },
-
-                                                theme: {
-                                                        color: "#3399cc"
-                                                },
-
-                                                // ✅ SUCCESS
                                                 handler: async function (response) {
                                                         try {
                                                                 const verifyRes = await fetch('/api/user/payment/verify', {
                                                                         method: 'POST',
-                                                                        headers: {
-                                                                                "Content-Type": "application/json",
-                                                                                "Accept": "application/json"
-                                                                        },
-                                                                        body: JSON.stringify({
-                                                                                ...response,
-                                                                                orderId: data.orderId
-                                                                        })
+                                                                        headers: { "Content-Type": "application/json" },
+                                                                        body: JSON.stringify({ ...response, orderId: data.orderId })
                                                                 });
-
                                                                 const result = await verifyRes.json();
 
                                                                 if (!verifyRes.ok || !result.success) {
-                                                                        window.location.href =  `/order/failure/${data.orderId}?error=Payment failed&orderNumber=${data.orderNumber}`;
+                                                                        window.location.href = `/order/failure/${data.orderId}?error=Payment+failed&orderNumber=${data.orderNumber}`;
                                                                         return;
                                                                 }
-
-                                                                // ✅ SUCCESS PAGE
-                                                                window.location.href = data.redirectUrl;
-
+                                                                window.location.href = `/order/success/${data.orderId}`;
                                                         } catch (err) {
-                                                                window.location.href =  `/order/failure/${data.orderId}?error=Payment failed&orderNumber=${data.orderNumber}`;
+                                                                window.location.href = `/order/failure/${data.orderId}?error=Payment+failed&orderNumber=${data.orderNumber}`;
                                                         }
                                                 },
 
-                                                // ✅ USER CLOSED POPUP
                                                 modal: {
                                                         ondismiss: async function () {
                                                                 await fetch("/api/user/payment/failure", {
@@ -1082,63 +1131,28 @@
                                                                         headers: { "Content-Type": "application/json" },
                                                                         body: JSON.stringify({ orderId: data.orderId })
                                                                 });
-
-                                                                window.location.href =  `/order/failure/${data.orderId}?error=Payment failed&orderNumber=${data.orderNumber}`;
+                                                                btn.disabled = false;
+                                                                btn.innerHTML = original;
                                                         }
                                                 }
                                         });
 
-
-                                        // ✅ FAILURE EVENT (VERY IMPORTANT)
                                         rzp.on("payment.failed", async function (response) {
-                                                console.log("PAYMENT FAILED:", response);
-
                                                 await fetch("/api/user/payment/failure", {
                                                         method: "POST",
                                                         headers: { "Content-Type": "application/json" },
                                                         body: JSON.stringify({ orderId: data.orderId })
                                                 });
-
-                                                window.location.href = `/order/failed/${data.orderId}`;
+                                                window.location.href = `/order/failure/${data.orderId}?error=Payment+failed&orderNumber=${data.orderNumber}`;
                                         });
 
-
-                                        // ✅ OPEN
                                         rzp.open();
-
-
-                                        // ✅ TIMER FIX
-                                        const expiryTime = new Date(data.expiresAt).getTime();
-                                        const now = Date.now();
-                                        const remainingTime = expiryTime - now;
-
-                                        if (remainingTime > 0) {
-                                                console.log(`Payment window expires in ${Math.floor(remainingTime / 1000)} seconds`);
-                                                for(let i = 0 ; i <= remainingTime ; i += 1000) {
-                                                        setTimeout(() => {
-                                                                const timeLeft = expiryTime - Date.now();
-                                                                if (timeLeft > 0) {
-                                                                        console.log(`Time left: ${Math.floor(timeLeft / 1000)} seconds`);
-                                                                }
-                                                        }, i);
-                                                }
-                                                setTimeout(async () => {
-                                                        rzp.close();
-
-                                                        await fetch("/api/user/payment/failure", {
-                                                                method: "POST",
-                                                                headers: { "Content-Type": "application/json" },
-                                                                body: JSON.stringify({ orderId: data.orderId })
-                                                        });
-
-                                                        window.location.href =  `/order/failure/${data.orderId}?error=Payment failed&orderNumber=${data.orderNumber}`;
-                                                }, remainingTime);
-                                        }
                                 }
-                        } catch (error) {
-                                showToast(error.message, "error");
-                                btn.innerHTML = original;
+
+                        } catch (err) {
+                                showToast(err.message || "Something went wrong", "error");
                                 btn.disabled = false;
+                                btn.innerHTML = original;
                         }
                 });
 
