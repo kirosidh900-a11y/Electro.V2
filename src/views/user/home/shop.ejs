@@ -659,6 +659,45 @@
 
         </script>
 
+<script src="/socket.io/socket.io.js"></script>
+<script>
+  // ── Real-time stock updates — Shop page ───────────────────────────────────
+  const _shopSocket = io();
 
+  _shopSocket.on("connect", () => console.log("[Socket] shop connected:", _shopSocket.id));
+  _shopSocket.on("connect_error", (e) => console.error("[Socket] error:", e.message));
+
+  _shopSocket.on("stockUpdated", ({ productId, variantId, stock }) => {
+    console.log("[Socket] stockUpdated:", { productId, variantId, stock });
+
+    const card = document.querySelector(
+      `.product-card[data-product-id="${productId}"][data-variant-id="${variantId}"]`
+    );
+    if (!card) return;
+
+    // Update add-to-cart and wishlist buttons
+    const cartBtn   = card.querySelector('.add-to-cart');
+    const wishBtn   = card.querySelector('.wishlist');
+    const imgWrapper = card.querySelector('.relative.w-full');
+
+    // Sold-out overlay
+    let badge = card.querySelector('.sold-out-overlay');
+
+    if (stock <= 0) {
+      if (cartBtn)  { cartBtn.disabled = true;  cartBtn.classList.add('opacity-50', 'cursor-not-allowed'); }
+      if (wishBtn)  { wishBtn.disabled = true;  wishBtn.classList.add('opacity-50', 'cursor-not-allowed'); }
+      if (!badge && imgWrapper) {
+        badge = document.createElement('div');
+        badge.className = 'sold-out-overlay absolute inset-0 bg-black/40 flex items-center justify-center rounded-xl z-10';
+        badge.innerHTML = '<span class="text-white text-xs font-black uppercase tracking-widest bg-red-500 px-3 py-1 rounded-full">Sold Out</span>';
+        imgWrapper.appendChild(badge);
+      }
+    } else {
+      if (cartBtn)  { cartBtn.disabled = false; cartBtn.classList.remove('opacity-50', 'cursor-not-allowed'); }
+      if (wishBtn)  { wishBtn.disabled = false; wishBtn.classList.remove('opacity-50', 'cursor-not-allowed'); }
+      if (badge) badge.remove();
+    }
+  });
+</script>
 
         <%- include("../../partials/user/footer.ejs") %>

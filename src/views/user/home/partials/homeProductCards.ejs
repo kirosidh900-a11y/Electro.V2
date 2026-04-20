@@ -34,7 +34,9 @@
     %>
 
     <div class="product-card flex flex-col group relative bg-white rounded-xl overflow-hidden 
-shadow-sm hover:shadow-2xl transition-all duration-300 border border-gray-100">
+shadow-sm hover:shadow-2xl transition-all duration-300 border border-gray-100"
+  data-product-id="<%= product._id %>"
+  data-variant-id="<%= variantId %>">
 
         <!-- IMAGE -->
         <div class="relative w-full aspect-[4/5] sm:aspect-square flex items-center justify-center 

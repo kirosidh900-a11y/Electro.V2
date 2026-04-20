@@ -52,6 +52,9 @@ app.use((req, res, next) => {
   if (req.path.match(/\.(css|js|png|jpg|jpeg|gif|ico|svg|woff|woff2|ttf)$/)) {
     return next(); // static assets already handled, skip nocache
   }
+  if (req.path.startsWith('/socket.io')) {
+    return next(); // never interfere with socket.io transport
+  }
   res.set('Cache-Control', 'no-store');
   next();
 });

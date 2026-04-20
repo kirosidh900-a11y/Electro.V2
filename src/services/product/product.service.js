@@ -390,7 +390,7 @@ export const getProductDetailsServiceUser = async (productId) => {
     .populate({
       path: "variants",
       match: { isDeleted: false },
-      select: "price regular_price product_images",
+      select: "_id price regular_price finalPrice product_images",
       populate: { path: "product_images", select: "url" },
     })
     .sort({ "variants.price": 1 })

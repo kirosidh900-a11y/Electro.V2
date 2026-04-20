@@ -62,6 +62,7 @@ export const getOrderFailurePage = async (req, res) => {
 
   let summaryVars = {
     itemName: null,
+    itemImage: null,
     itemMeta: null,
     itemPrice: null,
     subtotal: null,
@@ -82,6 +83,7 @@ export const getOrderFailurePage = async (req, res) => {
 
       summaryVars = {
         itemName: firstItem?.name || null,
+        itemImage: firstItem?.images?.[0] || null,
         itemMeta: firstItem?.attributes
           ? Object.values(firstItem.attributes).join(" · ")
           : null,

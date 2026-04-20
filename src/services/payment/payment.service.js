@@ -6,6 +6,19 @@ import AppError from "../../utils/partials/AppError.utils.js";
 import HTTP_STATUS from "../../constant/statusCode.js";
 import razorpay from "../../config/razorpay.config.js";
 
+const emitStockUpdate = async (productId, variantId) => {
+  if (!global.io) return;
+  const product = await Products.findById(productId).select("variants").lean();
+  const variant = product?.variants?.find(v => String(v._id) === String(variantId));
+  if (variant) {
+    global.io.emit("stockUpdated", {
+      productId,
+      variantId,
+      stock: Math.max(variant.stock - (variant.reserved || 0), 0),
+    });
+  }
+};
+
 // 🔐 VERIFY SIGNATURE
 export const verifyPaymentSignature = ({
   razorpay_order_id,
@@ -143,6 +156,7 @@ export const handlePaymentFailureService = async ({ orderId }) => {
         { _id: item.productId, "variants._id": item.variantId },
         { $inc: { "variants.$.reserved": -safeDecrement } }
       );
+      await emitStockUpdate(item.productId, item.variantId);
     }
   }
 

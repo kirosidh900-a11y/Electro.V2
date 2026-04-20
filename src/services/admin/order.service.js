@@ -2,6 +2,20 @@ import Order from "../../models/orderSchema.model.js";
 import orderItem from "../../models/orderItemSchema.model.js";
 import Products from "../../models/productSchema.model.js";
 import AppError from "../../utils/partials/AppError.utils.js";
+
+// ── Emit real-time stock update after any DB stock change ─────────────────────
+const emitStockUpdate = async (productId, variantId) => {
+  if (!global.io) return;
+  const product = await Products.findById(productId).select("variants").lean();
+  const variant = product?.variants?.find(v => String(v._id) === String(variantId));
+  if (variant) {
+    global.io.emit("stockUpdated", {
+      productId,
+      variantId,
+      stock: Math.max(variant.stock - (variant.reserved || 0), 0),
+    });
+  }
+};
 // LABELS (MOVE HERE)
 const STATUS_LABELS = {
   placed: "Placed",
@@ -214,6 +228,7 @@ export const cancelOrderService = async (orderId, reason, comments) => {
       { _id: item.productId, variants: { $elemMatch: { _id: item.variantId } } },
       { $inc: { "variants.$.stock": item.quantity } },
     );
+    await emitStockUpdate(item.productId, item.variantId);
 
     item.itemStatus  = "cancelled";
     item.cancel      = { reason, comments, cancelledAt: new Date(), requestedAt: new Date() };
@@ -232,6 +247,7 @@ const handleReturnStock = async (item) => {
     { _id: item.productId, variants: { $elemMatch: { _id: item.variantId } } },
     { $inc: { "variants.$.stock": item.quantity } },
   );
+  await emitStockUpdate(item.productId, item.variantId);
 };
 
 export const handleReturnRequestService = async ({
@@ -354,6 +370,7 @@ export const updateItemStatusService = async (itemId, newStatus, reason = null, 
       { _id: item.productId, variants: { $elemMatch: { _id: item.variantId } } },
       { $inc: { "variants.$.stock": item.quantity } },
     );
+    await emitStockUpdate(item.productId, item.variantId);
   }
 
   return item;
