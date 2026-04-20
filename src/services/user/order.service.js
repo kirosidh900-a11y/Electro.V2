@@ -198,10 +198,12 @@ export const placeOrderService = async ({
     }
 
     // ================= FINAL =================
-    const couponDiscount = cart.couponDiscountAmount || 0;
-    const finalPriceTotal = subtotal + gstTotal; // post-offer, post-GST total
-    const deliveryCharge = (finalPriceTotal - couponDiscount) >= 500 ? 0 : 40;
-    const finalAmount    = subtotal - couponDiscount + deliveryCharge + gstTotal;
+    const couponDiscount  = cart.couponDiscountAmount || 0;
+    const finalPriceTotal = subtotal + gstTotal;                          // = sum of finalPrice×qty
+    const deliveryCharge  = (finalPriceTotal - couponDiscount) >= 500 ? 0 : 40;
+    // finalAmount = what user actually pays
+    // subtotal (finalPrice_total) already includes GST — do NOT add gstTotal again
+    const finalAmount = finalPriceTotal - couponDiscount + deliveryCharge;
 
     const expectedDate = new Date();
     expectedDate.setDate(expectedDate.getDate() + 7);
@@ -211,11 +213,11 @@ export const placeOrderService = async ({
       orderNumber,
 
       pricing: {
-        subtotal:        mrpTotal,        // MRP total (matches checkout display)
-        productDiscount,                  // offer savings
+        subtotal:        finalPriceTotal,  // sum of finalPrice×qty (post-offer, GST included)
+        productDiscount,                   // MRP - basePrice savings (for display)
         couponDiscount,
         deliveryCharge,
-        gstTotal,
+        gstTotal,                          // informational — already inside subtotal
         finalAmount,
       },
 
@@ -469,26 +471,26 @@ export const cancelOrderService = async ({
     }
 
     // PARTIAL CANCEL — recalculate from remaining active items only
-    // couponDiscount is order-level and stays (it was applied to the whole order)
-    // productDiscount is recalculated from active items
-    let subtotal = 0;
+    let subtotal = 0;        // sum of item.pricing.total (finalPrice × qty, GST included)
     let productDiscount = 0;
     let gstTotal = 0;
 
     activeItems.forEach((i) => {
-      subtotal += i.pricing.total;
+      subtotal        += i.pricing.total;           // finalPrice × qty (GST already inside)
       productDiscount += i.pricing.discountAmount || 0;
-      gstTotal += i.pricing.gstAmount || 0;
+      gstTotal        += i.pricing.gstAmount || 0;
     });
 
     const couponDiscount = order.pricing.couponDiscount || 0;
     const deliveryCharge = order.pricing.deliveryCharge || 0;
 
-    order.pricing.subtotal = subtotal;
+    order.pricing.subtotal        = subtotal;
     order.pricing.productDiscount = productDiscount;
-    order.pricing.gstTotal = gstTotal;
+    order.pricing.gstTotal        = gstTotal;
+    // finalAmount = subtotal (already includes GST) - coupon + delivery
+    // do NOT add gstTotal again
     order.pricing.finalAmount = Math.max(
-      subtotal + gstTotal + deliveryCharge - couponDiscount,
+      subtotal - couponDiscount + deliveryCharge,
       0
     );
 
@@ -600,35 +602,39 @@ export const returnOrderItemService = async ({
   orderItemId,
   returnReason,
   returnComments,
+  itemCondition,
 }) => {
   const item = await orderItem.findOne({ _id: orderItemId, userId });
 
-  if (!item) {
-    throw new AppError("Order item not found", HTTP_STATUS.NOT_FOUND);
+  if (!item) throw new AppError("Order item not found", HTTP_STATUS.NOT_FOUND);
+  if (item.itemStatus !== "delivered") throw new AppError("Only delivered items can be returned", HTTP_STATUS.BAD_REQUEST);
+  if (item.return?.requestedAt) throw new AppError("Return already requested");
+
+  // Pre-determine stock action based on reason + condition
+  const noRestockReasons = ["defective", "missing_parts", "damaged"];
+  const inspectionReasons = ["wrong_item"];
+  const restockableConditions = ["sealed_new", "opened_good"];
+
+  let stockAction = "none";
+  if (noRestockReasons.includes(returnReason)) {
+    stockAction = "damaged_inventory";
+  } else if (inspectionReasons.includes(returnReason)) {
+    stockAction = "pending_inspection";
+  } else if (itemCondition && restockableConditions.includes(itemCondition)) {
+    stockAction = "restock";
+  } else if (itemCondition) {
+    stockAction = "damaged_inventory";
   }
 
-  if (item.itemStatus !== "delivered") {
-    throw new AppError(
-      "Only delivered items can be returned",
-      HTTP_STATUS.BAD_REQUEST,
-    );
-  }
-
-  // prevent duplicate request
-  if (item.return?.requestedAt) {
-    throw new AppError("Return already requested");
-  }
-
-  // USER ONLY REQUESTS
   item.itemStatus = "return_requested";
-
   item.return = {
-    reason: returnReason,
-    comments: returnComments,
-    requestedAt: new Date(),
+    reason:        returnReason,
+    comments:      returnComments,
+    itemCondition: itemCondition || null,
+    stockAction,
+    requestedAt:   new Date(),
   };
 
   await item.save();
-
   return item;
 };

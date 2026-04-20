@@ -80,6 +80,16 @@ const orderSchema = new Schema(
     cancelReason: String,
     cancelComments: String,
     cancelledAt: Date,
+    cancelledBy: { type: String, enum: ["user", "admin"], default: "user" },
+
+    refund: {
+      required:    { type: Boolean, default: false },
+      status:      { type: String, enum: ["not_required", "pending", "processing", "completed", "on_hold"], default: "not_required" },
+      amount:      { type: Number, default: 0 },
+      method:      { type: String, enum: ["wallet", "original", "manual", "none"], default: "none" },
+      processedAt: Date,
+      note:        String,
+    },
 
     delivery: {
       expectedDate: Date,

@@ -143,8 +143,9 @@ export const generateInvoiceService = async ({ userId, orderId }, res) => {
   y += TH;
 
   // Rows
-  let recalcBase = 0;
-  let recalcGst  = 0;
+  let recalcBase = 0;   // sum of baseAmt (pre-GST)
+  let recalcGst  = 0;   // sum of gstAmt
+  let recalcTotal = 0;  // sum of lineTotal (finalPrice×qty, GST included)
 
   items.forEach((item, idx) => {
     const attrs   = item.attributes ? Object.values(item.attributes).join(" / ") : "";
@@ -157,8 +158,9 @@ export const generateInvoiceService = async ({ userId, orderId }, res) => {
     const lineTotal = item.pricing?.total ?? 0;
     const baseAmt   = lineTotal - gstAmt;
 
-    recalcBase += baseAmt;
-    recalcGst  += gstAmt;
+    recalcBase  += baseAmt;
+    recalcGst   += gstAmt;
+    recalcTotal += lineTotal;
 
     doc.rect(ML, y, CW, rowH).fill(rowBg);
 
@@ -203,11 +205,11 @@ export const generateInvoiceService = async ({ userId, orderId }, res) => {
   const coupon   = order.pricing?.couponDiscount ?? 0;
   const prodDisc = order.pricing?.productDiscount ?? 0;
   const delivery = order.pricing?.deliveryCharge ?? 0;
-  const grandTotal = recalcBase + recalcGst + delivery - coupon;
+  const grandTotal = recalcTotal - coupon + delivery;
 
   const totRows = [
-    { label: "Subtotal (excl. GST)", val: INR(recalcBase),  color: C_DARK,  bold: false },
-    { label: "GST",                  val: INR(recalcGst),   color: C_DARK,  bold: false },
+    { label: "Subtotal (incl. GST)", val: INR(recalcTotal), color: C_DARK, bold: false },
+    { label: "GST (included)",       val: INR(recalcGst),   color: C_GRAY, bold: false },
     ...(prodDisc > 0 ? [{ label: "Product Discount", val: `- ${INR(prodDisc)}`, color: C_GREEN, bold: false }] : []),
     ...(coupon   > 0 ? [{ label: "Coupon Discount",  val: `- ${INR(coupon)}`,   color: C_GREEN, bold: false }] : []),
     { label: "Delivery", val: delivery > 0 ? INR(delivery) : "FREE", color: delivery > 0 ? C_DARK : C_GREEN, bold: false },

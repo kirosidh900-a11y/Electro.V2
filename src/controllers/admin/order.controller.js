@@ -108,11 +108,20 @@ export const updateOrderStatus = async (req, res, next) => {
 export const cancelOrder = async (req, res, next) => {
   try {
     const { orderId } = req.params;
-    const { reason, comments } = req.body;
+    const { reason, comments, refundMethod, internalNote } = req.body;
 
-    await cancelOrderService(orderId, reason, comments);
+    if (!reason) return res.status(400).json({ success: false, message: "Cancel reason is required" });
 
-    return res.json({ success: true, message: "Order cancelled" });
+    const result = await cancelOrderService(orderId, { reason, comments, refundMethod, internalNote });
+
+    return res.json({
+      success: true,
+      message: "Order cancelled",
+      refundRequired:  result.refundRequired,
+      refundAmount:    result.refundAmount,
+      refundStatus:    result.refundStatus,
+      resolvedMethod:  result.resolvedMethod,
+    });
   } catch (error) {
     next(error);
   }

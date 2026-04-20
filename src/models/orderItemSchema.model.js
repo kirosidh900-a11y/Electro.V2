@@ -90,14 +90,23 @@ const orderItemSchema = new Schema(
     return: {
       reason: String,
       comments: String,
+      itemCondition: {
+        type: String,
+        enum: ["sealed_new", "opened_good", "damaged", "missing_parts", "defective"],
+      },
+      stockAction: {
+        type: String,
+        enum: ["restock", "damaged_inventory", "pending_inspection", "none"],
+        default: "none",
+      },
       requestedAt: Date,
 
       approvedAt: Date,
       rejectedAt: Date,
 
-      pickupDate: Date,          // 🔥 NEW
-      pickupScheduledAt: Date,   // 🔥 NEW
-      pickupCompletedAt: Date,   // 🔥 NEW (optional)
+      pickupDate: Date,
+      pickupScheduledAt: Date,
+      pickupCompletedAt: Date,
 
       completedAt: Date,
       rejectReason: String,

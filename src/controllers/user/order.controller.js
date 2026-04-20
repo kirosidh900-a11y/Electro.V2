@@ -226,9 +226,9 @@ export const returnOrderItem = async (req, res, next) => {
   try {
     const userId = req.user._id;
     const { orderItemId } = req.params;
-    const { returnReason, returnComments } = req.body;
+    const { returnReason, returnComments, itemCondition } = req.body;
 
-    await returnOrderItemService({ userId, orderItemId, returnReason, returnComments });
+    await returnOrderItemService({ userId, orderItemId, returnReason, returnComments, itemCondition });
 
     res.status(200).json({ success: true, message: "Return request submitted successfully" });
   } catch (error) {

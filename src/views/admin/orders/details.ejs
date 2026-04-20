@@ -117,7 +117,7 @@
       item.itemStatus === 'returned'         ? 'bg-purple-500/20 text-purple-400' :
       'bg-gray-500/20 text-gray-400' %>">
                           <%= item.itemStatus %>
-                          <% if(item.itemStatus === 'cancelled' && item.cancel) { %>
+                          <% if(item.cancel?.reason) { %>
   <div class="mt-2 bg-red-50 border border-red-100 rounded-lg p-2 text-xs">
     <p class="text-red-600 font-semibold">
       Reason: <%= item.cancel.reason?.replace(/_/g, ' ') %>
@@ -130,14 +130,54 @@
   </div>
 <% } %>
 <% if(item.itemStatus.includes('return') && item.return) { %>
-  <div class="mt-2 bg-blue-50 border border-blue-100 rounded-lg p-2 text-xs">
-    <p class="text-blue-600 font-semibold">
+  <div class="mt-2 bg-[#0f172a] border border-blue-500/20 rounded-lg p-3 text-xs space-y-1.5">
+    <p class="text-blue-400 font-semibold capitalize">
+      <i class="fas fa-rotate-left text-[10px] mr-1"></i>
       Reason: <%= item.return.reason?.replace(/_/g, ' ') %>
     </p>
-    <% if(item.return.comments) { %>
-      <p class="text-gray-600 mt-1">
-        Comment: <%= item.return.comments %>
+    <% if(item.return.itemCondition) { %>
+      <%
+        const conditionLabels = {
+          sealed_new:    'Sealed / New',
+          opened_good:   'Opened but good',
+          damaged:       'Damaged',
+          missing_parts: 'Missing parts',
+          defective:     'Defective',
+        };
+        const conditionColors = {
+          sealed_new:    'text-emerald-400',
+          opened_good:   'text-cyan-400',
+          damaged:       'text-red-400',
+          missing_parts: 'text-amber-400',
+          defective:     'text-red-400',
+        };
+      %>
+      <p class="<%= conditionColors[item.return.itemCondition] || 'text-gray-400' %>">
+        <i class="fas fa-box text-[10px] mr-1"></i>
+        Condition: <%= conditionLabels[item.return.itemCondition] || item.return.itemCondition %>
       </p>
+    <% } %>
+    <% if(item.return.stockAction) { %>
+      <%
+        const actionLabels = {
+          restock:            '✅ Will be restocked',
+          damaged_inventory:  '⚠️ Damaged inventory',
+          pending_inspection: '🔍 Pending inspection',
+          none:               '—',
+        };
+        const actionColors = {
+          restock:            'text-emerald-400',
+          damaged_inventory:  'text-amber-400',
+          pending_inspection: 'text-blue-400',
+          none:               'text-gray-500',
+        };
+      %>
+      <p class="<%= actionColors[item.return.stockAction] || 'text-gray-400' %> font-semibold">
+        Stock: <%= actionLabels[item.return.stockAction] || item.return.stockAction %>
+      </p>
+    <% } %>
+    <% if(item.return.comments) { %>
+      <p class="text-gray-500 border-t border-white/5 pt-1.5 mt-1.5"><%= item.return.comments %></p>
     <% } %>
   </div>
 <% } %>
@@ -205,11 +245,15 @@
                     </div>
                     <!-- Admin item status update -->
                     <div class="shrink-0 flex items-center gap-2">
-                      <% const isTerminal = ['cancelled','refund_processed','returned'].includes(item.itemStatus); %>
+                      <% const isTerminal = [
+                        'delivered',
+                        'cancelled','refund_processed','returned',
+                        'return_requested','return_approved','return_rejected','pickup_scheduled'
+                      ].includes(item.itemStatus); %>
                       <% if (!isTerminal) { %>
                         <select id="item-status-<%= item._id %>"
                           class="bg-[#0f172a] border border-white/10 text-gray-200 text-xs rounded-lg px-2 py-1.5 focus:outline-none focus:border-cyan-500">
-                          <% ['placed','confirmed','shipped','out_for_delivery','delivered','cancelled','return_requested','return_approved','pickup_scheduled','returned'].forEach(s => { %>
+                          <% ['placed','confirmed','shipped','out_for_delivery','delivered','cancelled'].forEach(s => { %>
                             <option value="<%= s %>" <%= item.itemStatus === s ? 'selected' : '' %>>
                               <%= s.replace(/_/g,' ').replace(/\b\w/g,c=>c.toUpperCase()) %>
                             </option>
@@ -416,8 +460,8 @@
                 </div>
               <% } %>
               <div class="flex justify-between">
-                <span class="text-gray-400">GST</span>
-                <span class="text-gray-200">₹<%= order.pricing.gstTotal.toLocaleString('en-IN') %></span>
+                <span class="text-gray-500 text-xs">GST <span class="text-gray-600">(included)</span></span>
+                <span class="text-gray-500 text-xs">₹<%= order.pricing.gstTotal.toLocaleString('en-IN') %></span>
               </div>
               <div class="flex justify-between">
                 <span class="text-gray-400">Delivery</span>
@@ -489,30 +533,137 @@
     </div>
   </div>
 
-  <!-- CANCEL ORDER MODAL -->
-  <div id="cancelModal" class="fixed inset-0 hidden items-center justify-center bg-black/60 z-50">
-    <div class="bg-[#0b1220] border border-white/10 rounded-xl w-[90%] max-w-md p-6 shadow-2xl">
-      <div class="flex justify-between items-center mb-4">
-        <h2 class="text-white font-semibold text-lg">Cancel Order</h2>
-        <button onclick="closeCancelModal()" class="text-gray-400 hover:text-white"><i class="fas fa-times"></i></button>
+  <!-- CANCEL ORDER MODAL — Smart Refund System -->
+  <div id="cancelModal" class="fixed inset-0 hidden items-center justify-center bg-black/70 backdrop-blur-sm z-50">
+    <div class="bg-[#0b1220] border border-white/10 rounded-2xl w-[95%] max-w-lg shadow-2xl overflow-hidden">
+
+      <!-- Header -->
+      <div class="flex items-center justify-between px-6 py-4 border-b border-white/10 bg-white/5">
+        <div class="flex items-center gap-2">
+          <div class="w-7 h-7 rounded-full bg-red-500/20 flex items-center justify-center">
+            <i class="fas fa-ban text-red-400 text-xs"></i>
+          </div>
+          <h2 class="text-white font-bold text-base">Cancel Order</h2>
+        </div>
+        <button onclick="closeCancelModal()" class="text-gray-500 hover:text-white transition">
+          <i class="fas fa-times"></i>
+        </button>
       </div>
-      <p class="text-gray-400 text-sm mb-4">This action cannot be undone.</p>
-      <div class="space-y-3 mb-5">
-        <select id="cancelReason" class="w-full bg-[#0f172a] border border-white/10 text-gray-200 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:border-red-500">
-          <option value="">Select reason</option>
-          <option value="out_of_stock">Out of Stock</option>
-          <option value="customer_request">Customer Request</option>
-          <option value="payment_failed">Payment Failed</option>
-          <option value="fraud_suspected">Fraud Suspected</option>
-          <option value="other">Other</option>
-        </select>
-        <textarea id="cancelComments" rows="3" placeholder="Additional comments (optional)"
-          class="w-full bg-[#0f172a] border border-white/10 text-gray-200 rounded-lg px-3 py-2.5 text-sm resize-none focus:outline-none focus:border-red-500 placeholder-gray-600"></textarea>
+
+      <!-- Order snapshot -->
+      <div class="px-6 py-3 bg-[#0f172a] border-b border-white/5 flex items-center justify-between text-xs">
+        <span class="text-gray-400">Order <span class="text-white font-mono font-semibold">#<%= order.orderNumber %></span></span>
+        <div class="flex items-center gap-3">
+          <span class="text-gray-400">Method: <span class="text-white font-semibold uppercase"><%= order.payment.method %></span></span>
+          <span id="payStatusPill" class="px-2 py-0.5 rounded-full font-bold uppercase text-[10px]
+            <%= order.payment.status === 'paid'    ? 'bg-emerald-500/20 text-emerald-400' :
+                order.payment.status === 'failed'  ? 'bg-red-500/20 text-red-400' :
+                'bg-yellow-500/20 text-yellow-400' %>">
+            <%= order.payment.status %>
+          </span>
+        </div>
       </div>
-      <div class="flex gap-3 justify-end">
-        <button onclick="closeCancelModal()" class="px-4 py-2 bg-gray-600 hover:bg-gray-700 text-white rounded-lg text-sm">Back</button>
-        <button onclick="submitCancel()" class="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg text-sm font-bold">Confirm Cancel</button>
+
+      <div class="px-6 py-5 space-y-4">
+
+        <!-- Cancel Reason -->
+        <div>
+          <label class="block text-xs text-gray-400 font-semibold mb-1.5 uppercase tracking-wider">Cancel Reason <span class="text-red-400">*</span></label>
+          <select id="cancelReason" onchange="onReasonChange()"
+            class="w-full bg-[#0f172a] border border-white/10 text-gray-200 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:border-red-500 transition">
+            <option value="">— Select reason —</option>
+            <option value="out_of_stock">Out of Stock</option>
+            <option value="customer_request">Customer Request</option>
+            <option value="payment_failed">Payment Failed</option>
+            <option value="fraud_suspected">Fraud Suspected</option>
+            <option value="other">Other</option>
+          </select>
+        </div>
+
+        <!-- Comments -->
+        <div>
+          <label class="block text-xs text-gray-400 font-semibold mb-1.5 uppercase tracking-wider">Comments</label>
+          <textarea id="cancelComments" rows="2" placeholder="Additional details..."
+            class="w-full bg-[#0f172a] border border-white/10 text-gray-200 rounded-lg px-3 py-2.5 text-sm resize-none focus:outline-none focus:border-white/30 placeholder-gray-600"></textarea>
+        </div>
+
+        <!-- Smart Refund Panel — shown/hidden by JS -->
+        <div id="refundPanel" class="hidden rounded-xl border overflow-hidden">
+
+          <!-- Refund Required -->
+          <div id="refundRequired" class="hidden">
+            <div class="bg-emerald-500/10 border-b border-emerald-500/20 px-4 py-2.5 flex items-center gap-2">
+              <i class="fas fa-rotate-left text-emerald-400 text-xs"></i>
+              <span class="text-emerald-400 text-xs font-bold uppercase tracking-wider">Refund Required</span>
+              <span class="ml-auto text-emerald-300 font-black text-sm">₹<%= order.pricing.finalAmount?.toLocaleString('en-IN') %></span>
+            </div>
+            <div class="bg-[#0f172a] px-4 py-3">
+              <label class="block text-xs text-gray-400 font-semibold mb-2 uppercase tracking-wider">Refund Method</label>
+              <div class="grid grid-cols-3 gap-2" id="refundMethodBtns">
+                <button type="button" onclick="selectRefundMethod('wallet')"
+                  data-method="wallet"
+                  class="refund-method-btn flex flex-col items-center gap-1 p-2.5 rounded-lg border border-white/10 hover:border-cyan-500/50 transition text-xs text-gray-400 hover:text-cyan-400">
+                  <i class="fas fa-wallet text-base"></i>
+                  <span>Wallet</span>
+                </button>
+                <button type="button" onclick="selectRefundMethod('original')"
+                  data-method="original"
+                  class="refund-method-btn flex flex-col items-center gap-1 p-2.5 rounded-lg border border-white/10 hover:border-cyan-500/50 transition text-xs text-gray-400 hover:text-cyan-400">
+                  <i class="fas fa-credit-card text-base"></i>
+                  <span>Original</span>
+                </button>
+                <button type="button" onclick="selectRefundMethod('manual')"
+                  data-method="manual"
+                  class="refund-method-btn flex flex-col items-center gap-1 p-2.5 rounded-lg border border-white/10 hover:border-cyan-500/50 transition text-xs text-gray-400 hover:text-cyan-400">
+                  <i class="fas fa-user-tie text-base"></i>
+                  <span>Manual</span>
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <!-- No Refund -->
+          <div id="refundNotRequired" class="hidden bg-gray-500/10 border-gray-500/20 px-4 py-2.5 flex items-center gap-2">
+            <i class="fas fa-circle-xmark text-gray-400 text-xs"></i>
+            <span class="text-gray-400 text-xs font-semibold">No refund required</span>
+            <span id="noRefundReason" class="ml-auto text-gray-500 text-xs"></span>
+          </div>
+
+          <!-- Fraud Hold -->
+          <div id="refundFraudHold" class="hidden bg-amber-500/10 border-amber-500/20 px-4 py-2.5 flex items-center gap-2">
+            <i class="fas fa-shield-halved text-amber-400 text-xs"></i>
+            <span class="text-amber-400 text-xs font-bold">Refund on hold — manual review required</span>
+          </div>
+
+          <!-- Already Refunded -->
+          <div id="refundAlreadyDone" class="hidden bg-emerald-500/10 border-emerald-500/20 px-4 py-2.5 flex items-center gap-2">
+            <i class="fas fa-circle-check text-emerald-400 text-xs"></i>
+            <span class="text-emerald-400 text-xs font-bold">Refund already completed — no action needed</span>
+          </div>
+
+        </div>
+
+        <!-- Internal Note -->
+        <div>
+          <label class="block text-xs text-gray-400 font-semibold mb-1.5 uppercase tracking-wider">Internal Note</label>
+          <input id="internalNote" type="text" placeholder="Admin note (not shown to customer)"
+            class="w-full bg-[#0f172a] border border-white/10 text-gray-200 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:border-white/30 placeholder-gray-600">
+        </div>
+
       </div>
+
+      <!-- Footer -->
+      <div class="px-6 py-4 border-t border-white/10 bg-white/5 flex items-center justify-between gap-3">
+        <p id="cancelModalHint" class="text-xs text-gray-500 flex-1"></p>
+        <div class="flex gap-3">
+          <button onclick="closeCancelModal()" class="px-4 py-2 bg-gray-700 hover:bg-gray-600 text-white rounded-lg text-sm transition">Back</button>
+          <button onclick="submitCancel()" id="cancelSubmitBtn"
+            class="px-5 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg text-sm font-bold transition flex items-center gap-2">
+            <i class="fas fa-ban text-xs"></i> Confirm Cancel
+          </button>
+        </div>
+      </div>
+
     </div>
   </div>
 
@@ -735,38 +886,122 @@
     }
   }
 
-  // =============================
-  // 🔹 ORDER CANCEL
-  // =============================
-  async function submitCancel() {
+  // ── Smart cancel modal logic ──────────────────────────────────────────────
+  const PAY_METHOD = '<%= order.payment.method %>';
+  const PAY_STATUS = '<%= order.payment.status %>';
+
+  function onReasonChange() {
     const reason = document.getElementById('cancelReason').value;
-    const comments = document.getElementById('cancelComments').value;
+    const panel  = document.getElementById('refundPanel');
+    const hint   = document.getElementById('cancelModalHint');
 
-    if (!reason) {
-      showToast("Please select a reason", "error");
-      return;
+    // hide all sub-panels
+    ['refundRequired','refundNotRequired','refundFraudHold','refundAlreadyDone']
+      .forEach(id => document.getElementById(id).classList.add('hidden'));
+
+    if (!reason) { panel.classList.add('hidden'); hint.textContent = ''; return; }
+
+    panel.classList.remove('hidden');
+    panel.className = panel.className.replace(/border-\S+/, '');
+
+    if (PAY_METHOD === 'cod') {
+      show('refundNotRequired');
+      document.getElementById('noRefundReason').textContent = 'COD — nothing was paid online';
+      hint.textContent = 'Order will be cancelled. No refund needed.';
+      panel.classList.add('border-gray-500/20');
+
+    } else if (PAY_STATUS === 'failed' || PAY_STATUS === 'pending') {
+      show('refundNotRequired');
+      document.getElementById('noRefundReason').textContent = `Payment ${PAY_STATUS}`;
+      hint.textContent = 'Order will be cancelled. Payment was never completed.';
+      panel.classList.add('border-gray-500/20');
+
+    } else if (PAY_STATUS === 'refunded') {
+      show('refundAlreadyDone');
+      hint.textContent = 'Refund was already processed. Order will be cancelled only.';
+      panel.classList.add('border-emerald-500/20');
+
+    } else if (PAY_STATUS === 'paid') {
+      if (reason === 'fraud_suspected') {
+        show('refundFraudHold');
+        hint.textContent = 'Refund will be held for manual review.';
+        panel.classList.add('border-amber-500/20');
+      } else {
+        show('refundRequired');
+        selectRefundMethod('wallet'); // default
+        hint.textContent = 'Refund will be credited to customer wallet immediately.';
+        panel.classList.add('border-emerald-500/20');
+      }
     }
+  }
 
-    const confirm = await confirmAction("Cancel this order?");
-    if (!confirm) return;
+  function show(id) { document.getElementById(id).classList.remove('hidden'); }
+
+  let _selectedRefundMethod = 'wallet';
+  function selectRefundMethod(method) {
+    _selectedRefundMethod = method;
+    document.querySelectorAll('.refund-method-btn').forEach(btn => {
+      const active = btn.dataset.method === method;
+      btn.classList.toggle('border-cyan-500',     active);
+      btn.classList.toggle('text-cyan-400',        active);
+      btn.classList.toggle('bg-cyan-500/10',       active);
+      btn.classList.toggle('border-white/10',      !active);
+      btn.classList.toggle('text-gray-400',        !active);
+    });
+    const hint = document.getElementById('cancelModalHint');
+    const msgs = {
+      wallet:   'Refund will be credited to customer wallet immediately.',
+      original: 'Refund will be initiated to original payment source (may take 5–7 days).',
+      manual:   'Refund marked for manual processing by finance team.',
+    };
+    hint.textContent = msgs[method] || '';
+  }
+
+  // ── Cancel submit ─────────────────────────────────────────────────────────
+  async function submitCancel() {
+    const reason      = document.getElementById('cancelReason').value;
+    const comments    = document.getElementById('cancelComments').value.trim();
+    const internalNote = document.getElementById('internalNote').value.trim();
+
+    if (!reason) { showToast('Please select a cancel reason', 'error'); return; }
+
+    const confirmed = await confirmAction('Cancel this order? This cannot be undone.');
+    if (!confirmed) return;
+
+    const btn = document.getElementById('cancelSubmitBtn');
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin text-xs"></i> Cancelling...';
 
     try {
       const res = await fetch(`/admin/orders/${orderId}/cancel`, {
-        method: 'PATCH',
+        method:  'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ reason, comments })
+        body:    JSON.stringify({
+          reason,
+          comments,
+          refundMethod: _selectedRefundMethod,
+          internalNote,
+        }),
       });
 
       const data = await res.json();
-
       if (!res.ok) throw new Error(data.message);
 
-      showToast("Order cancelled successfully", "success");
       closeModal('cancelModal');
-      setTimeout(() => location.reload(), 600);
 
+      if (data.refundRequired && data.refundStatus === 'completed') {
+        showToast(`Order cancelled. ₹${data.refundAmount?.toLocaleString('en-IN')} refunded to wallet.`, 'success');
+      } else if (data.refundRequired && data.refundStatus === 'on_hold') {
+        showToast('Order cancelled. Refund held for manual review.', 'warning');
+      } else {
+        showToast('Order cancelled successfully.', 'success');
+      }
+
+      setTimeout(() => location.reload(), 800);
     } catch (err) {
-      showToast(err.message || "Cancel failed", "error");
+      showToast(err.message || 'Cancel failed', 'error');
+      btn.disabled = false;
+      btn.innerHTML = '<i class="fas fa-ban text-xs"></i> Confirm Cancel';
     }
   }
 
@@ -899,8 +1134,21 @@
   // =============================
   window.openUpdateModal  = () => openModal('updateModal');
   window.closeUpdateModal = () => closeModal('updateModal');
-  window.openCancelModal  = () => openModal('cancelModal');
+  window.openCancelModal  = () => {
+    // reset modal state on open
+    document.getElementById('cancelReason').value = '';
+    document.getElementById('cancelComments').value = '';
+    document.getElementById('internalNote').value = '';
+    document.getElementById('refundPanel').classList.add('hidden');
+    document.getElementById('cancelModalHint').textContent = '';
+    const btn = document.getElementById('cancelSubmitBtn');
+    btn.disabled = false;
+    btn.innerHTML = '<i class="fas fa-ban text-xs"></i> Confirm Cancel';
+    openModal('cancelModal');
+  };
   window.closeCancelModal = () => closeModal('cancelModal');
+  window.onReasonChange   = onReasonChange;
+  window.selectRefundMethod = selectRefundMethod;
 
   window.openRejectModal  = openRejectModal;
   window.closeRejectModal = closeRejectModal;

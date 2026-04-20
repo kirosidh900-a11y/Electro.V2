@@ -249,7 +249,7 @@
                   <% } %>
 
                   <!-- Cancellation reason (visible to user) -->
-                  <% if(item.itemStatus === 'cancelled' && item.cancel) { %>
+                  <% if(item.cancel?.reason) { %>
                     <div class="mt-2 bg-red-50 border border-red-100 rounded-xl px-3 py-2.5 text-xs">
                       <% if(item.cancel.reason) { %>
                         <p class="text-red-700 font-semibold capitalize">
@@ -378,7 +378,7 @@
         <h2 class="font-bold text-gray-900 mb-4 text-sm">Price Details</h2>
         <div class="space-y-2.5 text-sm border-b pb-4">
           <div class="flex justify-between text-gray-600">
-            <span>Subtotal</span>
+            <span>Subtotal <span class="text-xs text-gray-400 font-normal">(incl. GST)</span></span>
             <span>₹<%= order.pricing.subtotal?.toLocaleString('en-IN') %></span>
           </div>
           <% if(order.pricing.productDiscount > 0) { %>
@@ -393,8 +393,8 @@
               <span>-₹<%= order.pricing.couponDiscount?.toLocaleString('en-IN') %></span>
             </div>
           <% } %>
-          <div class="flex justify-between text-gray-600">
-            <span>GST</span>
+          <div class="flex justify-between text-gray-400 text-xs">
+            <span>GST <span class="text-gray-300">(included above)</span></span>
             <span>₹<%= order.pricing.gstTotal?.toLocaleString('en-IN') %></span>
           </div>
           <div class="flex justify-between text-gray-600">
@@ -513,6 +513,7 @@
     </div>
     <form onsubmit="submitReturn(event)">
       <input type="hidden" id="returnItemId">
+
       <div class="mb-4">
         <label class="block text-sm font-medium text-gray-700 mb-1.5">Return Reason <span class="text-red-500">*</span></label>
         <select required name="returnReason" class="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:border-blue-500">
@@ -524,11 +525,25 @@
           <option value="not_needed">No longer needed</option>
         </select>
       </div>
+
+      <div class="mb-4">
+        <label class="block text-sm font-medium text-gray-700 mb-1.5">Item Condition <span class="text-red-500">*</span></label>
+        <select required name="itemCondition" class="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:border-blue-500">
+          <option value="" disabled selected>What is the current condition?</option>
+          <option value="sealed_new">Sealed / New (unopened)</option>
+          <option value="opened_good">Opened but in good condition</option>
+          <option value="damaged">Damaged</option>
+          <option value="missing_parts">Missing parts / accessories</option>
+          <option value="defective">Defective / not working</option>
+        </select>
+      </div>
+
       <div class="mb-5">
         <label class="block text-sm font-medium text-gray-700 mb-1.5">Comments</label>
-        <textarea name="returnComments" rows="3" placeholder="Please explain the issue..."
+        <textarea name="returnComments" rows="2" placeholder="Please explain the issue..."
           class="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm resize-none focus:outline-none focus:border-blue-500"></textarea>
       </div>
+
       <div class="flex gap-3 justify-end border-t pt-4">
         <button type="button" onclick="toggleModal('returnModal')" class="px-4 py-2 text-sm text-gray-600 hover:bg-gray-100 rounded-lg">Close</button>
         <button type="submit" id="return-submit-btn" class="px-5 py-2 bg-[#2874F0] text-white text-sm font-semibold rounded-lg hover:bg-blue-700 transition">
@@ -637,7 +652,7 @@ function openCancelModal(isSingle = false, itemId = null) {
       const res = await fetch(`/orders/${itemId}/return`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
-        body: JSON.stringify({ returnReason: form.returnReason.value, returnComments: form.returnComments.value }),
+        body: JSON.stringify({ returnReason: form.returnReason.value, returnComments: form.returnComments.value, itemCondition: form.itemCondition.value }),
         credentials: 'include'
       });
       const data = await res.json();
