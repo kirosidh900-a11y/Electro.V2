@@ -15,7 +15,9 @@
     "build:css": "npm run build:css:user && npm run build:css:admin",
     "watch:css:user": "npx tailwindcss -i ./src/public/user/css/input.css -o ./src/public/user/css/output.css --watch",
     "watch:css:admin": "npx tailwindcss -i ./src/public/admin/css/input.css -o ./src/public/admin/css/output.css --watch",
-    "prepare": "husky"
+    "prepare": "husky",
+    "seed:orders": "node scripts/seedDummyOrders.js",
+    "seed:orders:clean": "node scripts/seedDummyOrders.js 1000 clean"
   },
   "lint-staged": {
     "*.js": [

@@ -1,5 +1,4 @@
 import Order from "../../models/orderSchema.model.js";
-import orderItem from "../../models/orderItemSchema.model.js";
 
 // ── Date range builder ────────────────────────────────────────────────────────
 export const buildDateRange = (preset, from, to) => {
@@ -47,36 +46,100 @@ export const buildDateRange = (preset, from, to) => {
   }
 };
 
-// ── Core report aggregation ───────────────────────────────────────────────────
-export const getSalesReportService = async ({ preset, from, to, page = 1, limit = 20 }) => {
+// ── Build match stage based on report type + filters ─────────────────────────
+export const buildMatchStage = ({ reportType, preset, from, to, customer, payMethod, payStatus, orderStatus, minAmount, maxAmount }) => {
   const dateFilter = buildDateRange(preset, from, to);
-  const skip = (page - 1) * limit;
+  const match = {};
 
-  const matchStage = {
-    orderStatus: { $nin: ["cancelled", "pending_payment", "pending"] },
-    ...(Object.keys(dateFilter).length ? { createdAt: dateFilter } : {}),
-  };
+  // Date filter
+  if (Object.keys(dateFilter).length) match.createdAt = dateFilter;
 
-  // ── Summary aggregation ───────────────────────────────────────────────────
-  const [summary] = await Order.aggregate([
-    { $match: matchStage },
+  // Report type scoping
+  switch (reportType) {
+    case "sales":
+      match["payment.status"] = "paid";
+      match.orderStatus = { $in: ["delivered", "confirmed", "shipped", "out_for_delivery", "placed"] };
+      break;
+    case "refunds":
+      match["payment.status"] = "refunded";
+      break;
+    case "cancelled":
+      match.orderStatus = "cancelled";
+      break;
+    case "orders":
+    default:
+      match.orderStatus = { $nin: ["pending", "pending_payment"] };
+      break;
+  }
+
+  // Additional filters (override only if explicitly provided)
+  if (customer)    match["userId.name"] = { $regex: customer, $options: "i" };
+  if (payMethod)   match["payment.method"]  = payMethod;
+  if (payStatus)   match["payment.status"]  = payStatus;
+  if (orderStatus) match.orderStatus        = orderStatus;
+  if (minAmount || maxAmount) {
+    match["pricing.finalAmount"] = {};
+    if (minAmount) match["pricing.finalAmount"].$gte = parseFloat(minAmount);
+    if (maxAmount) match["pricing.finalAmount"].$lte = parseFloat(maxAmount);
+  }
+
+  return match;
+};
+
+// ── Accounting summary (always computed from full dataset, not paginated) ─────
+// dateFilter = the raw $gte/$lte object from buildDateRange (NOT wrapped in createdAt)
+export const buildAccountingSummary = async (dateFilter) => {
+  const base = dateFilter && Object.keys(dateFilter).length ? { createdAt: dateFilter } : {};
+
+  const [agg] = await Order.aggregate([
+    { $match: { orderStatus: { $nin: ["pending", "pending_payment"] }, ...base } },
     {
       $group: {
-        _id:              null,
-        totalOrders:      { $sum: 1 },
-        totalRevenue:     { $sum: "$pricing.finalAmount" },
-        totalDiscount:    { $sum: { $add: ["$pricing.productDiscount", "$pricing.couponDiscount"] } },
-        totalCoupon:      { $sum: "$pricing.couponDiscount" },
-        totalProductDisc: { $sum: "$pricing.productDiscount" },
-        totalGST:         { $sum: "$pricing.gstTotal" },
-        totalDelivery:    { $sum: "$pricing.deliveryCharge" },
-        avgOrderValue:    { $avg: "$pricing.finalAmount" },
+        _id: null,
+        totalOrders:       { $sum: 1 },
+        // Gross = paid orders only
+        grossRevenue:      { $sum: { $cond: [{ $eq: ["$payment.status", "paid"] }, "$pricing.finalAmount", 0] } },
+        grossSubtotal:     { $sum: { $cond: [{ $eq: ["$payment.status", "paid"] }, "$pricing.subtotal", 0] } },
+        // Refunds
+        refundAmount:      { $sum: { $cond: [{ $eq: ["$payment.status", "refunded"] }, "$pricing.finalAmount", 0] } },
+        refundOrders:      { $sum: { $cond: [{ $eq: ["$payment.status", "refunded"] }, 1, 0] } },
+        // Cancelled
+        cancelledValue:    { $sum: { $cond: [{ $eq: ["$orderStatus", "cancelled"] }, "$pricing.finalAmount", 0] } },
+        cancelledOrders:   { $sum: { $cond: [{ $eq: ["$orderStatus", "cancelled"] }, 1, 0] } },
+        // Successful (paid + delivered)
+        successOrders:     { $sum: { $cond: [{ $and: [{ $eq: ["$payment.status", "paid"] }, { $eq: ["$orderStatus", "delivered"] }] }, 1, 0] } },
+        // Discounts (paid only)
+        totalProductDisc:  { $sum: { $cond: [{ $eq: ["$payment.status", "paid"] }, "$pricing.productDiscount", 0] } },
+        totalCouponDisc:   { $sum: { $cond: [{ $eq: ["$payment.status", "paid"] }, "$pricing.couponDiscount", 0] } },
+        totalGST:          { $sum: { $cond: [{ $eq: ["$payment.status", "paid"] }, "$pricing.gstTotal", 0] } },
+        totalDelivery:     { $sum: { $cond: [{ $eq: ["$payment.status", "paid"] }, "$pricing.deliveryCharge", 0] } },
+        avgOrderValue:     { $avg: { $cond: [{ $eq: ["$payment.status", "paid"] }, "$pricing.finalAmount", null] } },
       },
     },
   ]);
 
-  // ── Daily breakdown for chart ─────────────────────────────────────────────
-  const dailyBreakdown = await Order.aggregate([
+  const s = agg || {};
+  return {
+    totalOrders:      s.totalOrders      || 0,
+    grossRevenue:     s.grossRevenue     || 0,
+    refundAmount:     s.refundAmount     || 0,
+    netRevenue:       (s.grossRevenue || 0) - (s.refundAmount || 0),
+    refundOrders:     s.refundOrders     || 0,
+    cancelledValue:   s.cancelledValue   || 0,
+    cancelledOrders:  s.cancelledOrders  || 0,
+    successOrders:    s.successOrders    || 0,
+    totalProductDisc: s.totalProductDisc || 0,
+    totalCouponDisc:  s.totalCouponDisc  || 0,
+    totalDiscount:    (s.totalProductDisc || 0) + (s.totalCouponDisc || 0),
+    totalGST:         s.totalGST         || 0,
+    totalDelivery:    s.totalDelivery    || 0,
+    avgOrderValue:    Math.round(s.avgOrderValue || 0),
+  };
+};
+
+// ── Daily breakdown for chart ─────────────────────────────────────────────────
+export const buildDailyBreakdown = async (matchStage) => {
+  return Order.aggregate([
     { $match: matchStage },
     {
       $group: {
@@ -88,44 +151,75 @@ export const getSalesReportService = async ({ preset, from, to, page = 1, limit 
     },
     { $sort: { _id: 1 } },
   ]);
+};
 
-  // ── Paginated order list ──────────────────────────────────────────────────
-  const totalOrders = await Order.countDocuments(matchStage);
+// ── Main paginated report service ─────────────────────────────────────────────
+export const getReportService = async ({ reportType = "orders", preset = "monthly", from, to, page = 1, limit = 20, customer, payMethod, payStatus, orderStatus, minAmount, maxAmount }) => {
+  const dateFilter = buildDateRange(preset, from, to);
+  const skip       = (page - 1) * limit;
 
-  const orders = await Order.find(matchStage)
-    .sort({ createdAt: -1 })
-    .skip(skip)
-    .limit(limit)
-    .populate("userId", "name email")
-    .lean();
+  const matchStage = buildMatchStage({ reportType, preset, from, to, customer, payMethod, payStatus, orderStatus, minAmount, maxAmount });
+
+  // For customer filter we need to populate first — use aggregation with lookup
+  let orders, totalCount;
+
+  if (customer) {
+    // Lookup userId to filter by name
+    const pipeline = [
+      { $match: { ...matchStage, "userId": { $exists: true } } },
+      { $lookup: { from: "users", localField: "userId", foreignField: "_id", as: "userInfo" } },
+      { $unwind: { path: "$userInfo", preserveNullAndEmpty: true } },
+      { $match: { "userInfo.name": { $regex: customer, $options: "i" } } },
+    ];
+    const countPipeline = [...pipeline, { $count: "total" }];
+    const [countResult] = await Order.aggregate(countPipeline);
+    totalCount = countResult?.total || 0;
+
+    const dataPipeline = [
+      ...pipeline,
+      { $sort: { createdAt: -1 } },
+      { $skip: skip },
+      { $limit: limit },
+      { $addFields: { userId: { name: "$userInfo.name", email: "$userInfo.email" } } },
+    ];
+    orders = await Order.aggregate(dataPipeline);
+  } else {
+    // Remove customer filter key that doesn't exist on schema directly
+    delete matchStage["userId.name"];
+    totalCount = await Order.countDocuments(matchStage);
+    orders = await Order.find(matchStage)
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(limit)
+      .populate("userId", "name email")
+      .lean();
+  }
+
+  const summary        = await buildAccountingSummary(dateFilter);
+  const dailyBreakdown = await buildDailyBreakdown(matchStage);
 
   return {
-    summary: summary || {
-      totalOrders: 0, totalRevenue: 0, totalDiscount: 0,
-      totalCoupon: 0, totalProductDisc: 0, totalGST: 0,
-      totalDelivery: 0, avgOrderValue: 0,
-    },
+    summary,
     dailyBreakdown,
     orders,
-    totalOrders,
-    totalPages: Math.ceil(totalOrders / limit),
+    totalCount,
+    totalPages:  Math.ceil(totalCount / limit),
     currentPage: page,
   };
 };
 
-// ── Full data for exports (no pagination) ─────────────────────────────────────
-export const getSalesReportAllService = async ({ preset, from, to }) => {
-  const dateFilter = buildDateRange(preset, from, to);
-
-  const matchStage = {
-    orderStatus: { $nin: ["cancelled", "pending_payment", "pending"] },
-    ...(Object.keys(dateFilter).length ? { createdAt: dateFilter } : {}),
-  };
+// ── Full export (no pagination) ───────────────────────────────────────────────
+export const getReportAllService = async ({ reportType = "orders", preset = "monthly", from, to, customer, payMethod, payStatus, orderStatus, minAmount, maxAmount }) => {
+  const matchStage = buildMatchStage({ reportType, preset, from, to, customer, payMethod, payStatus, orderStatus, minAmount, maxAmount });
+  delete matchStage["userId.name"];
 
   const orders = await Order.find(matchStage)
     .sort({ createdAt: -1 })
     .populate("userId", "name email")
     .lean();
 
-  return orders;
+  const dateFilter = buildDateRange(preset, from, to);
+  const summary    = await buildAccountingSummary(dateFilter);
+
+  return { orders, summary };
 };
