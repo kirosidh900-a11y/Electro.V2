@@ -161,6 +161,16 @@
                   <%= product.updatedAt.toDateString() %>
                 </p>
 
+                <!-- Copyable Product ID -->
+                <div class="flex items-center gap-2 pt-1 border-t border-white/5 mt-2">
+                  <span class="text-gray-400">Product ID:</span>
+                  <span class="font-mono text-xs text-gray-500 truncate flex-1"><%= product._id %></span>
+                  <button onclick="copyId('<%= product._id %>')"
+                    class="text-gray-600 hover:text-cyan-400 transition shrink-0" title="Copy Product ID">
+                    <i class="fas fa-copy text-xs"></i>
+                  </button>
+                </div>
+
               </div>
 
             </div>
@@ -268,7 +278,22 @@
 
                           <!-- SKU -->
                           <td class="py-3 px-4 text-white font-medium">
-                            <%= v.sku %>
+                            <div class="flex items-center gap-1.5 group">
+                              <span><%= v.sku %></span>
+                              <button onclick="copyId('<%= v.sku %>')"
+                                class="opacity-0 group-hover:opacity-100 text-gray-600 hover:text-cyan-400 transition"
+                                title="Copy SKU">
+                                <i class="fas fa-copy text-[10px]"></i>
+                              </button>
+                            </div>
+                            <div class="flex items-center gap-1.5 mt-0.5 group">
+                              <span class="font-mono text-[10px] text-gray-600 truncate max-w-[100px]"><%= v._id %></span>
+                              <button onclick="copyId('<%= v._id %>')"
+                                class="opacity-0 group-hover:opacity-100 text-gray-600 hover:text-cyan-400 transition"
+                                title="Copy Variant ID">
+                                <i class="fas fa-copy text-[10px]"></i>
+                              </button>
+                            </div>
                           </td>
 
                           <!-- ATTRIBUTES -->
@@ -542,6 +567,16 @@
 
       import { showToast } from "../../partials/errorMsg.utils.js";
       import { confirmAction } from "../../partials/confirm.util.js";
+
+      // ── Copy any ID to clipboard ──────────────────────────────────────────
+      window.copyId = async (id) => {
+        try {
+          await navigator.clipboard.writeText(id);
+          showToast('Copied: ' + id.slice(0, 16) + (id.length > 16 ? '…' : ''), 'success');
+        } catch {
+          showToast('Copy failed', 'error');
+        }
+      };
 
       let editingVariantAttributes = {};
       let currentVariantId = null;

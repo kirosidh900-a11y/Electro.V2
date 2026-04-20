@@ -5,7 +5,8 @@ import {
   cancelOrderService,
   handleReturnRequestService,
   schedulePickupService,
-  completeReturnService
+  completeReturnService,
+  updateItemStatusService,
 } from "../../services/admin/order.service.js";
 import renderView from "../../utils/admin/renderView.util.js";
 
@@ -173,6 +174,20 @@ export const completeReturnController = async (req, res, next) => {
     await completeReturnService(itemId);
 
     res.json({ success: true });
+  } catch (err) {
+    next(err);
+  }
+};
+
+export const updateItemStatus = async (req, res, next) => {
+  try {
+    const { itemId } = req.params;
+    const { status } = req.body;
+
+    if (!status) return res.status(400).json({ success: false, message: "Status is required" });
+
+    await updateItemStatusService(itemId, status);
+    res.json({ success: true, message: "Item status updated" });
   } catch (err) {
     next(err);
   }

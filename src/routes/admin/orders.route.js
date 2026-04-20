@@ -8,7 +8,8 @@ import {
   cancelOrder,
   handleReturnController,
   schedulePickupController,
-  completeReturnController
+  completeReturnController,
+  updateItemStatus,
 } from "../../controllers/admin/order.controller.js";
 
 router.get("/", isAuth, getAdminOrdersPage);
@@ -18,5 +19,6 @@ router.patch("/:orderId/cancel", isAuth, cancelOrder);
 router.patch("/returns/:itemId", handleReturnController);
 router.patch("/returns/pickup/:itemId", schedulePickupController);
 router.patch("/returns/complete/:itemId", completeReturnController);
+router.patch("/items/:itemId/status", isAuth, updateItemStatus);
 
 export default router;

@@ -250,11 +250,18 @@
                  
                 <% } %>
                 <% if(['placed','confirmed'].includes(order.orderStatus) && item.itemStatus !=='cancelled' && items.length > 1) { %>
+                  <% if (!order.pricing?.couponDiscount || order.pricing.couponDiscount === 0) { %>
                   <button onclick="openCancelModal(true, '<%= item._id %>')"
                     class="text-xs text-red-600 border border-red-200 px-2.5 py-1 rounded-lg hover:bg-red-50 font-medium transition">
                     Cancel Item
                   </button>
-                  <% } %>     </div>
+                  <% } %>
+                <% } %>
+                <% if(item.refund?.status === 'processed') { %>
+                  <span class="text-xs text-green-600 bg-green-50 border border-green-100 px-2.5 py-1 rounded-lg font-medium">
+                    ₹<%= item.refund.amount?.toLocaleString('en-IN') %> Refunded
+                  </span>
+                <% } %>
             </div>
           <% }) %>
         </div>

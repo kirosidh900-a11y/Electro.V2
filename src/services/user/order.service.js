@@ -34,7 +34,7 @@ export const placeOrderService = async ({
   paymentMethod,
 }) => {
   try {
-    if (!["cod", "razorpay"].includes(paymentMethod)) {
+    if (!["cod", "razorpay", "wallet"].includes(paymentMethod)) {
       throw new AppError("Invalid payment method", HTTP_STATUS.BAD_REQUEST);
     }
 
@@ -112,8 +112,8 @@ export const placeOrderService = async ({
 
       let updatedProduct;
 
-      // ================= COD =================
-      if (paymentMethod === "cod") {
+      // ================= COD / WALLET =================
+      if (paymentMethod === "cod" || paymentMethod === "wallet") {
         updatedProduct = await Products.findOneAndUpdate(
           {
             _id: product._id,
@@ -189,7 +189,7 @@ export const placeOrderService = async ({
           discountAmount: (variant.regular_price || variant.price) - basePrice,
         },
 
-        itemStatus: paymentMethod === "cod" ? "placed" : "pending_payment",
+        itemStatus: paymentMethod === "cod" || paymentMethod === "wallet" ? "placed" : "pending_payment",
       });
     }
 
@@ -233,7 +233,7 @@ export const placeOrderService = async ({
         status: "pending",
       },
 
-      orderStatus: paymentMethod === "cod" ? "placed" : "pending_payment",
+      orderStatus: paymentMethod === "cod" || paymentMethod === "wallet" ? "placed" : "pending_payment",
 
       delivery: {
         expectedDate,
@@ -253,6 +253,21 @@ export const placeOrderService = async ({
     cart.couponDiscountAmount = 0;
     cart.appliedCoupon = { code: null, couponId: null, discountAmount: 0 };
     await cart.save();
+
+    // 💳 WALLET PAYMENT — debit wallet and mark order paid
+    if (paymentMethod === "wallet") {
+      const { debitWallet } = await import("../user/wallet.service.js");
+      await debitWallet({
+        userId,
+        amount:      finalAmount,
+        description: `Payment for Order #${orderNumber}`,
+        source:      "order_payment",
+        orderId:     order._id,
+      });
+      order.payment.status       = "paid";
+      order.payment.walletDeducted = finalAmount;
+      await order.save();
+    }
 
     // Mark coupon as used
     if (appliedCouponId) {
@@ -479,6 +494,18 @@ export const cancelOrderService = async ({
     // ✅ STEP 3: Rollback stock (LAST)
     await rollbackStock(item);
 
+    // 💰 REFUND if paid via razorpay or wallet
+    if (["razorpay", "wallet"].includes(order.payment.method) && order.payment.status === "paid") {
+      const { processItemRefund } = await import("../product/refund.service.js");
+      await processItemRefund({
+        orderItemId: item._id,
+        orderId:     order._id,
+        userId:      order.userId,
+        reason:      "cancellation",
+        isCOD:       false,
+      });
+    }
+
     return {
       message:
         remaining === 0
@@ -510,6 +537,18 @@ export const cancelOrderService = async ({
 
     // ✅ stock last
     await rollbackStock(item);
+
+    // 💰 REFUND per item
+    if (["razorpay", "wallet"].includes(order.payment.method) && order.payment.status === "paid") {
+      const { processItemRefund } = await import("../product/refund.service.js");
+      await processItemRefund({
+        orderItemId: item._id,
+        orderId:     order._id,
+        userId:      order.userId,
+        reason:      "cancellation",
+        isCOD:       false,
+      });
+    }
 
     cancelledCount++;
   }

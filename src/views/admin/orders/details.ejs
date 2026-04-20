@@ -20,7 +20,13 @@
           <a href="/admin/orders" class="text-xs text-gray-500 hover:text-cyan-400 transition inline-flex items-center gap-1 mb-1">
             <i class="fas fa-arrow-left text-[10px]"></i> Back to Orders
           </a>
-          <h1 class="text-2xl font-bold text-white tracking-tight">Order #<%= order.orderNumber %></h1>
+          <h1 class="text-2xl font-bold text-white tracking-tight flex items-center gap-2">
+            Order #<%= order.orderNumber %>
+            <button onclick="copyId('<%= order.orderNumber %>')"
+              class="text-gray-600 hover:text-cyan-400 transition" title="Copy order number">
+              <i class="fas fa-copy text-sm"></i>
+            </button>
+          </h1>
           <p class="text-sm text-gray-400 mt-1">Placed on <%= new Date(order.createdAt).toLocaleString('en-IN') %></p>
         </div>
 
@@ -197,6 +203,21 @@
                     <div class="text-white font-semibold text-right shrink-0">
                       ₹<%= item.pricing?.total?.toLocaleString('en-IN') %>
                     </div>
+                    <!-- Admin item status update -->
+                    <div class="shrink-0 flex items-center gap-2">
+                      <select id="item-status-<%= item._id %>"
+                        class="bg-[#0f172a] border border-white/10 text-gray-200 text-xs rounded-lg px-2 py-1.5 focus:outline-none focus:border-cyan-500">
+                        <% ['placed','confirmed','shipped','out_for_delivery','delivered','cancelled'].forEach(s => { %>
+                          <option value="<%= s %>" <%= item.itemStatus === s ? 'selected' : '' %>>
+                            <%= s.replace(/_/g,' ').replace(/\b\w/g,c=>c.toUpperCase()) %>
+                          </option>
+                        <% }) %>
+                      </select>
+                      <button onclick="updateItemStatus('<%= item._id %>')"
+                        class="px-2.5 py-1.5 bg-cyan-600 hover:bg-cyan-700 text-white text-xs font-semibold rounded-lg transition">
+                        Update
+                      </button>
+                    </div>
                   </div>
                 <% }) %>
               <% } %>
@@ -264,9 +285,13 @@
               <% } %>
             </div>
             <div class="flex items-center gap-3 mb-4">
-              <div class="w-10 h-10 rounded-full bg-cyan-600/20 flex items-center justify-center text-cyan-400 font-bold text-sm shrink-0">
-                <%= user?.name?.charAt(0)?.toUpperCase() || 'G' %>
-              </div>
+              <% if(user?.photo) { %>
+                <img src="<%= user.photo %>" class="w-10 h-10 rounded-full object-cover border border-white/10 shrink-0">
+              <% } else { %>
+                <div class="w-10 h-10 rounded-full bg-cyan-600/20 flex items-center justify-center text-cyan-400 font-bold text-sm shrink-0">
+                  <%= user?.name?.charAt(0)?.toUpperCase() || 'G' %>
+                </div>
+              <% } %>
               <div>
                 <p class="text-white font-semibold"><%= user?.name || "Guest User" %></p>
                 <p class="text-xs text-gray-500">Customer</p>
@@ -285,6 +310,15 @@
                 <i class="fas fa-calendar w-4 text-gray-600 text-xs"></i>
                 <span>Joined <%= user?.createdAt ? new Date(user.createdAt).toLocaleDateString('en-IN') : '—' %></span>
               </div>
+              <% if(user?._id) { %>
+              <div class="flex items-center gap-2 text-gray-400 mt-1">
+                <i class="fas fa-id-badge w-4 text-gray-600 text-xs"></i>
+                <span class="font-mono text-xs text-gray-600 truncate"><%= user._id %></span>
+                <button onclick="copyId('<%= user._id %>')" class="ml-auto text-gray-600 hover:text-cyan-400 transition" title="Copy User ID">
+                  <i class="fas fa-copy text-xs"></i>
+                </button>
+              </div>
+              <% } %>
               <div class="flex items-center gap-2 mt-1">
                 <span class="text-xs px-2 py-0.5 rounded-full <%= user?.isBlock ? 'bg-red-500/20 text-red-400' : 'bg-emerald-500/20 text-emerald-400' %>">
                   <%= user?.isBlock ? 'Blocked' : 'Active' %>
@@ -324,9 +358,14 @@
                 </span>
               </div>
               <% if(order.payment?.transactionId) { %>
-                <div class="flex justify-between items-center">
-                  <span class="text-gray-400">Transaction ID</span>
-                  <span class="text-gray-300 text-xs font-mono"><%= order.payment.transactionId %></span>
+                <div class="pt-2 border-t border-white/5">
+                  <p class="text-gray-500 text-xs mb-1">Transaction ID</p>
+                  <div class="flex items-center gap-2">
+                    <span class="font-mono text-xs text-gray-400 break-all flex-1"><%= order.payment.transactionId %></span>
+                    <button onclick="copyId('<%= order.payment.transactionId %>')" class="text-gray-600 hover:text-cyan-400 transition shrink-0" title="Copy">
+                      <i class="fas fa-copy text-xs"></i>
+                    </button>
+                  </div>
                 </div>
               <% } %>
             </div>
@@ -335,6 +374,16 @@
           <!-- Order Summary -->
           <div class="bg-[#0b1220] border border-white/5 rounded-3xl shadow-xl p-6">
             <h2 class="text-xs text-gray-400 uppercase tracking-widest font-bold mb-4">Order Summary</h2>
+            <!-- Copyable Order ID -->
+            <div class="flex items-center justify-between mb-4 pb-3 border-b border-white/5">
+              <span class="text-xs text-gray-500">Order ID</span>
+              <div class="flex items-center gap-2">
+                <span class="font-mono text-xs text-gray-500 truncate max-w-[130px]"><%= order._id %></span>
+                <button onclick="copyId('<%= order._id %>')" class="text-gray-600 hover:text-cyan-400 transition shrink-0" title="Copy">
+                  <i class="fas fa-copy text-xs"></i>
+                </button>
+              </div>
+            </div>
             <div class="space-y-2.5 text-sm">
               <div class="flex justify-between">
                 <span class="text-gray-400">Subtotal</span>
@@ -467,6 +516,36 @@
 <script type="module">
   import { showToast } from "/partials/errorMsg.utils.js";
   import { confirmAction } from "/partials/confirm.util.js";
+
+  // ── Copy any ID to clipboard ──────────────────────────────────────────────
+  window.copyId = async (id) => {
+    try {
+      await navigator.clipboard.writeText(id);
+      showToast('Copied!', 'success');
+    } catch {
+      showToast('Copy failed', 'error');
+    }
+  };
+
+  // ── Item-level status update ──────────────────────────────────────────────
+  window.updateItemStatus = async (itemId) => {
+    const select = document.getElementById(`item-status-${itemId}`);
+    const status = select?.value;
+    if (!status) return;
+
+    try {
+      const res  = await fetch(`/admin/orders/items/${itemId}/status`, {
+        method:  'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body:    JSON.stringify({ status }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.message);
+      showToast(`Item status updated to "${status.replace(/_/g,' ')}"`, 'success');
+    } catch (err) {
+      showToast(err.message || 'Update failed', 'error');
+    }
+  };
 
   const orderId = '<%= order._id %>';
   let currentItemId = null;

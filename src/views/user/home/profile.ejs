@@ -249,6 +249,7 @@
             <script type="module">
                 import { showToast } from "/partials/errorMsg.utils.js";
                 import { confirmAction } from "/partials/confirm.util.js";
+                window._profileToast = showToast;
 
                 // NAME EDIT
                 const editNameBtn = document.getElementById("editNameBtn");
@@ -674,49 +675,17 @@
                     }
                 };
 
-                //Profile photo
-
+                //Profile photo — with Cropper.js
                 const photoUpload = document.getElementById("photoUpload");
 
-                photoUpload.onchange = async (e) => {
-                    try {
-                        const file = e.target.files[0];
+                photoUpload.onchange = (e) => {
+                    const file = e.target.files[0];
+                    if (!file) return;
 
-                        console.log("FILE:", file);
-                        console.log("TYPE:", typeof file);
-
-                        if (!file) return;
-
-                        const formData = new FormData();
-                        formData.append("photo", file);
-
-                        console.log("FormData:", formData);
-
-                        const res = await fetch("/photo", {
-                            method: "PATCH",
-                            body: formData
-                        });
-
-                        const data = await res.json();
-
-                        if (!res.ok) throw new Error(data.message);
-
-                        // 🔥 Update UI instantly
-                        const avatarImg = document.querySelector(".profile-avatar");
-                        const sidebarImg = document.getElementById('sidebarImg');
-                        const headImg = document.getElementById('headImg');
-                        avatarImg.src = data.photo;
-                        sidebarImg.src = data.photo;
-                        headImg.src = data.photo;
-                        document.getElementById("removePhotoBtn").classList.remove("hidden");
-
-                        showToast("Profile photo updated", "success");
-                        // 🔥 IMPORTANT FIX
-                        photoUpload.value = "";
-
-                    } catch (error) {
-                        showToast(error.message, "error");
-                    }
+                    const reader = new FileReader();
+                    reader.onload = (ev) => openCropModal(ev.target.result);
+                    reader.readAsDataURL(file);
+                    photoUpload.value = "";
                 };
 
                 //Remove profile Photo
@@ -753,7 +722,109 @@
 
             </script>
 
+            <!-- Cropper.js -->
+            <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.6.2/cropper.min.css">
+            <script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.6.2/cropper.min.js"></script>
+
+            <!-- Crop Modal -->
+            <div id="cropModal" class="hidden fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+              <div class="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden">
+                <div class="flex items-center justify-between px-5 py-4 border-b">
+                  <h3 class="font-bold text-gray-800">Crop Profile Photo</h3>
+                  <button onclick="closeCropModal()" class="text-gray-400 hover:text-gray-600">
+                    <i class="fa-solid fa-xmark text-lg"></i>
+                  </button>
+                </div>
+                <div class="p-4 bg-gray-50">
+                  <div class="max-h-72 overflow-hidden rounded-xl">
+                    <img id="cropImage" src="" class="max-w-full block">
+                  </div>
+                </div>
+                <div class="px-5 py-4 flex justify-end gap-3 border-t">
+                  <button onclick="closeCropModal()"
+                    class="px-4 py-2 text-sm text-gray-600 hover:bg-gray-100 rounded-lg transition">Cancel</button>
+                  <button id="cropSaveBtn" onclick="saveCrop()"
+                    class="px-5 py-2 bg-red-500 hover:bg-red-600 text-white text-sm font-semibold rounded-lg transition">
+                    Save Photo
+                  </button>
+                </div>
+              </div>
+            </div>
+
             <script>
+              let cropperInstance = null;
+
+              function openCropModal(imageSrc) {
+                const modal = document.getElementById('cropModal');
+                const img   = document.getElementById('cropImage');
+                img.src = imageSrc;
+                modal.classList.remove('hidden');
+
+                // Destroy previous instance
+                if (cropperInstance) { cropperInstance.destroy(); cropperInstance = null; }
+
+                cropperInstance = new Cropper(img, {
+                  aspectRatio: 1,
+                  viewMode: 1,
+                  dragMode: 'move',
+                  autoCropArea: 0.8,
+                  cropBoxResizable: true,
+                  background: false,
+                  guides: false,
+                });
+              }
+
+              function closeCropModal() {
+                document.getElementById('cropModal').classList.add('hidden');
+                if (cropperInstance) { cropperInstance.destroy(); cropperInstance = null; }
+              }
+
+              async function saveCrop() {
+                if (!cropperInstance) return;
+
+                const btn = document.getElementById('cropSaveBtn');
+                btn.disabled = true;
+                btn.textContent = 'Saving...';
+
+                try {
+                  const canvas = cropperInstance.getCroppedCanvas({ width: 400, height: 400 });
+
+                  const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/jpeg', 0.9));
+
+                  const formData = new FormData();
+                  formData.append('photo', blob, 'profile.jpg');
+
+                  const res  = await fetch('/photo', { method: 'PATCH', body: formData });
+                  const data = await res.json();
+
+                  if (!res.ok) throw new Error(data.message);
+
+                  // Update all avatar instances
+                  const newSrc = data.photo;
+                  document.querySelector('.profile-avatar').src = newSrc;
+                  const sidebarImg = document.getElementById('sidebarImg');
+                  const headImg    = document.getElementById('headImg');
+                  if (sidebarImg) sidebarImg.src = newSrc;
+                  if (headImg)    headImg.src    = newSrc;
+                  document.getElementById('removePhotoBtn')?.classList.remove('hidden');
+
+                  closeCropModal();
+
+                  // showToast from module scope
+                  window._profileToast?.('Profile photo updated', 'success');
+
+                } catch (err) {
+                  window._profileToast?.(err.message || 'Upload failed', 'error');
+                } finally {
+                  btn.disabled = false;
+                  btn.textContent = 'Save Photo';
+                }
+              }
+
+              window.openCropModal  = openCropModal;
+              window.closeCropModal = closeCropModal;
+              window.saveCrop       = saveCrop;
+            </script>
                 const otpModal = document.getElementById("otpModal");
 
                 const resendBtn = document.getElementById("resendOtpBtn");

@@ -40,7 +40,7 @@ const orderSchema = new Schema(
     payment: {
       method: {
         type: String,
-        enum: ["cod", "razorpay"],
+        enum: ["cod", "razorpay", "wallet"],
         required: true,
       },
 
@@ -50,11 +50,12 @@ const orderSchema = new Schema(
         default: "pending",
       },
 
-      transactionId: String, // razorpay_payment_id
-      paymentGatewayOrderId: String, // razorpay_order_id
-      signature: String, // 🔥 add this (important)
-      refundedAt: Date, // 🔥 for refund tracking
-      expiresAt: Date // 🔥 ADD THIS
+      transactionId: String,
+      paymentGatewayOrderId: String,
+      signature: String,
+      refundedAt: Date,
+      expiresAt: Date,
+      walletDeducted: { type: Number, default: 0 }, // amount paid via wallet
     },
     orderStatus: {
       type: String,

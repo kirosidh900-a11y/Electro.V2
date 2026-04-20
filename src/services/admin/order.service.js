@@ -141,7 +141,7 @@ export const getAdminOrdersService = async ({
 
 export const getAdminOrderDetailsService = async (orderId) => {
   const order = await Order.findById(orderId)
-    .populate("userId", "name email phone createdAt isBlock")
+    .populate("userId", "name email phone photo createdAt isBlock")
     .lean();
 
   if (!order) throw new Error("Order not found");
@@ -292,15 +292,45 @@ export const completeReturnService = async (orderItemId) => {
     throw new AppError("Pickup not scheduled");
   }
 
-  // NOW mark returned
   item.itemStatus = "returned";
-  item.return.completedAt = new Date();
+  item.return.completedAt     = new Date();
   item.return.pickupCompletedAt = new Date();
 
-  // NOW handle stock
   await handleReturnStock(item);
-
   await item.save();
 
+  // 💰 REFUND — for razorpay, wallet, and COD (after return)
+  const order = await Order.findById(item.orderId);
+  if (order && ["razorpay", "wallet", "cod"].includes(order.payment.method)) {
+    const { processItemRefund } = await import("../product/refund.service.js");
+    await processItemRefund({
+      orderItemId: item._id,
+      orderId:     item.orderId,
+      userId:      item.userId,
+      reason:      "return",
+      isCOD:       order.payment.method === "cod",
+    });
+  }
+
+  return item;
+};
+
+// ── Admin: update a single item's status ─────────────────────────────────────
+const VALID_ITEM_STATUSES = [
+  "placed", "confirmed", "shipped", "out_for_delivery", "delivered",
+  "cancelled", "return_requested", "return_approved", "pickup_scheduled",
+  "return_rejected", "returned", "refund_pending", "refund_processed",
+];
+
+export const updateItemStatusService = async (itemId, newStatus) => {
+  if (!VALID_ITEM_STATUSES.includes(newStatus)) {
+    throw new AppError(`Invalid item status: ${newStatus}`, 400);
+  }
+
+  const item = await orderItem.findById(itemId);
+  if (!item) throw new AppError("Order item not found", 404);
+
+  item.itemStatus = newStatus;
+  await item.save();
   return item;
 };
