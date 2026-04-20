@@ -54,12 +54,17 @@ export const handlePaymentSuccessService = async ({
   const items = await orderItem.find({ orderId });
 
   for (const item of items) {
+    // Use $elemMatch to correctly match the variant with both conditions
     const updatedProduct = await Products.findOneAndUpdate(
       {
         _id: item.productId,
-        "variants._id": item.variantId,
-        "variants.stock":    { $gte: item.quantity }, // prevent oversell
-        "variants.reserved": { $gte: item.quantity }, // prevent reserved going negative
+        variants: {
+          $elemMatch: {
+            _id:      item.variantId,
+            stock:    { $gte: item.quantity },
+            reserved: { $gte: item.quantity },
+          },
+        },
       },
       {
         $inc: {

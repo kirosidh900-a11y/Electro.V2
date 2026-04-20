@@ -117,8 +117,12 @@ export const placeOrderService = async ({
         updatedProduct = await Products.findOneAndUpdate(
           {
             _id: product._id,
-            "variants._id": variant._id,
-            "variants.stock": { $gte: qty }, // safe check
+            variants: {
+              $elemMatch: {
+                _id:   variant._id,
+                stock: { $gte: qty },
+              },
+            },
           },
           {
             $inc: { "variants.$.stock": -qty },
@@ -132,9 +136,11 @@ export const placeOrderService = async ({
         updatedProduct = await Products.findOneAndUpdate(
           {
             _id: product._id,
-            "variants._id": variant._id,
-            "variants.reserved": {
-              $lte: variant.stock - qty, // 🔥 prevent over-reserve
+            variants: {
+              $elemMatch: {
+                _id:      variant._id,
+                reserved: { $lte: variant.stock - qty }, // prevent over-reserve
+              },
             },
           },
           {
