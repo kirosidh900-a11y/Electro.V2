@@ -195,44 +195,43 @@ export const updateOrderStatusService = async (orderId, status) => {
 
 export const cancelOrderService = async (orderId, reason, comments) => {
   await Order.findByIdAndUpdate(orderId, {
-    orderStatus: "cancelled",
-    isCancelled: true,
-    cancelReason: reason,
+    orderStatus:    "cancelled",
+    isCancelled:    true,
+    cancelReason:   reason,
     cancelComments: comments,
-    cancelledAt: new Date(),
+    cancelledAt:    new Date(),
   });
 
-  // only cancel items not already returned
-  await orderItem.updateMany(
-    { orderId, itemStatus: { $ne: "returned" } },
-    { itemStatus: "cancelled", cancelReason: reason },
-  );
+  // Get items to rollback stock
+  const items = await orderItem.find({
+    orderId,
+    itemStatus: { $nin: ["cancelled", "returned", "refund_processed"] },
+  });
+
+  for (const item of items) {
+    // Restore stock
+    await Products.updateOne(
+      { _id: item.productId, variants: { $elemMatch: { _id: item.variantId } } },
+      { $inc: { "variants.$.stock": item.quantity } },
+    );
+
+    item.itemStatus  = "cancelled";
+    item.cancel      = { reason, comments, cancelledAt: new Date(), requestedAt: new Date() };
+    await item.save();
+  }
 };
 
 const handleReturnStock = async (item) => {
   const reason = item.return?.reason;
 
-  // DO NOT RESTOCK
-  if (
-    reason === "wrong_item" ||
-    reason === "defective" ||
-    reason === "damaged"
-  ) {
-    return; // no stock update
-  }
+  // DO NOT RESTOCK for damaged/wrong/defective items
+  if (["wrong_item", "defective", "damaged"].includes(reason)) return;
 
-  // ✅ RESTOCK (valid return)
-  if (item.variantId) {
-    await Products.updateOne(
-      { _id: item.productId, "variants._id": item.variantId },
-      { $inc: { "variants.$.stock": item.quantity } },
-    );
-  } else {
-    await Products.updateOne(
-      { _id: item.productId },
-      { $inc: { stock: item.quantity } },
-    );
-  }
+  // ✅ RESTOCK
+  await Products.updateOne(
+    { _id: item.productId, variants: { $elemMatch: { _id: item.variantId } } },
+    { $inc: { "variants.$.stock": item.quantity } },
+  );
 };
 
 export const handleReturnRequestService = async ({
@@ -333,7 +332,8 @@ export const updateItemStatusService = async (itemId, newStatus, reason = null, 
   const item = await orderItem.findById(itemId);
   if (!item) throw new AppError("Order item not found", 404);
 
-  item.itemStatus = newStatus;
+  const prevStatus = item.itemStatus;
+  item.itemStatus  = newStatus;
 
   // Store cancel reason if provided
   if (newStatus === "cancelled" && reason) {
@@ -347,5 +347,14 @@ export const updateItemStatusService = async (itemId, newStatus, reason = null, 
   }
 
   await item.save();
+
+  // Restore stock when cancelling (only if not already cancelled)
+  if (newStatus === "cancelled" && prevStatus !== "cancelled") {
+    await Products.updateOne(
+      { _id: item.productId, variants: { $elemMatch: { _id: item.variantId } } },
+      { $inc: { "variants.$.stock": item.quantity } },
+    );
+  }
+
   return item;
 };

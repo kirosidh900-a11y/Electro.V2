@@ -30,6 +30,13 @@
     <span class="text-gray-800 font-medium"><%= order.orderNumber %></span>
   </div>
 
+  <%
+    const currentStatus = order.orderStatus.toLowerCase();
+    const terminalStatuses = ['cancelled','refund_processed','refund_pending'];
+    const effectivelyCancelled = currentStatus === 'cancelled' ||
+      (items.length > 0 && items.every(i => terminalStatuses.includes(i.itemStatus)));
+  %>
+
   <!-- Page Title -->
   <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-5">
     <div>
@@ -39,11 +46,11 @@
       </p>
     </div>
     <span class="self-start sm:self-auto px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wide
-      <%= order.orderStatus === 'delivered'        ? 'bg-green-100 text-green-700' :
-          order.orderStatus === 'cancelled'        ? 'bg-red-100 text-red-600' :
-          order.orderStatus === 'shipped' || order.orderStatus === 'out_for_delivery' ? 'bg-blue-100 text-blue-700' :
+      <%= effectivelyCancelled                                                          ? 'bg-red-100 text-red-600' :
+          order.orderStatus === 'delivered'                                             ? 'bg-green-100 text-green-700' :
+          order.orderStatus === 'shipped' || order.orderStatus === 'out_for_delivery'  ? 'bg-blue-100 text-blue-700' :
           'bg-yellow-100 text-yellow-700' %>">
-      <%= order.orderStatus.replace(/_/g,' ') %>
+      <%= effectivelyCancelled ? 'Cancelled' : order.orderStatus.replace(/_/g,' ') %>
     </span>
   </div>
 
@@ -58,9 +65,9 @@
           <h2 class="text-sm font-bold text-gray-800">Order Status</h2>
         </div>
         <div class="px-6 py-8">
-          <% const currentStatus = order.orderStatus.toLowerCase(); %>
+          <%# effectivelyCancelled, currentStatus, terminalStatuses are declared at the top of the page %>
 
-          <% if(currentStatus === 'cancelled') { %>
+          <% if(effectivelyCancelled) { %>
             <div class="flex items-center justify-center gap-4 max-w-xs mx-auto">
               <div class="flex flex-col items-center">
                 <div class="w-11 h-11 rounded-full bg-green-500 text-white flex items-center justify-center shadow">
@@ -128,7 +135,11 @@
       <div class="bg-white border rounded-xl shadow-sm overflow-hidden">
         <div class="px-6 py-4 border-b flex items-center justify-between">
           <h2 class="text-sm font-bold text-gray-800">Order Items (<%= items.length %>)</h2>
-          <% if(['placed','confirmed'].includes(order.orderStatus) && !order.isCancelled) { %>
+          <% 
+            const cancelledStatuses = ['cancelled','refund_processed','refund_pending'];
+            const allItemsCancelled = items.every(i => cancelledStatuses.includes(i.itemStatus));
+          %>
+          <% if(['placed','confirmed'].includes(order.orderStatus) && !order.isCancelled && !allItemsCancelled) { %>
             <button onclick="openCancelModal(false)"
               class="text-xs text-red-600 border border-red-200 px-3 py-1.5 rounded-lg hover:bg-red-50 font-semibold transition flex items-center gap-1.5">
               <i class="fa-solid fa-ban text-[10px]"></i> Cancel Order
@@ -377,7 +388,14 @@
         </div>
         <div class="flex justify-between items-center pt-4">
           <span class="font-bold text-gray-900">Grand Total</span>
-          <span class="text-lg font-black text-gray-900">₹<%= order.pricing.finalAmount?.toLocaleString('en-IN') %></span>
+          <% if(effectivelyCancelled) { %>
+            <div class="flex flex-col items-end gap-0.5">
+              <span class="text-sm line-through text-gray-400">₹<%= order.pricing.finalAmount?.toLocaleString('en-IN') %></span>
+              <span class="text-xs font-bold text-red-500 uppercase tracking-wide">Fully Refunded</span>
+            </div>
+          <% } else { %>
+            <span class="text-lg font-black text-gray-900">₹<%= order.pricing.finalAmount?.toLocaleString('en-IN') %></span>
+          <% } %>
         </div>
         <div class="mt-4 bg-blue-50 rounded-lg p-3 flex items-center justify-between">
           <span class="text-xs text-blue-700 font-medium">Payment</span>
@@ -386,7 +404,7 @@
               <%= order.payment.method %>
             </span>
             <span class="text-xs font-semibold
-              <%= order.payment.status === 'paid' ? 'text-green-600' : order.payment.status === 'failed' ? 'text-red-500' : 'text-yellow-600' %>">
+              <%= order.payment.status === 'paid' ? 'text-green-600' : order.payment.status === 'failed' ? 'text-red-500' : order.payment.status === 'refunded' ? 'text-blue-600' : 'text-yellow-600' %>">
               <%= order.payment.status %>
             </span>
           </div>

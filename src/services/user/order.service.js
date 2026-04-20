@@ -3,7 +3,7 @@ import Cart from "../../models/cartSchema.models.js";
 import Products from "../../models/productSchema.model.js";
 import Order from "../../models/orderSchema.model.js";
 
-import { applyPricingToProduct } from "../../utils/products/pricing.util.js";
+import { applyPricingToProduct, calculateBestPrice } from "../../utils/products/pricing.util.js";
 import { getActiveOffers } from "../../utils/products/offers.util.js";
 
 import AppError from "../../utils/partials/AppError.utils.js";
@@ -50,11 +50,11 @@ export const placeOrderService = async ({
       throw new AppError("Invalid address", HTTP_STATUS.NOT_FOUND);
     }
 
-    const allOffers = await getActiveOffers();
-
     let orderItems = [];
     let subtotal = 0;
     let gstTotal = 0;
+    let mrpTotal = 0;
+    let productDiscount = 0;
 
     const orderNumber = await generateOrderNumber();
 
@@ -76,26 +76,20 @@ export const placeOrderService = async ({
 
       const variant = product.variants[index];
 
-      // 🔥 AVAILABLE STOCK CHECK (VERY IMPORTANT)
+      // 🔥 AVAILABLE STOCK CHECK
       const availableStock = variant.stock - (variant.reserved || 0);
 
       if (availableStock <= 0) {
-        throw new AppError(
-          `${product.name} is out of stock`,
-          HTTP_STATUS.CONFLICT,
-        );
+        throw new AppError(`${product.name} is out of stock`, HTTP_STATUS.CONFLICT);
       }
 
       if (item.quantity > availableStock) {
-        throw new AppError(
-          `Only ${availableStock} available for ${product.name}`,
-          HTTP_STATUS.CONFLICT,
-        );
+        throw new AppError(`Only ${availableStock} available for ${product.name}`, HTTP_STATUS.CONFLICT);
       }
 
-      // 🔥 PRICING
-      const pricedProduct = applyPricingToProduct(product, allOffers);
-      const pricedVariant = pricedProduct.variants[index];
+      // 🔥 PRICING — use product-specific offers (same as cart page)
+      const productOffers = await getActiveOffers(product);
+      const pricedVariant = calculateBestPrice(variant, productOffers);
 
       const qty = item.quantity;
 
@@ -103,12 +97,16 @@ export const placeOrderService = async ({
       const gstAmount = pricedVariant.gstAmount;
       const finalPrice = pricedVariant.finalPrice;
 
-      const itemSubtotal = basePrice * qty;
-      const itemGST = gstAmount * qty;
-      const itemFinal = finalPrice * qty;
+      const itemSubtotal   = basePrice * qty;          // post-offer, pre-GST
+      const itemMRP        = (variant.regular_price || variant.price) * qty; // MRP
+      const itemGST        = gstAmount * qty;
+      const itemFinal      = finalPrice * qty;
+      const itemDiscount   = itemMRP - itemSubtotal;   // offer savings
 
-      subtotal += itemSubtotal;
-      gstTotal += itemGST;
+      subtotal        += itemSubtotal;
+      gstTotal        += itemGST;
+      mrpTotal        += itemMRP;
+      productDiscount += Math.max(0, itemDiscount);
 
       let updatedProduct;
 
@@ -201,9 +199,9 @@ export const placeOrderService = async ({
 
     // ================= FINAL =================
     const couponDiscount = cart.couponDiscountAmount || 0;
-    const deliveryCharge = subtotal > 500 ? 0 : 40;
-
-    const finalAmount = subtotal - couponDiscount + deliveryCharge + gstTotal;
+    const finalPriceTotal = subtotal + gstTotal; // post-offer, post-GST total
+    const deliveryCharge = (finalPriceTotal - couponDiscount) >= 500 ? 0 : 40;
+    const finalAmount    = subtotal - couponDiscount + deliveryCharge + gstTotal;
 
     const expectedDate = new Date();
     expectedDate.setDate(expectedDate.getDate() + 7);
@@ -213,7 +211,8 @@ export const placeOrderService = async ({
       orderNumber,
 
       pricing: {
-        subtotal,
+        subtotal:        mrpTotal,        // MRP total (matches checkout display)
+        productDiscount,                  // offer savings
         couponDiscount,
         deliveryCharge,
         gstTotal,
@@ -420,53 +419,78 @@ export const cancelOrderService = async ({
   }
 
   const rollbackStock = async (item) => {
-    if (item.variantId) {
-      await Products.updateOne(
-        { _id: item.productId, "variants._id": item.variantId },
-        { $inc: { "variants.$.stock": item.quantity } },
-      );
-    } else {
-      await Products.updateOne(
-        { _id: item.productId },
-        { $inc: { stock: item.quantity } },
-      );
+    // Use $elemMatch to correctly target the variant
+    await Products.updateOne(
+      {
+        _id: item.productId,
+        variants: { $elemMatch: { _id: item.variantId } },
+      },
+      { $inc: { "variants.$.stock": item.quantity } },
+    );
+    // Emit socket update
+    if (global.io) {
+      const product = await Products.findById(item.productId).select("variants").lean();
+      const variant = product?.variants?.find(v => String(v._id) === String(item.variantId));
+      if (variant) {
+        global.io.emit("stockUpdated", {
+          productId: item.productId,
+          variantId: item.variantId,
+          stock: Math.max(variant.stock - (variant.reserved || 0), 0),
+        });
+      }
     }
   };
 
   const recalculateOrder = async () => {
+    // All statuses that mean the item is no longer contributing to the order total
+    const terminalStatuses = [
+      "cancelled",
+      "refund_pending",
+      "refund_processed",
+      "returned",
+      "return_rejected",
+    ];
+
     const activeItems = await orderItem.find({
       orderId,
       userId,
-      itemStatus: { $ne: "cancelled" },
+      itemStatus: { $nin: terminalStatuses },
     });
 
-    let subtotal = 0;
-    let gstTotal = 0;
-
-    activeItems.forEach((i) => {
-      subtotal += i.pricing.total;
-      gstTotal += i.pricing.gstAmount || 0;
-    });
-
-    // ✅NORMAL CASE
-    if (activeItems.length > 0) {
-      order.pricing.subtotal = subtotal;
-      order.pricing.gstTotal = gstTotal;
-      order.pricing.finalAmount = subtotal + gstTotal;
-    }
-
-    // FULL CANCEL CASE (IMPORTANT)
+    // FULL CANCEL CASE — preserve original pricing for display, just mark as cancelled
     if (activeItems.length === 0) {
-      order.pricing.subtotal = 0;
-      order.pricing.gstTotal = 0;
-      order.pricing.finalAmount = 0;
-
       order.orderStatus = "cancelled";
       order.isCancelled = true;
       order.cancelReason = reason;
       order.cancelComments = comments;
       order.cancelledAt = new Date();
+
+      return 0;
     }
+
+    // PARTIAL CANCEL — recalculate from remaining active items only
+    // couponDiscount is order-level and stays (it was applied to the whole order)
+    // productDiscount is recalculated from active items
+    let subtotal = 0;
+    let productDiscount = 0;
+    let gstTotal = 0;
+
+    activeItems.forEach((i) => {
+      subtotal += i.pricing.total;
+      productDiscount += i.pricing.discountAmount || 0;
+      gstTotal += i.pricing.gstAmount || 0;
+    });
+
+    const couponDiscount = order.pricing.couponDiscount || 0;
+    const deliveryCharge = order.pricing.deliveryCharge || 0;
+
+    order.pricing.subtotal = subtotal;
+    order.pricing.productDiscount = productDiscount;
+    order.pricing.gstTotal = gstTotal;
+    order.pricing.finalAmount = Math.max(
+      subtotal + gstTotal + deliveryCharge - couponDiscount,
+      0
+    );
 
     return activeItems.length;
   };

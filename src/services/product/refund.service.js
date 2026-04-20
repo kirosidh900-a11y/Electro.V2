@@ -21,18 +21,30 @@ import HTTP_STATUS from "../../constant/statusCode.js";
  * Calculate the refund amount for a single item, accounting for coupon.
  *
  * Formula:
- *   itemShare = item.pricing.total / order.pricing.subtotal
- *   couponShare = order.pricing.couponDiscount * itemShare
+ *   paidBase     = sum of ALL order items' pricing.total (original totals, status-agnostic)
+ *   itemShare    = item.pricing.total / paidBase
+ *   couponShare  = order.pricing.couponDiscount * itemShare
  *   refundAmount = item.pricing.total - couponShare
+ *
+ * We query ALL items regardless of status so that already-cancelled items
+ * don't shrink the base and inflate the refund.
  */
-export const calculateItemRefund = (item, order) => {
+export const calculateItemRefund = async (item, order) => {
   const itemTotal      = item.pricing?.total ?? 0;
-  const orderSubtotal  = order.pricing?.subtotal ?? 0;
   const couponDiscount = order.pricing?.couponDiscount ?? 0;
 
-  if (orderSubtotal <= 0) return itemTotal;
+  if (couponDiscount <= 0) return itemTotal;
 
-  const itemShare   = itemTotal / orderSubtotal;
+  // Use ALL items (no status filter) so the base is always the original order total
+  const allItems = await OrderItem.find({ orderId: order._id })
+    .select("pricing.total")
+    .lean();
+
+  const paidBase = allItems.reduce((sum, i) => sum + (i.pricing?.total ?? 0), 0);
+
+  if (paidBase <= 0) return itemTotal;
+
+  const itemShare   = itemTotal / paidBase;
   const couponShare = Math.round(couponDiscount * itemShare);
 
   return Math.max(0, itemTotal - couponShare);
@@ -68,7 +80,7 @@ export const processItemRefund = async ({
   // Skip if already refunded
   if (item.refund?.status === "processed") return null;
 
-  const refundAmount = calculateItemRefund(item, order);
+  const refundAmount = await calculateItemRefund(item, order);
   if (refundAmount <= 0) return null;
 
   // Credit wallet
