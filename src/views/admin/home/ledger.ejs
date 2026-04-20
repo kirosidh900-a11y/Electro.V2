@@ -1,0 +1,100 @@
+﻿
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head><%- include('../../partials/head') %><title>Ledger Book — Electro Admin</title></head>
+<body class="min-h-screen flex bg-[#060d1a]">
+
+<%- include('../../partials/admin/sidebar') %>
+
+<div id="mainContent" class="flex-1 flex flex-col min-w-0 transition-all duration-300">
+  <%- include('../../partials/admin/header') %>
+
+  <main class="flex-1 p-4 sm:p-6 lg:p-8 space-y-5">
+    <% const fmt = (n) => (n||0).toLocaleString('en-IN'); %>
+
+    <!-- Header -->
+    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+      <div>
+        <h1 class="text-2xl font-black text-white tracking-tight flex items-center gap-2">
+          <i class="fas fa-book text-cyan-400"></i> Ledger Book
+        </h1>
+        <p class="text-xs text-gray-500 mt-0.5">Credit / Debit accounting with running balance</p>
+      </div>
+      <div class="flex gap-2 flex-wrap">
+        <% ['today','weekly','monthly','yearly','all'].forEach(f => { %>
+          <a href="/admin/dashboard/ledger?filter=<%= f %>"
+            class="px-3 py-1.5 rounded-xl text-xs font-bold border transition
+            <%= filter === f ? 'bg-cyan-600 text-white border-cyan-600' : 'bg-white/5 text-gray-400 border-white/10 hover:border-cyan-500/40' %>">
+            <%= f.charAt(0).toUpperCase() + f.slice(1) %>
+          </a>
+        <% }) %>
+        <a href="/admin/dashboard/ledger/pdf?filter=<%= filter %>"
+          class="flex items-center gap-2 px-4 py-1.5 bg-red-500/15 hover:bg-red-500/25 text-red-400 border border-red-500/20 rounded-xl text-xs font-bold transition">
+          <i class="fas fa-file-pdf"></i> PDF
+        </a>
+      </div>
+    </div>
+
+    <!-- Summary -->
+    <div class="grid grid-cols-3 gap-4">
+      <div class="bg-[#0b1220] border border-white/5 rounded-2xl p-5">
+        <p class="text-[10px] text-gray-500 uppercase tracking-wider mb-1">Total Credit</p>
+        <p class="text-xl font-black text-emerald-400">₹<%= fmt(totalCredit) %></p>
+      </div>
+      <div class="bg-[#0b1220] border border-white/5 rounded-2xl p-5">
+        <p class="text-[10px] text-gray-500 uppercase tracking-wider mb-1">Total Debit</p>
+        <p class="text-xl font-black text-red-400">₹<%= fmt(totalDebit) %></p>
+      </div>
+      <div class="bg-[#0b1220] border border-white/5 rounded-2xl p-5">
+        <p class="text-[10px] text-gray-500 uppercase tracking-wider mb-1">Closing Balance</p>
+        <p class="text-xl font-black <%= closingBalance >= 0 ? 'text-emerald-400' : 'text-red-400' %>">₹<%= fmt(closingBalance) %></p>
+      </div>
+    </div>
+
+    <!-- Ledger table -->
+    <div class="bg-[#0b1220] border border-white/5 rounded-2xl overflow-hidden">
+      <div class="overflow-x-auto">
+        <table class="w-full text-xs">
+          <thead class="sticky top-0 z-10">
+            <tr class="bg-[#0d1829] border-b border-white/5">
+              <th class="px-4 py-3 text-left text-gray-500 font-semibold uppercase tracking-wider">Date</th>
+              <th class="px-4 py-3 text-left text-gray-500 font-semibold uppercase tracking-wider">Order #</th>
+              <th class="px-4 py-3 text-left text-gray-500 font-semibold uppercase tracking-wider">Customer</th>
+              <th class="px-4 py-3 text-left text-gray-500 font-semibold uppercase tracking-wider">Description</th>
+              <th class="px-4 py-3 text-right text-gray-500 font-semibold uppercase tracking-wider">Credit</th>
+              <th class="px-4 py-3 text-right text-gray-500 font-semibold uppercase tracking-wider">Debit</th>
+              <th class="px-4 py-3 text-right text-gray-500 font-semibold uppercase tracking-wider">Balance</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-white/[0.04]">
+            <% if (!entries.length) { %>
+              <tr><td colspan="7" class="text-center text-gray-600 py-16">No entries for this period</td></tr>
+            <% } %>
+            <% entries.forEach(e => { %>
+              <tr class="<%= e.type === 'credit' ? 'hover:bg-emerald-500/5' : 'hover:bg-red-500/5' %> transition">
+                <td class="px-4 py-2.5 text-gray-500 whitespace-nowrap">
+                  <%= new Date(e.date).toLocaleDateString('en-IN') %>
+                </td>
+                <td class="px-4 py-2.5 font-mono text-cyan-400 whitespace-nowrap"><%= e.orderNumber %></td>
+                <td class="px-4 py-2.5 text-gray-300 max-w-[120px] truncate"><%= e.customer %></td>
+                <td class="px-4 py-2.5 text-gray-400"><%= e.description %></td>
+                <td class="px-4 py-2.5 text-right font-bold text-emerald-400 whitespace-nowrap">
+                  <%= e.credit ? '₹' + fmt(e.credit) : '—' %>
+                </td>
+                <td class="px-4 py-2.5 text-right font-bold text-red-400 whitespace-nowrap">
+                  <%= e.debit ? '₹' + fmt(e.debit) : '—' %>
+                </td>
+                <td class="px-4 py-2.5 text-right font-bold whitespace-nowrap <%= e.balance >= 0 ? 'text-emerald-400' : 'text-red-400' %>">
+                  ₹<%= fmt(e.balance) %>
+                </td>
+              </tr>
+            <% }) %>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+  </main>
+</div>
+</body>
+</html>

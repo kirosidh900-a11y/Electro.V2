@@ -1,77 +1,475 @@
+﻿
 <!DOCTYPE html>
 <html lang="en" class="dark">
-<head> <%- include('../../partials/head') %> </head>
-<body class="min-h-screen flex">
-    <%- include('../../partials/admin/sidebar') %>
+<head>
+  <%- include('../../partials/head') %>
+  <title>Dashboard — Electro Admin</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <style>
+    .stat-card { background: linear-gradient(135deg, #0b1220 0%, #0d1628 100%); }
+    .glow-cyan  { box-shadow: 0 0 20px rgba(6,182,212,0.12); }
+    .glow-green { box-shadow: 0 0 20px rgba(16,185,129,0.12); }
+    .rank-badge { background: linear-gradient(135deg,#1e293b,#0f172a); }
+  </style>
+</head>
+<body class="min-h-screen flex bg-[#060d1a]">
 
-    <div id="mainContent" class="flex-1 flex flex-col min-w-0 transition-all duration-300">
-        <%- include('../../partials/admin/header') %>
+<%- include('../../partials/admin/sidebar') %>
 
-        <main class="p-4 sm:p-6 lg:p-10 max-w-[1920px] w-full mx-auto">
-            <div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-6 mb-10">
-                <% const stats = [
-                    { label: 'Total Categories', val: '10', icon: 'fa-layer-group', color: 'text-blue-500' },
-                    { label: 'Total Products', val: '20', icon: 'fa-box', color: 'text-emerald-500' },
-                    { label: 'Total Customers', val: '38', icon: 'fa-users', color: 'text-orange-500' },
-                    { label: 'Total Orders', val: '38', icon: 'fa-shopping-cart', color: 'text-red-500' }
-                ] %>
-                <% stats.forEach(s => { %>
-                <div class="glass-card p-6 rounded-3xl hover:border-cyan-500/50 transition-all">
-                    <div class="p-3 bg-white/5 rounded-xl w-fit mb-4 <%= s.color %>"><i class="fas <%= s.icon %> text-lg"></i></div>
-                    <p class="text-[10px] text-gray-500 uppercase font-bold tracking-widest"><%= s.label %></p>
-                    <h3 class="text-3xl font-black mt-1 text-white"><%= s.val %></h3>
-                </div>
-                <% }) %>
-            </div>
+<div id="mainContent" class="flex-1 flex flex-col min-w-0 transition-all duration-300">
+  <%- include('../../partials/admin/header') %>
 
-            <div class="glass-card p-8 rounded-[2.5rem] mb-10">
-                <h3 class="font-black uppercase text-xs tracking-widest text-cyan-500 mb-8">Earnings Overview</h3>
-                <div class="h-80 w-full flex items-center justify-center border-2 border-dashed border-white/5 rounded-3xl bg-black/20">
-                    <p class="text-gray-600 font-mono text-xs uppercase tracking-[0.3em]">Streaming Live Data...</p>
-                </div>
-            </div>
+  <main class="flex-1 p-4 sm:p-6 lg:p-8 space-y-6 max-w-[1920px] w-full mx-auto">
+    <%
+      const fmtRs = (n) => '₹' + (n||0).toLocaleString('en-IN');
+      const fmt   = (n) => (n||0).toLocaleString('en-IN');
+      const af    = filter || 'monthly';
+    %>
 
-            <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-10">
-                <div class="glass-card p-8 rounded-[2.5rem]">
-                    <h3 class="font-black uppercase text-xs tracking-widest mb-10">Revenue Sources</h3>
-                    <div class="h-64 flex items-center justify-center">
-                        <div class="w-44 h-44 rounded-full border-[12px] border-white/5 border-t-cyan-500 animate-spin-slow"></div>
-                    </div>
-                </div>
-
-                <div class="glass-card p-8 rounded-[2.5rem]">
-                    <h3 class="font-black uppercase text-xs tracking-widest mb-10 text-gray-400">Outlook (Trending)</h3>
-                    <div class="space-y-6">
-                        <% [['Laptop', 75], ['Phone', 45], ['Lights', 92]].forEach(item => { %>
-                        <div class="group">
-                            <div class="flex justify-between text-[10px] font-bold mb-2 uppercase tracking-tighter text-gray-500">
-                                <span><%= item[0] %></span><span><%= item[1] %>%</span>
-                            </div>
-                            <div class="w-full bg-white/5 h-1.5 rounded-full overflow-hidden">
-                                <div class="bg-cyan-500 h-full shadow-[0_0_8px_#06b6d4]" style="width: <%= item[1] %>%"></div>
-                            </div>
-                        </div>
-                        <% }) %>
-                    </div>
-                </div>
-            </div>
-
-            <div class="glass-card p-8 rounded-[2.5rem] overflow-hidden">
-                <h3 class="font-black uppercase text-xs tracking-widest mb-8 text-white">Top Selling Statistics</h3>
-                <div class="overflow-x-auto">
-                    <table class="w-full text-left text-sm">
-                        <thead class="text-[10px] text-gray-500 uppercase tracking-widest border-b border-white/5">
-                            <tr><th class="pb-4">Rank</th><th class="pb-4">Product Name</th><th class="pb-4">Quantity</th><th class="pb-4 text-right">Revenue</th></tr>
-                        </thead>
-                        <tbody class="text-gray-400 font-mono">
-                            <tr><td colspan="4" class="py-12 text-center italic tracking-widest">Awaiting Local Stream Data...</td></tr>
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-        </main>
+    <!-- ── Header row ──────────────────────────────────────────────────── -->
+    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+      <div>
+        <h1 class="text-2xl font-black text-white tracking-tight">Overview</h1>
+        <p class="text-xs text-gray-500 mt-0.5">
+          <%= new Date().toLocaleDateString('en-IN',{weekday:'long',year:'numeric',month:'long',day:'numeric'}) %>
+        </p>
+      </div>
+      <!-- Period filter pills -->
+      <div class="flex gap-1.5 flex-wrap p-1 bg-white/5 rounded-2xl border border-white/5">
+        <% ['today','weekly','monthly','yearly','all'].forEach(f => { %>
+          <a href="/admin/dashboard?filter=<%= f %>"
+            class="px-4 py-1.5 rounded-xl text-xs font-bold transition
+            <%= af === f ? 'bg-cyan-600 text-white shadow-lg shadow-cyan-900/40' : 'text-gray-500 hover:text-gray-200' %>">
+            <%= f.charAt(0).toUpperCase() + f.slice(1) %>
+          </a>
+        <% }) %>
+      </div>
     </div>
 
-   
+    <!-- ── KPI cards ───────────────────────────────────────────────────── -->
+    <div class="grid grid-cols-2 sm:grid-cols-4 xl:grid-cols-8 gap-3">
+      <%
+        const kpis = [
+          { label:'Total Orders',  val:fmt(summary.totalOrders),    icon:'fa-bag-shopping',      c:'cyan',    sub: summary.pendingCount+' pending'   },
+          { label:'Gross Sales',   val:fmtRs(summary.grossRevenue), icon:'fa-indian-rupee-sign', c:'emerald', sub:'paid orders only'                  },
+          { label:'Net Sales',     val:fmtRs(summary.netRevenue),   icon:'fa-chart-line',        c:'violet',  sub:'gross − refunds'                   },
+          { label:'Refunds',       val:fmtRs(summary.refundAmount), icon:'fa-rotate-left',       c:'pink',    sub:'refunded orders'                   },
+          { label:'Cancelled',     val:fmt(summary.cancelledCount), icon:'fa-ban',               c:'red',     sub:'orders cancelled'                  },
+          { label:'Avg Order',     val:fmtRs(summary.avgOrderValue),icon:'fa-calculator',        c:'amber',   sub:'per paid order'                    },
+          { label:'Customers',     val:fmt(summary.totalUsers),     icon:'fa-users',             c:'sky',     sub:'registered users'                  },
+          { label:'Products',      val:fmt(summary.totalProducts),  icon:'fa-box',               c:'indigo',  sub:summary.totalCategories+' categories'},
+        ];
+        const cc = {
+          cyan:   {ring:'ring-cyan-500/20',   icon:'text-cyan-400',    dot:'bg-cyan-500'},
+          emerald:{ring:'ring-emerald-500/20', icon:'text-emerald-400', dot:'bg-emerald-500'},
+          violet: {ring:'ring-violet-500/20',  icon:'text-violet-400',  dot:'bg-violet-500'},
+          pink:   {ring:'ring-pink-500/20',    icon:'text-pink-400',    dot:'bg-pink-500'},
+          red:    {ring:'ring-red-500/20',     icon:'text-red-400',     dot:'bg-red-500'},
+          amber:  {ring:'ring-amber-500/20',   icon:'text-amber-400',   dot:'bg-amber-500'},
+          sky:    {ring:'ring-sky-500/20',     icon:'text-sky-400',     dot:'bg-sky-500'},
+          indigo: {ring:'ring-indigo-500/20',  icon:'text-indigo-400',  dot:'bg-indigo-500'},
+        };
+      %>
+      <% kpis.forEach(k => { const cl = cc[k.c]; %>
+        <div class="stat-card border border-white/5 rounded-2xl p-4 ring-1 <%= cl.ring %> flex flex-col gap-3 hover:border-white/10 transition">
+          <div class="flex items-start justify-between">
+            <p class="text-[9px] text-gray-500 uppercase tracking-widest font-bold leading-tight"><%= k.label %></p>
+            <i class="fas <%= k.icon %> <%= cl.icon %> text-xs opacity-70"></i>
+          </div>
+          <p class="text-lg font-black text-white leading-none"><%= k.val %></p>
+          <div class="flex items-center gap-1.5">
+            <span class="w-1.5 h-1.5 rounded-full <%= cl.dot %> opacity-60"></span>
+            <p class="text-[9px] text-gray-600"><%= k.sub %></p>
+          </div>
+        </div>
+      <% }) %>
+    </div>
+
+    <!-- ── Revenue chart + Status donut ────────────────────────────────── -->
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-5">
+
+      <!-- Revenue chart -->
+      <div class="lg:col-span-2 bg-[#0b1220] border border-white/5 rounded-2xl p-6 glow-cyan">
+        <div class="flex items-center justify-between mb-5">
+          <div>
+            <p class="text-sm font-bold text-white">Revenue Trend</p>
+            <p class="text-[10px] text-gray-500 mt-0.5"><%= af.charAt(0).toUpperCase()+af.slice(1) %> view</p>
+          </div>
+          <div class="flex gap-4 text-[10px] text-gray-500">
+            <span class="flex items-center gap-1.5"><span class="w-3 h-0.5 bg-cyan-500 rounded inline-block"></span>Revenue</span>
+            <span class="flex items-center gap-1.5"><span class="w-3 h-0.5 bg-amber-500 rounded inline-block"></span>Discount</span>
+          </div>
+        </div>
+        <div class="relative" style="height:240px">
+          <canvas id="revenueChart"></canvas>
+        </div>
+      </div>
+
+      <!-- Status donut -->
+      <div class="bg-[#0b1220] border border-white/5 rounded-2xl p-6">
+        <p class="text-sm font-bold text-white mb-1">Order Status</p>
+        <p class="text-[10px] text-gray-500 mb-4">Distribution breakdown</p>
+        <div class="relative flex items-center justify-center" style="height:160px">
+          <canvas id="statusChart"></canvas>
+          <div class="absolute text-center pointer-events-none">
+            <p class="text-xl font-black text-white"><%= fmt(summary.totalOrders) %></p>
+            <p class="text-[9px] text-gray-500 uppercase tracking-wider">orders</p>
+          </div>
+        </div>
+        <div class="mt-4 space-y-2">
+          <% statusBreakdown.slice(0,5).forEach(s => {
+            const pct = summary.totalOrders ? Math.round((s.count/summary.totalOrders)*100) : 0;
+          %>
+            <div class="flex items-center gap-2">
+              <span class="text-[10px] text-gray-400 capitalize w-28 truncate"><%= s._id.replace(/_/g,' ') %></span>
+              <div class="flex-1 bg-white/5 rounded-full h-1 overflow-hidden">
+                <div class="h-full rounded-full bg-cyan-500" style="width:<%= pct %>%"></div>
+              </div>
+              <span class="text-[10px] text-gray-500 w-8 text-right"><%= s.count %></span>
+            </div>
+          <% }) %>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── Payment methods + Recent orders ─────────────────────────────── -->
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-5">
+
+      <!-- Payment chart -->
+      <div class="bg-[#0b1220] border border-white/5 rounded-2xl p-6">
+        <p class="text-sm font-bold text-white mb-1">Payment Methods</p>
+        <p class="text-[10px] text-gray-500 mb-4">Revenue by method</p>
+        <div class="relative" style="height:180px">
+          <canvas id="paymentChart"></canvas>
+        </div>
+        <div class="mt-3 space-y-1.5">
+          <% paymentMethods.forEach(p => { %>
+            <div class="flex items-center justify-between text-[10px]">
+              <span class="text-gray-400 uppercase font-medium"><%= p._id || '—' %></span>
+              <span class="text-gray-300 font-bold">₹<%= fmt(p.revenue) %> &nbsp;<span class="text-gray-600">(<%= p.count %>)</span></span>
+            </div>
+          <% }) %>
+        </div>
+      </div>
+
+      <!-- Recent orders -->
+      <div class="lg:col-span-2 bg-[#0b1220] border border-white/5 rounded-2xl overflow-hidden">
+        <div class="px-5 py-4 border-b border-white/5 flex items-center justify-between">
+          <div>
+            <p class="text-sm font-bold text-white">Recent Orders</p>
+            <p class="text-[10px] text-gray-500">Last 10 orders</p>
+          </div>
+          <a href="/admin/orders" class="text-[10px] text-cyan-400 hover:text-cyan-300 transition">View all →</a>
+        </div>
+        <div class="overflow-x-auto">
+          <table class="w-full text-xs">
+            <thead>
+              <tr class="border-b border-white/5 bg-white/[0.02]">
+                <th class="px-4 py-2.5 text-left text-gray-500 font-semibold uppercase tracking-wider text-[10px]">Order</th>
+                <th class="px-4 py-2.5 text-left text-gray-500 font-semibold uppercase tracking-wider text-[10px]">Customer</th>
+                <th class="px-4 py-2.5 text-left text-gray-500 font-semibold uppercase tracking-wider text-[10px]">Status</th>
+                <th class="px-4 py-2.5 text-right text-gray-500 font-semibold uppercase tracking-wider text-[10px]">Amount</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-white/[0.03]">
+              <% recentOrders.forEach(o => {
+                const sb = {
+                  delivered:'bg-emerald-500/15 text-emerald-400 border border-emerald-500/20',
+                  cancelled:'bg-red-500/15 text-red-400 border border-red-500/20',
+                  shipped:'bg-violet-500/15 text-violet-400 border border-violet-500/20',
+                  confirmed:'bg-cyan-500/15 text-cyan-400 border border-cyan-500/20',
+                  placed:'bg-yellow-500/15 text-yellow-400 border border-yellow-500/20',
+                  out_for_delivery:'bg-violet-500/15 text-violet-400 border border-violet-500/20',
+                }[o.orderStatus] || 'bg-white/10 text-gray-400 border border-white/10';
+              %>
+                <tr class="hover:bg-white/[0.03] transition cursor-pointer" onclick="location.href='/admin/orders/<%= o._id %>'">
+                  <td class="px-4 py-3 font-mono text-[10px] text-cyan-400 whitespace-nowrap"><%= o.orderNumber %></td>
+                  <td class="px-4 py-3 text-gray-300 max-w-[130px] truncate">
+                    <%= o.userId?.name || '—' %>
+                    <span class="block text-[9px] text-gray-600 truncate"><%= o.userId?.email || '' %></span>
+                  </td>
+                  <td class="px-4 py-3">
+                    <span class="text-[9px] font-bold uppercase px-2 py-0.5 rounded-full <%= sb %>">
+                      <%= o.orderStatus?.replace(/_/g,' ') %>
+                    </span>
+                  </td>
+                  <td class="px-4 py-3 text-right font-bold text-emerald-400 whitespace-nowrap text-xs">
+                    ₹<%= (o.pricing?.finalAmount||0).toLocaleString('en-IN') %>
+                  </td>
+                </tr>
+              <% }) %>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── Top 10 Products ──────────────────────────────────────────────── -->
+    <div class="bg-[#0b1220] border border-white/5 rounded-2xl overflow-hidden">
+      <div class="px-6 py-4 border-b border-white/5 flex items-center justify-between">
+        <div>
+          <p class="text-sm font-bold text-white">Top 10 Products</p>
+          <p class="text-[10px] text-gray-500 mt-0.5">Ranked by revenue — <%= af %> period</p>
+        </div>
+        <span class="text-[10px] text-gray-600 bg-white/5 px-2 py-1 rounded-lg">by revenue</span>
+      </div>
+      <div class="overflow-x-auto">
+        <table class="w-full text-xs">
+          <thead>
+            <tr class="border-b border-white/5 bg-white/[0.02]">
+              <th class="px-5 py-3 text-left text-[10px] text-gray-500 font-semibold uppercase tracking-wider w-10">#</th>
+              <th class="px-5 py-3 text-left text-[10px] text-gray-500 font-semibold uppercase tracking-wider">Product</th>
+              <th class="px-5 py-3 text-right text-[10px] text-gray-500 font-semibold uppercase tracking-wider">Qty</th>
+              <th class="px-5 py-3 text-right text-[10px] text-gray-500 font-semibold uppercase tracking-wider">Orders</th>
+              <th class="px-5 py-3 text-right text-[10px] text-gray-500 font-semibold uppercase tracking-wider">Revenue</th>
+              <th class="px-5 py-3 text-right text-[10px] text-gray-500 font-semibold uppercase tracking-wider w-36">Share</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-white/[0.03]">
+            <% if (!topProducts.length) { %>
+              <tr><td colspan="6" class="text-center text-gray-600 py-14 text-xs">
+                <i class="fas fa-box-open text-2xl mb-2 block opacity-30"></i>No data for this period
+              </td></tr>
+            <% } else {
+              const maxPR = topProducts[0].revenue || 1;
+            %>
+            <% topProducts.forEach((p, i) => { %>
+              <tr class="hover:bg-white/[0.03] transition group">
+                <td class="px-5 py-3.5">
+                  <span class="rank-badge w-6 h-6 rounded-lg flex items-center justify-center text-[10px] font-black
+                    <%= i === 0 ? 'text-yellow-400' : i === 1 ? 'text-gray-300' : i === 2 ? 'text-amber-600' : 'text-gray-600' %>">
+                    <%= i+1 %>
+                  </span>
+                </td>
+                <td class="px-5 py-3.5 text-gray-200 font-medium max-w-[280px] truncate"><%= p.name || '—' %></td>
+                <td class="px-5 py-3.5 text-right text-gray-400"><%= fmt(p.quantity) %></td>
+                <td class="px-5 py-3.5 text-right text-gray-400"><%= fmt(p.orders) %></td>
+                <td class="px-5 py-3.5 text-right font-bold text-emerald-400">₹<%= fmt(p.revenue) %></td>
+                <td class="px-5 py-3.5">
+                  <div class="flex items-center gap-2 justify-end">
+                    <div class="w-24 bg-white/5 rounded-full h-1.5 overflow-hidden">
+                      <div class="h-full rounded-full bg-gradient-to-r from-cyan-600 to-cyan-400 transition-all"
+                        style="width:<%= Math.round((p.revenue/maxPR)*100) %>%"></div>
+                    </div>
+                    <span class="text-[10px] text-gray-500 w-9 text-right"><%= Math.round((p.revenue/maxPR)*100) %>%</span>
+                  </div>
+                </td>
+              </tr>
+            <% }) %>
+            <% } %>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- ── Top Categories + Top Brands ──────────────────────────────────── -->
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-5">
+
+      <!-- Top Categories -->
+      <div class="bg-[#0b1220] border border-white/5 rounded-2xl overflow-hidden">
+        <div class="px-5 py-4 border-b border-white/5 flex items-center justify-between">
+          <div>
+            <p class="text-sm font-bold text-white">Top Categories</p>
+            <p class="text-[10px] text-gray-500 mt-0.5">Best performing categories</p>
+          </div>
+          <span class="text-[10px] text-violet-400 bg-violet-500/10 px-2 py-1 rounded-lg border border-violet-500/20">by revenue</span>
+        </div>
+        <div class="p-5 space-y-4">
+          <% if (!topCategories.length) { %>
+            <div class="text-center text-gray-600 py-10 text-xs">
+              <i class="fas fa-layer-group text-2xl mb-2 block opacity-30"></i>No data for this period
+            </div>
+          <% } else {
+            const maxCR = topCategories[0].revenue || 1;
+          %>
+          <% topCategories.forEach((c, i) => { %>
+            <div class="flex items-center gap-3 group">
+              <span class="text-[10px] font-black text-gray-600 w-5 text-center shrink-0"><%= i+1 %></span>
+              <div class="flex-1 min-w-0">
+                <div class="flex items-center justify-between mb-1.5">
+                  <span class="text-xs text-gray-200 font-medium truncate"><%= c.name %></span>
+                  <div class="flex items-center gap-2 ml-2 shrink-0">
+                    <span class="text-[10px] text-gray-500"><%= fmt(c.quantity) %> pcs</span>
+                    <span class="text-xs font-bold text-emerald-400">₹<%= fmt(c.revenue) %></span>
+                  </div>
+                </div>
+                <div class="w-full bg-white/5 rounded-full h-1.5 overflow-hidden">
+                  <div class="bg-gradient-to-r from-violet-600 to-violet-400 h-full rounded-full transition-all"
+                    style="width:<%= Math.round((c.revenue/maxCR)*100) %>%"></div>
+                </div>
+              </div>
+            </div>
+          <% }) %>
+          <% } %>
+        </div>
+      </div>
+
+      <!-- Top Brands -->
+      <div class="bg-[#0b1220] border border-white/5 rounded-2xl overflow-hidden">
+        <div class="px-5 py-4 border-b border-white/5 flex items-center justify-between">
+          <div>
+            <p class="text-sm font-bold text-white">Top Brands</p>
+            <p class="text-[10px] text-gray-500 mt-0.5">Best performing brands</p>
+          </div>
+          <span class="text-[10px] text-amber-400 bg-amber-500/10 px-2 py-1 rounded-lg border border-amber-500/20">by revenue</span>
+        </div>
+        <div class="p-5 space-y-4">
+          <% if (!topBrands.length) { %>
+            <div class="text-center text-gray-600 py-10 text-xs">
+              <i class="fas fa-tag text-2xl mb-2 block opacity-30"></i>No data for this period
+            </div>
+          <% } else {
+            const maxBR = topBrands[0].revenue || 1;
+          %>
+          <% topBrands.forEach((b, i) => { %>
+            <div class="flex items-center gap-3 group">
+              <span class="text-[10px] font-black text-gray-600 w-5 text-center shrink-0"><%= i+1 %></span>
+              <div class="flex-1 min-w-0">
+                <div class="flex items-center justify-between mb-1.5">
+                  <span class="text-xs text-gray-200 font-medium truncate"><%= b.name %></span>
+                  <div class="flex items-center gap-2 ml-2 shrink-0">
+                    <span class="text-[10px] text-gray-500"><%= fmt(b.quantity) %> pcs</span>
+                    <span class="text-xs font-bold text-emerald-400">₹<%= fmt(b.revenue) %></span>
+                  </div>
+                </div>
+                <div class="w-full bg-white/5 rounded-full h-1.5 overflow-hidden">
+                  <div class="bg-gradient-to-r from-amber-600 to-amber-400 h-full rounded-full transition-all"
+                    style="width:<%= Math.round((b.revenue/maxBR)*100) %>%"></div>
+                </div>
+              </div>
+            </div>
+          <% }) %>
+          <% } %>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── Ledger Book CTA ───────────────────────────────────────────────── -->
+    <div class="bg-gradient-to-r from-[#0b1220] to-[#0d1628] border border-white/5 rounded-2xl p-5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+      <div class="flex items-center gap-4">
+        <div class="w-10 h-10 rounded-xl bg-cyan-500/10 border border-cyan-500/20 flex items-center justify-center shrink-0">
+          <i class="fas fa-book text-cyan-400"></i>
+        </div>
+        <div>
+          <p class="text-sm font-bold text-white">Ledger Book</p>
+          <p class="text-xs text-gray-500 mt-0.5">Full credit/debit accounting with running balance</p>
+        </div>
+      </div>
+      <div class="flex gap-2">
+        <a href="/admin/dashboard/ledger?filter=<%= af %>"
+          class="flex items-center gap-2 px-4 py-2 bg-cyan-600 hover:bg-cyan-700 text-white rounded-xl text-xs font-bold transition shadow-lg shadow-cyan-900/30">
+          <i class="fas fa-book-open"></i> View Ledger
+        </a>
+        <a href="/admin/dashboard/ledger/pdf?filter=<%= af %>"
+          class="flex items-center gap-2 px-4 py-2 bg-white/5 hover:bg-white/10 text-gray-300 border border-white/10 rounded-xl text-xs font-bold transition">
+          <i class="fas fa-file-pdf text-red-400"></i> Export PDF
+        </a>
+      </div>
+    </div>
+
+  </main>
+</div>
+
+<script>
+const REVENUE_DATA  = <%- JSON.stringify(revenueChart) %>;
+const STATUS_DATA   = <%- JSON.stringify(statusBreakdown) %>;
+const PAYMENT_DATA  = <%- JSON.stringify(paymentMethods) %>;
+
+Chart.defaults.color = '#475569';
+Chart.defaults.borderColor = 'rgba(255,255,255,0.04)';
+
+const STATUS_COLORS = {
+  delivered:'#10b981', shipped:'#8b5cf6', confirmed:'#06b6d4',
+  placed:'#f59e0b', cancelled:'#ef4444', out_for_delivery:'#a78bfa',
+};
+const PAY_COLORS = { cod:'#f59e0b', razorpay:'#06b6d4', wallet:'#8b5cf6', upi:'#10b981', card:'#ec4899' };
+
+// Revenue chart
+new Chart(document.getElementById('revenueChart').getContext('2d'), {
+  type: 'line',
+  data: {
+    labels: REVENUE_DATA.map(d => d._id),
+    datasets: [
+      {
+        label: 'Revenue', data: REVENUE_DATA.map(d => d.revenue),
+        borderColor: '#06b6d4', backgroundColor: 'rgba(6,182,212,0.06)',
+        borderWidth: 2, pointRadius: 3, pointHoverRadius: 6,
+        fill: true, tension: 0.4, pointBackgroundColor: '#06b6d4',
+      },
+      {
+        label: 'Discount', data: REVENUE_DATA.map(d => d.discount),
+        borderColor: '#f59e0b', backgroundColor: 'rgba(245,158,11,0.04)',
+        borderWidth: 1.5, pointRadius: 2, fill: true, tension: 0.4,
+      },
+    ],
+  },
+  options: {
+    responsive: true, maintainAspectRatio: false,
+    interaction: { mode: 'index', intersect: false },
+    plugins: {
+      legend: { display: false },
+      tooltip: {
+        backgroundColor: '#0f172a', borderColor: 'rgba(255,255,255,0.08)', borderWidth: 1,
+        padding: 10, cornerRadius: 8,
+        callbacks: { label: ctx => ` ${ctx.dataset.label}: ₹${ctx.parsed.y.toLocaleString('en-IN')}` },
+      },
+    },
+    scales: {
+      x: { grid: { display: false }, ticks: { font: { size: 10 } } },
+      y: {
+        grid: { color: 'rgba(255,255,255,0.03)' },
+        ticks: { font: { size: 10 }, callback: v => v >= 1e5 ? '₹'+(v/1e5).toFixed(1)+'L' : v >= 1000 ? '₹'+(v/1000).toFixed(0)+'K' : '₹'+v },
+      },
+    },
+  },
+});
+
+// Status donut
+new Chart(document.getElementById('statusChart').getContext('2d'), {
+  type: 'doughnut',
+  data: {
+    labels: STATUS_DATA.map(s => s._id.replace(/_/g,' ')),
+    datasets: [{ data: STATUS_DATA.map(s => s.count), backgroundColor: STATUS_DATA.map(s => STATUS_COLORS[s._id] || '#334155'), borderWidth: 0, hoverOffset: 8 }],
+  },
+  options: {
+    responsive: true, maintainAspectRatio: false, cutout: '72%',
+    plugins: {
+      legend: { display: false },
+      tooltip: { backgroundColor: '#0f172a', borderColor: 'rgba(255,255,255,0.08)', borderWidth: 1, cornerRadius: 8 },
+    },
+  },
+});
+
+// Payment bar chart
+new Chart(document.getElementById('paymentChart').getContext('2d'), {
+  type: 'bar',
+  data: {
+    labels: PAYMENT_DATA.map(p => (p._id||'').toUpperCase()),
+    datasets: [{
+      data: PAYMENT_DATA.map(p => p.revenue),
+      backgroundColor: PAYMENT_DATA.map(p => PAY_COLORS[p._id] || '#334155'),
+      borderRadius: 8, borderSkipped: false,
+    }],
+  },
+  options: {
+    responsive: true, maintainAspectRatio: false,
+    plugins: {
+      legend: { display: false },
+      tooltip: {
+        backgroundColor: '#0f172a', borderColor: 'rgba(255,255,255,0.08)', borderWidth: 1, cornerRadius: 8,
+        callbacks: { label: ctx => ` ₹${ctx.parsed.y.toLocaleString('en-IN')}` },
+      },
+    },
+    scales: {
+      x: { grid: { display: false }, ticks: { font: { size: 10 } } },
+      y: {
+        grid: { color: 'rgba(255,255,255,0.03)' },
+        ticks: { font: { size: 10 }, callback: v => v >= 1e5 ? '₹'+(v/1e5).toFixed(1)+'L' : v >= 1000 ? '₹'+(v/1000).toFixed(0)+'K' : '₹'+v },
+      },
+    },
+  },
+});
+</script>
+
 </body>
 </html>
