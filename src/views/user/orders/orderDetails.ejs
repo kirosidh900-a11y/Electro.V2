@@ -136,132 +136,147 @@
           <% } %>
         </div>
 
-        <div class="divide-y divide-gray-100">
+        <div class="divide-y divide-gray-50">
           <% items.forEach(item => { %>
-            <div class="p-5 flex gap-4 items-start">
-              <!-- Image -->
-              <a href="/product/<%= item.productId %>"
-                class="w-20 h-20 border rounded-lg p-1.5 bg-gray-50 flex-shrink-0 hover:opacity-80 transition">
-                <img src="<%= item.images?.[0] || 'https://via.placeholder.com/150' %>"
-                     class="w-full h-full object-contain mix-blend-multiply" alt="<%= item.name %>">
-              </a>
+            <%
+              const statusColors = {
+                cancelled:        'bg-red-100 text-red-600',
+                returned:         'bg-purple-100 text-purple-600',
+                return_requested: 'bg-amber-100 text-amber-700',
+                return_approved:  'bg-blue-100 text-blue-700',
+                return_rejected:  'bg-red-100 text-red-600',
+                delivered:        'bg-green-100 text-green-700',
+                shipped:          'bg-blue-100 text-blue-600',
+                out_for_delivery: 'bg-indigo-100 text-indigo-600',
+                confirmed:        'bg-cyan-100 text-cyan-700',
+                refund_processed: 'bg-emerald-100 text-emerald-700',
+                refund_pending:   'bg-yellow-100 text-yellow-700',
+              };
+              const statusColor = statusColors[item.itemStatus] || 'bg-gray-100 text-gray-600';
+              const attrs = item.attributes ? Object.entries(item.attributes) : [];
+            %>
+            <div class="p-5">
+              <div class="flex gap-4">
 
-              <!-- Info -->
-              <div class="flex-1 min-w-0">
+                <!-- Image -->
                 <a href="/product/<%= item.productId %>"
-                  class="text-sm font-semibold text-gray-900 leading-tight hover:text-blue-600 transition">
-                  <%= item.name %>
+                  class="w-24 h-24 rounded-xl border bg-gray-50 flex-shrink-0 overflow-hidden hover:opacity-90 transition">
+                  <img src="<%= item.images?.[0] || 'https://via.placeholder.com/150' %>"
+                       class="w-full h-full object-contain p-2 mix-blend-multiply" alt="<%= item.name %>">
                 </a>
-                <% if(item.brand) { %><p class="text-xs text-gray-400 mt-0.5"><%= item.brand %></p><% } %>
 
-                <div class="flex flex-wrap gap-1.5 mt-1.5">
-                  <span class="bg-gray-100 text-gray-600 text-xs px-2 py-0.5 rounded">Qty: <%= item.quantity %></span>
-                  <% if(item.attributes && Object.keys(item.attributes).length > 0) { %>
-                    <% Object.entries(item.attributes).forEach(([k,v]) => { %>
-                      <span class="bg-gray-100 text-gray-600 text-xs px-2 py-0.5 rounded capitalize"><%= k %>: <%= v %></span>
-                    <% }) %>
+                <!-- Main info -->
+                <div class="flex-1 min-w-0">
+                  <div class="flex items-start justify-between gap-3">
+                    <div class="min-w-0">
+                      <a href="/product/<%= item.productId %>"
+                        class="text-sm font-bold text-gray-900 hover:text-blue-600 transition line-clamp-2 leading-snug">
+                        <%= item.name %>
+                      </a>
+                      <% if(item.brand) { %>
+                        <p class="text-xs text-gray-400 mt-0.5"><%= item.brand %></p>
+                      <% } %>
+                    </div>
+                    <!-- Total price -->
+                    <p class="text-base font-black text-gray-900 shrink-0">
+                      ₹<%= item.pricing?.total?.toLocaleString('en-IN') %>
+                    </p>
+                  </div>
+
+                  <!-- Attributes row -->
+                  <% if(attrs.length > 0) { %>
+                    <div class="flex flex-wrap gap-1.5 mt-2">
+                      <% attrs.forEach(([k, v]) => { %>
+                        <span class="bg-gray-100 text-gray-600 text-[11px] px-2 py-0.5 rounded-md capitalize font-medium">
+                          <%= k.replace(/_/g,' ') %>: <span class="text-gray-800"><%= v %></span>
+                        </span>
+                      <% }) %>
+                    </div>
                   <% } %>
-                  <span class="text-xs px-2 py-0.5 rounded font-semibold
-  <%= item.itemStatus === 'cancelled'        ? 'bg-red-100 text-red-600' :
-      item.itemStatus === 'returned'         ? 'bg-purple-100 text-purple-600' :
-      item.itemStatus === 'return_requested' ? 'bg-yellow-100 text-yellow-700' :
-      item.itemStatus === 'return_approved'  ? 'bg-blue-100 text-blue-700' :
-      item.itemStatus === 'return_rejected'  ? 'bg-red-100 text-red-600' :
-      item.itemStatus === 'delivered'        ? 'bg-green-100 text-green-700' :
-      'bg-gray-100 text-gray-600' %>">
-                    <%= item.itemStatus %>
-                  </span>
-                </div>
 
-                <div class="mt-1.5 text-xs text-gray-500">
-                  ₹<%= item.pricing?.finalPrice?.toLocaleString('en-IN') %> × <%= item.quantity %>
-                  <% if(item.pricing?.discountAmount > 0) { %>
-                    <span class="text-green-600 ml-1">(-₹<%= item.pricing.discountAmount.toLocaleString('en-IN') %>)</span>
+                  <!-- Qty + unit price + status -->
+                  <div class="flex flex-wrap items-center gap-2 mt-2.5">
+                    <span class="text-xs text-gray-500">
+                      ₹<%= item.pricing?.finalPrice?.toLocaleString('en-IN') %> × <%= item.quantity %>
+                    </span>
+                    <% if(item.pricing?.discountAmount > 0) { %>
+                      <span class="text-xs text-green-600 font-medium">
+                        -₹<%= item.pricing.discountAmount.toLocaleString('en-IN') %> off
+                      </span>
+                    <% } %>
+                    <span class="text-[11px] px-2.5 py-0.5 rounded-full font-bold uppercase tracking-wide <%= statusColor %>">
+                      <%= item.itemStatus.replace(/_/g,' ') %>
+                    </span>
+                  </div>
+
+                  <!-- Refund badge -->
+                  <% if(item.refund?.status === 'processed') { %>
+                    <div class="mt-2 inline-flex items-center gap-1.5 bg-emerald-50 border border-emerald-200 text-emerald-700 text-xs font-semibold px-3 py-1 rounded-full">
+                      <i class="fa-solid fa-rotate-left text-[10px]"></i>
+                      ₹<%= item.refund.amount?.toLocaleString('en-IN') %> refunded to wallet
+                    </div>
                   <% } %>
 
+                  <!-- Cancellation reason (visible to user) -->
+                  <% if(item.itemStatus === 'cancelled' && item.cancel) { %>
+                    <div class="mt-2 bg-red-50 border border-red-100 rounded-xl px-3 py-2.5 text-xs">
+                      <% if(item.cancel.reason) { %>
+                        <p class="text-red-700 font-semibold capitalize">
+                          <i class="fa-solid fa-ban text-[10px] mr-1"></i>
+                          <%= item.cancel.reason.replace(/_/g,' ') %>
+                        </p>
+                      <% } %>
+                      <% if(item.cancel.comments) { %>
+                        <p class="text-gray-500 mt-0.5"><%= item.cancel.comments %></p>
+                      <% } %>
+                    </div>
+                  <% } %>
+
+                  <!-- Return info box -->
                   <% if(item.itemStatus.includes('return') && item.return) { %>
-  <div class="mt-2 border rounded-lg p-2 text-xs
-    <%= item.itemStatus === 'return_rejected' ? 'bg-red-50 border-red-100' :
-        item.itemStatus === 'return_approved' ? 'bg-blue-50 border-blue-100' :
-        'bg-yellow-50 border-yellow-100' %>">
+                    <div class="mt-3 rounded-xl p-3 text-xs border
+                      <%= item.itemStatus === 'return_rejected' ? 'bg-red-50 border-red-100' :
+                          item.itemStatus === 'return_approved' ? 'bg-blue-50 border-blue-100' :
+                          'bg-amber-50 border-amber-100' %>">
+                      <% if(item.return.reason) { %>
+                        <p class="text-gray-600"><span class="font-semibold">Reason:</span> <%= item.return.reason.replace(/_/g,' ') %></p>
+                      <% } %>
+                      <% if(item.return.comments) { %>
+                        <p class="text-gray-500 mt-0.5"><span class="font-semibold">Comment:</span> <%= item.return.comments %></p>
+                      <% } %>
+                      <% if(item.itemStatus === 'return_rejected' && item.return.rejectReason) { %>
+                        <p class="text-red-600 mt-1 font-medium"><span class="font-semibold">Rejected:</span> <%= item.return.rejectReason %></p>
+                        <a href="/support" class="mt-2 inline-flex items-center gap-1 text-xs bg-blue-600 text-white px-3 py-1 rounded-lg hover:bg-blue-700 transition">
+                          <i class="fa-solid fa-headset text-[10px]"></i> Contact Support
+                        </a>
+                      <% } %>
+                      <% if(item.itemStatus === 'pickup_scheduled' && item.return?.pickupDate) { %>
+                        <p class="text-amber-700 mt-1"><i class="fa-solid fa-truck text-[10px] mr-1"></i>Pickup: <%= new Date(item.return.pickupDate).toLocaleDateString('en-IN') %></p>
+                      <% } %>
+                      <% if(item.itemStatus === 'returned' && item.return?.pickupCompletedAt) { %>
+                        <p class="text-green-600 mt-1"><i class="fa-solid fa-check text-[10px] mr-1"></i>Returned on <%= new Date(item.return.pickupCompletedAt).toLocaleDateString('en-IN') %></p>
+                      <% } %>
+                    </div>
+                  <% } %>
 
-    <!-- STATUS TITLE -->
-    <p class="font-semibold
-      <%= item.itemStatus === 'return_rejected' ? 'text-red-600' :
-          item.itemStatus === 'return_approved' ? 'text-blue-600' :
-          'text-yellow-700' %>">
+                  <!-- Action buttons -->
+                  <div class="flex flex-wrap gap-2 mt-3">
+                    <% if(item.itemStatus === 'delivered') { %>
+                      <button onclick="openReturnModal('<%= item._id %>')"
+                        class="text-xs text-blue-600 border border-blue-200 px-3 py-1.5 rounded-lg hover:bg-blue-50 font-semibold transition flex items-center gap-1">
+                        <i class="fa-solid fa-rotate-left text-[10px]"></i> Return
+                      </button>
+                    <% } %>
+                    <% if(['placed','confirmed'].includes(order.orderStatus) && ['placed','confirmed'].includes(item.itemStatus) && items.length > 1 && (!order.pricing?.couponDiscount || order.pricing.couponDiscount === 0)) { %>
+                      <button onclick="openCancelModal(true, '<%= item._id %>')"
+                        class="text-xs text-red-600 border border-red-200 px-3 py-1.5 rounded-lg hover:bg-red-50 font-semibold transition flex items-center gap-1">
+                        <i class="fa-solid fa-xmark text-[10px]"></i> Cancel Item
+                      </button>
+                    <% } %>
+                  </div>
 
-      <%= item.itemStatus.replace(/_/g, ' ') %>
-    </p>
-
-    <!-- USER REASON -->
-    <% if(item.return.reason) { %>
-      <p class="text-gray-600 mt-1">
-        Reason: <%= item.return.reason.replace(/_/g, ' ') %>
-      </p>
-    <% } %>
-
-    <!-- USER COMMENT -->
-    <% if(item.return.comments) { %>
-      <p class="text-gray-500 mt-1">
-        Comment: <%= item.return.comments %>
-      </p>
-    <% } %>
-
-    <!-- ❌ REJECT REASON -->
-    <% if(item.itemStatus === 'return_rejected' && item.return.rejectReason) { %>
-  <p class="text-red-500 mt-1 font-medium">
-    Reject Reason: <%= item.return.rejectReason %>
-  </p>
-
-  <!-- 🔥 CONTACT SUPPORT BUTTON -->
-  <div class="mt-2 inline-flex items-center gap-1 text-xs bg-blue-600 text-white px-3 py-1 rounded hover:bg-blue-700 transition">
-      <i class="fa-solid fa-headset"></i>
-      Contact Support
-  </div>
-<% } %>
-  </div>
-<% } %>
-
-<!-- 📦 PICKUP STATUS -->
-<% if(item.itemStatus === 'pickup_scheduled' && item.return?.pickupDate) { %>
-  <p class="text-xs text-yellow-400 mt-1">
-    Pickup Scheduled: <%= new Date(item.return.pickupDate).toLocaleDateString('en-IN') %>
-  </p>
-<% } %>
-
-<!-- PICKUP COMPLETED -->
-<% if(item.itemStatus === 'returned' && item.return?.pickupCompletedAt) { %>
-  <p class="text-xs text-green-400 mt-1">
-    Pickup Completed: <%= new Date(item.return.pickupCompletedAt).toLocaleDateString('en-IN') %>
-  </p>
-<% } %>
                 </div>
               </div>
-
-              <!-- Price + Action -->
-              <div class="text-right shrink-0 flex flex-col items-end gap-2">
-                <p class="text-sm font-bold text-gray-900">₹<%= item.pricing?.total?.toLocaleString('en-IN') %></p>
-                <% if(item.itemStatus === 'delivered') { %>
-                  <button onclick="openReturnModal('<%= item._id %>')"
-                    class="text-xs text-blue-600 border border-blue-200 px-2.5 py-1 rounded-lg hover:bg-blue-50 font-medium transition">
-                    Return
-                  </button>
-                 
-                <% } %>
-                <% if(['placed','confirmed'].includes(order.orderStatus) && item.itemStatus !=='cancelled' && items.length > 1) { %>
-                  <% if (!order.pricing?.couponDiscount || order.pricing.couponDiscount === 0) { %>
-                  <button onclick="openCancelModal(true, '<%= item._id %>')"
-                    class="text-xs text-red-600 border border-red-200 px-2.5 py-1 rounded-lg hover:bg-red-50 font-medium transition">
-                    Cancel Item
-                  </button>
-                  <% } %>
-                <% } %>
-                <% if(item.refund?.status === 'processed') { %>
-                  <span class="text-xs text-green-600 bg-green-50 border border-green-100 px-2.5 py-1 rounded-lg font-medium">
-                    ₹<%= item.refund.amount?.toLocaleString('en-IN') %> Refunded
-                  </span>
-                <% } %>
             </div>
           <% }) %>
         </div>

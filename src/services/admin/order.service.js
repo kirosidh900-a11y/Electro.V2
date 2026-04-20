@@ -1,5 +1,6 @@
 import Order from "../../models/orderSchema.model.js";
 import orderItem from "../../models/orderItemSchema.model.js";
+import Products from "../../models/productSchema.model.js";
 import AppError from "../../utils/partials/AppError.utils.js";
 // LABELS (MOVE HERE)
 const STATUS_LABELS = {
@@ -244,24 +245,26 @@ export const handleReturnRequestService = async ({
   if (!item) throw new AppError("Item not found");
 
   if (item.itemStatus !== "return_requested") {
-    throw new AppError("Invalid return state");
+    throw new AppError("Invalid return state — item must be in return_requested status");
   }
 
-  // APPROVE
+  // Ensure return subdoc exists
+  if (!item.return) item.return = {};
+
   if (action === "approve") {
-    item.itemStatus = "return_approved";
+    item.itemStatus        = "return_approved";
     item.return.approvedAt = new Date();
-  }
-
-  // ❌ REJECT
-  if (action === "reject") {
-    item.itemStatus = "return_rejected";
-    item.return.rejectedAt = new Date();
-    item.return.rejectReason = rejectReason;
+    item.markModified("return");
+  } else if (action === "reject") {
+    item.itemStatus           = "return_rejected";
+    item.return.rejectedAt    = new Date();
+    item.return.rejectReason  = rejectReason || "No reason provided";
+    item.markModified("return");
+  } else {
+    throw new AppError("Invalid action — must be approve or reject");
   }
 
   await item.save();
-
   return item;
 };
 
@@ -322,7 +325,7 @@ const VALID_ITEM_STATUSES = [
   "return_rejected", "returned", "refund_pending", "refund_processed",
 ];
 
-export const updateItemStatusService = async (itemId, newStatus) => {
+export const updateItemStatusService = async (itemId, newStatus, reason = null, comment = null) => {
   if (!VALID_ITEM_STATUSES.includes(newStatus)) {
     throw new AppError(`Invalid item status: ${newStatus}`, 400);
   }
@@ -331,6 +334,18 @@ export const updateItemStatusService = async (itemId, newStatus) => {
   if (!item) throw new AppError("Order item not found", 404);
 
   item.itemStatus = newStatus;
+
+  // Store cancel reason if provided
+  if (newStatus === "cancelled" && reason) {
+    item.cancel = {
+      ...(item.cancel || {}),
+      reason,
+      comments:    comment || "",
+      cancelledAt: new Date(),
+      requestedAt: new Date(),
+    };
+  }
+
   await item.save();
   return item;
 };

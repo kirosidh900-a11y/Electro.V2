@@ -205,18 +205,32 @@
                     </div>
                     <!-- Admin item status update -->
                     <div class="shrink-0 flex items-center gap-2">
-                      <select id="item-status-<%= item._id %>"
-                        class="bg-[#0f172a] border border-white/10 text-gray-200 text-xs rounded-lg px-2 py-1.5 focus:outline-none focus:border-cyan-500">
-                        <% ['placed','confirmed','shipped','out_for_delivery','delivered','cancelled'].forEach(s => { %>
-                          <option value="<%= s %>" <%= item.itemStatus === s ? 'selected' : '' %>>
-                            <%= s.replace(/_/g,' ').replace(/\b\w/g,c=>c.toUpperCase()) %>
-                          </option>
-                        <% }) %>
-                      </select>
-                      <button onclick="updateItemStatus('<%= item._id %>')"
-                        class="px-2.5 py-1.5 bg-cyan-600 hover:bg-cyan-700 text-white text-xs font-semibold rounded-lg transition">
-                        Update
-                      </button>
+                      <% const isTerminal = ['cancelled','refund_processed','returned'].includes(item.itemStatus); %>
+                      <% if (!isTerminal) { %>
+                        <select id="item-status-<%= item._id %>"
+                          class="bg-[#0f172a] border border-white/10 text-gray-200 text-xs rounded-lg px-2 py-1.5 focus:outline-none focus:border-cyan-500">
+                          <% ['placed','confirmed','shipped','out_for_delivery','delivered','cancelled','return_requested','return_approved','pickup_scheduled','returned'].forEach(s => { %>
+                            <option value="<%= s %>" <%= item.itemStatus === s ? 'selected' : '' %>>
+                              <%= s.replace(/_/g,' ').replace(/\b\w/g,c=>c.toUpperCase()) %>
+                            </option>
+                          <% }) %>
+                        </select>
+                        <button onclick="updateItemStatus('<%= item._id %>')"
+                          class="px-2.5 py-1.5 bg-cyan-600 hover:bg-cyan-700 text-white text-xs font-semibold rounded-lg transition">
+                          Update
+                        </button>
+                      <% } %>
+                      <% if(item.itemStatus === 'returned' && item.refund?.status !== 'processed') { %>
+                        <button onclick="processRefund('<%= item._id %>', '<%= order._id %>')"
+                          class="px-2.5 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold rounded-lg transition flex items-center gap-1">
+                          <i class="fas fa-wallet text-[10px]"></i> Refund
+                        </button>
+                      <% } %>
+                      <% if(item.refund?.status === 'processed') { %>
+                        <span class="text-[10px] font-bold text-emerald-400 bg-emerald-500/10 px-2 py-1 rounded-lg whitespace-nowrap">
+                          ✓ ₹<%= item.refund.amount?.toLocaleString('en-IN') %> Refunded
+                        </span>
+                      <% } %>
                     </div>
                   </div>
                 <% }) %>
@@ -421,7 +435,41 @@
     </main>
   </div>
 
-  <!-- UPDATE STATUS MODAL -->
+  <!-- ITEM CANCEL REASON MODAL -->
+  <div id="itemCancelModal" class="fixed inset-0 hidden items-center justify-center bg-black/60 z-50">
+    <div class="bg-[#0b1220] border border-white/10 rounded-xl w-[90%] max-w-md p-6 shadow-2xl">
+      <div class="flex justify-between items-center mb-4">
+        <h2 class="text-white font-semibold text-lg">Cancel Item</h2>
+        <button onclick="closeItemCancelModal()" class="text-gray-400 hover:text-white"><i class="fas fa-times"></i></button>
+      </div>
+      <p class="text-gray-400 text-sm mb-4">Select a reason for cancelling this item.</p>
+      <div class="space-y-3 mb-5">
+        <select id="itemCancelReason"
+          class="w-full bg-[#0f172a] border border-white/10 text-gray-200 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:border-red-500">
+          <option value="">Select reason *</option>
+          <option value="out_of_stock">Out of Stock</option>
+          <option value="customer_request">Customer Request</option>
+          <option value="payment_failed">Payment Failed</option>
+          <option value="fraud_suspected">Fraud Suspected</option>
+          <option value="pricing_error">Pricing Error</option>
+          <option value="other">Other</option>
+        </select>
+        <textarea id="itemCancelComment" rows="2" placeholder="Additional comments (optional)"
+          class="w-full bg-[#0f172a] border border-white/10 text-gray-200 rounded-lg px-3 py-2.5 text-sm resize-none focus:outline-none focus:border-red-500 placeholder-gray-600"></textarea>
+      </div>
+      <div id="itemCancelRefundNote" class="hidden mb-4 bg-emerald-500/10 border border-emerald-500/20 rounded-lg px-3 py-2 text-xs text-emerald-400">
+        <i class="fas fa-wallet mr-1.5"></i>
+        Refund will be automatically credited to customer's wallet.
+      </div>
+      <div class="flex gap-3 justify-end">
+        <button onclick="closeItemCancelModal()" class="px-4 py-2 bg-gray-600 hover:bg-gray-700 text-white rounded-lg text-sm">Back</button>
+        <button onclick="submitItemCancel()" id="itemCancelSubmitBtn"
+          class="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg text-sm font-bold">
+          Cancel Item
+        </button>
+      </div>
+    </div>
+  </div>
   <div id="updateModal" class="fixed inset-0 hidden items-center justify-center bg-black/60 z-50">
     <div class="bg-[#0b1220] border border-white/10 rounded-xl w-[90%] max-w-md p-6 shadow-2xl">
       <div class="flex justify-between items-center mb-4">
@@ -528,10 +576,19 @@
   };
 
   // ── Item-level status update ──────────────────────────────────────────────
+  let _pendingCancelItemId = null;
+
   window.updateItemStatus = async (itemId) => {
     const select = document.getElementById(`item-status-${itemId}`);
     const status = select?.value;
     if (!status) return;
+
+    // Intercept cancel — show reason modal
+    if (status === 'cancelled') {
+      _pendingCancelItemId = itemId;
+      openItemCancelModal();
+      return;
+    }
 
     try {
       const res  = await fetch(`/admin/orders/items/${itemId}/status`, {
@@ -542,8 +599,95 @@
       const data = await res.json();
       if (!res.ok) throw new Error(data.message);
       showToast(`Item status updated to "${status.replace(/_/g,' ')}"`, 'success');
+      setTimeout(() => location.reload(), 600);
     } catch (err) {
       showToast(err.message || 'Update failed', 'error');
+    }
+  };
+
+  // ── Item cancel modal ─────────────────────────────────────────────────────
+  const isPaid = '<%= ["paid","pending"].includes(order.payment?.status) && order.payment?.method !== "cod" ? "true" : "false" %>' === 'true';
+
+  function openItemCancelModal() {
+    document.getElementById('itemCancelReason').value  = '';
+    document.getElementById('itemCancelComment').value = '';
+    const note = document.getElementById('itemCancelRefundNote');
+    note.classList.toggle('hidden', !isPaid);
+    const m = document.getElementById('itemCancelModal');
+    m.classList.remove('hidden'); m.classList.add('flex');
+  }
+
+  window.closeItemCancelModal = () => {
+    const m = document.getElementById('itemCancelModal');
+    m.classList.add('hidden'); m.classList.remove('flex');
+    _pendingCancelItemId = null;
+    // Reset dropdown back to previous value
+    if (_pendingCancelItemId) {
+      const sel = document.getElementById(`item-status-${_pendingCancelItemId}`);
+      if (sel) sel.value = sel.dataset.original || 'placed';
+    }
+  };
+
+  window.submitItemCancel = async () => {
+    const reason  = document.getElementById('itemCancelReason').value;
+    const comment = document.getElementById('itemCancelComment').value.trim();
+
+    if (!reason) { showToast('Please select a cancellation reason', 'error'); return; }
+
+    const btn = document.getElementById('itemCancelSubmitBtn');
+    btn.disabled = true; btn.textContent = 'Cancelling...';
+
+    try {
+      // Step 1: update status to cancelled with reason
+      const res = await fetch(`/admin/orders/items/${_pendingCancelItemId}/status`, {
+        method:  'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body:    JSON.stringify({ status: 'cancelled', reason, comment }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.message);
+
+      // Step 2: auto-refund if order was paid (non-COD)
+      if (isPaid) {
+        const refundRes = await fetch(`/admin/orders/items/${_pendingCancelItemId}/refund`, {
+          method:  'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body:    JSON.stringify({ orderId: '<%= order._id %>' }),
+        });
+        const refundData = await refundRes.json();
+        if (refundRes.ok && refundData.refundAmount) {
+          showToast(`Item cancelled & ₹${refundData.refundAmount.toLocaleString('en-IN')} refunded to wallet`, 'success');
+        } else {
+          showToast('Item cancelled (refund skipped)', 'success');
+        }
+      } else {
+        showToast('Item cancelled successfully', 'success');
+      }
+
+      setTimeout(() => location.reload(), 800);
+    } catch (err) {
+      showToast(err.message || 'Cancel failed', 'error');
+      btn.disabled = false; btn.textContent = 'Cancel Item';
+    }
+  };
+
+  // ── Manual refund trigger ─────────────────────────────────────────────────
+  window.processRefund = async (itemId, orderId) => {
+    const confirmed = await confirmAction('Process wallet refund for this item?');
+    if (!confirmed) return;
+
+    try {
+      const res  = await fetch(`/admin/orders/items/${itemId}/refund`, {
+        method:  'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body:    JSON.stringify({ orderId }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.message);
+      showToast(`Refunded ₹${data.refundAmount?.toLocaleString('en-IN')} to wallet`, 'success');
+      setTimeout(() => location.reload(), 700);
+    } catch (err) {
+      showToast(err.message || 'Refund failed', 'error');
     }
   };
 
@@ -753,9 +897,10 @@
   // =============================
   // 🔹 GLOBAL ACCESS (EJS onclick)
   // =============================
-  window.openRejectModal = openRejectModal;
+  window.openRejectModal  = openRejectModal;
   window.closeRejectModal = closeRejectModal;
-  window.submitReject = submitReject;
+  window.submitReject     = submitReject;
+  window.handleReturnAction = handleReturnAction;
 
   window.openPickupModal = openPickupModal;
   window.closePickupModal = closePickupModal;

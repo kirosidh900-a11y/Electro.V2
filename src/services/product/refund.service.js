@@ -91,11 +91,11 @@ export const processItemRefund = async ({
 
   // Update order payment status to refunded if all paid items are refunded
   const allItems = await OrderItem.find({ orderId });
-  const allRefunded = allItems.every(i =>
+  const allSettled = allItems.every(i =>
     ["cancelled", "returned", "refund_processed"].includes(i.itemStatus)
   );
-  if (allRefunded && order.payment.status === "paid") {
-    order.payment.status    = "refunded";
+  if (allSettled && ["paid", "pending"].includes(order.payment.status)) {
+    order.payment.status     = "refunded";
     order.payment.refundedAt = new Date();
     await order.save();
   }
