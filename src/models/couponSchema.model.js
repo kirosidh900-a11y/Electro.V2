@@ -115,7 +115,6 @@ const couponSchema = new Schema(
 
 
 //  INDEXES
-couponSchema.index({ code: 1 });
 couponSchema.index({ startDate: 1, expiryDate: 1 });
 
 
