@@ -1,0 +1,253 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head><%- include('../../partials/head') %></head>
+<body class="min-h-screen flex">
+
+<%- include('../../partials/admin/sidebar') %>
+
+<div id="mainContent" class="flex-1 flex flex-col min-w-0 transition-all duration-300">
+  <%- include('../../partials/admin/header') %>
+
+  <main class="flex-1 p-4 sm:p-6 lg:p-8 space-y-6">
+
+    <!-- Page Header -->
+    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+      <div>
+        <h1 class="text-2xl font-bold text-white tracking-tight flex items-center gap-2">
+          <i class="fas fa-chart-bar text-cyan-400"></i> Sales Report
+        </h1>
+        <p class="text-sm text-gray-400 mt-1">Track revenue, discounts, and order trends</p>
+      </div>
+      <!-- Download buttons -->
+      <div class="flex gap-2 flex-wrap">
+        <a id="pdfBtn" href="#"
+          class="flex items-center gap-2 px-4 py-2 bg-red-500/20 hover:bg-red-500/30 text-red-400 border border-red-500/20 rounded-lg text-xs font-bold transition">
+          <i class="fas fa-file-pdf"></i> PDF
+        </a>
+        <a id="excelBtn" href="#"
+          class="flex items-center gap-2 px-4 py-2 bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-400 border border-emerald-500/20 rounded-lg text-xs font-bold transition">
+          <i class="fas fa-file-excel"></i> Excel
+        </a>
+      </div>
+    </div>
+
+    <!-- Filter Bar -->
+    <form method="GET" action="/admin/reports/sales" id="filterForm"
+      class="bg-[#0b1220] border border-white/5 rounded-2xl p-5 flex flex-wrap gap-4 items-end">
+
+      <!-- Preset -->
+      <div class="flex flex-col gap-1.5">
+        <label class="text-xs text-gray-400 font-semibold uppercase tracking-wider">Period</label>
+        <div class="flex gap-1.5 flex-wrap">
+          <% ['today','yesterday','weekly','monthly','yearly','custom'].forEach(p => { %>
+            <button type="button" onclick="setPreset('<%= p %>')"
+              class="preset-btn px-3 py-1.5 rounded-lg text-xs font-bold border transition
+              <%= preset === p ? 'bg-cyan-600 text-white border-cyan-600' : 'bg-white/5 text-gray-400 border-white/10 hover:border-cyan-500/50' %>"
+              data-preset="<%= p %>">
+              <%= p.charAt(0).toUpperCase() + p.slice(1) %>
+            </button>
+          <% }) %>
+        </div>
+        <input type="hidden" name="preset" id="presetInput" value="<%= preset %>">
+      </div>
+
+      <!-- Custom date range -->
+      <div id="customRange" class="flex gap-3 <%= preset === 'custom' ? '' : 'hidden' %>">
+        <div class="flex flex-col gap-1.5">
+          <label class="text-xs text-gray-400 font-semibold uppercase tracking-wider">From</label>
+          <input type="date" name="from" value="<%= from %>"
+            class="bg-[#0f172a] border border-white/10 text-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-cyan-500">
+        </div>
+        <div class="flex flex-col gap-1.5">
+          <label class="text-xs text-gray-400 font-semibold uppercase tracking-wider">To</label>
+          <input type="date" name="to" value="<%= to %>"
+            class="bg-[#0f172a] border border-white/10 text-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-cyan-500">
+        </div>
+      </div>
+
+      <button type="submit"
+        class="px-5 py-2 bg-cyan-600 hover:bg-cyan-700 text-white rounded-lg text-sm font-bold transition self-end">
+        <i class="fas fa-search mr-1.5"></i> Apply
+      </button>
+    </form>
+
+    <!-- Summary Cards -->
+    <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
+      <%
+        const cards = [
+          { label: 'Total Orders',    value: summary.totalOrders,                          icon: 'fa-bag-shopping',   color: 'cyan'    },
+          { label: 'Total Revenue',   value: '₹' + summary.totalRevenue.toLocaleString('en-IN'),   icon: 'fa-indian-rupee-sign', color: 'emerald' },
+          { label: 'Total Discount',  value: '₹' + summary.totalDiscount.toLocaleString('en-IN'),  icon: 'fa-tag',            color: 'amber'   },
+          { label: 'Coupon Savings',  value: '₹' + summary.totalCoupon.toLocaleString('en-IN'),    icon: 'fa-ticket',         color: 'violet'  },
+        ];
+        const colorMap = {
+          cyan:    { bg: 'bg-cyan-500/10',    text: 'text-cyan-400',    border: 'border-cyan-500/20'    },
+          emerald: { bg: 'bg-emerald-500/10', text: 'text-emerald-400', border: 'border-emerald-500/20' },
+          amber:   { bg: 'bg-amber-500/10',   text: 'text-amber-400',   border: 'border-amber-500/20'   },
+          violet:  { bg: 'bg-violet-500/10',  text: 'text-violet-400',  border: 'border-violet-500/20'  },
+        };
+      %>
+      <% cards.forEach(card => { %>
+        <% const c = colorMap[card.color]; %>
+        <div class="bg-[#0b1220] border border-white/5 rounded-2xl p-5 flex items-center gap-4">
+          <div class="w-11 h-11 rounded-xl <%= c.bg %> <%= c.border %> border flex items-center justify-center shrink-0">
+            <i class="fas <%= card.icon %> <%= c.text %>"></i>
+          </div>
+          <div>
+            <p class="text-xs text-gray-400 uppercase tracking-wider"><%= card.label %></p>
+            <p class="text-xl font-black text-white mt-0.5"><%= card.value %></p>
+          </div>
+        </div>
+      <% }) %>
+    </div>
+
+    <!-- Secondary stats -->
+    <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
+      <div class="bg-[#0b1220] border border-white/5 rounded-xl p-4">
+        <p class="text-xs text-gray-500 uppercase tracking-wider mb-1">Avg Order Value</p>
+        <p class="text-lg font-bold text-white">₹<%= Math.round(summary.avgOrderValue || 0).toLocaleString('en-IN') %></p>
+      </div>
+      <div class="bg-[#0b1220] border border-white/5 rounded-xl p-4">
+        <p class="text-xs text-gray-500 uppercase tracking-wider mb-1">Product Discounts</p>
+        <p class="text-lg font-bold text-amber-400">₹<%= (summary.totalProductDisc || 0).toLocaleString('en-IN') %></p>
+      </div>
+      <div class="bg-[#0b1220] border border-white/5 rounded-xl p-4">
+        <p class="text-xs text-gray-500 uppercase tracking-wider mb-1">GST Collected</p>
+        <p class="text-lg font-bold text-blue-400">₹<%= (summary.totalGST || 0).toLocaleString('en-IN') %></p>
+      </div>
+      <div class="bg-[#0b1220] border border-white/5 rounded-xl p-4">
+        <p class="text-xs text-gray-500 uppercase tracking-wider mb-1">Delivery Charges</p>
+        <p class="text-lg font-bold text-gray-300">₹<%= (summary.totalDelivery || 0).toLocaleString('en-IN') %></p>
+      </div>
+    </div>
+
+    <!-- Daily Breakdown Chart -->
+    <% if(dailyBreakdown.length > 0) { %>
+    <div class="bg-[#0b1220] border border-white/5 rounded-2xl p-6">
+      <h2 class="text-sm font-bold text-gray-300 uppercase tracking-wider mb-5">Daily Trend</h2>
+      <div class="overflow-x-auto">
+        <div class="flex items-end gap-2 min-w-max h-40">
+          <%
+            const maxRev = Math.max(...dailyBreakdown.map(d => d.revenue), 1);
+          %>
+          <% dailyBreakdown.forEach(day => { %>
+            <%
+              const barH = Math.max(Math.round((day.revenue / maxRev) * 100), 4);
+            %>
+            <div class="flex flex-col items-center gap-1 group">
+              <div class="relative">
+                <div class="w-8 bg-cyan-600/30 hover:bg-cyan-500/50 rounded-t transition cursor-default"
+                  style="height: <%= barH %>px"
+                  title="₹<%= day.revenue.toLocaleString('en-IN') %> | <%= day.orders %> orders">
+                </div>
+              </div>
+              <span class="text-[9px] text-gray-500 rotate-45 origin-left whitespace-nowrap mt-1">
+                <%= day._id.slice(5) %>
+              </span>
+            </div>
+          <% }) %>
+        </div>
+      </div>
+    </div>
+    <% } %>
+
+    <!-- Orders Table -->
+    <div class="bg-[#0b1220] border border-white/5 rounded-2xl overflow-hidden">
+      <div class="px-6 py-4 border-b border-white/5 flex items-center justify-between">
+        <h2 class="text-sm font-bold text-gray-300 uppercase tracking-wider">
+          Orders (<%= totalOrders %>)
+        </h2>
+      </div>
+
+      <div class="overflow-x-auto">
+        <table class="w-full text-sm">
+          <thead>
+            <tr class="border-b border-white/5 bg-white/5">
+              <th class="px-5 py-3 text-left text-xs text-gray-400 font-bold uppercase tracking-wider">Order #</th>
+              <th class="px-5 py-3 text-left text-xs text-gray-400 font-bold uppercase tracking-wider">Date</th>
+              <th class="px-5 py-3 text-left text-xs text-gray-400 font-bold uppercase tracking-wider">Customer</th>
+              <th class="px-5 py-3 text-left text-xs text-gray-400 font-bold uppercase tracking-wider">Status</th>
+              <th class="px-5 py-3 text-right text-xs text-gray-400 font-bold uppercase tracking-wider">Subtotal</th>
+              <th class="px-5 py-3 text-right text-xs text-gray-400 font-bold uppercase tracking-wider">Discount</th>
+              <th class="px-5 py-3 text-right text-xs text-gray-400 font-bold uppercase tracking-wider">Coupon</th>
+              <th class="px-5 py-3 text-right text-xs text-gray-400 font-bold uppercase tracking-wider">Total</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-white/5">
+            <% if(orders.length === 0) { %>
+              <tr><td colspan="8" class="text-center text-gray-500 py-12">No orders found for this period.</td></tr>
+            <% } %>
+            <% orders.forEach(order => { %>
+              <tr class="hover:bg-white/5 transition cursor-pointer" onclick="location.href='/admin/orders/<%= order._id %>'">
+                <td class="px-5 py-3 font-mono text-xs text-cyan-400"><%= order.orderNumber %></td>
+                <td class="px-5 py-3 text-gray-400 text-xs"><%= new Date(order.createdAt).toLocaleDateString('en-IN') %></td>
+                <td class="px-5 py-3 text-gray-200 text-xs"><%= order.userId?.name || '—' %></td>
+                <td class="px-5 py-3">
+                  <span class="text-[10px] font-bold uppercase px-2 py-0.5 rounded-full
+                    <%= order.orderStatus === 'delivered'   ? 'bg-emerald-500/20 text-emerald-400' :
+                        order.orderStatus === 'cancelled'   ? 'bg-red-500/20 text-red-400' :
+                        order.orderStatus === 'shipped' || order.orderStatus === 'out_for_delivery' ? 'bg-violet-500/20 text-violet-400' :
+                        'bg-yellow-500/20 text-yellow-400' %>">
+                    <%= order.orderStatus.replace(/_/g,' ') %>
+                  </span>
+                </td>
+                <td class="px-5 py-3 text-right text-gray-300 text-xs">₹<%= (order.pricing?.subtotal || 0).toLocaleString('en-IN') %></td>
+                <td class="px-5 py-3 text-right text-amber-400 text-xs">
+                  -₹<%= ((order.pricing?.productDiscount || 0) + (order.pricing?.couponDiscount || 0)).toLocaleString('en-IN') %>
+                </td>
+                <td class="px-5 py-3 text-right text-violet-400 text-xs">
+                  -₹<%= (order.pricing?.couponDiscount || 0).toLocaleString('en-IN') %>
+                </td>
+                <td class="px-5 py-3 text-right font-bold text-emerald-400">₹<%= (order.pricing?.finalAmount || 0).toLocaleString('en-IN') %></td>
+              </tr>
+            <% }) %>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Pagination -->
+      <% if(totalPages > 1) { %>
+        <div class="px-6 py-4 border-t border-white/5 flex items-center justify-between">
+          <p class="text-xs text-gray-500">Page <%= currentPage %> of <%= totalPages %></p>
+          <div class="flex gap-2">
+            <% if(currentPage > 1) { %>
+              <a href="?preset=<%= preset %>&from=<%= from %>&to=<%= to %>&page=<%= currentPage - 1 %>"
+                class="px-3 py-1.5 bg-white/5 hover:bg-white/10 text-gray-300 rounded-lg text-xs transition">← Prev</a>
+            <% } %>
+            <% if(currentPage < totalPages) { %>
+              <a href="?preset=<%= preset %>&from=<%= from %>&to=<%= to %>&page=<%= currentPage + 1 %>"
+                class="px-3 py-1.5 bg-cyan-600 hover:bg-cyan-700 text-white rounded-lg text-xs transition">Next →</a>
+            <% } %>
+          </div>
+        </div>
+      <% } %>
+    </div>
+
+  </main>
+</div>
+
+<script>
+  // Sync download button URLs with current filters
+  const params = new URLSearchParams(window.location.search);
+  document.getElementById('pdfBtn').href   = '/admin/reports/sales/pdf?'   + params.toString();
+  document.getElementById('excelBtn').href = '/admin/reports/sales/excel?' + params.toString();
+
+  function setPreset(p) {
+    document.getElementById('presetInput').value = p;
+    document.querySelectorAll('.preset-btn').forEach(btn => {
+      const active = btn.dataset.preset === p;
+      btn.classList.toggle('bg-cyan-600',    active);
+      btn.classList.toggle('text-white',     active);
+      btn.classList.toggle('border-cyan-600',active);
+      btn.classList.toggle('bg-white/5',     !active);
+      btn.classList.toggle('text-gray-400',  !active);
+      btn.classList.toggle('border-white/10',!active);
+    });
+    const range = document.getElementById('customRange');
+    range.classList.toggle('hidden', p !== 'custom');
+    if (p !== 'custom') document.getElementById('filterForm').submit();
+  }
+</script>
+
+</body>
+</html>

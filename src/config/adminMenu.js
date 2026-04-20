@@ -23,7 +23,8 @@ export const adminMenu = [
     ],
   },
 
-  { name: "Orders", icon: "fas fa-clipboard-list", path: "/admin/orders" },
+  { name: "Orders",  icon: "fas fa-clipboard-list", path: "/admin/orders" },
+  { name: "Reports", icon: "fas fa-chart-bar",      path: "/admin/reports/sales" },
   // { name: "Coupons", icon: "fas fa-ticket-alt", path: "/admin/coupons" },
   // { name: "Reviews", icon: "fas fa-star", path: "/admin/reviews" },
   // { name: "Settings", icon: "fas fa-cog", path: "/admin/settings" },

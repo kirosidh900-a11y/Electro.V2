@@ -11,6 +11,8 @@ import authRouter from "./auth.route.js";
 import ordersRouter from './orders.route.js';
 import couponRouter from './coupon.route.js';
 
+import reportRouter from "./report.route.js";
+
 const router = Router();
 
 // Prevent caching of protected pages
@@ -25,6 +27,7 @@ router.use("/products", productsRouter);
 router.use("/offers", offersRouter);
 router.use("/orders", ordersRouter);
 router.use("/coupons", couponRouter);
+router.use("/reports", reportRouter);
 router.use("/", authRouter);
 
 export default router;
