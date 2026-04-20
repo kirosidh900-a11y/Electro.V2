@@ -7,6 +7,7 @@ import {
   cancelOrderService,
   returnOrderItemService,
 } from "../../services/user/order.service.js";
+import { generateInvoiceService } from "../../services/user/invoice.service.js";
 
 import renderView from "../../utils/admin/renderView.util.js";
 
@@ -233,5 +234,22 @@ export const returnOrderItem = async (req, res, next) => {
   } catch (error) {
     console.error("Return Order Error:", error);
     next(error);
+  }
+};
+
+export const downloadInvoice = async (req, res, next) => {
+  try {
+    const userId = req.user._id;
+    const { orderId } = req.params;
+
+    if (!mongoose.Types.ObjectId.isValid(orderId)) {
+      return res.status(400).json({ message: "Invalid order ID" });
+    }
+
+    await generateInvoiceService({ userId, orderId }, res);
+  } catch (error) {
+    console.error("Invoice Error:", error);
+    // If headers already sent (PDF started streaming), can't send JSON error
+    if (!res.headersSent) next(error);
   }
 };

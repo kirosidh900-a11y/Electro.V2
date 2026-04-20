@@ -7,6 +7,7 @@ import {
   cancelOrder,
   returnOrderItem,
   getOrderListingPage,
+  downloadInvoice,
 } from "../../../controllers/user/order.controller.js";
 
 const router = Router();
@@ -16,9 +17,9 @@ router.post("/place", placeOrder);
 router.get("/success/:orderId", getOrderSuccessPage);
 router.get("/failure/:orderId", getOrderFailurePage);
 router.get("/details/:orderId", getOrderDetailsPage);
+router.get("/invoice/:orderId", downloadInvoice);
 router.patch("/:orderId/item/:itemId/cancel", cancelOrder);
 router.patch("/:orderId/cancel", cancelOrder);
 router.patch("/:orderItemId/return", returnOrderItem);
-
 
 export default router;

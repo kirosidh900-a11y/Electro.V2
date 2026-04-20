@@ -897,6 +897,11 @@
   // =============================
   // 🔹 GLOBAL ACCESS (EJS onclick)
   // =============================
+  window.openUpdateModal  = () => openModal('updateModal');
+  window.closeUpdateModal = () => closeModal('updateModal');
+  window.openCancelModal  = () => openModal('cancelModal');
+  window.closeCancelModal = () => closeModal('cancelModal');
+
   window.openRejectModal  = openRejectModal;
   window.closeRejectModal = closeRejectModal;
   window.submitReject     = submitReject;
