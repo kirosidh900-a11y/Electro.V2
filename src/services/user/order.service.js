@@ -3,13 +3,12 @@ import Cart from "../../models/cartSchema.models.js";
 import Products from "../../models/productSchema.model.js";
 import Order from "../../models/orderSchema.model.js";
 
-import { applyPricingToProduct } from "../../utils/products/pricing.util.js";
+import { applyPricingToProduct, calculateBestPrice } from "../../utils/products/pricing.util.js";
 import { getActiveOffers } from "../../utils/products/offers.util.js";
 
 import AppError from "../../utils/partials/AppError.utils.js";
 import HTTP_STATUS from "../../constant/statusCode.js";
 import orderItem from "../../models/orderItemSchema.model.js";
-
 
 const generateOrderNumber = async () => {
   let isUnique = false;
@@ -35,47 +34,31 @@ export const placeOrderService = async ({
   paymentMethod,
 }) => {
   try {
-    if (paymentMethod !== "cod") {
-      throw new AppError(
-        "Only Cash on Delivery is available currently",
-        HTTP_STATUS.BAD_REQUEST,
-      );
+    if (!["cod", "razorpay", "wallet"].includes(paymentMethod)) {
+      throw new AppError("Invalid payment method", HTTP_STATUS.BAD_REQUEST);
     }
 
-    console.log(
-      "Placing order for user:",
-      userId,
-      "with address:",
-      addressId,
-      "and payment method:",
-      paymentMethod,
-    );
-
-    // 🛒 GET CART
     const cart = await Cart.findOne({ userId }).populate("items.productId");
 
     if (!cart || cart.items.length === 0) {
       throw new AppError("Cart is empty", HTTP_STATUS.BAD_REQUEST);
     }
 
-    // 📍 GET ADDRESS
     const address = await Address.findOne({ _id: addressId, userId });
 
     if (!address) {
       throw new AppError("Invalid address", HTTP_STATUS.NOT_FOUND);
     }
 
-    // 🎯 GET OFFERS
-    const allOffers = await getActiveOffers();
-
     let orderItems = [];
     let subtotal = 0;
     let gstTotal = 0;
+    let mrpTotal = 0;
+    let productDiscount = 0;
 
-    // ✅ GENERATE ONCE
     const orderNumber = await generateOrderNumber();
 
-    // ================= LOOP ITEMS =================
+    // ================= LOOP =================
     for (const item of cart.items) {
       const product = item.productId;
 
@@ -93,13 +76,20 @@ export const placeOrderService = async ({
 
       const variant = product.variants[index];
 
-      // 🔥 APPLY PRICING
-      const pricedProduct = applyPricingToProduct(product, allOffers);
-      const pricedVariant = pricedProduct.variants[index];
+      // 🔥 AVAILABLE STOCK CHECK
+      const availableStock = variant.stock - (variant.reserved || 0);
 
-      if (!pricedVariant) {
-        throw new AppError("Pricing error", HTTP_STATUS.BAD_REQUEST);
+      if (availableStock <= 0) {
+        throw new AppError(`${product.name} is out of stock`, HTTP_STATUS.CONFLICT);
       }
+
+      if (item.quantity > availableStock) {
+        throw new AppError(`Only ${availableStock} available for ${product.name}`, HTTP_STATUS.CONFLICT);
+      }
+
+      // 🔥 PRICING — use product-specific offers (same as cart page)
+      const productOffers = await getActiveOffers(product);
+      const pricedVariant = calculateBestPrice(variant, productOffers);
 
       const qty = item.quantity;
 
@@ -107,33 +97,78 @@ export const placeOrderService = async ({
       const gstAmount = pricedVariant.gstAmount;
       const finalPrice = pricedVariant.finalPrice;
 
-      const itemSubtotal = basePrice * qty;
-      const itemGST = gstAmount * qty;
-      const itemFinal = finalPrice * qty;
+      const itemSubtotal   = basePrice * qty;          // post-offer, pre-GST
+      const itemMRP        = (variant.regular_price || variant.price) * qty; // MRP
+      const itemGST        = gstAmount * qty;
+      const itemFinal      = finalPrice * qty;
+      const itemDiscount   = itemMRP - itemSubtotal;   // offer savings
 
-      subtotal += itemSubtotal;
-      gstTotal += itemGST;
+      subtotal        += itemSubtotal;
+      gstTotal        += itemGST;
+      mrpTotal        += itemMRP;
+      productDiscount += Math.max(0, itemDiscount);
 
-      const update = await Products.updateOne(
-        {
-          _id: product._id,
-          variants: {
-            $elemMatch: {
-              _id: variant._id,
-              stock: { $gte: qty },
+      let updatedProduct;
+
+      // ================= COD / WALLET =================
+      if (paymentMethod === "cod" || paymentMethod === "wallet") {
+        updatedProduct = await Products.findOneAndUpdate(
+          {
+            _id: product._id,
+            variants: {
+              $elemMatch: {
+                _id:   variant._id,
+                stock: { $gte: qty },
+              },
             },
           },
-        },
-        {
-          $inc: { "variants.$.stock": -qty },
-        },
-      );
-
-      if (update.modifiedCount === 0) {
-        throw new AppError("Stock changed or insufficient", 409);
+          {
+            $inc: { "variants.$.stock": -qty },
+          },
+          { returnDocument: "after" },
+        );
       }
 
-      // 📦 PREPARE ORDER ITEM
+      // ================= RAZORPAY =================
+      else if (paymentMethod === "razorpay") {
+        updatedProduct = await Products.findOneAndUpdate(
+          {
+            _id: product._id,
+            variants: {
+              $elemMatch: {
+                _id:      variant._id,
+                reserved: { $lte: variant.stock - qty }, // prevent over-reserve
+              },
+            },
+          },
+          {
+            $inc: { "variants.$.reserved": qty },
+          },
+          { returnDocument: "after" },
+        );
+      }
+
+      // ❗ CHECK UPDATE SUCCESS
+      if (!updatedProduct) {
+        throw new AppError("Stock conflict, try again", HTTP_STATUS.CONFLICT);
+      }
+
+      // 🔥 UPDATED VARIANT
+      const updatedVariant = updatedProduct.variants.id(variant._id);
+
+      const finalAvailable =
+        updatedVariant.stock - (updatedVariant.reserved || 0);
+
+      // 🔥 SOCKET UPDATE
+      if (global.io) {
+        global.io.emit("stockUpdated", {
+          productId: product._id,
+          variantId: variant._id,
+          stock: Math.max(finalAvailable, 0),
+        });
+      }
+
+      // ================= ORDER ITEM =================
       orderItems.push({
         productId: product._id,
         variantId: variant._id,
@@ -145,8 +180,7 @@ export const placeOrderService = async ({
         attributes: variant.attributes || {},
         images: variant.product_images?.map((img) => img.url) || [],
 
-        orderNumber, // optional (same for all items)
-
+        orderNumber,
         quantity: qty,
 
         pricing: {
@@ -159,30 +193,31 @@ export const placeOrderService = async ({
           discountAmount: (variant.regular_price || variant.price) - basePrice,
         },
 
-        itemStatus: "placed",
+        itemStatus: paymentMethod === "cod" || paymentMethod === "wallet" ? "placed" : "pending_payment",
       });
     }
 
-    // ================= FINAL CALC =================
-    const couponDiscount = cart.couponDiscountAmount || 0;
-    const deliveryCharge = subtotal > 500 ? 0 : 40;
+    // ================= FINAL =================
+    const couponDiscount  = cart.couponDiscountAmount || 0;
+    const finalPriceTotal = subtotal + gstTotal;                          // = sum of finalPrice×qty
+    const deliveryCharge  = (finalPriceTotal - couponDiscount) >= 500 ? 0 : 40;
+    // finalAmount = what user actually pays
+    // subtotal (finalPrice_total) already includes GST — do NOT add gstTotal again
+    const finalAmount = finalPriceTotal - couponDiscount + deliveryCharge;
 
-    const finalAmount = subtotal - couponDiscount + deliveryCharge + gstTotal;
-
-    // 📅 DELIVERY DATE
     const expectedDate = new Date();
-    expectedDate.setDate(expectedDate.getDate() + 5);
+    expectedDate.setDate(expectedDate.getDate() + 7);
 
-    // ================= CREATE ORDER =================
     const order = await Order.create({
       userId,
-      orderNumber, // ✅ CORRECT PLACE
+      orderNumber,
 
       pricing: {
-        subtotal,
+        subtotal:        finalPriceTotal,  // sum of finalPrice×qty (post-offer, GST included)
+        productDiscount,                   // MRP - basePrice savings (for display)
         couponDiscount,
         deliveryCharge,
-        gstTotal,
+        gstTotal,                          // informational — already inside subtotal
         finalAmount,
       },
 
@@ -201,18 +236,17 @@ export const placeOrderService = async ({
       },
 
       payment: {
-        method: "cod",
+        method: paymentMethod,
         status: "pending",
       },
 
-      orderStatus: "placed",
+      orderStatus: paymentMethod === "cod" || paymentMethod === "wallet" ? "placed" : "pending_payment",
 
       delivery: {
         expectedDate,
       },
     });
 
-    // ================= CREATE ORDER ITEMS =================
     await orderItem.insertMany(
       orderItems.map((item) => ({
         ...item,
@@ -221,12 +255,36 @@ export const placeOrderService = async ({
     );
 
     // 🧹 CLEAR CART
+    const appliedCouponId = cart.appliedCoupon?.couponId || null;
     cart.items = [];
     cart.couponDiscountAmount = 0;
+    cart.appliedCoupon = { code: null, couponId: null, discountAmount: 0 };
     await cart.save();
+
+    // 💳 WALLET PAYMENT — debit wallet and mark order paid
+    if (paymentMethod === "wallet") {
+      const { debitWallet } = await import("../user/wallet.service.js");
+      await debitWallet({
+        userId,
+        amount:      finalAmount,
+        description: `Payment for Order #${orderNumber}`,
+        source:      "order_payment",
+        orderId:     order._id,
+      });
+      order.payment.status       = "paid";
+      order.payment.walletDeducted = finalAmount;
+      await order.save();
+    }
+
+    // Mark coupon as used
+    if (appliedCouponId) {
+      const { markCouponUsed } = await import("../product/coupon.service.js");
+      await markCouponUsed({ userId, couponId: appliedCouponId });
+    }
 
     return {
       success: true,
+      order,
       orderId: order._id,
       orderNumber,
       redirectUrl: `/order/success/${order._id}`,
@@ -363,53 +421,78 @@ export const cancelOrderService = async ({
   }
 
   const rollbackStock = async (item) => {
-    if (item.variantId) {
-      await Products.updateOne(
-        { _id: item.productId, "variants._id": item.variantId },
-        { $inc: { "variants.$.stock": item.quantity } },
-      );
-    } else {
-      await Products.updateOne(
-        { _id: item.productId },
-        { $inc: { stock: item.quantity } },
-      );
+    // Use $elemMatch to correctly target the variant
+    await Products.updateOne(
+      {
+        _id: item.productId,
+        variants: { $elemMatch: { _id: item.variantId } },
+      },
+      { $inc: { "variants.$.stock": item.quantity } },
+    );
+    // Emit socket update
+    if (global.io) {
+      const product = await Products.findById(item.productId).select("variants").lean();
+      const variant = product?.variants?.find(v => String(v._id) === String(item.variantId));
+      if (variant) {
+        global.io.emit("stockUpdated", {
+          productId: item.productId,
+          variantId: item.variantId,
+          stock: Math.max(variant.stock - (variant.reserved || 0), 0),
+        });
+      }
     }
   };
 
   const recalculateOrder = async () => {
+    // All statuses that mean the item is no longer contributing to the order total
+    const terminalStatuses = [
+      "cancelled",
+      "refund_pending",
+      "refund_processed",
+      "returned",
+      "return_rejected",
+    ];
+
     const activeItems = await orderItem.find({
       orderId,
       userId,
-      itemStatus: { $ne: "cancelled" },
+      itemStatus: { $nin: terminalStatuses },
     });
 
-    let subtotal = 0;
-    let gstTotal = 0;
-
-    activeItems.forEach((i) => {
-      subtotal += i.pricing.total;
-      gstTotal += i.pricing.gstAmount || 0;
-    });
-
-    // ✅NORMAL CASE
-    if (activeItems.length > 0) {
-      order.pricing.subtotal = subtotal;
-      order.pricing.gstTotal = gstTotal;
-      order.pricing.finalAmount = subtotal + gstTotal;
-    }
-
-    // FULL CANCEL CASE (IMPORTANT)
+    // FULL CANCEL CASE — preserve original pricing for display, just mark as cancelled
     if (activeItems.length === 0) {
-      order.pricing.subtotal = 0;
-      order.pricing.gstTotal = 0;
-      order.pricing.finalAmount = 0;
-
       order.orderStatus = "cancelled";
       order.isCancelled = true;
       order.cancelReason = reason;
       order.cancelComments = comments;
       order.cancelledAt = new Date();
+
+      return 0;
     }
+
+    // PARTIAL CANCEL — recalculate from remaining active items only
+    let subtotal = 0;        // sum of item.pricing.total (finalPrice × qty, GST included)
+    let productDiscount = 0;
+    let gstTotal = 0;
+
+    activeItems.forEach((i) => {
+      subtotal        += i.pricing.total;           // finalPrice × qty (GST already inside)
+      productDiscount += i.pricing.discountAmount || 0;
+      gstTotal        += i.pricing.gstAmount || 0;
+    });
+
+    const couponDiscount = order.pricing.couponDiscount || 0;
+    const deliveryCharge = order.pricing.deliveryCharge || 0;
+
+    order.pricing.subtotal        = subtotal;
+    order.pricing.productDiscount = productDiscount;
+    order.pricing.gstTotal        = gstTotal;
+    // finalAmount = subtotal (already includes GST) - coupon + delivery
+    // do NOT add gstTotal again
+    order.pricing.finalAmount = Math.max(
+      subtotal - couponDiscount + deliveryCharge,
+      0
+    );
 
     return activeItems.length;
   };
@@ -443,6 +526,18 @@ export const cancelOrderService = async ({
     // ✅ STEP 3: Rollback stock (LAST)
     await rollbackStock(item);
 
+    // 💰 REFUND if paid via razorpay or wallet
+    if (["razorpay", "wallet"].includes(order.payment.method) && order.payment.status === "paid") {
+      const { processItemRefund } = await import("../product/refund.service.js");
+      await processItemRefund({
+        orderItemId: item._id,
+        orderId:     order._id,
+        userId:      order.userId,
+        reason:      "cancellation",
+        isCOD:       false,
+      });
+    }
+
     return {
       message:
         remaining === 0
@@ -475,6 +570,18 @@ export const cancelOrderService = async ({
     // ✅ stock last
     await rollbackStock(item);
 
+    // 💰 REFUND per item
+    if (["razorpay", "wallet"].includes(order.payment.method) && order.payment.status === "paid") {
+      const { processItemRefund } = await import("../product/refund.service.js");
+      await processItemRefund({
+        orderItemId: item._id,
+        orderId:     order._id,
+        userId:      order.userId,
+        reason:      "cancellation",
+        isCOD:       false,
+      });
+    }
+
     cancelledCount++;
   }
 
@@ -495,35 +602,39 @@ export const returnOrderItemService = async ({
   orderItemId,
   returnReason,
   returnComments,
+  itemCondition,
 }) => {
   const item = await orderItem.findOne({ _id: orderItemId, userId });
 
-  if (!item) {
-    throw new AppError("Order item not found", HTTP_STATUS.NOT_FOUND);
+  if (!item) throw new AppError("Order item not found", HTTP_STATUS.NOT_FOUND);
+  if (item.itemStatus !== "delivered") throw new AppError("Only delivered items can be returned", HTTP_STATUS.BAD_REQUEST);
+  if (item.return?.requestedAt) throw new AppError("Return already requested");
+
+  // Pre-determine stock action based on reason + condition
+  const noRestockReasons = ["defective", "missing_parts", "damaged"];
+  const inspectionReasons = ["wrong_item"];
+  const restockableConditions = ["sealed_new", "opened_good"];
+
+  let stockAction = "none";
+  if (noRestockReasons.includes(returnReason)) {
+    stockAction = "damaged_inventory";
+  } else if (inspectionReasons.includes(returnReason)) {
+    stockAction = "pending_inspection";
+  } else if (itemCondition && restockableConditions.includes(itemCondition)) {
+    stockAction = "restock";
+  } else if (itemCondition) {
+    stockAction = "damaged_inventory";
   }
 
-  if (item.itemStatus !== "delivered") {
-    throw new AppError(
-      "Only delivered items can be returned",
-      HTTP_STATUS.BAD_REQUEST
-    );
-  }
-
-  // prevent duplicate request
-  if (item.return?.requestedAt) {
-    throw new AppError("Return already requested");
-  }
-
-  // USER ONLY REQUESTS
   item.itemStatus = "return_requested";
-
   item.return = {
-    reason: returnReason,
-    comments: returnComments,
-    requestedAt: new Date(),
+    reason:        returnReason,
+    comments:      returnComments,
+    itemCondition: itemCondition || null,
+    stockAction,
+    requestedAt:   new Date(),
   };
 
   await item.save();
-
   return item;
 };

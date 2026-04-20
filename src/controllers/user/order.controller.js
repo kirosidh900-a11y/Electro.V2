@@ -7,6 +7,8 @@ import {
   cancelOrderService,
   returnOrderItemService,
 } from "../../services/user/order.service.js";
+import { generateInvoiceService } from "../../services/user/invoice.service.js";
+
 import renderView from "../../utils/admin/renderView.util.js";
 
 export const placeOrder = async (req, res, next) => {
@@ -23,6 +25,7 @@ export const placeOrder = async (req, res, next) => {
     return res.json({
       success: true,
       orderId: order.orderId,
+      orderNumber: order.orderNumber,
       redirectUrl: `/order/success/${order.orderId}`,
     });
   } catch (err) {
@@ -42,6 +45,8 @@ export const getOrderSuccessPage = async (req, res) => {
       order,
       orderId: order._id,
       orderNumber: order.orderNumber,
+      paymentMethod : order.payment.method,
+      paymentId : order.payment.transactionId,
       expectedDelivery: order.delivery?.expectedDate,
     });
   } catch (err) {
@@ -49,6 +54,64 @@ export const getOrderSuccessPage = async (req, res) => {
 
     return res.redirect("/cart");
   }
+};
+
+export const getOrderFailurePage = async (req, res) => {
+  const { orderId } = req.params;
+  const orderNumber = req.query.orderNumber || null;
+  const errorMessage = req.query.error || null;
+
+  let summaryVars = {
+    itemName: null,
+    itemImage: null,
+    itemMeta: null,
+    itemPrice: null,
+    subtotal: null,
+    discount: null,
+    tax: null,
+    totalAmount: null,
+    savings: null,
+    orderUpdatedAt: null,
+  };
+
+  try {
+    const userId = req.user._id;
+    const data = await getOrderDetailsService({ userId, orderId });
+
+    if (data) {
+      const { order, items } = data;
+      const firstItem = items?.[0];
+
+      summaryVars = {
+        itemName: firstItem?.name || null,
+        itemImage: firstItem?.images?.[0] || null,
+        itemMeta: firstItem?.attributes
+          ? Object.values(firstItem.attributes).join(" · ")
+          : null,
+        itemPrice: firstItem?.pricing?.total ?? null,
+        subtotal: order.pricing?.subtotal ?? null,
+        discount:
+          (order.pricing?.productDiscount ?? 0) +
+          (order.pricing?.couponDiscount ?? 0),
+        tax: order.pricing?.gstTotal ?? null,
+        totalAmount: order.pricing?.finalAmount ?? null,
+        savings:
+          (order.pricing?.productDiscount ?? 0) +
+          (order.pricing?.couponDiscount ?? 0) || null,
+        orderUpdatedAt: order.updatedAt ?? null,
+      };
+    }
+  } catch (_) {
+    // non-fatal — render page with fallback values
+  }
+
+  return res.render("user/orders/orderFailure", {
+    orderId,
+    orderNumber,
+    errorMessage,
+    orderUpdatedAt: summaryVars.orderUpdatedAt ?? null,
+    ...summaryVars,
+  });
 };
 
 export const getOrderListingPage = async (req, res, next) => {
@@ -163,13 +226,30 @@ export const returnOrderItem = async (req, res, next) => {
   try {
     const userId = req.user._id;
     const { orderItemId } = req.params;
-    const { returnReason, returnComments } = req.body;
+    const { returnReason, returnComments, itemCondition } = req.body;
 
-    await returnOrderItemService({ userId, orderItemId, returnReason, returnComments });
+    await returnOrderItemService({ userId, orderItemId, returnReason, returnComments, itemCondition });
 
     res.status(200).json({ success: true, message: "Return request submitted successfully" });
   } catch (error) {
     console.error("Return Order Error:", error);
     next(error);
+  }
+};
+
+export const downloadInvoice = async (req, res, next) => {
+  try {
+    const userId = req.user._id;
+    const { orderId } = req.params;
+
+    if (!mongoose.Types.ObjectId.isValid(orderId)) {
+      return res.status(400).json({ message: "Invalid order ID" });
+    }
+
+    await generateInvoiceService({ userId, orderId }, res);
+  } catch (error) {
+    console.error("Invoice Error:", error);
+    // If headers already sent (PDF started streaming), can't send JSON error
+    if (!res.headersSent) next(error);
   }
 };

@@ -190,11 +190,11 @@ export const getCartPage = async (req, res, next) => {
     let cart = await Cart.findOne({ userId })
       .populate({
         path: "items.productId",
-        select: "name brand variants",
-        populate: {
-          path: "brand",
-          select: "name",
-        },
+        select: "name brand category variants",
+        populate: [
+          { path: "brand", select: "_id name" },
+          { path: "category", select: "_id title" },
+        ],
       })
       .lean();
 
@@ -232,6 +232,7 @@ export const getCartPage = async (req, res, next) => {
           ...item,
           variantId: {
             ...variant,
+            stock: Math.max((variant.stock || 0) - (variant.reserved || 0), 0),
             images: variant.product_images?.map((img) => img.url) || [],
           },
         };

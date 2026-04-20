@@ -5,14 +5,14 @@ import {
   cancelOrderService,
   handleReturnRequestService,
   schedulePickupService,
-  completeReturnService
-} from "../../services/admin/order.service.js";
-import renderView from "../../utils/admin/renderView.util.js";
+  completeReturnService,
+  updateItemStatusService,
+} from "../../services/admin/order.service.js";import renderView from "../../utils/admin/renderView.util.js";
 
 export const getAdminOrdersPage = async (req, res, next) => {
   try {
     const page = parseInt(req.query.page) || 1;
-    const limit = parseInt(req.query.limit) || 10;
+    const limit = parseInt(req.query.limit) || 4;
 
     const {
       search = "",
@@ -108,11 +108,20 @@ export const updateOrderStatus = async (req, res, next) => {
 export const cancelOrder = async (req, res, next) => {
   try {
     const { orderId } = req.params;
-    const { reason, comments } = req.body;
+    const { reason, comments, refundMethod, internalNote } = req.body;
 
-    await cancelOrderService(orderId, reason, comments);
+    if (!reason) return res.status(400).json({ success: false, message: "Cancel reason is required" });
 
-    return res.json({ success: true, message: "Order cancelled" });
+    const result = await cancelOrderService(orderId, { reason, comments, refundMethod, internalNote });
+
+    return res.json({
+      success: true,
+      message: "Order cancelled",
+      refundRequired:  result.refundRequired,
+      refundAmount:    result.refundAmount,
+      refundStatus:    result.refundStatus,
+      resolvedMethod:  result.resolvedMethod,
+    });
   } catch (error) {
     next(error);
   }
@@ -173,6 +182,51 @@ export const completeReturnController = async (req, res, next) => {
     await completeReturnService(itemId);
 
     res.json({ success: true });
+  } catch (err) {
+    next(err);
+  }
+};
+
+export const updateItemStatus = async (req, res, next) => {
+  try {
+    const { itemId } = req.params;
+    const { status, reason, comment } = req.body;
+
+    if (!status) return res.status(400).json({ success: false, message: "Status is required" });
+
+    await updateItemStatusService(itemId, status, reason, comment);
+    res.json({ success: true, message: "Item status updated" });
+  } catch (err) {
+    next(err);
+  }
+};
+
+export const processItemRefundController = async (req, res, next) => {
+  try {
+    const { itemId } = req.params;
+    const { orderId } = req.body;
+
+    if (!orderId) return res.status(400).json({ success: false, message: "orderId required" });
+
+    const OrderItem = (await import("../../models/orderItemSchema.model.js")).default;
+    const Order     = (await import("../../models/orderSchema.model.js")).default;
+    const { processItemRefund } = await import("../../services/product/refund.service.js");
+
+    const item  = await OrderItem.findById(itemId);
+    const order = await Order.findById(orderId);
+
+    if (!item || !order) return res.status(404).json({ success: false, message: "Item or order not found" });
+    if (item.refund?.status === "processed") return res.status(400).json({ success: false, message: "Already refunded" });
+
+    const refundAmount = await processItemRefund({
+      orderItemId: itemId,
+      orderId,
+      userId:  order.userId,
+      reason:  "admin_manual",
+      isCOD:   order.payment.method === "cod",
+    });
+
+    res.json({ success: true, message: "Refund processed", refundAmount });
   } catch (err) {
     next(err);
   }

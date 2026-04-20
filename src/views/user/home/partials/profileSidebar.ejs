@@ -72,6 +72,15 @@
             My Stuff
         </p>
 
+        <a href="/wallet" class="flex items-center justify-between p-3 rounded-lg transition
+            <%= currentRoute === '/wallet'
+            ? 'text-green-600 bg-green-50'
+            : 'text-gray-600 hover:bg-gray-50' %>">
+            <span class="flex items-center gap-3">
+                <i class="fa-solid fa-wallet text-green-500"></i> My Wallet
+            </span>
+        </a>
+
         <a href="/coupons" class="block p-3 rounded-lg transition
             <%= currentRoute === '/coupons'
             ? 'text-blue-600 bg-blue-50'

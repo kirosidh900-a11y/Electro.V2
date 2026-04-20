@@ -1,6 +1,21 @@
 import Order from "../../models/orderSchema.model.js";
 import orderItem from "../../models/orderItemSchema.model.js";
+import Products from "../../models/productSchema.model.js";
 import AppError from "../../utils/partials/AppError.utils.js";
+
+// ── Emit real-time stock update after any DB stock change ─────────────────────
+const emitStockUpdate = async (productId, variantId) => {
+  if (!global.io) return;
+  const product = await Products.findById(productId).select("variants").lean();
+  const variant = product?.variants?.find(v => String(v._id) === String(variantId));
+  if (variant) {
+    global.io.emit("stockUpdated", {
+      productId,
+      variantId,
+      stock: Math.max(variant.stock - (variant.reserved || 0), 0),
+    });
+  }
+};
 // LABELS (MOVE HERE)
 const STATUS_LABELS = {
   placed: "Placed",
@@ -141,7 +156,7 @@ export const getAdminOrdersService = async ({
 
 export const getAdminOrderDetailsService = async (orderId) => {
   const order = await Order.findById(orderId)
-    .populate("userId", "name email phone createdAt isBlock")
+    .populate("userId", "name email phone photo createdAt isBlock")
     .lean();
 
   if (!order) throw new Error("Order not found");
@@ -184,54 +199,156 @@ export const updateOrderStatusService = async (orderId, status) => {
 
   const itemStatus = itemStatusMap[status];
   if (itemStatus) {
-    // only update items that are not already cancelled or returned
+    // only update items that are still in an active/progressable state
+    const protectedStatuses = [
+      "cancelled",
+      "returned",
+      "refund_pending",
+      "refund_processed",
+      "return_requested",
+      "return_approved",
+      "return_rejected",
+      "pickup_scheduled",
+    ];
     await orderItem.updateMany(
-      { orderId, itemStatus: { $nin: ["cancelled", "returned"] } },
+      { orderId, itemStatus: { $nin: protectedStatuses } },
       { itemStatus },
     );
   }
 };
 
-export const cancelOrderService = async (orderId, reason, comments) => {
-  await Order.findByIdAndUpdate(orderId, {
-    orderStatus: "cancelled",
-    isCancelled: true,
-    cancelReason: reason,
-    cancelComments: comments,
-    cancelledAt: new Date(),
+export const cancelOrderService = async (orderId, { reason, comments, refundMethod, internalNote }) => {
+  const order = await Order.findById(orderId);
+  if (!order) throw new AppError("Order not found", 404);
+  if (order.isCancelled) throw new AppError("Order already cancelled", 400);
+
+  const payMethod  = order.payment.method;
+  const payStatus  = order.payment.status;
+  const paidAmount = order.pricing.finalAmount ?? 0;
+
+  // ── Smart refund decision ─────────────────────────────────────────────────
+  let refundRequired = false;
+  let refundAmount   = 0;
+  let refundStatus   = "not_required";
+  let resolvedMethod = "none";
+
+  if (payMethod === "cod") {
+    refundStatus = "not_required";
+  } else if (payStatus === "failed" || payStatus === "pending") {
+    refundStatus = "not_required";
+  } else if (payStatus === "refunded") {
+    refundStatus = "completed"; // already done — no double refund
+  } else if (payStatus === "paid") {
+    refundRequired = true;
+    refundAmount   = paidAmount;
+    if (reason === "fraud_suspected") {
+      refundStatus   = "on_hold";
+      resolvedMethod = "manual";
+    } else {
+      refundStatus   = "pending";
+      resolvedMethod = refundMethod || "wallet";
+    }
+  }
+
+  // ── Cancel items + rollback stock ─────────────────────────────────────────
+  const items = await orderItem.find({
+    orderId,
+    itemStatus: { $nin: [
+      "cancelled",
+      "returned",
+      "refund_pending",
+      "refund_processed",
+      "return_requested",
+      "return_approved",
+      "return_rejected",
+      "pickup_scheduled",
+    ]},
   });
 
-  // only cancel items not already returned
-  await orderItem.updateMany(
-    { orderId, itemStatus: { $ne: "returned" } },
-    { itemStatus: "cancelled", cancelReason: reason },
-  );
+  for (const item of items) {
+    await Products.updateOne(
+      { _id: item.productId, variants: { $elemMatch: { _id: item.variantId } } },
+      { $inc: { "variants.$.stock": item.quantity } },
+    );
+    await emitStockUpdate(item.productId, item.variantId);
+    item.itemStatus = "cancelled";
+    item.cancel     = { reason, comments, cancelledAt: new Date(), requestedAt: new Date() };
+    await item.save();
+  }
+
+  // ── Persist order cancellation ────────────────────────────────────────────
+  order.orderStatus    = "cancelled";
+  order.isCancelled    = true;
+  order.cancelReason   = reason;
+  order.cancelComments = comments;
+  order.cancelledAt    = new Date();
+  order.cancelledBy    = "admin";
+  order.refund = {
+    required:    refundRequired,
+    status:      refundStatus,
+    amount:      refundAmount,
+    method:      resolvedMethod,
+    note:        internalNote || "",
+    processedAt: null,
+  };
+  await order.save();
+
+  // ── Execute wallet refund immediately ─────────────────────────────────────
+  if (refundRequired && refundStatus === "pending" && resolvedMethod === "wallet") {
+    const { creditWallet } = await import("../user/wallet.service.js");
+    await creditWallet({
+      userId:      order.userId,
+      amount:      refundAmount,
+      description: `Refund for cancelled order #${order.orderNumber}`,
+      source:      "refund",
+      orderId:     order._id,
+    });
+    order.refund.status      = "completed";
+    order.refund.processedAt = new Date();
+    order.payment.status     = "refunded";
+    order.payment.refundedAt = new Date();
+    await order.save();
+  }
+
+  return { order, refundRequired, refundAmount, refundStatus: order.refund.status, resolvedMethod };
 };
 
 const handleReturnStock = async (item) => {
-  const reason = item.return?.reason;
+  const stockAction = item.return?.stockAction;
+  const reason      = item.return?.reason;
+  const condition   = item.return?.itemCondition;
 
-  // DO NOT RESTOCK
-  if (
-    reason === "wrong_item" ||
-    reason === "defective" ||
-    reason === "damaged"
-  ) {
-    return; // no stock update
+  // Determine final action if not pre-set
+  const noRestockReasons     = ["defective", "missing_parts", "damaged"];
+  const inspectionReasons    = ["wrong_item"];
+  const restockableConditions = ["sealed_new", "opened_good"];
+
+  let action = stockAction;
+  if (!action || action === "none") {
+    if (noRestockReasons.includes(reason)) {
+      action = "damaged_inventory";
+    } else if (inspectionReasons.includes(reason)) {
+      action = "pending_inspection";
+    } else if (condition && restockableConditions.includes(condition)) {
+      action = "restock";
+    } else {
+      action = "damaged_inventory";
+    }
   }
 
-  // ✅ RESTOCK (valid return)
-  if (item.variantId) {
+  if (action === "restock") {
     await Products.updateOne(
-      { _id: item.productId, "variants._id": item.variantId },
+      { _id: item.productId, variants: { $elemMatch: { _id: item.variantId } } },
       { $inc: { "variants.$.stock": item.quantity } },
     );
-  } else {
-    await Products.updateOne(
-      { _id: item.productId },
-      { $inc: { stock: item.quantity } },
-    );
+    await emitStockUpdate(item.productId, item.variantId);
   }
+  // "damaged_inventory" and "pending_inspection" — do NOT restock
+  // In a full system you'd write to a DamagedInventory collection here
+
+  // Persist resolved action back to item
+  item.return.stockAction = action;
+  item.markModified("return");
 };
 
 export const handleReturnRequestService = async ({
@@ -244,24 +361,26 @@ export const handleReturnRequestService = async ({
   if (!item) throw new AppError("Item not found");
 
   if (item.itemStatus !== "return_requested") {
-    throw new AppError("Invalid return state");
+    throw new AppError("Invalid return state — item must be in return_requested status");
   }
 
-  // APPROVE
+  // Ensure return subdoc exists
+  if (!item.return) item.return = {};
+
   if (action === "approve") {
-    item.itemStatus = "return_approved";
+    item.itemStatus        = "return_approved";
     item.return.approvedAt = new Date();
-  }
-
-  // ❌ REJECT
-  if (action === "reject") {
-    item.itemStatus = "return_rejected";
-    item.return.rejectedAt = new Date();
-    item.return.rejectReason = rejectReason;
+    item.markModified("return");
+  } else if (action === "reject") {
+    item.itemStatus           = "return_rejected";
+    item.return.rejectedAt    = new Date();
+    item.return.rejectReason  = rejectReason || "No reason provided";
+    item.markModified("return");
+  } else {
+    throw new AppError("Invalid action — must be approve or reject");
   }
 
   await item.save();
-
   return item;
 };
 
@@ -292,15 +411,68 @@ export const completeReturnService = async (orderItemId) => {
     throw new AppError("Pickup not scheduled");
   }
 
-  // NOW mark returned
   item.itemStatus = "returned";
-  item.return.completedAt = new Date();
+  item.return.completedAt     = new Date();
   item.return.pickupCompletedAt = new Date();
 
-  // NOW handle stock
   await handleReturnStock(item);
+  await item.save();
+
+  // 💰 REFUND — for razorpay, wallet, and COD (after return)
+  const order = await Order.findById(item.orderId);
+  if (order && ["razorpay", "wallet", "cod"].includes(order.payment.method)) {
+    const { processItemRefund } = await import("../product/refund.service.js");
+    await processItemRefund({
+      orderItemId: item._id,
+      orderId:     item.orderId,
+      userId:      item.userId,
+      reason:      "return",
+      isCOD:       order.payment.method === "cod",
+    });
+  }
+
+  return item;
+};
+
+// ── Admin: update a single item's status ─────────────────────────────────────
+const VALID_ITEM_STATUSES = [
+  "placed", "confirmed", "shipped", "out_for_delivery", "delivered",
+  "cancelled", "return_requested", "return_approved", "pickup_scheduled",
+  "return_rejected", "returned", "refund_pending", "refund_processed",
+];
+
+export const updateItemStatusService = async (itemId, newStatus, reason = null, comment = null) => {
+  if (!VALID_ITEM_STATUSES.includes(newStatus)) {
+    throw new AppError(`Invalid item status: ${newStatus}`, 400);
+  }
+
+  const item = await orderItem.findById(itemId);
+  if (!item) throw new AppError("Order item not found", 404);
+
+  const prevStatus = item.itemStatus;
+  item.itemStatus  = newStatus;
+
+  // Store cancel reason if provided
+  if (newStatus === "cancelled" && reason) {
+    item.cancel = {
+      ...(item.cancel || {}),
+      reason,
+      comments:    comment || "",
+      cancelledAt: new Date(),
+      requestedAt: new Date(),
+    };
+  }
 
   await item.save();
+
+  // Restore stock when cancelling (only if not already cancelled)
+  if (newStatus === "cancelled" && prevStatus !== "cancelled") {
+    await Products.updateOne(
+      { _id: item.productId, variants: { $elemMatch: { _id: item.variantId } } },
+      { $inc: { "variants.$.stock": item.quantity } },
+    );
+    await emitStockUpdate(item.productId, item.variantId);
+  }
 
   return item;
 };

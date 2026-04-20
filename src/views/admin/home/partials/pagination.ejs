@@ -1,32 +1,48 @@
-<div class="flex flex-wrap justify-center items-center gap-2 mt-8">
+<%
+  const WINDOW = 2; // pages shown either side of current
+  const pages  = [];
 
-<a
-data-page="<%= currentPage > 1 ? currentPage - 1 : 1 %>"
-class="pagination-link px-4 py-2 rounded-lg bg-white/5 hover:bg-white/10 text-sm">
-Prev
-</a>
+  if (totalPages <= 1) return;
 
-<% for(let i = 1; i <= totalPages; i++) { %>
+  // Build page list with null = ellipsis
+  pages.push(1);
+  if (currentPage - WINDOW > 2)          pages.push(null);
+  for (let i = Math.max(2, currentPage - WINDOW); i <= Math.min(totalPages - 1, currentPage + WINDOW); i++) {
+    pages.push(i);
+  }
+  if (currentPage + WINDOW < totalPages - 1) pages.push(null);
+  if (totalPages > 1) pages.push(totalPages);
+%>
 
-<a
-href="?page=<%= i %>"
-data-page="<%= i %>"
-class="pagination-link pagination-number px-4 py-2 rounded-lg text-sm
-<%= currentPage === i
-? 'bg-cyan-600 text-white'
-: 'bg-white/5 hover:bg-white/10 text-gray-300' %>">
+<div class="flex items-center justify-center gap-1.5 mt-8 flex-wrap">
 
-<%= i %>
+  <%# Prev %>
+  <a data-page="<%= currentPage > 1 ? currentPage - 1 : 1 %>"
+     class="pagination-link flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-medium transition
+            <%= currentPage === 1 ? 'opacity-30 pointer-events-none bg-white/5 text-gray-500' : 'bg-white/5 hover:bg-white/10 text-gray-300 cursor-pointer' %>">
+    <i class="fas fa-chevron-left text-[10px]"></i> Prev
+  </a>
 
-</a>
+  <% pages.forEach(p => { %>
+    <% if (p === null) { %>
+      <span class="px-2 py-2 text-gray-600 text-xs select-none">•••</span>
+    <% } else { %>
+      <a href="?page=<%= p %>" data-page="<%= p %>"
+         class="pagination-link pagination-number w-9 h-9 flex items-center justify-center rounded-lg text-sm font-semibold transition
+                <%= currentPage === p
+                  ? 'bg-cyan-600 text-white shadow-lg shadow-cyan-900/30'
+                  : 'bg-white/5 hover:bg-white/10 text-gray-300' %>">
+        <%= p %>
+      </a>
+    <% } %>
+  <% }) %>
 
-<% } %>
-
-<a
-href="?page=<%= currentPage < totalPages ? currentPage + 1 : totalPages %>"
-data-page="<%= currentPage < totalPages ? currentPage + 1 : totalPages %>"
-class="pagination-link px-4 py-2 rounded-lg bg-white/5 hover:bg-white/10 text-sm">
-Next
-</a>
+  <%# Next %>
+  <a data-page="<%= currentPage < totalPages ? currentPage + 1 : totalPages %>"
+     href="?page=<%= currentPage < totalPages ? currentPage + 1 : totalPages %>"
+     class="pagination-link flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-medium transition
+            <%= currentPage === totalPages ? 'opacity-30 pointer-events-none bg-white/5 text-gray-500' : 'bg-white/5 hover:bg-white/10 text-gray-300 cursor-pointer' %>">
+    Next <i class="fas fa-chevron-right text-[10px]"></i>
+  </a>
 
 </div>

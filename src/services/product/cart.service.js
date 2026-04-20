@@ -51,10 +51,12 @@ export const updateCartService = async ({
 
   const variant = product.variants[0];
 
-  // ================= STOCK CHECK =================
-  if (quantity > variant.stock) {
+  // Available stock = stock minus reserved
+  const availableStock = Math.max(variant.stock - (variant.reserved || 0), 0);
+
+  if (quantity > availableStock) {
     throw new AppError(
-      `Only ${variant.stock} items available in stock`,
+      `Only ${availableStock} item(s) available in stock`,
       HTTP_STATUS.BAD_REQUEST,
     );
   }
@@ -101,9 +103,9 @@ export const updateCartService = async ({
         );
       }
 
-      if (newQty > variant.stock) {
+      if (newQty > availableStock) {
         throw new AppError(
-          `Only ${variant.stock} items available`,
+          `Only ${availableStock} item(s) available in stock`,
           HTTP_STATUS.BAD_REQUEST,
         );
       }
@@ -195,17 +197,24 @@ export const updateCartQuantityService = async (userId, itemId, quantity) => {
 
   if (!variant) throw new AppError("Variant not found", 404);
 
-  if (variant.stock === 0) {
+  // Available stock = stock minus reserved
+  const availableStock = Math.max(variant.stock - (variant.reserved || 0), 0);
+
+  if (availableStock === 0) {
     throw new AppError("Out of stock", 400);
   }
 
-  // if (qty > variant.stock) {
-  //   throw new AppError(`Only ${variant.stock} available`, 400);
-  // }
-
   const MAX_LIMIT = 3;
-  if (qty > MAX_LIMIT) {
-    throw new AppError(`Maximum ${MAX_LIMIT} items allowed`, 400);
+  const effectiveLimit = Math.min(MAX_LIMIT, availableStock);
+
+  if (qty > effectiveLimit) {
+    // Allow reducing to effectiveLimit — only block if trying to go above it
+    throw new AppError(
+      availableStock < MAX_LIMIT
+        ? `Only ${availableStock} item(s) available in stock`
+        : `Maximum ${MAX_LIMIT} items allowed per product`,
+      400
+    );
   }
 
   item.quantity = qty;
@@ -305,21 +314,27 @@ export const validateCartStockService = async (userId) => {
 
     if (!variant) continue;
 
+    // 🔥 ALWAYS CALCULATE AVAILABLE
+    const availableStock = Math.max(variant.stock - (variant.reserved || 0), 0);
+
     let reason = null;
 
-    if (variant.stock === 0) {
+    if (availableStock === 0) {
       reason = `${product.name} is out of stock`;
-    } else if (item.quantity > variant.stock) {
-      reason = `Only ${variant.stock} available for ${product.name}`;
+    } else if (item.quantity > availableStock) {
+      reason = `Only ${availableStock} available for ${product.name}`;
     }
 
     updates.push({
       itemId: item._id,
-      stock: variant.stock,
+
+      stock: availableStock,
       quantity: item.quantity,
-      isOutOfStock: variant.stock === 0,
-      exceedsStock: item.quantity > variant.stock,
-      reason, // 🔥 IMPORTANT
+
+      isOutOfStock: availableStock === 0,
+      exceedsStock: item.quantity > availableStock,
+
+      reason,
     });
   }
 
@@ -333,7 +348,6 @@ export const getWishlistService = async (userId) => {
     return { items: [] };
   }
 
-  //  SORT (NEW → OLD)
   const sortedItems = wishlist.items.sort(
     (a, b) => new Date(b.addedAt) - new Date(a.addedAt),
   );
@@ -341,7 +355,8 @@ export const getWishlistService = async (userId) => {
   const populatedItems = await Promise.all(
     sortedItems.map(async (item) => {
       const product = await Products.findById(item.productId)
-        .populate("brand", "title")
+        .populate("brand", "_id title")
+        .populate("category", "_id title")
         .lean();
 
       if (!product) return null;
@@ -352,13 +367,27 @@ export const getWishlistService = async (userId) => {
 
       if (!variant) return null;
 
+      // Apply active offers to get correct pricing
+      const { getActiveOffers } = await import("../../utils/products/offers.util.js");
+      const { applyPricingToProduct } = await import("../../utils/products/pricing.util.js");
+
+      const offers = await getActiveOffers(product);
+      const productWithPricing = applyPricingToProduct(product, offers);
+
+      const pricedVariant = productWithPricing.variants.find(
+        (v) => v._id.toString() === item.variantId.toString(),
+      ) || variant;
+
       return {
         productId: {
           _id: product._id,
           name: product.name,
           brand: product.brand,
         },
-        variantId: variant,
+        variantId: {
+          ...pricedVariant,
+          images: pricedVariant.product_images?.map((img) => img.url) || [],
+        },
         addedAt: item.addedAt,
       };
     }),
@@ -381,14 +410,11 @@ export const validateCartStockServiceCheck = async (userId) => {
   cart.items.forEach((item) => {
     const product = item.productId;
 
-    // 🔥 find correct variant
     const variant = product.variants.find(
       (v) => v._id.toString() === item.variantId.toString(),
     );
 
-    const stock = variant?.stock ?? 0;
-
-    // ❌ no variant found
+    // ❌ no variant
     if (!variant) {
       invalidItems.push({
         itemId: item._id,
@@ -398,24 +424,27 @@ export const validateCartStockServiceCheck = async (userId) => {
       return;
     }
 
-    // ❌ out of stock
-    if (stock === 0) {
+    // 🔥 CALCULATE AVAILABLE STOCK
+    const availableStock = Math.max(variant.stock - (variant.reserved || 0), 0);
+
+    // ❌ OUT OF STOCK
+    if (availableStock === 0) {
       invalidItems.push({
         itemId: item._id,
         name: product.name,
-        reason: "Out of stock",
-        stock,
+        reason: `${product.name} is out of stock`,
+        stock: availableStock,
         quantity: item.quantity,
       });
     }
 
-    // ❌ quantity exceeds stock
-    else if (item.quantity > stock) {
+    // ❌ EXCEEDS AVAILABLE
+    else if (item.quantity > availableStock) {
       invalidItems.push({
         itemId: item._id,
         name: product.name,
-        reason: `${product.name} has only ${stock} items left in stock.`,
-        stock,
+        reason: `${product.name} has only ${availableStock} items left`,
+        stock: availableStock,
         quantity: item.quantity,
       });
     }

@@ -1,5 +1,7 @@
 import Products from "../../models/productSchema.model.js";
 import { getCache, setCache } from "../../utils/Redis/cache.js";
+import { getActiveOffers } from "../../utils/products/offers.util.js";
+import { calculateBestPrice } from "../../utils/products/pricing.util.js";
 
 export const getHomeProductsService = async (limit) => {
   const cacheKey = `home_products_${limit}`;
@@ -72,10 +74,22 @@ export const getHomeProductsService = async (limit) => {
 
       { $sort: { createdAt: -1 } },
       
-      // PICK FIRST VALID VARIANT
+      // PICK VARIANT WITH LOWEST PRICE (works on all MongoDB versions)
       {
         $addFields: {
-          variant: { $arrayElemAt: ["$validVariants", 0] },
+          variant: {
+            $reduce: {
+              input: "$validVariants",
+              initialValue: { $arrayElemAt: ["$validVariants", 0] },
+              in: {
+                $cond: [
+                  { $lt: ["$$this.price", "$$value.price"] },
+                  "$$this",
+                  "$$value",
+                ],
+              },
+            },
+          },
         },
       },
       
@@ -87,7 +101,11 @@ export const getHomeProductsService = async (limit) => {
           brand: "$brand.title",
           brandLogo: "$brand.logo",
           category: "$category.title",
+          categoryId: "$category._id",
+          brandId: "$brand._id",
           price: "$variant.price",
+          regular_price: "$variant.regular_price",
+          max_discount_amount: "$variant.max_discount_amount",
           stock: "$variant.stock",
           variantId: "$variant._id",
           image: { $arrayElemAt: ["$variant.product_images.url", 0] },
@@ -95,10 +113,40 @@ export const getHomeProductsService = async (limit) => {
       },
     ]);
 
-    await setCache(cacheKey, products);
-    console.warn("✅ Cache Set", products.length);
+    // Apply offer pricing per product
+    const productsWithPricing = await Promise.all(
+      products.map(async (p) => {
+        // Build a minimal product shape for getActiveOffers
+        const productShape = {
+          _id: p._id,
+          category: { _id: p.categoryId },
+          brand: { _id: p.brandId },
+        };
+        const offers = await getActiveOffers(productShape);
 
-    return products;
+        // Build a minimal variant shape for calculateBestPrice
+        const variantShape = {
+          price: p.price,
+          regular_price: p.regular_price ?? p.price,
+          max_discount_amount: p.max_discount_amount ?? 0,
+        };
+        const pricing = calculateBestPrice(variantShape, offers);
+
+        return {
+          ...p,
+          finalPrice: pricing.finalPrice,
+          savings: pricing.savings,
+          offerSavings: pricing.offerSavings,
+          gstAmount: pricing.gstAmount,
+          appliedOffer: pricing.appliedOffer,
+        };
+      })
+    );
+
+    await setCache(cacheKey, productsWithPricing);
+    console.warn("✅ Cache Set", productsWithPricing.length);
+
+    return productsWithPricing;
   } catch (error) {
     console.error("Redis Error:", error);
 

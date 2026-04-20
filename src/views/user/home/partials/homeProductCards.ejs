@@ -12,11 +12,14 @@
     const brandLogo = product?.brandLogo || "/images/placeholder.png";
 
     // Price
-    const price = product?.price || 0;
-    const original = price + 2000;
-    const discount = original > 0
-    ? Math.round(((original - price) / original) * 100)
-    : 0;
+    const sellingPrice  = product?.price || 0;
+    const regularPrice  = product?.regular_price || sellingPrice;
+    const finalPrice    = product?.finalPrice ?? sellingPrice;
+    const savings       = product?.savings || 0;
+    const appliedOffer  = product?.appliedOffer || null;
+    const discountPct   = regularPrice > 0
+      ? Math.round(((regularPrice - finalPrice) / regularPrice) * 100)
+      : 0;
 
     //Riview
     const rating = product.rating || (Math.random() * (5 - 3.8) + 3.8).toFixed(1);
@@ -31,7 +34,9 @@
     %>
 
     <div class="product-card flex flex-col group relative bg-white rounded-xl overflow-hidden 
-shadow-sm hover:shadow-2xl transition-all duration-300 border border-gray-100">
+shadow-sm hover:shadow-2xl transition-all duration-300 border border-gray-100"
+  data-product-id="<%= product._id %>"
+  data-variant-id="<%= variantId %>">
 
         <!-- IMAGE -->
         <div class="relative w-full aspect-[4/5] sm:aspect-square flex items-center justify-center 
@@ -41,12 +46,12 @@ shadow-sm hover:shadow-2xl transition-all duration-300 border border-gray-100">
                 %>" class="w-full h-full object-contain group-hover:scale-110 transition-transform duration-500
                 mix-blend-multiply">
 
-            <!-- DISCOUNT -->
-            <!-- <% if (discount> 0) { %>
-                <span class="absolute bottom-2 left-2 bg-green-600 text-white text-[10px] px-2 py-0.5 rounded">
-                    <%= discount %>% OFF
+            <!-- DISCOUNT BADGE -->
+            <% if (discountPct > 0) { %>
+                <span class="absolute bottom-2 left-2 bg-green-600 text-white text-[10px] font-bold px-2 py-0.5 rounded">
+                    <%= discountPct %>% OFF
                 </span>
-                <% } %> -->
+            <% } %>
 
                     <!-- HOVER BUTTONS -->
                     <div class="absolute top-3 right-3 flex flex-col gap-2 
@@ -113,20 +118,26 @@ shadow-sm hover:shadow-2xl transition-all duration-300 border border-gray-100">
             </span>
 
             <!-- PRICE -->
-            <div class="flex items-center gap-2 mt-auto">
-                <span class="text-red-500 text-lg md:text-xl font-bold">
-                    ₹<%= price %>
-                </span>
-
-                <!-- <span class="text-xs text-gray-400 line-through">
-                    ₹<%= original %>
-                </span> -->
+            <div class="flex flex-col gap-1 mt-auto">
+                <div class="flex items-center gap-2 flex-wrap">
+                    <span class="text-red-500 text-lg md:text-xl font-bold">
+                        ₹<%= finalPrice.toLocaleString('en-IN') %>
+                    </span>
+                    <% if (discountPct > 0) { %>
+                        <span class="text-xs text-gray-400 line-through">
+                            ₹<%= regularPrice.toLocaleString('en-IN') %>
+                        </span>
+                        <span class="bg-green-600 text-white text-[10px] font-bold px-1.5 py-0.5 rounded">
+                            <%= discountPct %>% OFF
+                        </span>
+                    <% } %>
+                </div>
+                <% if (savings > 0) { %>
+                    <p class="text-[11px] text-green-600 font-medium">
+                        You save ₹<%= savings.toLocaleString('en-IN') %>
+                    </p>
+                <% } %>
             </div>
-
-            <!-- SAVE -->
-            <!-- <p class="text-[11px] text-green-600 font-medium">
-                You save ₹<%= original - price %>
-            </p> -->
 
         </div>
     </div>

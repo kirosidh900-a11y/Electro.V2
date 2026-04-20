@@ -85,14 +85,22 @@
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
 
       <!-- Breadcrumb -->
-      <nav class="flex text-sm text-slate-500 mb-8 items-center space-x-2 font-medium">
-        <a href="/" class="hover:text-brand-600 transition">Home</a>
+      <nav class="flex text-sm text-slate-500 mb-8 items-center space-x-2 font-medium flex-wrap gap-y-1">
+        <a href="/" class="hover:text-blue-600 transition">Home</a>
         <span><i class="fas fa-chevron-right text-[10px] text-slate-300"></i></span>
-        <a href="/shop" class="hover:text-brand-600 transition">Products</a>
+        <a href="/shop" class="hover:text-blue-600 transition">Products</a>
+        <% if (product.category?.title) { %>
+          <span><i class="fas fa-chevron-right text-[10px] text-slate-300"></i></span>
+          <a href="/shop?category=<%= product.category._id %>"
+            class="hover:text-blue-600 transition"><%= product.category.title %></a>
+        <% } %>
+        <% if (product.brand?.title) { %>
+          <span><i class="fas fa-chevron-right text-[10px] text-slate-300"></i></span>
+          <a href="/shop?brand=<%= product.brand._id %>"
+            class="hover:text-blue-600 transition"><%= product.brand.title %></a>
+        <% } %>
         <span><i class="fas fa-chevron-right text-[10px] text-slate-300"></i></span>
-        <span class="text-slate-900 font-bold truncate">
-          <%= product.name %>
-        </span>
+        <span class="text-slate-900 font-bold truncate max-w-[200px]"><%= product.name %></span>
       </nav>
 
       <!-- Main Product Section -->
@@ -390,44 +398,69 @@
 
           <div class="grid grid-cols-2 md:grid-cols-4 gap-6">
             <% similarProducts.forEach(simProd=> {
-              const simPrice = simProd.variants?.[0]?.price || 0;
-              const simFinalPrice = simProd.variants?.[0]?.finalPrice ?? simPrice;
+              const simVariant = simProd.variants?.[0];
+              const simVariantId = simVariant?._id;
+              const simPrice = simVariant?.price || 0;
+              const simFinalPrice = simVariant?.finalPrice ?? simVariant?.regular_price ?? simPrice;
+              const simKey = `${simProd._id}_${simVariantId}`;
+              const simIsWishlisted = wishlistSet?.has(simKey);
+              const simIsCarted = cartSet?.has(simKey);
               %>
-              <div
-                class="group bg-white border border-slate-100 rounded-[2rem] p-5 transition-all duration-300 hover:shadow-2xl hover:shadow-brand-900/10 hover:-translate-y-2 relative">
+              <div class="group bg-white border border-slate-100 rounded-[2rem] p-5 transition-all duration-300 hover:shadow-2xl hover:shadow-brand-900/10 hover:-translate-y-2 relative">
                 <a href="/product/<%= simProd._id %>" class="block absolute inset-0 z-10 w-full h-full"></a>
 
-                <div
-                  class="relative w-full aspect-square rounded-[1.5rem] bg-slate-50 flex items-center justify-center overflow-hidden mb-5 group-hover:bg-slate-100 transition-colors">
-                  <img src="<%= simProd.variants?.[0]?.product_images?.[0]?.url || '/images/placeholder.png' %>"
+                <div class="relative w-full aspect-square rounded-[1.5rem] bg-slate-50 flex items-center justify-center overflow-hidden mb-5 group-hover:bg-slate-100 transition-colors">
+                  <img src="<%= simVariant?.product_images?.[0]?.url || '/images/placeholder.png' %>"
                     alt="<%= simProd.name %>"
                     class="max-w-[70%] max-h-[70%] object-contain group-hover:scale-110 transition-transform duration-500">
 
                   <% if (simFinalPrice < simPrice) { %>
-                    <div
-                      class="absolute top-3 left-3 bg-red-500 text-white text-[10px] font-black uppercase tracking-widest px-2.5 py-1 rounded-lg shadow-sm z-20">
-                      Sale</div>
-                    <% } %>
+                    <div class="absolute top-3 left-3 bg-red-500 text-white text-[10px] font-black uppercase tracking-widest px-2.5 py-1 rounded-lg shadow-sm z-20">Sale</div>
+                  <% } %>
+
+                  <!-- Wishlist button -->
+                  <% if (simVariantId) { %>
+                    <button
+                      id="wishlist-<%= simVariantId %>"
+                      data-product-id="<%= simProd._id %>"
+                      data-variant-id="<%= simVariantId %>"
+                      <%= simIsCarted ? 'disabled' : '' %>
+                      class="wishlist absolute top-3 right-3 z-20 w-8 h-8 bg-white/90 backdrop-blur rounded-full shadow flex items-center justify-center hover:bg-red-50 transition <%= simIsCarted ? 'opacity-50 cursor-not-allowed' : '' %>">
+                      <i class="fa-heart <%= simIsWishlisted ? 'fa-solid text-red-500' : 'fa-regular text-gray-500' %> text-xs"></i>
+                    </button>
+                  <% } %>
                 </div>
 
-                <h4
-                  class="text-slate-900 font-black text-base mb-1 truncate group-hover:text-brand-600 transition-colors">
+                <h4 class="text-slate-900 font-black text-base mb-1 truncate group-hover:text-brand-600 transition-colors">
                   <%= simProd.name %>
                 </h4>
 
                 <div class="flex items-end justify-between mt-4">
                   <div class="flex flex-col">
                     <% if (simFinalPrice < simPrice) { %>
-                      <span class="text-xs text-slate-400 line-through font-bold">₹<%=
-                          Number(simPrice).toLocaleString('en-IN') %></span>
-                      <% } %>
-                        <span class="text-brand-600 font-black text-xl leading-none mt-1">₹<%=
-                            Number(simFinalPrice).toLocaleString('en-IN') %></span>
+                      <span class="text-xs text-slate-400 line-through font-bold">₹<%= Number(simPrice).toLocaleString('en-IN') %></span>
+                    <% } %>
+                    <span class="text-brand-600 font-black text-xl leading-none mt-1">₹<%= Number(simFinalPrice).toLocaleString('en-IN') %></span>
                   </div>
-                  <button
-                    class="relative z-20 w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center text-slate-500 group-hover:bg-slate-900 group-hover:text-white transition-all shadow-sm">
-                    <i class="fas fa-shopping-cart text-xs"></i>
-                  </button>
+
+                  <!-- Cart button -->
+                  <% if (simVariantId) { %>
+                    <% if (!simIsCarted) { %>
+                      <button
+                        data-product-id="<%= simProd._id %>"
+                        data-variant-id="<%= simVariantId %>"
+                        class="add-to-cart relative z-20 w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center text-slate-500 group-hover:bg-slate-900 group-hover:text-white transition-all shadow-sm">
+                        <i class="fas fa-shopping-cart text-xs"></i>
+                      </button>
+                    <% } else { %>
+                      <button
+                        data-product-id="<%= simProd._id %>"
+                        data-variant-id="<%= simVariantId %>"
+                        class="add-to-cart increase relative z-20 w-10 h-10 rounded-full bg-slate-900 flex items-center justify-center text-white transition-all shadow-sm">
+                        <i class="fas fa-check text-xs"></i>
+                      </button>
+                    <% } %>
+                  <% } %>
                 </div>
               </div>
               <% }) %>
@@ -718,8 +751,10 @@
         <span class="text-sm font-black text-emerald-600 tracking-tight">In Stock (${v.stock} left)</span>
       `;
       if(stockTopBar) stockTopBar.className = "absolute top-0 left-0 h-[4px] w-full bg-emerald-500 transition-colors duration-500";
-      
-      // Allow buying
+
+      // Re-enable cart + buy now
+      cartBtn.disabled = false;
+      cartBtn.classList.remove('opacity-50', 'cursor-not-allowed');
       if(buyNowBtn) {
         buyNowBtn.disabled = false;
         buyNowBtn.classList.remove('opacity-50', 'cursor-not-allowed');
@@ -730,8 +765,8 @@
         <span class="text-sm font-black text-red-500 tracking-tight"><i class="fas fa-times-circle"></i> Out of Stock</span>
       `;
       if(stockTopBar) stockTopBar.className = "absolute top-0 left-0 h-[4px] w-full bg-red-500 transition-colors duration-500";
-      
-      // Disable cart buttons if out of stock
+
+      // Disable cart + buy now
       cartBtn.disabled = true;
       cartBtn.classList.add('opacity-50', 'cursor-not-allowed');
       if(buyNowBtn) {
@@ -1156,6 +1191,178 @@
     renderSpecifications();
   });
 
+</script>
+
+<script src="/socket.io/socket.io.js"></script>
+<script>
+  // ── Real-time stock updates via Socket.IO ─────────────────────────────────
+  const _socket = io();
+  const _thisProductId = "<%= String(product._id) %>";
+
+  _socket.on("connect", () => {
+    console.log("[Socket] Connected:", _socket.id);
+  });
+
+  _socket.on("connect_error", (err) => {
+    console.error("[Socket] Connection error:", err.message);
+  });
+
+  _socket.on("stockUpdated", (payload) => {
+    console.log("[Socket] stockUpdated received:", payload);
+
+    const { productId, variantId, stock } = payload;
+
+    if (String(productId) !== _thisProductId) {
+      console.log("[Socket] Ignoring — different product:", productId, "vs", _thisProductId);
+      return;
+    }
+
+    // Update the in-memory variants array
+    const _variant = productVariants.find(v => String(v._id) === String(variantId));
+    if (!_variant) {
+      console.warn("[Socket] Variant not found in productVariants:", variantId);
+      return;
+    }
+
+    console.log("[Socket] Updating variant stock:", variantId, "→", stock);
+    _variant.stock = stock;
+
+    // Update the variant selector button badge
+    const _idx = productVariants.indexOf(_variant);
+    const _btn = document.querySelector(`.variant-option[data-index="${_idx}"]`);
+    if (_btn) {
+      const _badge = _btn.querySelector('.sold-out-badge');
+      if (stock <= 0) {
+        _btn.classList.add('opacity-60', 'variant-out-of-stock');
+        _btn.classList.remove('cursor-pointer', 'hover:border-brand-300');
+        if (!_badge) {
+          const b = document.createElement('span');
+          b.className = 'sold-out-badge absolute -top-3 left-1/2 -translate-x-1/2 bg-slate-800 text-white text-[9px] font-black px-2 py-0.5 rounded-full z-10 uppercase tracking-widest whitespace-nowrap shadow-md';
+          b.textContent = 'Sold Out';
+          _btn.appendChild(b);
+        }
+      } else {
+        _btn.classList.remove('opacity-60', 'variant-out-of-stock');
+        _btn.classList.add('cursor-pointer', 'hover:border-brand-300');
+        if (_badge) _badge.remove();
+      }
+    }
+
+    // If this is the currently selected variant, re-render stock UI live
+    if (currentVariant && String(currentVariant._id) === String(variantId)) {
+      currentVariant.stock = stock;
+      renderStock(currentVariant);
+    }
+  });
+</script>
+
+<script>
+  // ── Similar Products: Cart & Wishlist delegated handlers ──────────────────
+  const isLoggedInSim = <%= typeof user !== 'undefined' && user ? 'true' : 'false' %>;
+
+  document.addEventListener('click', async (e) => {
+    const link = e.target.closest('.wishlist');
+    if (!link) return;
+    if (!isLoggedInSim) return window.showMessage("Please log in to manage your wishlist.", "warning");
+    if (link.classList.contains("loading")) return;
+    link.classList.add("loading");
+
+    const productId = link.dataset.productId;
+    const variantId = link.dataset.variantId;
+    if (!productId || !variantId) { link.classList.remove("loading"); return; }
+
+    try {
+      const res = await fetch('/wishlist', {
+        method: "POST",
+        headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+        body: JSON.stringify({ productId, variantId })
+      });
+      const { success, data, message } = await res.json();
+      if (!success) { window.showMessage(message, "error"); return; }
+
+      const icon = link.querySelector("i");
+      const countEl = document.getElementById('wishlistCount');
+      let current = +countEl.textContent || 0;
+      if (data.added) {
+        icon.classList.replace("fa-regular", "fa-solid");
+        icon.classList.add("text-red-500");
+        countEl.textContent = current + 1;
+      } else {
+        icon.classList.replace("fa-solid", "fa-regular");
+        icon.classList.remove("text-red-500");
+        countEl.textContent = Math.max(0, current - 1);
+      }
+      window.showMessage(message || "Wishlist updated", "success");
+    } catch (err) {
+      window.showMessage("Failed to update wishlist", "error");
+    } finally {
+      link.classList.remove("loading");
+    }
+  });
+
+  document.addEventListener('click', async (e) => {
+    const btn = e.target.closest('.add-to-cart');
+    if (!btn) return;
+    // skip — the main product's cartForm has its own submit handler
+    if (btn.closest('#cartForm')) return;
+    if (!isLoggedInSim) return window.showMessage("Please log in to add to cart.", "warning");
+    if (btn.classList.contains("loading")) return;
+    btn.classList.add("loading");
+
+    const productId = btn.dataset.productId;
+    const variantId = btn.dataset.variantId;
+    if (!productId || !variantId) { btn.classList.remove("loading"); return; }
+
+    const cartCountEl = document.getElementById('cartCount');
+    if (+cartCountEl.textContent >= 5) {
+      window.showMessage("Maximum 5 different products allowed in cart.", "warning");
+      btn.classList.remove("loading");
+      return;
+    }
+
+    try {
+      const res = await fetch('/cart', {
+        method: "POST",
+        headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+        body: JSON.stringify({ productId, variantId, quantity: 1 })
+      });
+      const result = await res.json();
+      if (!result.success) { window.showMessage(result.message, "error"); return; }
+
+      const { data } = result;
+
+      // swap cart icon → check
+      const icon = btn.querySelector("i");
+      if (icon) {
+        icon.classList.remove("fa-shopping-cart");
+        icon.classList.add("fa-check");
+      }
+      btn.classList.remove("bg-slate-100", "text-slate-500");
+      btn.classList.add("bg-slate-900", "text-white");
+
+      if (data.added) {
+        cartCountEl.textContent = (+cartCountEl.textContent || 0) + 1;
+        // disable matching wishlist btn
+        const wishBtn = document.getElementById(`wishlist-${variantId}`);
+        if (wishBtn) {
+          wishBtn.disabled = true;
+          wishBtn.classList.add("opacity-50", "cursor-not-allowed");
+          if (data.removedFromWishlist) {
+            const wi = wishBtn.querySelector("i");
+            if (wi) { wi.classList.replace("fa-solid", "fa-regular"); wi.classList.remove("text-red-500"); }
+            const wCount = document.getElementById('wishlistCount');
+            if (wCount) wCount.textContent = Math.max(0, (+wCount.textContent || 1) - 1);
+          }
+        }
+      }
+
+      window.showMessage(result.message || "Added to cart", "success");
+    } catch (err) {
+      window.showMessage("Failed to add to cart", "error");
+    } finally {
+      btn.classList.remove("loading");
+    }
+  });
 </script>
 
 

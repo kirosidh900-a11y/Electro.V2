@@ -114,8 +114,48 @@
                                                                 </div>
 
                                                                 <!-- PRICE -->
-                                                                <div class="text-lg font-bold text-gray-900">
-                                                                        ₹<%= item.variantId?.price %>
+                                                                <div class="text-right shrink-0">
+                                                                        <%
+                                                                          const regularPrice = item.variantId?.regular_price || item.variantId?.price || 0;
+                                                                          const finalPrice   = item.variantId?.finalPrice ?? regularPrice;
+                                                                          const savings      = Math.max(regularPrice - finalPrice, 0);
+                                                                          const discountPct  = regularPrice > 0 ? Math.round((savings / regularPrice) * 100) : 0;
+                                                                          const gstAmount    = item.variantId?.gstAmount || 0;
+                                                                          const gstRate      = item.variantId?.gstRate || 18;
+                                                                          const appliedOffer = item.variantId?.appliedOffer;
+                                                                        %>
+
+                                                                        <div class="flex flex-col items-end gap-1">
+
+                                                                                <!-- Final price + original -->
+                                                                                <div class="flex items-center gap-2 flex-wrap justify-end">
+                                                                                        <span class="text-xl font-bold text-gray-900">
+                                                                                                ₹<%= finalPrice.toLocaleString('en-IN') %>
+                                                                                        </span>
+                                                                                        <% if (savings > 0) { %>
+                                                                                                <span class="text-sm text-gray-400 line-through">
+                                                                                                        ₹<%= regularPrice.toLocaleString('en-IN') %>
+                                                                                                </span>
+                                                                                                <span class="bg-green-600 text-white text-[10px] font-bold px-2 py-0.5 rounded">
+                                                                                                        <%= discountPct %>% OFF
+                                                                                                </span>
+                                                                                        <% } %>
+                                                                                </div>
+
+                                                                                <!-- Savings -->
+                                                                                <% if (savings > 0) { %>
+                                                                                        <span class="text-xs text-green-600 font-semibold">
+                                                                                                You save ₹<%= savings.toLocaleString('en-IN') %>
+                                                                                        </span>
+                                                                                <% } %>
+
+                                                                                <!-- GST -->
+                                                                                <span class="text-[11px] text-gray-400">
+                                                                                        GST (<%= gstRate %>%): ₹<%= gstAmount.toLocaleString('en-IN') %>
+                                                                                </span>
+                                                                                <span class="text-[10px] text-gray-400">Inclusive of all taxes</span>
+
+                                                                        </div>
                                                                 </div>
 
                                                                 <!-- ACTIONS -->

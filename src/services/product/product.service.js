@@ -372,7 +372,6 @@ export const getProductDetailsServiceUser = async (productId) => {
     throw new AppError("Product not found", HTTP_STATUS.NOT_FOUND);
   }
 
-
   // ================= OFFERS =================
   const offers = await getActiveOffers(product);
 
@@ -391,12 +390,11 @@ export const getProductDetailsServiceUser = async (productId) => {
     .populate({
       path: "variants",
       match: { isDeleted: false },
-      select: "price regular_price product_images",
+      select: "_id price regular_price finalPrice product_images",
       populate: { path: "product_images", select: "url" },
     })
     .sort({ "variants.price": 1 })
     .lean();
-
 
   return {
     product: productWithPricing,
@@ -692,14 +690,6 @@ export const getProductsListService = async ({
 
   const now = new Date();
 
-  // ================= OFFERS =================
-  const offers = await Offer.find({
-    is_active: true,
-    isDeleted: { $ne: true },
-    start_date: { $lte: now },
-    end_date: { $gte: now },
-  }).lean();
-
   const cacheKey = `shop:category=${category || "all"}:brand=${normalizedBrand}:page=${page}:limit=${limit}:sort=${sort}:price=${safeMin}-${safeMax}`;
 
   // ================= CACHE =================
@@ -839,50 +829,13 @@ export const getProductsListService = async ({
   const products = result[0]?.data || [];
 
   // ================= PRICING ENGINE =================
-  const productsWithPricing = products.map((product) => {
-    const updatedVariants = (product.variants || []).map((variant) => {
-      let bestPrice = variant.price;
-      let appliedOffer = null;
-
-      for (const offer of offers) {
-        let discount = 0;
-
-        // 🔹 FULL OFFER
-        if (offer.discount_type === "percentage") {
-          discount = (variant.price * offer.discount) / 100;
-        } else {
-          discount = offer.discount;
-        }
-
-        // 🔹 APPLY CAPS (YOUR REQUIREMENT ✅)
-        const finalDiscount = Math.min(
-          discount,
-          offer.max_discount ?? discount,
-          variant.max_discount_amount ?? discount,
-        );
-
-        const finalPrice = variant.price - finalDiscount;
-
-        if (finalPrice < bestPrice) {
-          bestPrice = finalPrice;
-          appliedOffer = offer;
-        }
-      }
-
-      return {
-        ...variant,
-        regular_price: variant.regular_price || variant.price,
-        finalPrice: Math.max(0, Math.round(bestPrice)),
-        appliedOffer,
-        savings: Math.max(0, variant.price - bestPrice),
-      };
-    });
-
-    return {
-      ...product,
-      variants: updatedVariants,
-    };
-  });
+  // For each product, get only its applicable offers (product/category/brand/all)
+  const productsWithPricing = await Promise.all(
+    products.map(async (product) => {
+      const productOffers = await getActiveOffers(product);
+      return applyPricingToProduct(product, productOffers);
+    })
+  );
 
   // ================= RESPONSE =================
   const total = result[0]?.totalCount?.[0]?.count || 0;

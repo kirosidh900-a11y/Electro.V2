@@ -16,10 +16,10 @@ export const getActiveOffers = async (product = null) => {
     return offersSchemaModel.find(baseFilter).lean();
   }
 
-  // 🔥 SAFE IDS (avoid undefined errors)
-  const productId = product._id;
-  const categoryId = product.category?._id || product.category;
-  const brandId = product.brand?._id || product.brand;
+  // Extract IDs — handles both populated objects and raw ObjectIds
+  const productId  = product._id;
+  const categoryId = product.category?._id ?? product.category ?? null;
+  const brandId    = product.brand?._id    ?? product.brand    ?? null;
 
   // ✅ CASE 2: PRODUCT PROVIDED → filter relevant offers
   return offersSchemaModel

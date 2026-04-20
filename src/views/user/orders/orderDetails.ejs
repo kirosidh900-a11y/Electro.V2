@@ -30,6 +30,13 @@
     <span class="text-gray-800 font-medium"><%= order.orderNumber %></span>
   </div>
 
+  <%
+    const currentStatus = order.orderStatus.toLowerCase();
+    const terminalStatuses = ['cancelled','refund_processed','refund_pending'];
+    const effectivelyCancelled = currentStatus === 'cancelled' ||
+      (items.length > 0 && items.every(i => terminalStatuses.includes(i.itemStatus)));
+  %>
+
   <!-- Page Title -->
   <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-5">
     <div>
@@ -38,13 +45,33 @@
         Placed on <%= new Date(order.createdAt).toLocaleString('en-IN', { day:'numeric', month:'short', year:'numeric', hour:'2-digit', minute:'2-digit' }) %>
       </p>
     </div>
-    <span class="self-start sm:self-auto px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wide
-      <%= order.orderStatus === 'delivered'        ? 'bg-green-100 text-green-700' :
-          order.orderStatus === 'cancelled'        ? 'bg-red-100 text-red-600' :
-          order.orderStatus === 'shipped' || order.orderStatus === 'out_for_delivery' ? 'bg-blue-100 text-blue-700' :
-          'bg-yellow-100 text-yellow-700' %>">
-      <%= order.orderStatus.replace(/_/g,' ') %>
-    </span>
+    <div class="flex items-center gap-3 self-start sm:self-auto flex-wrap">
+      <%
+        const invoiceEligible = !effectivelyCancelled &&
+          !order.isCancelled &&
+          (
+            (order.payment.method === 'cod' && order.orderStatus === 'delivered') ||
+            (['razorpay','wallet'].includes(order.payment.method) && order.payment.status === 'paid')
+          ) &&
+          items.some(i => !['cancelled','returned','return_requested','return_approved',
+            'pickup_scheduled','refund_pending','refund_processed','return_rejected'].includes(i.itemStatus));
+      %>
+      <% if (invoiceEligible) { %>
+        <a href="/order/invoice/<%= order._id %>"
+          target="_blank"
+          class="flex items-center gap-1.5 px-3 py-1.5 bg-white border border-gray-200 rounded-lg text-xs font-semibold text-gray-700 hover:border-gray-400 hover:bg-gray-50 transition shadow-sm">
+          <i class="fa-solid fa-file-invoice text-blue-500 text-[11px]"></i>
+          Download Invoice
+        </a>
+      <% } %>
+      <span class="px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wide
+        <%= effectivelyCancelled                                                          ? 'bg-red-100 text-red-600' :
+            order.orderStatus === 'delivered'                                             ? 'bg-green-100 text-green-700' :
+            order.orderStatus === 'shipped' || order.orderStatus === 'out_for_delivery'  ? 'bg-blue-100 text-blue-700' :
+            'bg-yellow-100 text-yellow-700' %>">
+        <%= effectivelyCancelled ? 'Cancelled' : order.orderStatus.replace(/_/g,' ') %>
+      </span>
+    </div>
   </div>
 
   <div class="flex flex-col lg:flex-row gap-6 items-start">
@@ -58,9 +85,9 @@
           <h2 class="text-sm font-bold text-gray-800">Order Status</h2>
         </div>
         <div class="px-6 py-8">
-          <% const currentStatus = order.orderStatus.toLowerCase(); %>
+          <%# effectivelyCancelled, currentStatus, terminalStatuses are declared at the top of the page %>
 
-          <% if(currentStatus === 'cancelled') { %>
+          <% if(effectivelyCancelled) { %>
             <div class="flex items-center justify-center gap-4 max-w-xs mx-auto">
               <div class="flex flex-col items-center">
                 <div class="w-11 h-11 rounded-full bg-green-500 text-white flex items-center justify-center shadow">
@@ -128,7 +155,11 @@
       <div class="bg-white border rounded-xl shadow-sm overflow-hidden">
         <div class="px-6 py-4 border-b flex items-center justify-between">
           <h2 class="text-sm font-bold text-gray-800">Order Items (<%= items.length %>)</h2>
-          <% if(['placed','confirmed'].includes(order.orderStatus) && !order.isCancelled) { %>
+          <% 
+            const cancelledStatuses = ['cancelled','refund_processed','refund_pending'];
+            const allItemsCancelled = items.every(i => cancelledStatuses.includes(i.itemStatus));
+          %>
+          <% if(['placed','confirmed'].includes(order.orderStatus) && !order.isCancelled && !allItemsCancelled) { %>
             <button onclick="openCancelModal(false)"
               class="text-xs text-red-600 border border-red-200 px-3 py-1.5 rounded-lg hover:bg-red-50 font-semibold transition flex items-center gap-1.5">
               <i class="fa-solid fa-ban text-[10px]"></i> Cancel Order
@@ -136,121 +167,155 @@
           <% } %>
         </div>
 
-        <div class="divide-y divide-gray-100">
+        <div class="divide-y divide-gray-50">
           <% items.forEach(item => { %>
-            <div class="p-5 flex gap-4 items-start">
-              <!-- Image -->
-              <div class="w-20 h-20 border rounded-lg p-1.5 bg-gray-50 flex-shrink-0">
-                <img src="<%= item.images?.[0] || 'https://via.placeholder.com/150' %>"
-                     class="w-full h-full object-contain mix-blend-multiply" alt="<%= item.name %>">
-              </div>
+            <%
+              const statusColors = {
+                cancelled:        'bg-red-100 text-red-600',
+                returned:         'bg-purple-100 text-purple-600',
+                return_requested: 'bg-amber-100 text-amber-700',
+                return_approved:  'bg-blue-100 text-blue-700',
+                return_rejected:  'bg-red-100 text-red-600',
+                delivered:        'bg-green-100 text-green-700',
+                shipped:          'bg-blue-100 text-blue-600',
+                out_for_delivery: 'bg-indigo-100 text-indigo-600',
+                confirmed:        'bg-cyan-100 text-cyan-700',
+                refund_processed: 'bg-emerald-100 text-emerald-700',
+                refund_pending:   'bg-yellow-100 text-yellow-700',
+              };
+              const statusColor = statusColors[item.itemStatus] || 'bg-gray-100 text-gray-600';
+              const attrs = item.attributes ? Object.entries(item.attributes) : [];
+            %>
+            <div class="p-5">
+              <div class="flex gap-4">
 
-              <!-- Info -->
-              <div class="flex-1 min-w-0">
-                <p class="text-sm font-semibold text-gray-900 leading-tight"><%= item.name %></p>
-                <% if(item.brand) { %><p class="text-xs text-gray-400 mt-0.5"><%= item.brand %></p><% } %>
+                <!-- Image -->
+                <a href="/product/<%= item.productId %>"
+                  class="w-24 h-24 rounded-xl border bg-gray-50 flex-shrink-0 overflow-hidden hover:opacity-90 transition">
+                  <img src="<%= item.images?.[0] || 'https://via.placeholder.com/150' %>"
+                       class="w-full h-full object-contain p-2 mix-blend-multiply" alt="<%= item.name %>">
+                </a>
 
-                <div class="flex flex-wrap gap-1.5 mt-1.5">
-                  <span class="bg-gray-100 text-gray-600 text-xs px-2 py-0.5 rounded">Qty: <%= item.quantity %></span>
-                  <% if(item.attributes && Object.keys(item.attributes).length > 0) { %>
-                    <% Object.entries(item.attributes).forEach(([k,v]) => { %>
-                      <span class="bg-gray-100 text-gray-600 text-xs px-2 py-0.5 rounded capitalize"><%= k %>: <%= v %></span>
-                    <% }) %>
+                <!-- Main info -->
+                <div class="flex-1 min-w-0">
+                  <div class="flex items-start justify-between gap-3">
+                    <div class="min-w-0">
+                      <a href="/product/<%= item.productId %>"
+                        class="text-sm font-bold text-gray-900 hover:text-blue-600 transition line-clamp-2 leading-snug">
+                        <%= item.name %>
+                      </a>
+                      <% if(item.brand) { %>
+                        <p class="text-xs text-gray-400 mt-0.5"><%= item.brand %></p>
+                      <% } %>
+                    </div>
+                    <!-- Total price -->
+                    <p class="text-base font-black text-gray-900 shrink-0">
+                      ₹<%= item.pricing?.total?.toLocaleString('en-IN') %>
+                    </p>
+                  </div>
+
+                  <!-- Attributes row -->
+                  <% if(attrs.length > 0) { %>
+                    <div class="flex flex-wrap gap-1.5 mt-2">
+                      <% attrs.forEach(([k, v]) => { %>
+                        <span class="bg-gray-100 text-gray-600 text-[11px] px-2 py-0.5 rounded-md capitalize font-medium">
+                          <%= k.replace(/_/g,' ') %>: <span class="text-gray-800"><%= v %></span>
+                        </span>
+                      <% }) %>
+                    </div>
                   <% } %>
-                  <span class="text-xs px-2 py-0.5 rounded font-semibold
-  <%= item.itemStatus === 'cancelled'        ? 'bg-red-100 text-red-600' :
-      item.itemStatus === 'returned'         ? 'bg-purple-100 text-purple-600' :
-      item.itemStatus === 'return_requested' ? 'bg-yellow-100 text-yellow-700' :
-      item.itemStatus === 'return_approved'  ? 'bg-blue-100 text-blue-700' :
-      item.itemStatus === 'return_rejected'  ? 'bg-red-100 text-red-600' :
-      item.itemStatus === 'delivered'        ? 'bg-green-100 text-green-700' :
-      'bg-gray-100 text-gray-600' %>">
-                    <%= item.itemStatus %>
-                  </span>
-                </div>
 
-                <div class="mt-1.5 text-xs text-gray-500">
-                  ₹<%= item.pricing?.finalPrice?.toLocaleString('en-IN') %> × <%= item.quantity %>
-                  <% if(item.pricing?.discountAmount > 0) { %>
-                    <span class="text-green-600 ml-1">(-₹<%= item.pricing.discountAmount.toLocaleString('en-IN') %>)</span>
+                  <!-- Qty + unit price + status -->
+                  <div class="flex flex-wrap items-center gap-2 mt-2.5">
+                    <span class="text-xs text-gray-500">
+                      ₹<%= item.pricing?.finalPrice?.toLocaleString('en-IN') %> × <%= item.quantity %>
+                    </span>
+                    <% if(item.pricing?.discountAmount > 0) { %>
+                      <span class="text-xs text-green-600 font-medium">
+                        -₹<%= item.pricing.discountAmount.toLocaleString('en-IN') %> off
+                      </span>
+                    <% } %>
+                    <span class="text-[11px] px-2.5 py-0.5 rounded-full font-bold uppercase tracking-wide <%= statusColor %>">
+                      <%= item.itemStatus.replace(/_/g,' ') %>
+                    </span>
+                  </div>
+
+                  <!-- Refund badge -->
+                  <% if(item.refund?.status === 'processed') { %>
+                    <div class="mt-2 inline-flex items-center gap-1.5 bg-emerald-50 border border-emerald-200 text-emerald-700 text-xs font-semibold px-3 py-1 rounded-full">
+                      <i class="fa-solid fa-rotate-left text-[10px]"></i>
+                      ₹<%= item.refund.amount?.toLocaleString('en-IN') %> refunded to wallet
+                    </div>
                   <% } %>
 
-                  <% if(item.itemStatus.includes('return') && item.return) { %>
-  <div class="mt-2 border rounded-lg p-2 text-xs
-    <%= item.itemStatus === 'return_rejected' ? 'bg-red-50 border-red-100' :
-        item.itemStatus === 'return_approved' ? 'bg-blue-50 border-blue-100' :
-        'bg-yellow-50 border-yellow-100' %>">
+                  <!-- Cancellation reason (visible to user) -->
+                  <% if(item.cancel?.reason) { %>
+                    <div class="mt-2 bg-red-50 border border-red-100 rounded-xl px-3 py-2.5 text-xs">
+                      <% if(item.cancel.reason) { %>
+                        <p class="text-red-700 font-semibold capitalize">
+                          <i class="fa-solid fa-ban text-[10px] mr-1"></i>
+                          <%= item.cancel.reason.replace(/_/g,' ') %>
+                        </p>
+                      <% } %>
+                      <% if(item.cancel.comments) { %>
+                        <p class="text-gray-500 mt-0.5"><%= item.cancel.comments %></p>
+                      <% } %>
+                    </div>
+                  <% } %>
 
-    <!-- STATUS TITLE -->
-    <p class="font-semibold
-      <%= item.itemStatus === 'return_rejected' ? 'text-red-600' :
-          item.itemStatus === 'return_approved' ? 'text-blue-600' :
-          'text-yellow-700' %>">
+                  <!-- Return info box -->
+                  <% if(item.itemStatus.includes('return') || item.itemStatus === 'pickup_scheduled') { %>
+                    <div class="mt-3 rounded-xl p-3 text-xs border
+                      <%= item.itemStatus === 'return_rejected'   ? 'bg-red-50 border-red-100' :
+                          item.itemStatus === 'return_approved'   ? 'bg-blue-50 border-blue-100' :
+                          item.itemStatus === 'pickup_scheduled'  ? 'bg-amber-50 border-amber-100' :
+                          'bg-amber-50 border-amber-100' %>">
+                      <% if(item.return?.reason) { %>
+                        <p class="text-gray-600"><span class="font-semibold">Reason:</span> <%= item.return.reason.replace(/_/g,' ') %></p>
+                      <% } %>
+                      <% if(item.return?.comments) { %>
+                        <p class="text-gray-500 mt-0.5"><span class="font-semibold">Comment:</span> <%= item.return.comments %></p>
+                      <% } %>
+                      <% if(item.itemStatus === 'return_rejected' && item.return?.rejectReason) { %>
+                        <p class="text-red-600 mt-1 font-medium"><span class="font-semibold">Rejected:</span> <%= item.return.rejectReason %></p>
+                        <a href="/support" class="mt-2 inline-flex items-center gap-1 text-xs bg-blue-600 text-white px-3 py-1 rounded-lg hover:bg-blue-700 transition">
+                          <i class="fa-solid fa-headset text-[10px]"></i> Contact Support
+                        </a>
+                      <% } %>
+                      <% if(item.itemStatus === 'pickup_scheduled') { %>
+                        <p class="text-amber-700 font-semibold flex items-center gap-1.5">
+                          <i class="fa-solid fa-truck text-[10px]"></i>
+                          Pickup Scheduled
+                          <% if(item.return?.pickupDate) { %>
+                            — <span class="font-bold"><%= new Date(item.return.pickupDate).toLocaleDateString('en-IN', { day:'numeric', month:'short', year:'numeric' }) %></span>
+                          <% } %>
+                        </p>
+                        <p class="text-amber-600 mt-0.5">Please keep the item ready for pickup.</p>
+                      <% } %>
+                      <% if(item.itemStatus === 'returned' && item.return?.pickupCompletedAt) { %>
+                        <p class="text-green-600 font-semibold"><i class="fa-solid fa-check text-[10px] mr-1"></i>Returned on <%= new Date(item.return.pickupCompletedAt).toLocaleDateString('en-IN') %></p>
+                      <% } %>
+                    </div>
+                  <% } %>
 
-      <%= item.itemStatus.replace(/_/g, ' ') %>
-    </p>
+                  <!-- Action buttons -->
+                  <div class="flex flex-wrap gap-2 mt-3">
+                    <% if(item.itemStatus === 'delivered') { %>
+                      <button onclick="openReturnModal('<%= item._id %>')"
+                        class="text-xs text-blue-600 border border-blue-200 px-3 py-1.5 rounded-lg hover:bg-blue-50 font-semibold transition flex items-center gap-1">
+                        <i class="fa-solid fa-rotate-left text-[10px]"></i> Return
+                      </button>
+                    <% } %>
+                    <% if(['placed','confirmed'].includes(order.orderStatus) && ['placed','confirmed'].includes(item.itemStatus) && items.length > 1 && (!order.pricing?.couponDiscount || order.pricing.couponDiscount === 0)) { %>
+                      <button onclick="openCancelModal(true, '<%= item._id %>')"
+                        class="text-xs text-red-600 border border-red-200 px-3 py-1.5 rounded-lg hover:bg-red-50 font-semibold transition flex items-center gap-1">
+                        <i class="fa-solid fa-xmark text-[10px]"></i> Cancel Item
+                      </button>
+                    <% } %>
+                  </div>
 
-    <!-- USER REASON -->
-    <% if(item.return.reason) { %>
-      <p class="text-gray-600 mt-1">
-        Reason: <%= item.return.reason.replace(/_/g, ' ') %>
-      </p>
-    <% } %>
-
-    <!-- USER COMMENT -->
-    <% if(item.return.comments) { %>
-      <p class="text-gray-500 mt-1">
-        Comment: <%= item.return.comments %>
-      </p>
-    <% } %>
-
-    <!-- ❌ REJECT REASON -->
-    <% if(item.itemStatus === 'return_rejected' && item.return.rejectReason) { %>
-  <p class="text-red-500 mt-1 font-medium">
-    Reject Reason: <%= item.return.rejectReason %>
-  </p>
-
-  <!-- 🔥 CONTACT SUPPORT BUTTON -->
-  <div class="mt-2 inline-flex items-center gap-1 text-xs bg-blue-600 text-white px-3 py-1 rounded hover:bg-blue-700 transition">
-      <i class="fa-solid fa-headset"></i>
-      Contact Support
-  </div>
-<% } %>
-  </div>
-<% } %>
-
-<!-- 📦 PICKUP STATUS -->
-<% if(item.itemStatus === 'pickup_scheduled' && item.return?.pickupDate) { %>
-  <p class="text-xs text-yellow-400 mt-1">
-    Pickup Scheduled: <%= new Date(item.return.pickupDate).toLocaleDateString('en-IN') %>
-  </p>
-<% } %>
-
-<!-- ✅ PICKUP COMPLETED -->
-<% if(item.itemStatus === 'returned' && item.return?.pickupCompletedAt) { %>
-  <p class="text-xs text-green-400 mt-1">
-    Pickup Completed: <%= new Date(item.return.pickupCompletedAt).toLocaleDateString('en-IN') %>
-  </p>
-<% } %>
                 </div>
               </div>
-
-              <!-- Price + Action -->
-              <div class="text-right shrink-0 flex flex-col items-end gap-2">
-                <p class="text-sm font-bold text-gray-900">₹<%= item.pricing?.total?.toLocaleString('en-IN') %></p>
-                <% if(item.itemStatus === 'delivered') { %>
-                  <button onclick="openReturnModal('<%= item._id %>')"
-                    class="text-xs text-blue-600 border border-blue-200 px-2.5 py-1 rounded-lg hover:bg-blue-50 font-medium transition">
-                    Return
-                  </button>
-                 
-                <% } %>
-                <% if(['placed','confirmed'].includes(order.orderStatus) && item.itemStatus !=='cancelled' && items.length > 1) { %>
-                  <button onclick="openCancelModal(true, '<%= item._id %>')"
-                    class="text-xs text-red-600 border border-red-200 px-2.5 py-1 rounded-lg hover:bg-red-50 font-medium transition">
-                    Cancel Item
-                  </button>
-                  <% } %>     </div>
             </div>
           <% }) %>
         </div>
@@ -313,7 +378,7 @@
         <h2 class="font-bold text-gray-900 mb-4 text-sm">Price Details</h2>
         <div class="space-y-2.5 text-sm border-b pb-4">
           <div class="flex justify-between text-gray-600">
-            <span>Subtotal</span>
+            <span>Subtotal <span class="text-xs text-gray-400 font-normal">(incl. GST)</span></span>
             <span>₹<%= order.pricing.subtotal?.toLocaleString('en-IN') %></span>
           </div>
           <% if(order.pricing.productDiscount > 0) { %>
@@ -328,8 +393,8 @@
               <span>-₹<%= order.pricing.couponDiscount?.toLocaleString('en-IN') %></span>
             </div>
           <% } %>
-          <div class="flex justify-between text-gray-600">
-            <span>GST</span>
+          <div class="flex justify-between text-gray-400 text-xs">
+            <span>GST <span class="text-gray-300">(included above)</span></span>
             <span>₹<%= order.pricing.gstTotal?.toLocaleString('en-IN') %></span>
           </div>
           <div class="flex justify-between text-gray-600">
@@ -343,7 +408,14 @@
         </div>
         <div class="flex justify-between items-center pt-4">
           <span class="font-bold text-gray-900">Grand Total</span>
-          <span class="text-lg font-black text-gray-900">₹<%= order.pricing.finalAmount?.toLocaleString('en-IN') %></span>
+          <% if(effectivelyCancelled) { %>
+            <div class="flex flex-col items-end gap-0.5">
+              <span class="text-sm line-through text-gray-400">₹<%= order.pricing.finalAmount?.toLocaleString('en-IN') %></span>
+              <span class="text-xs font-bold text-red-500 uppercase tracking-wide">Fully Refunded</span>
+            </div>
+          <% } else { %>
+            <span class="text-lg font-black text-gray-900">₹<%= order.pricing.finalAmount?.toLocaleString('en-IN') %></span>
+          <% } %>
         </div>
         <div class="mt-4 bg-blue-50 rounded-lg p-3 flex items-center justify-between">
           <span class="text-xs text-blue-700 font-medium">Payment</span>
@@ -352,7 +424,7 @@
               <%= order.payment.method %>
             </span>
             <span class="text-xs font-semibold
-              <%= order.payment.status === 'paid' ? 'text-green-600' : order.payment.status === 'failed' ? 'text-red-500' : 'text-yellow-600' %>">
+              <%= order.payment.status === 'paid' ? 'text-green-600' : order.payment.status === 'failed' ? 'text-red-500' : order.payment.status === 'refunded' ? 'text-blue-600' : 'text-yellow-600' %>">
               <%= order.payment.status %>
             </span>
           </div>
@@ -441,6 +513,7 @@
     </div>
     <form onsubmit="submitReturn(event)">
       <input type="hidden" id="returnItemId">
+
       <div class="mb-4">
         <label class="block text-sm font-medium text-gray-700 mb-1.5">Return Reason <span class="text-red-500">*</span></label>
         <select required name="returnReason" class="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:border-blue-500">
@@ -452,11 +525,25 @@
           <option value="not_needed">No longer needed</option>
         </select>
       </div>
+
+      <div class="mb-4">
+        <label class="block text-sm font-medium text-gray-700 mb-1.5">Item Condition <span class="text-red-500">*</span></label>
+        <select required name="itemCondition" class="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:border-blue-500">
+          <option value="" disabled selected>What is the current condition?</option>
+          <option value="sealed_new">Sealed / New (unopened)</option>
+          <option value="opened_good">Opened but in good condition</option>
+          <option value="damaged">Damaged</option>
+          <option value="missing_parts">Missing parts / accessories</option>
+          <option value="defective">Defective / not working</option>
+        </select>
+      </div>
+
       <div class="mb-5">
         <label class="block text-sm font-medium text-gray-700 mb-1.5">Comments</label>
-        <textarea name="returnComments" rows="3" placeholder="Please explain the issue..."
+        <textarea name="returnComments" rows="2" placeholder="Please explain the issue..."
           class="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm resize-none focus:outline-none focus:border-blue-500"></textarea>
       </div>
+
       <div class="flex gap-3 justify-end border-t pt-4">
         <button type="button" onclick="toggleModal('returnModal')" class="px-4 py-2 text-sm text-gray-600 hover:bg-gray-100 rounded-lg">Close</button>
         <button type="submit" id="return-submit-btn" class="px-5 py-2 bg-[#2874F0] text-white text-sm font-semibold rounded-lg hover:bg-blue-700 transition">
@@ -565,7 +652,7 @@ function openCancelModal(isSingle = false, itemId = null) {
       const res = await fetch(`/orders/${itemId}/return`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
-        body: JSON.stringify({ returnReason: form.returnReason.value, returnComments: form.returnComments.value }),
+        body: JSON.stringify({ returnReason: form.returnReason.value, returnComments: form.returnComments.value, itemCondition: form.itemCondition.value }),
         credentials: 'include'
       });
       const data = await res.json();
