@@ -10,6 +10,7 @@ import offersRouter from "../product/offer.route.js";
 import authRouter from "./auth.route.js";
 import ordersRouter from './orders.route.js';
 import couponRouter from './coupon.route.js';
+import maintenanceRouter from './maintenance.route.js';
 
 import reportRouter from "./report.route.js";
 
@@ -28,6 +29,7 @@ router.use("/offers", offersRouter);
 router.use("/orders", ordersRouter);
 router.use("/coupons", couponRouter);
 router.use("/reports", reportRouter);
+router.use("/maintenance", maintenanceRouter);
 router.use("/", authRouter);
 
 export default router;

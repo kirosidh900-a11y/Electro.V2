@@ -181,9 +181,22 @@ export const updateOrderStatusService = async (orderId, status) => {
   ];
   if (!validStatuses.includes(status)) throw new AppError("Invalid status");
 
+  // Get the order to check payment method
+  const order = await Order.findById(orderId);
+  if (!order) throw new AppError("Order not found");
+
   // ORDER LEVEL UPDATE
   const orderUpdate = { orderStatus: status };
-  if (status === "delivered") orderUpdate["delivery.deliveredAt"] = new Date();
+  
+  if (status === "delivered") {
+    orderUpdate["delivery.deliveredAt"] = new Date();
+    
+    // For COD orders, mark payment as paid when delivered
+    if (order.payment.method === "cod" && order.payment.status === "pending") {
+      orderUpdate["payment.status"] = "paid";
+      orderUpdate["payment.paidAt"] = new Date();
+    }
+  }
 
   await Order.findByIdAndUpdate(orderId, orderUpdate);
 

@@ -40,6 +40,7 @@ export const buildRange = (filter) => {
 export const getSummaryStats = async (dateRange) => {
   const dateMatch = dateRange ? { createdAt: dateRange } : {};
 
+  // Get order-level stats
   const [orderAgg] = await Order.aggregate([
     { $match: { orderStatus: { $nin: ["pending","pending_payment"] }, ...dateMatch } },
     {
@@ -47,8 +48,6 @@ export const getSummaryStats = async (dateRange) => {
         _id: null,
         totalOrders:    { $sum: 1 },
         grossRevenue:   { $sum: { $cond: [{ $eq: ["$payment.status","paid"] }, "$pricing.finalAmount", 0] } },
-        refundAmount:   { $sum: { $cond: [{ $eq: ["$payment.status","refunded"] }, "$pricing.finalAmount", 0] } },
-        cancelledCount: { $sum: { $cond: [{ $eq: ["$orderStatus","cancelled"] }, 1, 0] } },
         deliveredCount: { $sum: { $cond: [{ $eq: ["$orderStatus","delivered"] }, 1, 0] } },
         pendingCount:   { $sum: { $cond: [{ $in:  ["$orderStatus",["placed","confirmed","shipped","out_for_delivery"]] }, 1, 0] } },
         avgOrderValue:  { $avg: { $cond: [{ $eq: ["$payment.status","paid"] }, "$pricing.finalAmount", null] } },
@@ -56,19 +55,60 @@ export const getSummaryStats = async (dateRange) => {
     },
   ]);
 
+  // Get item-level stats for accurate cancelled count and refund amount
+  const itemDateMatch = dateRange ? { createdAt: dateRange } : {};
+  
+  const [itemAgg] = await OrderItem.aggregate([
+    {
+      $lookup: {
+        from: "orders",
+        localField: "orderId", 
+        foreignField: "_id",
+        as: "order"
+      }
+    },
+    { $unwind: "$order" },
+    { $match: { "order.orderStatus": { $nin: ["pending","pending_payment"] }, ...itemDateMatch } },
+    {
+      $group: {
+        _id: null,
+        cancelledCount: { 
+          $sum: { 
+            $cond: [
+              { $eq: ["$itemStatus", "cancelled"] }, 
+              1, 
+              0
+            ] 
+          } 
+        },
+        refundAmount: { 
+          $sum: { 
+            $cond: [
+              { $eq: ["$refund.status", "processed"] }, 
+              "$refund.amount", 
+              0
+            ] 
+          } 
+        }
+      }
+    }
+  ]);
+
   const [totalUsers, totalProducts, totalCategories] = await Promise.all([
     User.countDocuments({ isAdmin: { $ne: true } }),
     Product.countDocuments({ isDeleted: false }),
     Category.countDocuments({}),
   ]);
+  
   const s = orderAgg || {};
+  const itemStats = itemAgg || {};
 
   return {
     totalOrders:     s.totalOrders    || 0,
     grossRevenue:    s.grossRevenue   || 0,
-    netRevenue:      (s.grossRevenue  || 0) - (s.refundAmount || 0),
-    refundAmount:    s.refundAmount   || 0,
-    cancelledCount:  s.cancelledCount || 0,
+    netRevenue:      (s.grossRevenue  || 0) - (itemStats.refundAmount || 0),
+    refundAmount:    itemStats.refundAmount   || 0,
+    cancelledCount:  itemStats.cancelledCount || 0,
     deliveredCount:  s.deliveredCount || 0,
     pendingCount:    s.pendingCount   || 0,
     avgOrderValue:   Math.round(s.avgOrderValue || 0),
@@ -122,11 +162,57 @@ export const getRevenueChart = async (filter) => {
 // ── Order status breakdown (for donut chart) ──────────────────────────────────
 export const getOrderStatusBreakdown = async (dateRange) => {
   const dateMatch = dateRange ? { createdAt: dateRange } : {};
-  return Order.aggregate([
+  
+  // Get order-level status breakdown
+  const orderBreakdown = await Order.aggregate([
     { $match: { orderStatus: { $nin: ["pending","pending_payment"] }, ...dateMatch } },
     { $group: { _id: "$orderStatus", count: { $sum: 1 } } },
     { $sort: { count: -1 } },
   ]);
+
+  // Get item-level cancelled count for more accurate representation
+  const itemDateMatch = dateRange ? { createdAt: dateRange } : {};
+  
+  const [cancelledItems] = await OrderItem.aggregate([
+    {
+      $lookup: {
+        from: "orders",
+        localField: "orderId", 
+        foreignField: "_id",
+        as: "order"
+      }
+    },
+    { $unwind: "$order" },
+    { $match: { "order.orderStatus": { $nin: ["pending","pending_payment"] }, ...itemDateMatch } },
+    {
+      $group: {
+        _id: null,
+        cancelledCount: { 
+          $sum: { 
+            $cond: [
+              { $eq: ["$itemStatus", "cancelled"] }, 
+              1, 
+              0
+            ] 
+          } 
+        }
+      }
+    }
+  ]);
+
+  // Replace order-level cancelled count with item-level count if it exists
+  const cancelledItemCount = cancelledItems?.cancelledCount || 0;
+  
+  if (cancelledItemCount > 0) {
+    const cancelledOrderIndex = orderBreakdown.findIndex(item => item._id === "cancelled");
+    if (cancelledOrderIndex >= 0) {
+      orderBreakdown[cancelledOrderIndex].count = cancelledItemCount;
+    } else {
+      orderBreakdown.push({ _id: "cancelled", count: cancelledItemCount });
+    }
+  }
+
+  return orderBreakdown.sort((a, b) => b.count - a.count);
 };
 
 // ── Shared: get qualifying order IDs for a date range ────────────────────────
@@ -218,7 +304,7 @@ export const getTopCategories = async (dateRange) => {
     },
     {
       $project: {
-        name:     { $ifNull: [{ $arrayElemAt: ["$category.name", 0] }, "Unknown"] },
+        name:     { $ifNull: [{ $arrayElemAt: ["$category.title", 0] }, "Unknown"] },
         revenue:  1,
         quantity: 1,
         orders:   1,
@@ -266,7 +352,7 @@ export const getTopBrands = async (dateRange) => {
     },
     {
       $project: {
-        name:     { $ifNull: [{ $arrayElemAt: ["$brand.name", 0] }, "Unknown"] },
+        name:     { $ifNull: [{ $arrayElemAt: ["$brand.title", 0] }, "Unknown"] },
         revenue:  1,
         quantity: 1,
         orders:   1,
