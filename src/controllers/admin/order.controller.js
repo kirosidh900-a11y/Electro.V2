@@ -138,6 +138,8 @@ export const getAdminOrderDetailsPage = async (req, res, next) => {
       order: data.order,
       items: data.items,
       user: data.user,
+      itemCount: data.itemCount,
+      isSingleItem: data.isSingleItem,
     });
   } catch (error) {
     console.error("Admin Order Details Error:", error);

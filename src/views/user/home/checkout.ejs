@@ -790,6 +790,7 @@
         <script type="module">
                 import { showToast } from "/partials/errorMsg.utils.js";
                 import { confirmAction } from "/partials/confirm.util.js";
+                import { confirmPayment } from "/partials/paymentConfirm.util.js";
 
                 // ── Inline wallet top-up from checkout page ───────────────────────────
                 window.checkoutTopup = async () => {
@@ -1223,8 +1224,8 @@
 
                                 // ================= COD =================
                                 if (selectedPayment.value === "cod") {
-
-                                        const confirmed = await confirmAction("Place order with Cash on Delivery?");
+                                        const totalAmount = parseFloat(document.getElementById('grandTotalDisplay').textContent.replace('₹', '').replace(/,/g, ''));
+                                        const confirmed = await confirmPayment("cod", totalAmount);
                                         if (!confirmed) { btn.disabled = false; btn.innerHTML = original; return; }
 
                                         const res = await fetch('/api/user/order/place', {
@@ -1243,8 +1244,8 @@
 
                                 // ================= WALLET =================
                                 else if (selectedPayment.value === "wallet") {
-
-                                        const confirmed = await confirmAction("Pay using your Wallet balance?");
+                                        const totalAmount = parseFloat(document.getElementById('grandTotalDisplay').textContent.replace('₹', '').replace(/,/g, ''));
+                                        const confirmed = await confirmPayment("wallet", totalAmount);
                                         if (!confirmed) { btn.disabled = false; btn.innerHTML = original; return; }
 
                                         const res = await fetch('/api/user/order/place', {
@@ -1263,6 +1264,10 @@
 
                                 // ================= RAZORPAY =================
                                 else {
+                                        const totalAmount = parseFloat(document.getElementById('grandTotalDisplay').textContent.replace('₹', '').replace(/,/g, ''));
+                                        const confirmed = await confirmPayment("razorpay", totalAmount);
+                                        if (!confirmed) { btn.disabled = false; btn.innerHTML = original; return; }
+
                                         const res = await fetch('/api/user/payment/create-order', {
                                                 method: 'POST',
                                                 headers: { "Content-Type": "application/json", "Accept": "application/json" },

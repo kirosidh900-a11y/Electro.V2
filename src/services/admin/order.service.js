@@ -162,11 +162,15 @@ export const getAdminOrderDetailsService = async (orderId) => {
   if (!order) throw new Error("Order not found");
 
   const items = await orderItem.find({ orderId }).lean();
+  const itemCount = items.length;
+  const isSingleItem = itemCount === 1;
 
   return {
     order,
     items,
     user: order.userId,
+    itemCount,
+    isSingleItem,
   };
 };
 
@@ -181,9 +185,12 @@ export const updateOrderStatusService = async (orderId, status) => {
   ];
   if (!validStatuses.includes(status)) throw new AppError("Invalid status");
 
-  // Get the order to check payment method
+  // Get the order and count items
   const order = await Order.findById(orderId);
   if (!order) throw new AppError("Order not found");
+  
+  const itemCount = await orderItem.countDocuments({ orderId });
+  const isSingleItem = itemCount === 1;
 
   // ORDER LEVEL UPDATE
   const orderUpdate = { orderStatus: status };
@@ -200,34 +207,41 @@ export const updateOrderStatusService = async (orderId, status) => {
 
   await Order.findByIdAndUpdate(orderId, orderUpdate);
 
-  // ITEM STATUS MAPPING
-  const itemStatusMap = {
-    placed: "placed",
-    confirmed: "confirmed",
-    shipped: "shipped",
-    out_for_delivery: "out_for_delivery",
-    delivered: "delivered",
-    cancelled: "cancelled",
-  };
+  // ITEM STATUS HANDLING - Different logic for single vs multi-item orders
+  if (isSingleItem) {
+    // For single item orders: Update the item status directly to match order status
+    const itemStatusMap = {
+      placed: "placed",
+      confirmed: "confirmed", 
+      shipped: "shipped",
+      out_for_delivery: "out_for_delivery",
+      delivered: "delivered",
+      cancelled: "cancelled",
+    };
 
-  const itemStatus = itemStatusMap[status];
-  if (itemStatus) {
-    // only update items that are still in an active/progressable state
-    const protectedStatuses = [
-      "cancelled",
-      "returned",
-      "refund_pending",
-      "refund_processed",
-      "return_requested",
-      "return_approved",
-      "return_rejected",
-      "pickup_scheduled",
-    ];
-    await orderItem.updateMany(
-      { orderId, itemStatus: { $nin: protectedStatuses } },
-      { itemStatus },
-    );
+    const itemStatus = itemStatusMap[status];
+    if (itemStatus) {
+      // Only update items that are still in an active/progressable state
+      const protectedStatuses = [
+        "cancelled",
+        "returned", 
+        "refund_pending",
+        "refund_processed",
+        "return_requested",
+        "return_approved",
+        "return_rejected",
+        "pickup_scheduled",
+      ];
+      await orderItem.updateMany(
+        { orderId, itemStatus: { $nin: protectedStatuses } },
+        { itemStatus },
+      );
+    }
   }
+  // For multi-item orders: Don't automatically update item statuses
+  // Items should be managed individually, and order status will be calculated separately
+  
+  return { isSingleItem, itemCount };
 };
 
 export const cancelOrderService = async (orderId, { reason, comments, refundMethod, internalNote }) => {
@@ -454,6 +468,77 @@ const VALID_ITEM_STATUSES = [
   "return_rejected", "returned", "refund_pending", "refund_processed",
 ];
 
+// ── Auto-calculate order status based on item statuses ──────────────────────
+export const calculateOrderStatusFromItems = async (orderId) => {
+  const items = await orderItem.find({ orderId });
+  const order = await Order.findById(orderId);
+  
+  if (!items.length || !order) return;
+
+  // Don't auto-update if order is already cancelled or if it's a single item order
+  const itemCount = items.length;
+  if (order.orderStatus === "cancelled" || itemCount === 1) return;
+
+  // Count items by status
+  const statusCounts = items.reduce((acc, item) => {
+    acc[item.itemStatus] = (acc[item.itemStatus] || 0) + 1;
+    return acc;
+  }, {});
+
+  const totalItems = items.length;
+  const deliveredCount = statusCounts.delivered || 0;
+  const cancelledCount = statusCounts.cancelled || 0;
+  const returnedCount = statusCounts.returned || 0;
+  const activeItems = totalItems - cancelledCount - returnedCount;
+
+  let newOrderStatus = order.orderStatus;
+
+  // If all active items are delivered, mark order as delivered
+  if (activeItems > 0 && deliveredCount === activeItems) {
+    newOrderStatus = "delivered";
+    
+    // Update order status and delivery timestamp
+    const orderUpdate = { 
+      orderStatus: "delivered",
+      "delivery.deliveredAt": new Date()
+    };
+    
+    // For COD orders, mark payment as paid when all items delivered
+    if (order.payment.method === "cod" && order.payment.status === "pending") {
+      orderUpdate["payment.status"] = "paid";
+      orderUpdate["payment.paidAt"] = new Date();
+    }
+    
+    await Order.findByIdAndUpdate(orderId, orderUpdate);
+  }
+  // If all items are cancelled/returned, mark order as cancelled
+  else if (activeItems === 0 && (cancelledCount > 0 || returnedCount > 0)) {
+    newOrderStatus = "cancelled";
+    await Order.findByIdAndUpdate(orderId, { 
+      orderStatus: "cancelled",
+      isCancelled: true,
+      cancelledAt: new Date(),
+      cancelledBy: "system",
+      cancelReason: "all_items_cancelled_or_returned"
+    });
+  }
+  // If any item is shipped/out_for_delivery, upgrade order status accordingly
+  else if (statusCounts.out_for_delivery > 0 && order.orderStatus !== "delivered") {
+    newOrderStatus = "out_for_delivery";
+    await Order.findByIdAndUpdate(orderId, { orderStatus: "out_for_delivery" });
+  }
+  else if (statusCounts.shipped > 0 && !["out_for_delivery", "delivered"].includes(order.orderStatus)) {
+    newOrderStatus = "shipped";
+    await Order.findByIdAndUpdate(orderId, { orderStatus: "shipped" });
+  }
+  else if (statusCounts.confirmed > 0 && !["shipped", "out_for_delivery", "delivered"].includes(order.orderStatus)) {
+    newOrderStatus = "confirmed";
+    await Order.findByIdAndUpdate(orderId, { orderStatus: "confirmed" });
+  }
+
+  return newOrderStatus;
+};
+
 export const updateItemStatusService = async (itemId, newStatus, reason = null, comment = null) => {
   if (!VALID_ITEM_STATUSES.includes(newStatus)) {
     throw new AppError(`Invalid item status: ${newStatus}`, 400);
@@ -486,6 +571,9 @@ export const updateItemStatusService = async (itemId, newStatus, reason = null, 
     );
     await emitStockUpdate(item.productId, item.variantId);
   }
+
+  // Auto-calculate order status for multi-item orders
+  await calculateOrderStatusFromItems(item.orderId);
 
   return item;
 };

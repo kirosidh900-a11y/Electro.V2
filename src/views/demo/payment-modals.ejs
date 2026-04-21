@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Payment Confirmation Modals Demo</title>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body { font-family: 'Outfit', sans-serif; }
+    </style>
+</head>
+<body class="bg-gray-50 min-h-screen flex items-center justify-center p-4">
+    
+    <div class="bg-white rounded-2xl shadow-xl p-8 w-full max-w-md">
+        <h1 class="text-2xl font-bold text-gray-900 mb-6 text-center">Payment Confirmation Modals</h1>
+        
+        <div class="space-y-4">
+            <button id="testCOD" 
+                class="w-full bg-green-600 hover:bg-green-700 text-white py-3 px-4 rounded-xl font-semibold transition-colors flex items-center justify-center gap-2">
+                <i class="fa-solid fa-money-bill-wave"></i>
+                Test COD Modal
+            </button>
+            
+            <button id="testWallet" 
+                class="w-full bg-blue-600 hover:bg-blue-700 text-white py-3 px-4 rounded-xl font-semibold transition-colors flex items-center justify-center gap-2">
+                <i class="fa-solid fa-wallet"></i>
+                Test Wallet Modal
+            </button>
+            
+            <button id="testOnline" 
+                class="w-full bg-purple-600 hover:bg-purple-700 text-white py-3 px-4 rounded-xl font-semibold transition-colors flex items-center justify-center gap-2">
+                <i class="fa-solid fa-credit-card"></i>
+                Test Online Payment Modal
+            </button>
+            
+            <button id="testGeneric" 
+                class="w-full bg-gray-600 hover:bg-gray-700 text-white py-3 px-4 rounded-xl font-semibold transition-colors flex items-center justify-center gap-2">
+                <i class="fa-solid fa-question"></i>
+                Test Generic Confirmation
+            </button>
+        </div>
+        
+        <div id="result" class="mt-6 p-4 rounded-lg hidden"></div>
+    </div>
+
+    <script type="module">
+        import { confirmPayment, confirmAction } from "/partials/paymentConfirm.util.js";
+        
+        const resultDiv = document.getElementById('result');
+        
+        function showResult(message, type = 'info') {
+            resultDiv.className = `mt-6 p-4 rounded-lg ${type === 'success' ? 'bg-green-100 text-green-800' : type === 'error' ? 'bg-red-100 text-red-800' : 'bg-blue-100 text-blue-800'}`;
+            resultDiv.textContent = message;
+            resultDiv.classList.remove('hidden');
+            setTimeout(() => resultDiv.classList.add('hidden'), 3000);
+        }
+        
+        document.getElementById('testCOD').addEventListener('click', async () => {
+            const result = await confirmPayment('cod', 2499, 'Free delivery on orders above ₹500');
+            showResult(`COD Modal Result: ${result ? 'Confirmed' : 'Cancelled'}`, result ? 'success' : 'error');
+        });
+        
+        document.getElementById('testWallet').addEventListener('click', async () => {
+            const result = await confirmPayment('wallet', 1899);
+            showResult(`Wallet Modal Result: ${result ? 'Confirmed' : 'Cancelled'}`, result ? 'success' : 'error');
+        });
+        
+        document.getElementById('testOnline').addEventListener('click', async () => {
+            const result = await confirmPayment('razorpay', 3299, 'Supports UPI, Cards, Net Banking');
+            showResult(`Online Payment Modal Result: ${result ? 'Confirmed' : 'Cancelled'}`, result ? 'success' : 'error');
+        });
+        
+        document.getElementById('testGeneric').addEventListener('click', async () => {
+            const result = await confirmAction('Delete this item?', 'This action cannot be undone.');
+            showResult(`Generic Modal Result: ${result ? 'Confirmed' : 'Cancelled'}`, result ? 'success' : 'error');
+        });
+    </script>
+</body>
+</html>

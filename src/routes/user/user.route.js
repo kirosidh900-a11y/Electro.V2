@@ -68,6 +68,11 @@ router.use("/payment", requireAuth, paymentRouter);
 //Home side
 router.get("/", showHomePage);
 
+// Demo route for payment modals (development only)
+router.get("/demo/payment-modals", (req, res) => {
+  res.render("demo/payment-modals");
+});
+
 //Product List page
 router.get("/cart/status", getCartStatus);
 

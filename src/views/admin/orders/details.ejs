@@ -39,10 +39,25 @@
                 'bg-yellow-500/20 text-yellow-400' %>">
             <%= order.orderStatus.replace(/_/g, ' ') %>
           </span>
+          
+          <!-- Order Type Indicator -->
+          <span class="px-2 py-1 rounded text-[10px] font-bold uppercase tracking-wider
+            <%= isSingleItem ? 'bg-blue-500/20 text-blue-400' : 'bg-purple-500/20 text-purple-400' %>">
+            <%= isSingleItem ? 'Single Item' : itemCount + ' Items' %>
+          </span>
+          
           <% if(order.orderStatus !== 'cancelled' && order.orderStatus !== 'delivered') { %>
-            <button onclick="openUpdateModal()" class="px-4 py-1.5 rounded-lg bg-cyan-600 hover:bg-cyan-700 text-white text-xs font-bold transition flex items-center gap-2">
-              <i class="fas fa-pen-to-square"></i> Update Status
-            </button>
+            <% if(isSingleItem) { %>
+              <!-- Single Item: Show order-level update button -->
+              <button onclick="openUpdateModal()" class="px-4 py-1.5 rounded-lg bg-cyan-600 hover:bg-cyan-700 text-white text-xs font-bold transition flex items-center gap-2">
+                <i class="fas fa-pen-to-square"></i> Update Order Status
+              </button>
+            <% } else { %>
+              <!-- Multi Item: Show info about item-level management -->
+              <span class="px-3 py-1.5 rounded-lg bg-amber-500/20 text-amber-400 text-xs font-semibold border border-amber-500/20">
+                <i class="fas fa-info-circle mr-1"></i> Manage items individually
+              </span>
+            <% } %>
             <button onclick="openCancelModal()" class="px-4 py-1.5 rounded-lg bg-red-500/20 hover:bg-red-500/30 text-red-400 border border-red-500/20 text-xs font-bold transition flex items-center gap-2">
               <i class="fas fa-ban"></i> Cancel Order
             </button>
@@ -81,7 +96,20 @@
           <!-- Order Items -->
           <div class="w-full bg-[#0b1220] border border-white/5 rounded-3xl shadow-xl overflow-hidden">
             <div class="px-6 py-4 border-b border-white/5 bg-white/5">
-              <h2 class="text-white font-semibold">Order Items (<%= items.length %>)</h2>
+              <div class="flex items-center justify-between">
+                <h2 class="text-white font-semibold">Order Items (<%= items.length %>)</h2>
+                <% if(!isSingleItem) { %>
+                  <span class="text-xs text-amber-400 bg-amber-500/10 px-2 py-1 rounded-lg border border-amber-500/20">
+                    <i class="fas fa-magic-wand-sparkles mr-1"></i>
+                    Auto-calculating order status
+                  </span>
+                <% } %>
+              </div>
+              <% if(!isSingleItem) { %>
+                <p class="text-xs text-gray-400 mt-2">
+                  Order status will automatically update when all items reach the same status (e.g., all delivered = order delivered)
+                </p>
+              <% } %>
             </div>
             <div class="divide-y divide-white/5">
               <% if(items.length === 0) { %>
@@ -250,19 +278,29 @@
                         'cancelled','refund_processed','returned',
                         'return_requested','return_approved','return_rejected','pickup_scheduled'
                       ].includes(item.itemStatus); %>
+                      
                       <% if (!isTerminal) { %>
-                        <select id="item-status-<%= item._id %>"
-                          class="bg-[#0f172a] border border-white/10 text-gray-200 text-xs rounded-lg px-2 py-1.5 focus:outline-none focus:border-cyan-500">
-                          <% ['placed','confirmed','shipped','out_for_delivery','delivered','cancelled'].forEach(s => { %>
-                            <option value="<%= s %>" <%= item.itemStatus === s ? 'selected' : '' %>>
-                              <%= s.replace(/_/g,' ').replace(/\b\w/g,c=>c.toUpperCase()) %>
-                            </option>
-                          <% }) %>
-                        </select>
-                        <button onclick="updateItemStatus('<%= item._id %>')"
-                          class="px-2.5 py-1.5 bg-cyan-600 hover:bg-cyan-700 text-white text-xs font-semibold rounded-lg transition">
-                          Update
-                        </button>
+                        <% if (!isSingleItem) { %>
+                          <!-- Multi-item order: Show item-level controls -->
+                          <select id="item-status-<%= item._id %>"
+                            class="bg-[#0f172a] border border-white/10 text-gray-200 text-xs rounded-lg px-2 py-1.5 focus:outline-none focus:border-cyan-500">
+                            <% ['placed','confirmed','shipped','out_for_delivery','delivered','cancelled'].forEach(s => { %>
+                              <option value="<%= s %>" <%= item.itemStatus === s ? 'selected' : '' %>>
+                                <%= s.replace(/_/g,' ').replace(/\b\w/g,c=>c.toUpperCase()) %>
+                              </option>
+                            <% }) %>
+                          </select>
+                          <button onclick="updateItemStatus('<%= item._id %>')"
+                            class="px-2.5 py-1.5 bg-cyan-600 hover:bg-cyan-700 text-white text-xs font-semibold rounded-lg transition">
+                            Update
+                          </button>
+                        <% } else { %>
+                          <!-- Single-item order: Show info that order-level update controls this -->
+                          <span class="text-xs text-gray-400 bg-gray-500/10 px-2 py-1 rounded-lg">
+                            <i class="fas fa-info-circle mr-1"></i>
+                            Managed via order status
+                          </span>
+                        <% } %>
                       <% } %>
                       <% if(item.itemStatus === 'returned' && item.refund?.status !== 'processed') { %>
                         <button onclick="processRefund('<%= item._id %>', '<%= order._id %>')"
@@ -520,7 +558,19 @@
         <h2 class="text-white font-semibold text-lg">Update Order Status</h2>
         <button onclick="closeUpdateModal()" class="text-gray-400 hover:text-white"><i class="fas fa-times"></i></button>
       </div>
-      <p class="text-gray-400 text-sm mb-4">Select the new status for this order.</p>
+      
+      <% if(isSingleItem) { %>
+        <p class="text-gray-400 text-sm mb-4">
+          <i class="fas fa-info-circle text-blue-400 mr-1"></i>
+          Single item order - updating order status will also update the item status.
+        </p>
+      <% } else { %>
+        <p class="text-amber-400 text-sm mb-4">
+          <i class="fas fa-exclamation-triangle mr-1"></i>
+          Multi-item order - manage individual items separately. Order status will auto-calculate.
+        </p>
+      <% } %>
+      
       <select id="statusSelect" class="w-full bg-[#0f172a] border border-white/10 text-gray-200 rounded-lg px-3 py-2.5 text-sm mb-5 focus:outline-none focus:border-cyan-500">
         <% ['placed','confirmed','shipped','out_for_delivery','delivered'].forEach(s => { %>
           <option value="<%= s %>" <%= order.orderStatus === s ? 'selected' : '' %>><%= s.replace(/_/g,' ').replace(/\b\w/g, c => c.toUpperCase()) %></option>
