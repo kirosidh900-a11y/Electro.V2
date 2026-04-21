@@ -1,0 +1,438 @@
+﻿
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head><%- include('../../partials/head') %></head>
+<body class="min-h-screen flex bg-[#060d1a]">
+
+<%- include('../../partials/admin/sidebar') %>
+
+<div id="mainContent" class="flex-1 flex flex-col min-w-0 transition-all duration-300">
+  <%- include('../../partials/admin/header') %>
+
+  <main class="flex-1 p-4 sm:p-6 lg:p-8 space-y-5">
+
+    <%
+      const fmt = (n) => (n || 0).toLocaleString('en-IN');
+      const fmtRs = (n) => '₹' + fmt(n);
+      const activeType = reportType || 'orders';
+    %>
+
+    <!-- ── Page Header ─────────────────────────────────────────────────── -->
+    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+      <div>
+        <h1 class="text-2xl font-bold text-white tracking-tight flex items-center gap-2">
+          <i class="fas fa-chart-bar text-cyan-400"></i> <%= title %>
+        </h1>
+        <p class="text-xs text-gray-500 mt-1">Accounting-accurate revenue tracking</p>
+      </div>
+      <div class="flex gap-2 flex-wrap" id="exportBtns">
+        <a id="excelBtn" href="#"
+          class="flex items-center gap-2 px-4 py-2 bg-emerald-500/15 hover:bg-emerald-500/25 text-emerald-400 border border-emerald-500/20 rounded-xl text-xs font-bold transition">
+          <i class="fas fa-file-excel"></i> Excel
+        </a>
+        <a id="csvBtn" href="#"
+          class="flex items-center gap-2 px-4 py-2 bg-sky-500/15 hover:bg-sky-500/25 text-sky-400 border border-sky-500/20 rounded-xl text-xs font-bold transition">
+          <i class="fas fa-file-csv"></i> CSV
+        </a>
+        <a id="pdfBtn" href="#"
+          class="flex items-center gap-2 px-4 py-2 bg-red-500/15 hover:bg-red-500/25 text-red-400 border border-red-500/20 rounded-xl text-xs font-bold transition">
+          <i class="fas fa-file-pdf"></i> PDF
+        </a>
+      </div>
+    </div>
+
+    <!-- ── Report Type Tabs ────────────────────────────────────────────── -->
+    <div class="flex gap-2 flex-wrap">
+      <%
+        const tabs = [
+          { key: 'orders',    label: 'All Orders',       icon: 'fa-list'         },
+          { key: 'sales',     label: 'Sales Report',     icon: 'fa-chart-line'   },
+          { key: 'refunds',   label: 'Refund Report',    icon: 'fa-rotate-left'  },
+          { key: 'cancelled', label: 'Cancelled Orders', icon: 'fa-ban'          },
+        ];
+      %>
+      <% tabs.forEach(tab => { %>
+        <a href="?reportType=<%= tab.key %>&preset=<%= preset %>&from=<%= from %>&to=<%= to %>"
+          class="flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold border transition
+          <%= activeType === tab.key
+            ? 'bg-cyan-600 text-white border-cyan-600'
+            : 'bg-white/5 text-gray-400 border-white/10 hover:border-cyan-500/40 hover:text-gray-200' %>">
+          <i class="fas <%= tab.icon %>"></i> <%= tab.label %>
+        </a>
+      <% }) %>
+    </div>
+
+    <!-- ── Filter Bar ──────────────────────────────────────────────────── -->
+    <form method="GET" action="/admin/reports" id="filterForm"
+      class="bg-[#0b1220] border border-white/5 rounded-2xl p-5 space-y-4">
+      <input type="hidden" name="reportType" value="<%= activeType %>">
+      <input type="hidden" name="preset" id="presetInput" value="<%= preset %>">
+
+      <div class="flex flex-wrap gap-4 items-end">
+        <!-- Period presets -->
+        <div class="flex flex-col gap-1.5">
+          <label class="text-[10px] text-gray-500 font-semibold uppercase tracking-wider">Period</label>
+          <div class="flex gap-1.5 flex-wrap">
+            <% ['today','yesterday','weekly','monthly','yearly','custom'].forEach(p => { %>
+              <button type="button" onclick="setPreset('<%= p %>')"
+                class="preset-btn px-3 py-1.5 rounded-lg text-xs font-bold border transition
+                <%= preset === p ? 'bg-cyan-600 text-white border-cyan-600' : 'bg-white/5 text-gray-400 border-white/10 hover:border-cyan-500/40' %>"
+                data-preset="<%= p %>">
+                <%= p.charAt(0).toUpperCase() + p.slice(1) %>
+              </button>
+            <% }) %>
+          </div>
+        </div>
+
+        <!-- Custom date range -->
+        <div id="customRange" class="flex gap-3 <%= preset === 'custom' ? '' : 'hidden' %>">
+          <div class="flex flex-col gap-1.5">
+            <label class="text-[10px] text-gray-500 font-semibold uppercase tracking-wider">From</label>
+            <input type="date" name="from" value="<%= from %>"
+              class="bg-[#0f172a] border border-white/10 text-gray-200 rounded-lg px-3 py-2 text-xs focus:outline-none focus:border-cyan-500">
+          </div>
+          <div class="flex flex-col gap-1.5">
+            <label class="text-[10px] text-gray-500 font-semibold uppercase tracking-wider">To</label>
+            <input type="date" name="to" value="<%= to %>"
+              class="bg-[#0f172a] border border-white/10 text-gray-200 rounded-lg px-3 py-2 text-xs focus:outline-none focus:border-cyan-500">
+          </div>
+        </div>
+      </div>
+
+      <!-- Advanced filters row -->
+      <div class="flex flex-wrap gap-3 items-end">
+        <div class="flex flex-col gap-1">
+          <label class="text-[10px] text-gray-500 uppercase tracking-wider">Customer</label>
+          <input type="text" name="customer" value="<%= customer %>" placeholder="Name..."
+            class="bg-[#0f172a] border border-white/10 text-gray-200 rounded-lg px-3 py-2 text-xs w-36 focus:outline-none focus:border-cyan-500 placeholder-gray-600">
+        </div>
+        <div class="flex flex-col gap-1">
+          <label class="text-[10px] text-gray-500 uppercase tracking-wider">Payment Method</label>
+          <select name="payMethod"
+            class="bg-[#0f172a] border border-white/10 text-gray-200 rounded-lg px-3 py-2 text-xs focus:outline-none focus:border-cyan-500">
+            <option value="">All</option>
+            <option value="cod"       <%= payMethod === 'cod'       ? 'selected' : '' %>>COD</option>
+            <option value="razorpay"  <%= payMethod === 'razorpay'  ? 'selected' : '' %>>Razorpay</option>
+            <option value="wallet"    <%= payMethod === 'wallet'    ? 'selected' : '' %>>Wallet</option>
+          </select>
+        </div>
+        <div class="flex flex-col gap-1">
+          <label class="text-[10px] text-gray-500 uppercase tracking-wider">Payment Status</label>
+          <select name="payStatus"
+            class="bg-[#0f172a] border border-white/10 text-gray-200 rounded-lg px-3 py-2 text-xs focus:outline-none focus:border-cyan-500">
+            <option value="">All</option>
+            <option value="paid"      <%= payStatus === 'paid'      ? 'selected' : '' %>>Paid</option>
+            <option value="pending"   <%= payStatus === 'pending'   ? 'selected' : '' %>>Pending</option>
+            <option value="refunded"  <%= payStatus === 'refunded'  ? 'selected' : '' %>>Refunded</option>
+            <option value="failed"    <%= payStatus === 'failed'    ? 'selected' : '' %>>Failed</option>
+          </select>
+        </div>
+        <div class="flex flex-col gap-1">
+          <label class="text-[10px] text-gray-500 uppercase tracking-wider">Order Status</label>
+          <select name="orderStatus"
+            class="bg-[#0f172a] border border-white/10 text-gray-200 rounded-lg px-3 py-2 text-xs focus:outline-none focus:border-cyan-500">
+            <option value="">All</option>
+            <option value="placed"          <%= orderStatus === 'placed'          ? 'selected' : '' %>>Placed</option>
+            <option value="confirmed"       <%= orderStatus === 'confirmed'       ? 'selected' : '' %>>Confirmed</option>
+            <option value="shipped"         <%= orderStatus === 'shipped'         ? 'selected' : '' %>>Shipped</option>
+            <option value="out_for_delivery"<%= orderStatus === 'out_for_delivery'? 'selected' : '' %>>Out for Delivery</option>
+            <option value="delivered"       <%= orderStatus === 'delivered'       ? 'selected' : '' %>>Delivered</option>
+            <option value="cancelled"       <%= orderStatus === 'cancelled'       ? 'selected' : '' %>>Cancelled</option>
+          </select>
+        </div>
+        <div class="flex flex-col gap-1">
+          <label class="text-[10px] text-gray-500 uppercase tracking-wider">Min Amount (₹)</label>
+          <input type="number" name="minAmount" value="<%= minAmount %>" placeholder="0"
+            class="bg-[#0f172a] border border-white/10 text-gray-200 rounded-lg px-3 py-2 text-xs w-28 focus:outline-none focus:border-cyan-500 placeholder-gray-600">
+        </div>
+        <div class="flex flex-col gap-1">
+          <label class="text-[10px] text-gray-500 uppercase tracking-wider">Max Amount (₹)</label>
+          <input type="number" name="maxAmount" value="<%= maxAmount %>" placeholder="∞"
+            class="bg-[#0f172a] border border-white/10 text-gray-200 rounded-lg px-3 py-2 text-xs w-28 focus:outline-none focus:border-cyan-500 placeholder-gray-600">
+        </div>
+        <div class="flex gap-2 self-end">
+          <button type="submit"
+            class="px-5 py-2 bg-cyan-600 hover:bg-cyan-700 text-white rounded-xl text-xs font-bold transition">
+            <i class="fas fa-search mr-1"></i> Apply
+          </button>
+          <a href="?reportType=<%= activeType %>&preset=<%= preset %>"
+            class="px-4 py-2 bg-white/5 hover:bg-white/10 text-gray-400 rounded-xl text-xs font-bold transition">
+            <i class="fas fa-xmark mr-1"></i> Clear
+          </a>
+        </div>
+      </div>
+    </form>
+
+    <!-- ── 6 Summary Cards ─────────────────────────────────────────────── -->
+    <div class="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-3">
+      <%
+        const summaryCards = [
+          { label: 'Total Orders',    value: fmt(summary.totalOrders),      icon: 'fa-bag-shopping',      color: 'cyan',    sub: summary.successOrders + ' successful' },
+          { label: 'Gross Sales',     value: fmtRs(summary.grossRevenue),   icon: 'fa-indian-rupee-sign', color: 'emerald', sub: 'paid orders only' },
+          { label: 'Refunds',         value: fmtRs(summary.refundAmount),   icon: 'fa-rotate-left',       color: 'pink',    sub: summary.refundOrders + ' orders' },
+          { label: 'Net Sales',       value: fmtRs(summary.netRevenue),     icon: 'fa-chart-line',        color: 'violet',  sub: 'gross − refunds' },
+          { label: 'Cancelled',       value: fmtRs(summary.cancelledValue), icon: 'fa-ban',               color: 'red',     sub: summary.cancelledOrders + ' orders' },
+          { label: 'Avg Order Value', value: fmtRs(summary.avgOrderValue),  icon: 'fa-calculator',        color: 'amber',   sub: 'paid orders' },
+        ];
+        const cmap = {
+          cyan:    { bg: 'bg-cyan-500/10',    text: 'text-cyan-400',    border: 'border-cyan-500/20'    },
+          emerald: { bg: 'bg-emerald-500/10', text: 'text-emerald-400', border: 'border-emerald-500/20' },
+          pink:    { bg: 'bg-pink-500/10',    text: 'text-pink-400',    border: 'border-pink-500/20'    },
+          violet:  { bg: 'bg-violet-500/10',  text: 'text-violet-400',  border: 'border-violet-500/20'  },
+          red:     { bg: 'bg-red-500/10',     text: 'text-red-400',     border: 'border-red-500/20'     },
+          amber:   { bg: 'bg-amber-500/10',   text: 'text-amber-400',   border: 'border-amber-500/20'   },
+        };
+      %>
+      <% summaryCards.forEach(card => { %>
+        <% const c = cmap[card.color]; %>
+        <div class="bg-[#0b1220] border border-white/5 rounded-2xl p-4 flex flex-col gap-3">
+          <div class="flex items-center justify-between">
+            <p class="text-[10px] text-gray-500 uppercase tracking-wider font-semibold"><%= card.label %></p>
+            <div class="w-8 h-8 rounded-lg <%= c.bg %> <%= c.border %> border flex items-center justify-center">
+              <i class="fas <%= card.icon %> <%= c.text %> text-xs"></i>
+            </div>
+          </div>
+          <p class="text-lg font-black text-white leading-none"><%= card.value %></p>
+          <p class="text-[10px] text-gray-600"><%= card.sub %></p>
+        </div>
+      <% }) %>
+    </div>
+
+    <!-- ── Accounting Summary Strip ───────────────────────────────────── -->
+    <div class="bg-[#0b1220] border border-white/5 rounded-2xl p-4">
+      <p class="text-[10px] text-gray-500 uppercase tracking-wider font-semibold mb-3">Accounting Breakdown</p>
+      <div class="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 gap-3">
+        <%
+          const acctItems = [
+            { label: 'Product Disc',  value: fmtRs(summary.totalProductDisc), color: 'text-amber-400'   },
+            { label: 'Coupon Disc',   value: fmtRs(summary.totalCouponDisc),  color: 'text-violet-400'  },
+            { label: 'GST Collected', value: fmtRs(summary.totalGST),         color: 'text-blue-400'    },
+            { label: 'Delivery',      value: fmtRs(summary.totalDelivery),    color: 'text-gray-300'    },
+            { label: 'Gross Sales',   value: fmtRs(summary.grossRevenue),     color: 'text-blue-400'    },
+            { label: 'Refund Amt',    value: fmtRs(summary.refundAmount),     color: 'text-pink-400'    },
+            { label: 'Cancelled Val', value: fmtRs(summary.cancelledValue),   color: 'text-red-400'     },
+            { label: 'Net Sales',     value: fmtRs(summary.netRevenue),       color: 'text-emerald-400' },
+          ];
+        %>
+        <% acctItems.forEach(item => { %>
+          <div class="bg-white/3 rounded-xl p-3 border border-white/5">
+            <p class="text-[9px] text-gray-600 uppercase tracking-wider mb-1"><%= item.label %></p>
+            <p class="text-sm font-bold <%= item.color %>"><%= item.value %></p>
+          </div>
+        <% }) %>
+      </div>
+    </div>
+
+    <!-- ── Daily Trend Chart ───────────────────────────────────────────── -->
+    <% if (dailyBreakdown && dailyBreakdown.length > 0) { %>
+    <div class="bg-[#0b1220] border border-white/5 rounded-2xl p-5">
+      <p class="text-[10px] text-gray-500 uppercase tracking-wider font-semibold mb-4">Daily Revenue Trend</p>
+      <div class="overflow-x-auto">
+        <div class="flex items-end gap-1.5 min-w-max" style="height:120px">
+          <% const maxRev = Math.max(...dailyBreakdown.map(d => d.revenue), 1); %>
+          <% dailyBreakdown.forEach(day => { %>
+            <% const barH = Math.max(Math.round((day.revenue / maxRev) * 100), 4); %>
+            <div class="flex flex-col items-center gap-1 group">
+              <div class="w-7 bg-cyan-600/30 hover:bg-cyan-500/60 rounded-t transition cursor-default border-t border-cyan-500/40"
+                style="height:<%= barH %>px"
+                title="<%= day._id %> | ₹<%= day.revenue.toLocaleString('en-IN') %> | <%= day.orders %> orders">
+              </div>
+              <span class="text-[8px] text-gray-600 rotate-45 origin-left whitespace-nowrap mt-1">
+                <%= day._id.slice(5) %>
+              </span>
+            </div>
+          <% }) %>
+        </div>
+      </div>
+    </div>
+    <% } %>
+
+    <!-- ── Orders Table ────────────────────────────────────────────────── -->
+    <div class="bg-[#0b1220] border border-white/5 rounded-2xl overflow-hidden">
+
+      <!-- Table header bar -->
+      <div class="px-5 py-4 border-b border-white/5 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        <div class="flex items-center gap-3">
+          <h2 class="text-xs font-bold text-gray-300 uppercase tracking-wider">
+            <%= title %> &nbsp;<span class="text-gray-600">(<%= totalCount %>)</span>
+          </h2>
+          <!-- Color legend -->
+          <div class="hidden sm:flex items-center gap-3 text-[9px] text-gray-600">
+            <span class="flex items-center gap-1"><span class="w-2 h-2 rounded-sm bg-emerald-500/40 inline-block"></span>Delivered</span>
+            <span class="flex items-center gap-1"><span class="w-2 h-2 rounded-sm bg-yellow-500/30 inline-block"></span>Pending</span>
+            <span class="flex items-center gap-1"><span class="w-2 h-2 rounded-sm bg-red-500/20 inline-block"></span>Cancelled</span>
+            <span class="flex items-center gap-1"><span class="w-2 h-2 rounded-sm bg-pink-500/20 inline-block"></span>Refunded</span>
+            <span class="flex items-center gap-1"><span class="w-2 h-2 rounded-sm bg-gray-500/20 inline-block"></span>Failed</span>
+          </div>
+        </div>
+        <!-- Search -->
+        <form method="GET" action="/admin/reports" class="flex gap-2">
+          <input type="hidden" name="reportType" value="<%= activeType %>">
+          <input type="hidden" name="preset" value="<%= preset %>">
+          <input type="hidden" name="from" value="<%= from %>">
+          <input type="hidden" name="to" value="<%= to %>">
+          <input type="text" name="customer" value="<%= customer %>" placeholder="Search customer..."
+            class="bg-[#0f172a] border border-white/10 text-gray-200 rounded-xl px-3 py-1.5 text-xs w-44 focus:outline-none focus:border-cyan-500 placeholder-gray-600">
+          <button type="submit" class="px-3 py-1.5 bg-cyan-600/20 hover:bg-cyan-600/40 text-cyan-400 rounded-xl text-xs transition">
+            <i class="fas fa-search"></i>
+          </button>
+        </form>
+      </div>
+
+      <div class="overflow-x-auto">
+        <table class="w-full text-xs">
+          <thead class="sticky top-0 z-10">
+            <tr class="bg-[#0d1829] border-b border-white/5">
+              <th class="px-4 py-3 text-left text-gray-500 font-semibold uppercase tracking-wider whitespace-nowrap">Order #</th>
+              <th class="px-4 py-3 text-left text-gray-500 font-semibold uppercase tracking-wider whitespace-nowrap">Date</th>
+              <th class="px-4 py-3 text-left text-gray-500 font-semibold uppercase tracking-wider whitespace-nowrap">Customer</th>
+              <th class="px-4 py-3 text-left text-gray-500 font-semibold uppercase tracking-wider whitespace-nowrap">Payment</th>
+              <th class="px-4 py-3 text-left text-gray-500 font-semibold uppercase tracking-wider whitespace-nowrap">Status</th>
+              <th class="px-4 py-3 text-right text-gray-500 font-semibold uppercase tracking-wider whitespace-nowrap">Subtotal</th>
+              <th class="px-4 py-3 text-right text-gray-500 font-semibold uppercase tracking-wider whitespace-nowrap">Disc</th>
+              <th class="px-4 py-3 text-right text-gray-500 font-semibold uppercase tracking-wider whitespace-nowrap">GST</th>
+              <th class="px-4 py-3 text-right text-gray-500 font-semibold uppercase tracking-wider whitespace-nowrap">Total</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-white/[0.04]">
+            <% if (!orders || orders.length === 0) { %>
+              <tr>
+                <td colspan="9" class="text-center text-gray-600 py-16">
+                  <i class="fas fa-inbox text-2xl mb-2 block"></i>
+                  No orders found for this period.
+                </td>
+              </tr>
+            <% } %>
+            <% (orders || []).forEach(order => { %>
+              <%
+                const ps = order.payment && order.payment.status;
+                const os = order.orderStatus;
+                const isRefunded  = ps === 'refunded';
+                const isCancelled = os === 'cancelled';
+                const isFailed    = ps === 'failed';
+                const isDelivered = os === 'delivered' || os === 'confirmed';
+                const isPaidPending = ps === 'paid' && !isDelivered;
+
+                let rowBg = '';
+                if      (isRefunded)   rowBg = 'bg-pink-500/5 hover:bg-pink-500/10';
+                else if (isCancelled)  rowBg = 'bg-red-500/5 hover:bg-red-500/10';
+                else if (isFailed)     rowBg = 'bg-gray-500/5 hover:bg-gray-500/10';
+                else if (isDelivered)  rowBg = 'bg-emerald-500/5 hover:bg-emerald-500/10';
+                else if (isPaidPending)rowBg = 'bg-yellow-500/5 hover:bg-yellow-500/10';
+                else                   rowBg = 'hover:bg-white/5';
+
+                let totalColor = 'text-emerald-400';
+                if (isRefunded || isCancelled) totalColor = 'text-red-400';
+                else if (isFailed)             totalColor = 'text-gray-500';
+
+                const payStatusBadge = {
+                  paid:     'bg-emerald-500/15 text-emerald-400',
+                  pending:  'bg-yellow-500/15 text-yellow-400',
+                  refunded: 'bg-pink-500/15 text-pink-400',
+                  failed:   'bg-gray-500/15 text-gray-400',
+                }[ps] || 'bg-white/10 text-gray-400';
+
+                const orderStatusBadge = {
+                  delivered:        'bg-emerald-500/15 text-emerald-400',
+                  confirmed:        'bg-emerald-500/15 text-emerald-400',
+                  shipped:          'bg-violet-500/15 text-violet-400',
+                  out_for_delivery: 'bg-violet-500/15 text-violet-400',
+                  placed:           'bg-cyan-500/15 text-cyan-400',
+                  cancelled:        'bg-red-500/15 text-red-400',
+                }[os] || 'bg-white/10 text-gray-400';
+              %>
+              <tr class="<%= rowBg %> transition cursor-pointer"
+                onclick="location.href='/admin/orders/<%= order._id %>'">
+                <td class="px-4 py-3 font-mono text-cyan-400 whitespace-nowrap"><%= order.orderNumber %></td>
+                <td class="px-4 py-3 text-gray-500 whitespace-nowrap">
+                  <%= new Date(order.createdAt).toLocaleDateString('en-IN') %>
+                </td>
+                <td class="px-4 py-3 text-gray-200 max-w-[140px] truncate">
+                  <%= order.userId && order.userId.name ? order.userId.name : '—' %>
+                  <% if (order.userId && order.userId.email) { %>
+                    <span class="block text-[10px] text-gray-600 truncate"><%= order.userId.email %></span>
+                  <% } %>
+                </td>
+                <td class="px-4 py-3 whitespace-nowrap">
+                  <div class="flex flex-col gap-1">
+                    <span class="text-[9px] font-bold uppercase px-1.5 py-0.5 rounded-md w-fit <%= payStatusBadge %>">
+                      <%= ps ? ps.toUpperCase() : '—' %>
+                    </span>
+                    <span class="text-[9px] text-gray-600 uppercase">
+                      <%= order.payment && order.payment.method ? order.payment.method.toUpperCase() : '—' %>
+                    </span>
+                  </div>
+                </td>
+                <td class="px-4 py-3 whitespace-nowrap">
+                  <span class="text-[9px] font-bold uppercase px-1.5 py-0.5 rounded-md w-fit <%= orderStatusBadge %>">
+                    <%= os ? os.replace(/_/g,' ') : '—' %>
+                  </span>
+                </td>
+                <td class="px-4 py-3 text-right text-gray-400 whitespace-nowrap">
+                  ₹<%= fmt(order.pricing && order.pricing.subtotal) %>
+                </td>
+                <td class="px-4 py-3 text-right text-amber-500 whitespace-nowrap">
+                  -₹<%= fmt(((order.pricing && order.pricing.productDiscount) || 0) + ((order.pricing && order.pricing.couponDiscount) || 0)) %>
+                </td>
+                <td class="px-4 py-3 text-right text-blue-400 whitespace-nowrap">
+                  ₹<%= fmt(order.pricing && order.pricing.gstTotal) %>
+                </td>
+                <td class="px-4 py-3 text-right font-bold <%= totalColor %> whitespace-nowrap">
+                  ₹<%= fmt(order.pricing && order.pricing.finalAmount) %>
+                </td>
+              </tr>
+            <% }) %>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Pagination -->
+      <% if (totalPages > 1) { %>
+        <div class="px-5 py-4 border-t border-white/5 flex items-center justify-between">
+          <p class="text-[10px] text-gray-600">
+            Page <%= currentPage %> of <%= totalPages %> &nbsp;·&nbsp; <%= totalCount %> records
+          </p>
+          <div class="flex gap-2">
+            <% if (currentPage > 1) { %>
+              <a href="?reportType=<%= activeType %>&preset=<%= preset %>&from=<%= from %>&to=<%= to %>&customer=<%= customer %>&payMethod=<%= payMethod %>&payStatus=<%= payStatus %>&orderStatus=<%= orderStatus %>&minAmount=<%= minAmount %>&maxAmount=<%= maxAmount %>&page=<%= currentPage - 1 %>"
+                class="px-3 py-1.5 bg-white/5 hover:bg-white/10 text-gray-400 rounded-lg text-xs transition">← Prev</a>
+            <% } %>
+            <% if (currentPage < totalPages) { %>
+              <a href="?reportType=<%= activeType %>&preset=<%= preset %>&from=<%= from %>&to=<%= to %>&customer=<%= customer %>&payMethod=<%= payMethod %>&payStatus=<%= payStatus %>&orderStatus=<%= orderStatus %>&minAmount=<%= minAmount %>&maxAmount=<%= maxAmount %>&page=<%= currentPage + 1 %>"
+                class="px-3 py-1.5 bg-cyan-600 hover:bg-cyan-700 text-white rounded-lg text-xs transition">Next →</a>
+            <% } %>
+          </div>
+        </div>
+      <% } %>
+    </div>
+
+  </main>
+</div>
+
+<script>
+  // Sync export button URLs with current filters
+  (function () {
+    const p = new URLSearchParams(window.location.search);
+    document.getElementById('excelBtn').href = '/admin/reports/excel?' + p.toString();
+    document.getElementById('csvBtn').href   = '/admin/reports/csv?'   + p.toString();
+    document.getElementById('pdfBtn').href   = '/admin/reports/pdf?'   + p.toString();
+  })();
+
+  function setPreset(p) {
+    document.getElementById('presetInput').value = p;
+    document.querySelectorAll('.preset-btn').forEach(btn => {
+      const active = btn.dataset.preset === p;
+      btn.classList.toggle('bg-cyan-600',     active);
+      btn.classList.toggle('text-white',      active);
+      btn.classList.toggle('border-cyan-600', active);
+      btn.classList.toggle('bg-white/5',      !active);
+      btn.classList.toggle('text-gray-400',   !active);
+      btn.classList.toggle('border-white/10', !active);
+    });
+    document.getElementById('customRange').classList.toggle('hidden', p !== 'custom');
+    if (p !== 'custom') document.getElementById('filterForm').submit();
+  }
+</script>
+
+</body>
+</html>

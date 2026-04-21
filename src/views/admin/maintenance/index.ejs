@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+
+<head>
+  <%- include('../../partials/head') %>
+</head>
+
+<body class="min-h-screen flex">
+
+  <%- include('../../partials/admin/sidebar') %>
+
+  <div id="mainContent" class="flex-1 flex flex-col min-w-0 transition-all duration-300">
+    <%- include('../../partials/admin/header') %>
+
+    <main class="flex-1 p-4 sm:p-6 lg:p-8 w-full space-y-6">
+
+      <!-- Page Header -->
+      <div class="flex items-center justify-between">
+        <div>
+          <h1 class="text-2xl font-bold text-white">System Maintenance</h1>
+          <p class="text-gray-400 mt-1">Manage system maintenance tasks and data fixes</p>
+        </div>
+      </div>
+
+      <!-- COD Payment Fix Section -->
+      <div class="bg-[#0b1220] border border-white/5 rounded-3xl shadow-xl p-6">
+        <div class="mb-4">
+          <h2 class="text-xl font-semibold text-white mb-2">COD Payment Status Fix</h2>
+          <p class="text-gray-400">
+            Fix COD orders that are delivered but still have pending payment status.
+            When a COD order is delivered, the payment status should be marked as "paid".
+          </p>
+        </div>
+        
+        <% if (codOrdersNeedingFix > 0) { %>
+          <div class="bg-yellow-500/10 border border-yellow-500/20 rounded-xl p-4 mb-4">
+            <div class="flex items-center gap-3">
+              <i class="fas fa-exclamation-triangle text-yellow-500"></i>
+              <span class="text-yellow-200">
+                <strong><%= codOrdersNeedingFix %></strong> COD orders need to be fixed.
+              </span>
+            </div>
+          </div>
+        <% } else { %>
+          <div class="bg-green-500/10 border border-green-500/20 rounded-xl p-4 mb-4">
+            <div class="flex items-center gap-3">
+              <i class="fas fa-check-circle text-green-500"></i>
+              <span class="text-green-200">All COD orders have correct payment status.</span>
+            </div>
+          </div>
+        <% } %>
+
+        <button id="fixCodBtn" 
+                class="px-6 py-3 bg-cyan-600 hover:bg-cyan-700 disabled:bg-gray-600 disabled:cursor-not-allowed text-white rounded-xl font-medium transition-colors"
+                <%= codOrdersNeedingFix === 0 ? 'disabled' : '' %>>
+          <i class="fas fa-tools mr-2"></i>
+          Fix COD Payment Status
+        </button>
+        
+        <div id="fixResult" class="mt-4 hidden"></div>
+      </div>
+
+      <!-- Future maintenance tasks can be added here -->
+      
+    </main>
+  </div>
+
+</body>
+
+<script>
+document.getElementById('fixCodBtn').addEventListener('click', async function() {
+  const btn = this;
+  const resultDiv = document.getElementById('fixResult');
+  
+  btn.disabled = true;
+  btn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Fixing...';
+  
+  try {
+    const response = await fetch('/admin/maintenance/fix-cod-payments', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      }
+    });
+    
+    const data = await response.json();
+    
+    if (data.success) {
+      resultDiv.innerHTML = `
+        <div class="bg-green-500/10 border border-green-500/20 rounded-xl p-4">
+          <div class="flex items-start gap-3">
+            <i class="fas fa-check-circle text-green-500 mt-0.5"></i>
+            <div class="text-green-200">
+              <strong>Success!</strong> ${data.message}
+              ${data.orders.length > 0 ? `
+                <details class="mt-3">
+                  <summary class="cursor-pointer hover:text-green-100">Fixed Orders (${data.orders.length})</summary>
+                  <ul class="mt-2 ml-4 space-y-1">
+                    ${data.orders.map(order => `<li class="text-sm">• ${order.orderNumber} (${new Date(order.createdAt).toLocaleDateString()})</li>`).join('')}
+                  </ul>
+                </details>
+              ` : ''}
+            </div>
+          </div>
+        </div>
+      `;
+      
+      // Refresh page after 2 seconds to update the count
+      if (data.fixed > 0) {
+        setTimeout(() => {
+          window.location.reload();
+        }, 2000);
+      }
+    } else {
+      resultDiv.innerHTML = `
+        <div class="bg-red-500/10 border border-red-500/20 rounded-xl p-4">
+          <div class="flex items-center gap-3">
+            <i class="fas fa-exclamation-circle text-red-500"></i>
+            <span class="text-red-200">
+              <strong>Error!</strong> ${data.message || 'Failed to fix COD payments'}
+            </span>
+          </div>
+        </div>
+      `;
+    }
+  } catch (error) {
+    resultDiv.innerHTML = `
+      <div class="bg-red-500/10 border border-red-500/20 rounded-xl p-4">
+        <div class="flex items-center gap-3">
+          <i class="fas fa-exclamation-circle text-red-500"></i>
+          <span class="text-red-200">
+            <strong>Error!</strong> Failed to connect to server
+          </span>
+        </div>
+      </div>
+    `;
+  }
+  
+  resultDiv.classList.remove('hidden');
+  btn.disabled = false;
+  btn.innerHTML = '<i class="fas fa-tools mr-2"></i>Fix COD Payment Status';
+});
+</script>
+
+</html>
