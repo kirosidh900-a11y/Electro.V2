@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>My Referral</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+  <style>
+    body { font-family: 'Inter', sans-serif; background-color: #F1F3F6; }
+  </style>
+</head>
+<body class="min-h-screen">
+
+<%- include("../../partials/user/header") %>
+
+<main class="min-h-screen py-10">
+  <div class="max-w-7xl mx-auto px-4 lg:px-8">
+    <div class="flex flex-col lg:flex-row gap-8">
+
+      <%- include("./partials/profileSidebar") %>
+
+      <!-- MAIN CONTENT -->
+      <section class="flex-grow space-y-5">
+
+        <!-- Header Card -->
+        <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
+          <div class="flex items-start justify-between">
+            <div>
+              <h2 class="text-2xl font-bold text-gray-800">My Referral</h2>
+              <p class="text-sm text-gray-500 mt-1">Invite friends and earn ₹<%= bonusAmount %> per referral</p>
+            </div>
+            <div class="w-11 h-11 bg-purple-100 rounded-xl flex items-center justify-center">
+              <i class="fa-solid fa-gift text-purple-600 text-lg"></i>
+            </div>
+          </div>
+
+          <!-- Stats Row -->
+          <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mt-6">
+
+            <!-- Referral Code -->
+            <div class="bg-gradient-to-br from-purple-50 to-indigo-50 border border-purple-100 rounded-xl p-5">
+              <p class="text-xs text-gray-500 font-medium mb-1">Your Referral Code</p>
+              <div class="flex items-center gap-2 mt-1">
+                <span id="refCode" class="text-xl font-black text-purple-700 tracking-widest"><%= referralCode %></span>
+                <button onclick="copyCode()" title="Copy code"
+                  class="text-purple-400 hover:text-purple-600 transition ml-1">
+                  <i id="copyIcon" class="fa-regular fa-copy text-base"></i>
+                </button>
+              </div>
+            </div>
+
+            <!-- Referrals Used -->
+            <div class="bg-white border border-gray-200 rounded-xl p-5">
+              <p class="text-xs text-gray-500 font-medium mb-1">Friends Referred</p>
+              <p class="text-3xl font-black text-gray-900 mt-1">
+                <%= referralCount %> <span class="text-base font-medium text-gray-400">/ <%= maxReferrals %></span>
+              </p>
+            </div>
+
+            <!-- Total Earned -->
+            <div class="bg-white border border-gray-200 rounded-xl p-5">
+              <p class="text-xs text-gray-500 font-medium mb-1">Total Earned</p>
+              <p class="text-3xl font-black text-green-600 mt-1">
+                ₹<%= (referralCount * bonusAmount).toLocaleString('en-IN') %>
+              </p>
+            </div>
+
+          </div>
+        </div>
+
+        <!-- Progress Bar -->
+        <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
+          <div class="flex items-center justify-between mb-3">
+            <h3 class="text-sm font-bold text-gray-700">Referral Slots Used</h3>
+            <span class="text-xs text-gray-400"><%= referralCount %> of <%= maxReferrals %> used</span>
+          </div>
+          <div class="w-full bg-gray-100 rounded-full h-3 overflow-hidden">
+            <div class="h-3 rounded-full transition-all duration-500
+              <%= referralCount >= maxReferrals ? 'bg-red-400' : 'bg-purple-500' %>"
+              style="width: <%= Math.round((referralCount / maxReferrals) * 100) %>%">
+            </div>
+          </div>
+          <% if (referralCount >= maxReferrals) { %>
+            <p class="text-xs text-red-500 mt-2 font-medium">
+              <i class="fa-solid fa-circle-exclamation mr-1"></i>
+              You've reached the maximum of <%= maxReferrals %> referrals.
+            </p>
+          <% } else { %>
+            <p class="text-xs text-gray-400 mt-2">
+              You can still refer <strong class="text-gray-600"><%= maxReferrals - referralCount %> more</strong> friend<%= (maxReferrals - referralCount) !== 1 ? 's' : '' %>.
+            </p>
+          <% } %>
+        </div>
+
+        <!-- How It Works -->
+        <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
+          <h3 class="text-base font-bold text-gray-800 mb-5">How It Works</h3>
+          <div class="grid grid-cols-1 sm:grid-cols-3 gap-6">
+
+            <div class="flex flex-col items-center text-center gap-3">
+              <div class="w-12 h-12 rounded-full bg-purple-100 flex items-center justify-center">
+                <i class="fa-solid fa-share-nodes text-purple-600 text-lg"></i>
+              </div>
+              <div>
+                <p class="text-sm font-semibold text-gray-800">Share Your Code</p>
+                <p class="text-xs text-gray-400 mt-1">Send your unique referral code to a friend</p>
+              </div>
+            </div>
+
+            <div class="flex flex-col items-center text-center gap-3">
+              <div class="w-12 h-12 rounded-full bg-blue-100 flex items-center justify-center">
+                <i class="fa-solid fa-user-plus text-blue-600 text-lg"></i>
+              </div>
+              <div>
+                <p class="text-sm font-semibold text-gray-800">Friend Signs Up</p>
+                <p class="text-xs text-gray-400 mt-1">They create an account using your code</p>
+              </div>
+            </div>
+
+            <div class="flex flex-col items-center text-center gap-3">
+              <div class="w-12 h-12 rounded-full bg-green-100 flex items-center justify-center">
+                <i class="fa-solid fa-indian-rupee-sign text-green-600 text-lg"></i>
+              </div>
+              <div>
+                <p class="text-sm font-semibold text-gray-800">You Earn ₹<%= bonusAmount %></p>
+                <p class="text-xs text-gray-400 mt-1">Instantly credited to your wallet</p>
+              </div>
+            </div>
+
+          </div>
+        </div>
+
+        <!-- Share Section -->
+        <% if (referralCount < maxReferrals) { %>
+        <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
+          <h3 class="text-base font-bold text-gray-800 mb-4">Share Your Code</h3>
+          <div class="flex flex-col sm:flex-row gap-3">
+
+            <!-- Copy Link -->
+            <button onclick="copyLink()"
+              class="flex-1 flex items-center justify-center gap-2 border border-gray-200 rounded-xl py-3 px-4 text-sm font-medium text-gray-700 hover:bg-gray-50 transition">
+              <i class="fa-solid fa-link text-gray-400"></i>
+              Copy Signup Link
+            </button>
+
+            <!-- WhatsApp -->
+            <a id="whatsappShare" href="#" target="_blank"
+              class="flex-1 flex items-center justify-center gap-2 bg-green-500 hover:bg-green-600 text-white rounded-xl py-3 px-4 text-sm font-medium transition">
+              <i class="fa-brands fa-whatsapp text-lg"></i>
+              Share on WhatsApp
+            </a>
+
+          </div>
+        </div>
+        <% } %>
+
+      </section>
+    </div>
+  </div>
+</main>
+
+<%- include("../../partials/user/footer") %>
+
+<script type="module">
+  import { showToast } from "/partials/errorMsg.utils.js";
+
+  const CODE = "<%= referralCode %>";
+  const BASE_URL = window.location.origin;
+  const SIGNUP_LINK = `${BASE_URL}/auth/signup?ref=${CODE}`;
+
+  // Set WhatsApp link
+  const msg = encodeURIComponent(
+    `Hey! Sign up on Electro using my referral code *${CODE}* and get exclusive deals!\n${SIGNUP_LINK}`
+  );
+  const waEl = document.getElementById("whatsappShare");
+  if (waEl) waEl.href = `https://wa.me/?text=${msg}`;
+
+  window.copyCode = async () => {
+    try {
+      await navigator.clipboard.writeText(CODE);
+      const icon = document.getElementById("copyIcon");
+      icon.classList.replace("fa-regular", "fa-solid");
+      icon.classList.replace("fa-copy", "fa-check");
+      icon.classList.add("text-green-500");
+      showToast("Referral code copied!", "success");
+      setTimeout(() => {
+        icon.classList.replace("fa-solid", "fa-regular");
+        icon.classList.replace("fa-check", "fa-copy");
+        icon.classList.remove("text-green-500");
+      }, 2000);
+    } catch {
+      showToast("Could not copy. Please copy manually.", "error");
+    }
+  };
+
+  window.copyLink = async () => {
+    try {
+      await navigator.clipboard.writeText(SIGNUP_LINK);
+      showToast("Signup link copied!", "success");
+    } catch {
+      showToast("Could not copy. Please copy manually.", "error");
+    }
+  };
+</script>
+
+</body>
+</html>

@@ -121,7 +121,7 @@ export const getSummaryStats = async (dateRange) => {
 export const getRevenueChart = async (filter) => {
   const now = new Date();
 
-  // For "yearly" → monthly buckets; otherwise → daily buckets
+  // For "yearly" / "all" → monthly buckets; otherwise → daily buckets
   const useMonthly = filter === "yearly" || filter === "all";
   const dateRange  = buildRange(filter);
   const dateMatch  = dateRange ? { createdAt: dateRange } : {};
@@ -132,7 +132,7 @@ export const getRevenueChart = async (filter) => {
     { $match: { "payment.status": "paid", ...dateMatch } },
     {
       $group: {
-        _id:      { $dateToString: { format: fmt, date: "$createdAt" } },
+        _id:      { $dateToString: { format: fmt, date: "$createdAt", timezone: "+05:30" } },
         revenue:  { $sum: "$pricing.finalAmount" },
         orders:   { $sum: 1 },
         discount: { $sum: { $add: ["$pricing.productDiscount","$pricing.couponDiscount"] } },
@@ -141,7 +141,9 @@ export const getRevenueChart = async (filter) => {
     { $sort: { _id: 1 } },
   ]);
 
-  // Fill missing months/days with 0 so chart has no gaps
+  const map = Object.fromEntries(data.map(d => [d._id, d]));
+
+  // Fill missing months with 0 so chart has no gaps
   if (useMonthly) {
     const months = [];
     const start  = dateRange ? new Date(dateRange.$gte) : new Date(now.getFullYear(), 0, 1);
@@ -151,11 +153,27 @@ export const getRevenueChart = async (filter) => {
       months.push(`${cur.getFullYear()}-${String(cur.getMonth()+1).padStart(2,"0")}`);
       cur.setMonth(cur.getMonth() + 1);
     }
-    const map = Object.fromEntries(data.map(d => [d._id, d]));
     return months.map(m => map[m] || { _id: m, revenue: 0, orders: 0, discount: 0 });
   }
 
-  return data;
+  // Fill missing DAYS with 0 so daily charts always show a full continuous range
+  const days = [];
+  const rangeStart = dateRange ? new Date(dateRange.$gte) : new Date(now.getFullYear(), now.getMonth(), 1);
+  const rangeEnd   = dateRange ? new Date(dateRange.$lte) : now;
+
+  // Normalise to start-of-day
+  const cur = new Date(rangeStart);
+  cur.setHours(0, 0, 0, 0);
+  const endDay = new Date(rangeEnd);
+  endDay.setHours(0, 0, 0, 0);
+
+  while (cur <= endDay) {
+    const key = `${cur.getFullYear()}-${String(cur.getMonth()+1).padStart(2,"0")}-${String(cur.getDate()).padStart(2,"0")}`;
+    days.push(map[key] || { _id: key, revenue: 0, orders: 0, discount: 0 });
+    cur.setDate(cur.getDate() + 1);
+  }
+
+  return days;
 };
 
 // ── Order status breakdown (for donut chart) ──────────────────────────────────

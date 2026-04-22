@@ -1,4 +1,4 @@
-﻿
+
 <!DOCTYPE html>
 <html lang="en" class="dark">
 <head><%- include('../../partials/head') %></head>
@@ -151,6 +151,19 @@
             class="bg-[#0f172a] border border-white/10 text-gray-200 rounded-lg px-3 py-2 text-xs w-28 focus:outline-none focus:border-cyan-500 placeholder-gray-600">
         </div>
         <div class="flex gap-2 self-end">
+          <!-- Exclude Cancelled & Returned toggle -->
+          <label id="excludeToggle"
+            class="flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-bold border cursor-pointer select-none transition
+            <%= excludeBad
+              ? 'bg-red-500/15 text-red-400 border-red-500/30'
+              : 'bg-white/5 text-gray-500 border-white/10 hover:border-red-500/30 hover:text-red-400' %>"
+            title="Hide cancelled and refunded orders">
+            <input type="checkbox" name="excludeBad" value="1"
+              class="hidden" <%= excludeBad ? 'checked' : '' %>
+              onchange="this.form.submit()">
+            <i class="fas fa-filter-circle-xmark"></i>
+            Excl. Cancelled/Returned
+          </label>
           <button type="submit"
             class="px-5 py-2 bg-cyan-600 hover:bg-cyan-700 text-white rounded-xl text-xs font-bold transition">
             <i class="fas fa-search mr-1"></i> Apply
@@ -368,6 +381,7 @@
           <input type="hidden" name="preset" value="<%= preset %>">
           <input type="hidden" name="from" value="<%= from %>">
           <input type="hidden" name="to" value="<%= to %>">
+          <% if (excludeBad) { %><input type="hidden" name="excludeBad" value="1"><% } %>
           <input type="text" name="customer" value="<%= customer %>" placeholder="Search customer..."
             class="bg-[#0f172a] border border-white/10 text-gray-200 rounded-xl px-3 py-1.5 text-xs w-44 focus:outline-none focus:border-cyan-500 placeholder-gray-600">
           <button type="submit" class="px-3 py-1.5 bg-cyan-600/20 hover:bg-cyan-600/40 text-cyan-400 rounded-xl text-xs transition">
@@ -497,7 +511,8 @@
             `orderStatus=${orderStatus}`,
             `minAmount=${minAmount}`,
             `maxAmount=${maxAmount}`,
-          ].join('&');
+            excludeBad ? `excludeBad=1` : ``,
+          ].filter(Boolean).join('&');
 
           const delta = 2;
           const rangeStart = Math.max(1, currentPage - delta);
@@ -603,6 +618,7 @@
             <input type="hidden" name="orderStatus" value="<%= orderStatus %>">
             <input type="hidden" name="minAmount"   value="<%= minAmount %>">
             <input type="hidden" name="maxAmount"   value="<%= maxAmount %>">
+            <% if (excludeBad) { %><input type="hidden" name="excludeBad" value="1"><% } %>
             <label class="text-[10px] text-gray-600 whitespace-nowrap">Go to page</label>
             <input type="number" name="page" min="1" max="<%= totalPages %>"
               placeholder="<%= currentPage %>"

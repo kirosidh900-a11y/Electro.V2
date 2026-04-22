@@ -19,6 +19,7 @@ const extractFilters = (query) => ({
   orderStatus: query.orderStatus || "",
   minAmount:   query.minAmount   || "",
   maxAmount:   query.maxAmount   || "",
+  excludeBad:  query.excludeBad === "1" || query.excludeBad === "true",
   page:        parseInt(query.page) || 1,
 });
 

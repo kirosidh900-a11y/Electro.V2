@@ -43,6 +43,13 @@ const userSchema = new Schema(
       unique: true,
     },
 
+    referralCount: {
+      type: Number,
+      default: 0,
+      min: 0,
+      max: 3,
+    },
+
     isBlock: {
       type: Boolean,
       default: false,

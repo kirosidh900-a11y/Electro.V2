@@ -28,6 +28,7 @@ import {
 } from "../../services/partials/cloudinary.service.js";
 
 import renderView from "../../utils/admin/renderView.util.js";
+import User from "../../models/userSchema.model.js";
 
 export const showHomePage = async (req, res) => {
   try {
@@ -333,5 +334,27 @@ export const deleteProfilePhoto = async (req, res, next) => {
     });
   } catch (error) {
     next(error);
+  }
+};
+
+// Referral Page
+export const getReferralPage = async (req, res, next) => {
+  try {
+    const userId = req.user._id;
+
+    const user = await User.findById(userId).select("name referralCode referralCount").lean();
+
+    if (!user) throw new AppError("User not found", 404);
+
+    return res.render("user/home/referral", {
+      user: req.user,
+      referralCode: user.referralCode,
+      referralCount: user.referralCount ?? 0,
+      maxReferrals: 3,
+      bonusAmount: 500,
+      currentRoute: "/referral",
+    });
+  } catch (err) {
+    next(err);
   }
 };

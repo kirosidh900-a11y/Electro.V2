@@ -1,4 +1,4 @@
-﻿
+
 <!DOCTYPE html>
 <html lang="en" class="dark">
 <head>
@@ -385,10 +385,25 @@ const STATUS_COLORS = {
 const PAY_COLORS = { cod:'#f59e0b', razorpay:'#06b6d4', wallet:'#8b5cf6', upi:'#10b981', card:'#ec4899' };
 
 // Revenue chart
+const AF = '<%= af %>';
+
+function fmtLabel(raw) {
+  // raw is either "YYYY-MM-DD" (daily) or "YYYY-MM" (monthly)
+  const parts = raw.split('-');
+  const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  if (parts.length === 3) {
+    // daily: "Apr 22"
+    return `${months[+parts[1]-1]} ${+parts[2]}`;
+  } else {
+    // monthly: "Apr '26"
+    return `${months[+parts[1]-1]} '${parts[0].slice(2)}`;
+  }
+}
+
 new Chart(document.getElementById('revenueChart').getContext('2d'), {
   type: 'line',
   data: {
-    labels: REVENUE_DATA.map(d => d._id),
+    labels: REVENUE_DATA.map(d => fmtLabel(d._id)),
     datasets: [
       {
         label: 'Revenue', data: REVENUE_DATA.map(d => d.revenue),
@@ -415,8 +430,16 @@ new Chart(document.getElementById('revenueChart').getContext('2d'), {
       },
     },
     scales: {
-      x: { grid: { display: false }, ticks: { font: { size: 10 } } },
+      x: {
+        grid: { display: false },
+        ticks: {
+          font: { size: 10 },
+          maxTicksLimit: 12,
+          maxRotation: 0,
+        }
+      },
       y: {
+        beginAtZero: true,
         grid: { color: 'rgba(255,255,255,0.03)' },
         ticks: { font: { size: 10 }, callback: v => v >= 1e5 ? '₹'+(v/1e5).toFixed(1)+'L' : v >= 1000 ? '₹'+(v/1000).toFixed(0)+'K' : '₹'+v },
       },

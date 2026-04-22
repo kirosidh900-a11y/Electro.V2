@@ -47,7 +47,7 @@ export const buildDateRange = (preset, from, to) => {
 };
 
 // ── Build match stage based on report type + filters ─────────────────────────
-export const buildMatchStage = ({ reportType, preset, from, to, customer, payMethod, payStatus, orderStatus, minAmount, maxAmount }) => {
+export const buildMatchStage = ({ reportType, preset, from, to, customer, payMethod, payStatus, orderStatus, minAmount, maxAmount, excludeBad }) => {
   const dateFilter = buildDateRange(preset, from, to);
   const match = {};
 
@@ -70,6 +70,27 @@ export const buildMatchStage = ({ reportType, preset, from, to, customer, payMet
     default:
       match.orderStatus = { $nin: ["pending", "pending_payment"] };
       break;
+  }
+
+  // Exclude cancelled & returned orders
+  if (excludeBad) {
+    // Only apply when not already scoped to cancelled/refunds tab
+    if (reportType !== "cancelled" && reportType !== "refunds") {
+      // Strip cancelled from orderStatus filter
+      if (match.orderStatus && match.orderStatus.$nin) {
+        if (!match.orderStatus.$nin.includes("cancelled")) {
+          match.orderStatus.$nin.push("cancelled");
+        }
+      } else if (!match.orderStatus || typeof match.orderStatus === "object" && match.orderStatus.$in) {
+        // Don't override $in — sales tab already scopes to non-cancelled statuses
+      } else if (match.orderStatus === undefined) {
+        match.orderStatus = { $nin: ["pending", "pending_payment", "cancelled"] };
+      }
+      // Strip refunded payments
+      if (!match["payment.status"]) {
+        match["payment.status"] = { $ne: "refunded" };
+      }
+    }
   }
 
   // Additional filters (override only if explicitly provided)
@@ -154,11 +175,11 @@ export const buildDailyBreakdown = async (matchStage) => {
 };
 
 // ── Main paginated report service ─────────────────────────────────────────────
-export const getReportService = async ({ reportType = "orders", preset = "monthly", from, to, page = 1, limit = 20, customer, payMethod, payStatus, orderStatus, minAmount, maxAmount }) => {
+export const getReportService = async ({ reportType = "orders", preset = "monthly", from, to, page = 1, limit = 20, customer, payMethod, payStatus, orderStatus, minAmount, maxAmount, excludeBad }) => {
   const dateFilter = buildDateRange(preset, from, to);
   const skip       = (page - 1) * limit;
 
-  const matchStage = buildMatchStage({ reportType, preset, from, to, customer, payMethod, payStatus, orderStatus, minAmount, maxAmount });
+  const matchStage = buildMatchStage({ reportType, preset, from, to, customer, payMethod, payStatus, orderStatus, minAmount, maxAmount, excludeBad });
 
   // For customer filter we need to populate first — use aggregation with lookup
   let orders, totalCount;
@@ -209,8 +230,8 @@ export const getReportService = async ({ reportType = "orders", preset = "monthl
 };
 
 // ── Full export (no pagination) ───────────────────────────────────────────────
-export const getReportAllService = async ({ reportType = "orders", preset = "monthly", from, to, customer, payMethod, payStatus, orderStatus, minAmount, maxAmount }) => {
-  const matchStage = buildMatchStage({ reportType, preset, from, to, customer, payMethod, payStatus, orderStatus, minAmount, maxAmount });
+export const getReportAllService = async ({ reportType = "orders", preset = "monthly", from, to, customer, payMethod, payStatus, orderStatus, minAmount, maxAmount, excludeBad }) => {
+  const matchStage = buildMatchStage({ reportType, preset, from, to, customer, payMethod, payStatus, orderStatus, minAmount, maxAmount, excludeBad });
   delete matchStage["userId.name"];
 
   const orders = await Order.find(matchStage)

@@ -11,6 +11,7 @@ import {
   verifyPhoneOtp,
   deleteProfilePhoto,
   updateProfilePhoto,
+  getReferralPage,
 } from "../../controllers/user/user.controller.js";
 
 import {
@@ -94,6 +95,7 @@ router.delete("/cart/coupon/remove", requireAuth, removeCoupon);
 
 //Profile Side
 router.get("/myProfile", userAuth, profilePage);
+router.get("/referral", userAuth, getReferralPage);
 router.get("/wallet", userAuth, getWalletPage);
 router.post("/wallet/add", userAuth, addMoneyToWallet);
 router.patch("/name", userAuth, editName);
