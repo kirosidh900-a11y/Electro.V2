@@ -421,14 +421,32 @@ export const cancelOrderService = async ({
   }
 
   const rollbackStock = async (item) => {
-    // Use $elemMatch to correctly target the variant
-    await Products.updateOne(
-      {
-        _id: item.productId,
-        variants: { $elemMatch: { _id: item.variantId } },
-      },
-      { $inc: { "variants.$.stock": item.quantity } },
-    );
+    // For razorpay orders that were never paid: stock was never decremented at placement,
+    // only reserved was incremented. So release reserved, not stock.
+    // For cod/wallet (or paid razorpay): stock was decremented — restore it.
+    const isUnpaidRazorpay =
+      order.payment.method === "razorpay" && order.payment.status !== "paid";
+
+    if (isUnpaidRazorpay) {
+      await Products.updateOne(
+        {
+          _id: item.productId,
+          variants: {
+            $elemMatch: { _id: item.variantId, reserved: { $gte: item.quantity } },
+          },
+        },
+        { $inc: { "variants.$.reserved": -item.quantity } },
+      );
+    } else {
+      await Products.updateOne(
+        {
+          _id: item.productId,
+          variants: { $elemMatch: { _id: item.variantId } },
+        },
+        { $inc: { "variants.$.stock": item.quantity } },
+      );
+    }
+
     // Emit socket update
     if (global.io) {
       const product = await Products.findById(item.productId).select("variants").lean();

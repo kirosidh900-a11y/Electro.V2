@@ -1305,25 +1305,19 @@
                                                 },
 
                                                 modal: {
-                                                        ondismiss: async function () {
-                                                                await fetch("/api/user/payment/failure", {
-                                                                        method: "POST",
-                                                                        headers: { "Content-Type": "application/json" },
-                                                                        body: JSON.stringify({ orderId: data.orderId })
-                                                                });
+                                                        ondismiss: function () {
+                                                                // User closed Razorpay modal — reserved stock stays intact
+                                                                // for retry within the 15-min window. Expiry cron releases it.
                                                                 btn.disabled = false;
                                                                 btn.innerHTML = original;
                                                         }
                                                 }
                                         });
 
-                                        rzp.on("payment.failed", async function (response) {
-                                                await fetch("/api/user/payment/failure", {
-                                                        method: "POST",
-                                                        headers: { "Content-Type": "application/json" },
-                                                        body: JSON.stringify({ orderId: data.orderId })
-                                                });
-                                                window.location.href = `/order/failure/${data.orderId}?error=Payment+failed&orderNumber=${data.orderNumber}`;
+                                        rzp.on("payment.failed", function (response) {
+                                                // Hard payment failure — redirect to failure page.
+                                                // Reserved stock stays intact for retry; expiry cron releases after 15 min.
+                                                window.location.href = `/order/failure/${data.orderId}?error=${encodeURIComponent(response.error?.description || "Payment failed")}&orderNumber=${data.orderNumber}`;
                                         });
 
                                         rzp.open();

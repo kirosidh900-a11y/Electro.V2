@@ -121,7 +121,7 @@ export const handlePaymentSuccessService = async ({
   order.payment.transactionId = paymentId;
   order.payment.paymentGatewayOrderId = razorpayOrderId;
   order.payment.signature = razorpay_signature;
-  order.orderStatus = "confirmed";
+  order.orderStatus = "placed";
 
   await order.save();
 
@@ -135,40 +135,21 @@ export const handlePaymentSuccessService = async ({
 };
 
 // HANDLE PAYMENT FAILURE
+// Stock is NOT touched here — reserved stays intact so the user can retry
+// within the 15-min window. The expiry cron job releases reserved after 15 min.
 export const handlePaymentFailureService = async ({ orderId }) => {
   const order = await Order.findById(orderId);
   if (!order) throw new Error("Order not found");
 
-  const items = await orderItem.find({ orderId });
-
-  // 🔥 RELEASE RESERVED STOCK — use $max to prevent going below 0
-  for (const item of items) {
-    // First get current reserved value
-    const product = await Products.findOne(
-      { _id: item.productId, "variants._id": item.variantId },
-      { "variants.$": 1 }
-    );
-    const currentReserved = product?.variants?.[0]?.reserved ?? 0;
-    const safeDecrement = Math.min(item.quantity, currentReserved);
-
-    if (safeDecrement > 0) {
-      await Products.updateOne(
-        { _id: item.productId, "variants._id": item.variantId },
-        { $inc: { "variants.$.reserved": -safeDecrement } }
-      );
-      await emitStockUpdate(item.productId, item.variantId);
-    }
-  }
-
-  order.payment.status = "pending";
-  order.orderStatus = "pending";
-
+  // Only mark payment as failed — keep orderStatus as pending_payment for retry
+  // Do NOT touch reserved stock — expiry job handles that after 15 min
+  order.payment.status = "failed";
   await order.save();
 
   return order;
 };
 
-// RETRY PAYMENT — only allowed within 15 mins of last update
+// RETRY PAYMENT — only allowed within 15 mins of order creation
 export const retryPaymentService = async ({ orderId, userId }) => {
   const order = await Order.findOne({ _id: orderId, userId });
 
@@ -182,44 +163,30 @@ export const retryPaymentService = async ({ orderId, userId }) => {
     throw new AppError("Payment already completed", HTTP_STATUS.BAD_REQUEST);
   }
 
-  if (["delivered", "cancelled", "confirmed"].includes(order.orderStatus)) {
+  if (["placed", "delivered", "cancelled", "confirmed", "shipped", "out_for_delivery"].includes(order.orderStatus)) {
     throw new AppError("Order is not eligible for retry", HTTP_STATUS.BAD_REQUEST);
   }
 
-  // 15-minute window check
+  // 15-minute window — measured from order creation (never changes)
   const FIFTEEN_MINUTES = 15 * 60 * 1000;
-  const elapsed = Date.now() - new Date(order.updatedAt).getTime();
+  const elapsed = Date.now() - new Date(order.createdAt).getTime();
 
   if (elapsed > FIFTEEN_MINUTES) {
     throw new AppError("Retry window expired. Please place a new order.", HTTP_STATUS.BAD_REQUEST);
   }
 
-  // Re-reserve stock for items (they were released on failure)
-  const items = await orderItem.find({ orderId });
+  // ✅ Do NOT touch reserved stock — it was never released on failure.
+  // The reservation from placement is still intact and valid for this retry.
 
-  for (const item of items) {
-    const updated = await Products.findOneAndUpdate(
-      {
-        _id: item.productId,
-        "variants._id": item.variantId,
-        "variants.reserved": { $lte: 999999 }, // just ensure field exists
-      },
-      { $inc: { "variants.$.reserved": item.quantity } },
-      { returnDocument: "after" },
-    );
-
-    if (!updated) {
-      throw new AppError(`Stock unavailable for ${item.name}`, HTTP_STATUS.CONFLICT);
-    }
-  }
-
-  // Create a fresh Razorpay order
+  // Create a fresh Razorpay order (new payment attempt, same DB order)
   const razorpayOrder = await razorpay.orders.create({
     amount: order.pricing.finalAmount * 100,
     currency: "INR",
   });
 
-  const expiresAt = new Date(Date.now() + 10 * 60 * 1000);
+  // Keep expiry aligned to the original 15-min window from order creation
+  // so the cron job cleans up correctly and the user can't extend indefinitely
+  const expiresAt = new Date(new Date(order.createdAt).getTime() + 15 * 60 * 1000);
 
   order.payment.razorpayOrderId = razorpayOrder.id;
   order.payment.expiresAt = expiresAt;
@@ -241,10 +208,11 @@ export const handleExperienceTimeout = async ({ orderId, razorpayOrderId }) => {
   const order = await Order.findById(orderId);
 
   if (!order) throw new AppError("Order not found", HTTP_STATUS.NOT_FOUND);
-  // ================= SAVE RAZORPAY ORDER ID =================
+
   order.payment.razorpayOrderId = razorpayOrderId;
 
-  const expiresAt = new Date(Date.now() + 1 * 60 * 1000); // 10 mins
+  // 15 minutes — matches the retry window shown to the user
+  const expiresAt = new Date(Date.now() + 15 * 60 * 1000);
 
   order.payment.expiresAt = expiresAt;
   order.orderStatus = "pending_payment";

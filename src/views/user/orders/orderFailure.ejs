@@ -172,7 +172,8 @@
 <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
 <script>
   const ORDER_ID = "<%= orderId %>";
-  const ORDER_UPDATED_AT = <%- JSON.stringify(orderUpdatedAt ? new Date(orderUpdatedAt).toISOString() : null) %>;
+  // Use createdAt for the 15-min window — updatedAt changes on every failure call
+  const ORDER_CREATED_AT = <%- JSON.stringify(orderCreatedAt ? new Date(orderCreatedAt).toISOString() : null) %>;
   const FIFTEEN_MIN = 15 * 60 * 1000;
 
   const retryBtn = document.getElementById("retryBtn");
@@ -182,8 +183,8 @@
   const expiredMsg = document.getElementById("expiredMsg");
 
   function getRemainingMs() {
-    if (!ORDER_UPDATED_AT || ORDER_UPDATED_AT === "null") return 0;
-    const elapsed = Date.now() - new Date(ORDER_UPDATED_AT).getTime();
+    if (!ORDER_CREATED_AT || ORDER_CREATED_AT === "null") return 0;
+    const elapsed = Date.now() - new Date(ORDER_CREATED_AT).getTime();
     return Math.max(FIFTEEN_MIN - elapsed, 0);
   }
 
@@ -239,36 +240,37 @@
         name: "Electro Shop",
         description: `Order #${data.orderNumber}`,
         handler: async function (response) {
+          // Payment succeeded — verify and redirect to success page
+          retryBtnText.textContent = "Verifying...";
           try {
             const verifyRes = await fetch("/payment/verify", {
               method: "POST",
               headers: { "Content-Type": "application/json" },
               credentials: "include",
               body: JSON.stringify({
-                razorpay_order_id: response.razorpay_order_id,
+                razorpay_order_id:   response.razorpay_order_id,
                 razorpay_payment_id: response.razorpay_payment_id,
-                razorpay_signature: response.razorpay_signature,
+                razorpay_signature:  response.razorpay_signature,
                 orderId: data.orderId,
               }),
             });
             const verifyData = await verifyRes.json();
             if (verifyData.success) {
+              // ✅ Success — redirect to success page, no order collection update needed
               window.location.href = `/order/success/${data.orderId}`;
             } else {
-              throw new Error("Verification failed");
+              throw new Error(verifyData.message || "Verification failed");
             }
           } catch (e) {
+            // Verification failed — go back to failure page, no order update
             window.location.href = `/order/failure/${data.orderId}?orderNumber=${data.orderNumber}&error=${encodeURIComponent(e.message)}`;
           }
         },
         modal: {
-          ondismiss: async function () {
-            await fetch("/payment/failure", {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              credentials: "include",
-              body: JSON.stringify({ orderId: data.orderId }),
-            });
+          ondismiss: function () {
+            // User closed the Razorpay modal — just re-enable the button
+            // Do NOT call /payment/failure here — stock was already released on the
+            // previous failure and will be re-released if they close without paying
             retryBtn.disabled = false;
             retryBtnText.textContent = "Retry Payment";
           },
@@ -277,6 +279,12 @@
       };
 
       const rzp = new Razorpay(options);
+
+      rzp.on("payment.failed", function (response) {
+        // Razorpay reported a hard failure — go back to failure page
+        window.location.href = `/order/failure/${data.orderId}?orderNumber=${data.orderNumber}&error=${encodeURIComponent(response.error?.description || "Payment failed")}`;
+      });
+
       rzp.open();
 
     } catch (err) {

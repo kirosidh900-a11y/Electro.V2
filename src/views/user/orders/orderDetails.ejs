@@ -47,6 +47,17 @@
     </div>
     <div class="flex items-center gap-3 self-start sm:self-auto flex-wrap">
       <%
+        // Check if retry payment is available
+        const isRetryEligible = 
+          order.orderStatus === 'pending_payment' &&
+          order.payment.method === 'razorpay' &&
+          ['pending', 'failed'].includes(order.payment.status);
+        
+        const fifteenMinutes = 15 * 60 * 1000;
+        const elapsed = Date.now() - new Date(order.createdAt).getTime();
+        const isWithinRetryWindow = elapsed < fifteenMinutes;
+        const showRetryButton = isRetryEligible && isWithinRetryWindow;
+        
         const invoiceEligible = !effectivelyCancelled &&
           !order.isCancelled &&
           (
@@ -56,6 +67,16 @@
           items.some(i => !['cancelled','returned','return_requested','return_approved',
             'pickup_scheduled','refund_pending','refund_processed','return_rejected'].includes(i.itemStatus));
       %>
+      
+      <% if (showRetryButton) { %>
+        <button id="retryPaymentBtn" onclick="initiateRetryPayment()"
+          class="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-semibold transition shadow-md hover:shadow-lg">
+          <i class="fa-solid fa-rotate-right text-xs"></i>
+          <span id="retryBtnText">Retry Payment</span>
+        </button>
+        <div id="retryCountdown" class="text-xs text-gray-500 font-medium"></div>
+      <% } %>
+      
       <% if (invoiceEligible) { %>
         <a href="/order/invoice/<%= order._id %>"
           target="_blank"
@@ -68,6 +89,7 @@
         <%= effectivelyCancelled                                                          ? 'bg-red-100 text-red-600' :
             order.orderStatus === 'delivered'                                             ? 'bg-green-100 text-green-700' :
             order.orderStatus === 'shipped' || order.orderStatus === 'out_for_delivery'  ? 'bg-blue-100 text-blue-700' :
+            order.orderStatus === 'pending_payment'                                       ? 'bg-amber-100 text-amber-700' :
             'bg-yellow-100 text-yellow-700' %>">
         <%= effectivelyCancelled ? 'Cancelled' : order.orderStatus.replace(/_/g,' ') %>
       </span>
@@ -87,7 +109,35 @@
         <div class="px-6 py-8">
           <%# effectivelyCancelled, currentStatus, terminalStatuses are declared at the top of the page %>
 
-          <% if(effectivelyCancelled) { %>
+          <% if(order.orderStatus === 'pending_payment') { %>
+            <!-- Pending payment state -->
+            <div class="flex flex-col items-center gap-4 py-2">
+              <div class="w-14 h-14 rounded-full bg-amber-100 flex items-center justify-center">
+                <i class="fa-solid fa-clock text-amber-500 text-2xl"></i>
+              </div>
+              <div class="text-center">
+                <p class="text-sm font-bold text-gray-800">Payment Pending</p>
+                <p class="text-xs text-gray-500 mt-1">Your order is awaiting payment confirmation.</p>
+              </div>
+              <% if(showRetryButton) { %>
+                <div class="bg-amber-50 border border-amber-200 rounded-xl px-5 py-3 text-center">
+                  <p class="text-xs text-amber-700 font-semibold">
+                    <i class="fa-solid fa-rotate-right mr-1"></i>
+                    Use the <span class="font-bold">Retry Payment</span> button above to complete your payment.
+                  </p>
+                  <p class="text-[11px] text-amber-600 mt-1.5">Window closes in <span id="statusCountdown" class="font-bold"></span></p>
+                </div>
+              <% } else { %>
+                <div class="bg-red-50 border border-red-200 rounded-xl px-5 py-3 text-center">
+                  <p class="text-xs text-red-600 font-semibold">
+                    <i class="fa-solid fa-clock mr-1"></i>
+                    Retry window expired. This order will be cancelled automatically.
+                  </p>
+                </div>
+              <% } %>
+            </div>
+
+          <% } else if(effectivelyCancelled) { %>
             <div class="flex items-center justify-center gap-4 max-w-xs mx-auto">
               <div class="flex flex-col items-center">
                 <div class="w-11 h-11 rounded-full bg-green-500 text-white flex items-center justify-center shadow">
@@ -559,6 +609,8 @@
   window.showToast = showToast;
 </script>
 
+<script src="https://checkout.razorpay.com/v1/checkout.js"></script>
+
 <script>
   function toggleModal(id) {
     const modal = document.getElementById(id);
@@ -666,6 +718,125 @@ function openCancelModal(isSingle = false, itemId = null) {
       window.showToast ? showToast(err.message, 'error') : alert(err.message);
     }
   }
+
+  // ── Retry Payment ─────────────────────────────────────────────────────────
+  <% if(showRetryButton) { %>
+  const ORDER_ID       = "<%= order._id %>";
+  const ORDER_NUMBER   = "<%= order.orderNumber %>";
+  const ORDER_CREATED  = new Date("<%= order.createdAt.toISOString() %>").getTime();
+  const FIFTEEN_MIN    = 15 * 60 * 1000;
+
+  function getRemainingMs() {
+    return Math.max(FIFTEEN_MIN - (Date.now() - ORDER_CREATED), 0);
+  }
+
+  function formatTime(ms) {
+    const s = Math.floor(ms / 1000);
+    const m = Math.floor(s / 60).toString().padStart(2, '0');
+    const sec = (s % 60).toString().padStart(2, '0');
+    return `${m}:${sec}`;
+  }
+
+  function tickCountdown() {
+    const remaining = getRemainingMs();
+    const retryBtn  = document.getElementById('retryPaymentBtn');
+    const mainCd    = document.getElementById('retryCountdown');
+    const statusCd  = document.getElementById('statusCountdown');
+
+    if (remaining <= 0) {
+      if (retryBtn)  { retryBtn.disabled = true; retryBtn.classList.add('opacity-40', 'cursor-not-allowed'); }
+      if (mainCd)    mainCd.textContent = 'Window expired';
+      if (statusCd)  statusCd.textContent = 'expired';
+      clearInterval(cdTimer);
+      return;
+    }
+
+    const formatted = formatTime(remaining);
+    if (mainCd)   mainCd.textContent = formatted;
+    if (statusCd) statusCd.textContent = formatted;
+  }
+
+  tickCountdown();
+  const cdTimer = setInterval(tickCountdown, 1000);
+
+  async function initiateRetryPayment() {
+    if (getRemainingMs() <= 0) return;
+
+    const btn     = document.getElementById('retryPaymentBtn');
+    const btnText = document.getElementById('retryBtnText');
+    btn.disabled  = true;
+    btnText.textContent = 'Processing...';
+
+    try {
+      const res  = await fetch(`/payment/retry/${ORDER_ID}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.message || 'Retry failed');
+
+      const rzp = new Razorpay({
+        key:         data.key,
+        amount:      data.amount,
+        currency:    'INR',
+        order_id:    data.razorpayOrderId,
+        name:        'Electro Shop',
+        description: `Order #${ORDER_NUMBER}`,
+        theme:       { color: '#2563EB' },
+
+        handler: async function (response) {
+          btnText.textContent = 'Verifying...';
+          try {
+            const verifyRes = await fetch('/payment/verify', {
+              method:  'POST',
+              headers: { 'Content-Type': 'application/json' },
+              credentials: 'include',
+              body: JSON.stringify({
+                razorpay_order_id:   response.razorpay_order_id,
+                razorpay_payment_id: response.razorpay_payment_id,
+                razorpay_signature:  response.razorpay_signature,
+                orderId: data.orderId,
+              }),
+            });
+            const verifyData = await verifyRes.json();
+            if (verifyData.success) {
+              // ✅ Payment confirmed — go to success page
+              window.location.href = `/order/success/${data.orderId}`;
+            } else {
+              throw new Error(verifyData.message || 'Verification failed');
+            }
+          } catch (e) {
+            // Verification failed — stay on this page, re-enable button
+            window.showToast && showToast(e.message || 'Verification failed', 'error');
+            btn.disabled = false;
+            btnText.textContent = 'Retry Payment';
+          }
+        },
+
+        modal: {
+          ondismiss: function () {
+            // User closed modal — reserved stock stays intact, just re-enable
+            btn.disabled = false;
+            btnText.textContent = 'Retry Payment';
+          },
+        },
+      });
+
+      rzp.on('payment.failed', function (response) {
+        // Hard failure — redirect to dedicated failure page
+        window.location.href = `/order/failure/${data.orderId}?orderNumber=${ORDER_NUMBER}&error=${encodeURIComponent(response.error?.description || 'Payment failed')}`;
+      });
+
+      rzp.open();
+
+    } catch (err) {
+      window.showToast && showToast(err.message || 'Something went wrong', 'error');
+      btn.disabled = false;
+      btnText.textContent = 'Retry Payment';
+    }
+  }
+  <% } %>
 </script>
 
 <%- include("../../partials/user/footer.ejs") %>

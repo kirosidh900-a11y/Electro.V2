@@ -55,7 +55,8 @@ export const getSummaryStats = async (dateRange) => {
     },
   ]);
 
-  // Get item-level stats for accurate cancelled count and refund amount
+  // Get item-level stats for accurate refund amount only
+  // Cancelled count stays at ORDER level — one cancelled order = 1, regardless of item count
   const itemDateMatch = dateRange ? { createdAt: dateRange } : {};
   
   const [itemAgg] = await OrderItem.aggregate([
@@ -72,15 +73,6 @@ export const getSummaryStats = async (dateRange) => {
     {
       $group: {
         _id: null,
-        cancelledCount: { 
-          $sum: { 
-            $cond: [
-              { $eq: ["$itemStatus", "cancelled"] }, 
-              1, 
-              0
-            ] 
-          } 
-        },
         refundAmount: { 
           $sum: { 
             $cond: [
@@ -93,6 +85,13 @@ export const getSummaryStats = async (dateRange) => {
       }
     }
   ]);
+
+  // Count cancelled orders at ORDER level (not item level)
+  // This covers: fully cancelled orders + orders where all items were individually cancelled
+  const cancelledOrderCount = await Order.countDocuments({
+    orderStatus: "cancelled",
+    ...(dateRange ? { createdAt: dateRange } : {}),
+  });
 
   const [totalUsers, totalProducts, totalCategories] = await Promise.all([
     User.countDocuments({ isAdmin: { $ne: true } }),
@@ -108,7 +107,7 @@ export const getSummaryStats = async (dateRange) => {
     grossRevenue:    s.grossRevenue   || 0,
     netRevenue:      (s.grossRevenue  || 0) - (itemStats.refundAmount || 0),
     refundAmount:    itemStats.refundAmount   || 0,
-    cancelledCount:  itemStats.cancelledCount || 0,
+    cancelledCount:  cancelledOrderCount,
     deliveredCount:  s.deliveredCount || 0,
     pendingCount:    s.pendingCount   || 0,
     avgOrderValue:   Math.round(s.avgOrderValue || 0),
@@ -163,56 +162,14 @@ export const getRevenueChart = async (filter) => {
 export const getOrderStatusBreakdown = async (dateRange) => {
   const dateMatch = dateRange ? { createdAt: dateRange } : {};
   
-  // Get order-level status breakdown
+  // Count at ORDER level — one order = one unit regardless of how many items it has
   const orderBreakdown = await Order.aggregate([
     { $match: { orderStatus: { $nin: ["pending","pending_payment"] }, ...dateMatch } },
     { $group: { _id: "$orderStatus", count: { $sum: 1 } } },
     { $sort: { count: -1 } },
   ]);
 
-  // Get item-level cancelled count for more accurate representation
-  const itemDateMatch = dateRange ? { createdAt: dateRange } : {};
-  
-  const [cancelledItems] = await OrderItem.aggregate([
-    {
-      $lookup: {
-        from: "orders",
-        localField: "orderId", 
-        foreignField: "_id",
-        as: "order"
-      }
-    },
-    { $unwind: "$order" },
-    { $match: { "order.orderStatus": { $nin: ["pending","pending_payment"] }, ...itemDateMatch } },
-    {
-      $group: {
-        _id: null,
-        cancelledCount: { 
-          $sum: { 
-            $cond: [
-              { $eq: ["$itemStatus", "cancelled"] }, 
-              1, 
-              0
-            ] 
-          } 
-        }
-      }
-    }
-  ]);
-
-  // Replace order-level cancelled count with item-level count if it exists
-  const cancelledItemCount = cancelledItems?.cancelledCount || 0;
-  
-  if (cancelledItemCount > 0) {
-    const cancelledOrderIndex = orderBreakdown.findIndex(item => item._id === "cancelled");
-    if (cancelledOrderIndex >= 0) {
-      orderBreakdown[cancelledOrderIndex].count = cancelledItemCount;
-    } else {
-      orderBreakdown.push({ _id: "cancelled", count: cancelledItemCount });
-    }
-  }
-
-  return orderBreakdown.sort((a, b) => b.count - a.count);
+  return orderBreakdown;
 };
 
 // ── Shared: get qualifying order IDs for a date range ────────────────────────

@@ -149,9 +149,8 @@ export const offerSchema = Joi.object({
     otherwise: Joi.array().optional(),
   }),
 
-  start_date: Joi.date().required().min("now").messages({
+  start_date: Joi.date().required().messages({
     "date.base":    "Start date must be a valid date",
-    "date.min":     "Start date cannot be in the past",
     "any.required": "Start date is required",
   }),
 

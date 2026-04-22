@@ -71,7 +71,7 @@ export const getOrderFailurePage = async (req, res) => {
     tax: null,
     totalAmount: null,
     savings: null,
-    orderUpdatedAt: null,
+    orderCreatedAt: null,
   };
 
   try {
@@ -98,7 +98,8 @@ export const getOrderFailurePage = async (req, res) => {
         savings:
           (order.pricing?.productDiscount ?? 0) +
           (order.pricing?.couponDiscount ?? 0) || null,
-        orderUpdatedAt: order.updatedAt ?? null,
+        // Use createdAt for the 15-min window — updatedAt shifts on every failure call
+        orderCreatedAt: order.createdAt ?? null,
       };
     }
   } catch (_) {
@@ -109,7 +110,7 @@ export const getOrderFailurePage = async (req, res) => {
     orderId,
     orderNumber,
     errorMessage,
-    orderUpdatedAt: summaryVars.orderUpdatedAt ?? null,
+    orderCreatedAt: summaryVars.orderCreatedAt ?? null,
     ...summaryVars,
   });
 };

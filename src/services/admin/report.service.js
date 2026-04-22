@@ -168,7 +168,7 @@ export const getReportService = async ({ reportType = "orders", preset = "monthl
     const pipeline = [
       { $match: { ...matchStage, "userId": { $exists: true } } },
       { $lookup: { from: "users", localField: "userId", foreignField: "_id", as: "userInfo" } },
-      { $unwind: { path: "$userInfo", preserveNullAndEmpty: true } },
+      { $unwind: { path: "$userInfo", preserveNullAndEmptyArrays: true } },
       { $match: { "userInfo.name": { $regex: customer, $options: "i" } } },
     ];
     const countPipeline = [...pipeline, { $count: "total" }];

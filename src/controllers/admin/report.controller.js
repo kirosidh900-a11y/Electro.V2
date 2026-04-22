@@ -23,13 +23,16 @@ const extractFilters = (query) => ({
 });
 
 // ── Page render ───────────────────────────────────────────────────────────────
+const PAGE_LIMIT = 5;
+
 export const getReportPage = async (req, res, next) => {
   try {
     const filters = extractFilters(req.query);
-    const data = await getReportService({ ...filters, limit: 20 });
+    const data = await getReportService({ ...filters, limit: PAGE_LIMIT });
 
     return res.render("admin/reports/sales", {
       title: REPORT_TITLES[filters.reportType] || "Report",
+      pageLimit: PAGE_LIMIT,
       ...data,
       ...filters,
     });
