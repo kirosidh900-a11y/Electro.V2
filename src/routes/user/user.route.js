@@ -44,6 +44,7 @@ import { cartSchema } from "../../validations/products.validator.js";
 
 import {
   getCheckoutPage,
+  getBuyNowPage,
   validateCartStockCheck,
 } from "../../controllers/product/user/checkout.controller.js";
 import { getOrderListingPage } from "../../controllers/user/order.controller.js";
@@ -90,6 +91,7 @@ router
 router.get("/cart/validate-stock", requireAuth, validateCartStock);
 router.get("/cart/validate-stock-cart", requireAuth, validateCartStockCheck);
 router.get("/cart/checkout", requireAuth, getCheckoutPage);
+router.get("/checkout", requireAuth, getBuyNowPage);
 router.post("/cart/coupon/apply",  requireAuth, applyCoupon);
 router.delete("/cart/coupon/remove", requireAuth, removeCoupon);
 

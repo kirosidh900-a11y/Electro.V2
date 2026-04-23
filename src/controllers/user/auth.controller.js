@@ -48,7 +48,7 @@ export const showLoginPage = (req, res) => {
   const error = JSON.parse(req.cookies.toast || null);
   clearAuthCookie(res, "toastError");
 
-  res.render("user/auth/login", { error:error?.message });
+  res.render("user/auth/login", { error: error?.message });
 };
 
 export const login = async (req, res, next) => {
@@ -107,7 +107,7 @@ export const verifySignupOtp = async (req, res, next) => {
 
     if (!existingOtp?.tempUserData) {
       throw new AppError(
-        "OTP data corrupted or expired",
+        "OTP session expired. Please go back and sign up again.",
         HTTP_STATUS.BAD_REQUEST,
       );
     }
@@ -145,16 +145,19 @@ export const resendOtp = async (req, res, next) => {
     const newOtp = generateOTP();
 
     if (email) {
-      await saveOTP(email, newOtp, purpose);
+      // Preserve the original tempUserData so signup data isn't lost on resend
+      const existingTempData = otpDoc?.tempUserData ?? null;
+      await saveOTP(email, newOtp, purpose, existingTempData);
       await sendEmail({
         email,
-        name: (otpDoc?.tempUserData?.name || res.locals.user?.name) ?? "User",
+        name: (existingTempData?.name || res.locals.user?.name) ?? "User",
         otp: newOtp,
       });
     }
 
     if (phone) {
-      await saveOTP(phone, newOtp, purpose);
+      const existingTempData = otpDoc2?.tempUserData ?? null;
+      await saveOTP(phone, newOtp, purpose, existingTempData);
       await sendSMS({
         phone,
         message: `Your OTP is ${newOtp}. Do not share it.`,

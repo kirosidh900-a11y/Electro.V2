@@ -453,7 +453,8 @@
                                                                 <% }); } %>
                                                 </div>
 
-                                                <!-- 2. Coupon Block — fully dynamic, no reload needed -->
+                                                <!-- 2. Coupon Block — hidden for Buy Now (no cart to apply to) -->
+                                                <% if (typeof isBuyNow === 'undefined' || !isBuyNow) { %>
                                                 <div class="mb-6" id="couponBlock">
                                                         <label class="block text-sm font-bold text-gray-900 mb-2.5">Have a Coupon?</label>
                                                         <div class="flex gap-2">
@@ -467,6 +468,7 @@
                                                         </div>
                                                         <div id="couponMsg" class="mt-2.5 hidden"></div>
                                                 </div>
+                                                <% } %>
 
                                                 <% // Final Calculation
                                                         const couponDiscountAmount = cart?.appliedCoupon?.code ? (cart.couponDiscountAmount || 0) : 0;

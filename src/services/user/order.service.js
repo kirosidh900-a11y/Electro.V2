@@ -32,16 +32,44 @@ export const placeOrderService = async ({
   userId,
   addressId,
   paymentMethod,
+  buyNow = null,   // { productId, variantId, quantity } — set for Buy Now orders
 }) => {
   try {
     if (!["cod", "razorpay", "wallet"].includes(paymentMethod)) {
       throw new AppError("Invalid payment method", HTTP_STATUS.BAD_REQUEST);
     }
 
-    const cart = await Cart.findOne({ userId }).populate("items.productId");
+    // ── Source: buy-now OR regular cart ──────────────────────────────────────
+    let cartItems;
+    let couponDiscount  = 0;
+    let appliedCouponId = null;
+    let cart            = null;
 
-    if (!cart || cart.items.length === 0) {
-      throw new AppError("Cart is empty", HTTP_STATUS.BAD_REQUEST);
+    if (buyNow) {
+      // Single item, no coupon — fetch product fresh
+      const product = await Products.findById(buyNow.productId)
+        .populate("brand", "title")
+        .lean();
+
+      if (!product) throw new AppError("Product not found", HTTP_STATUS.NOT_FOUND);
+
+      cartItems = [
+        {
+          productId: product,
+          variantId: buyNow.variantId,
+          quantity:  buyNow.quantity,
+        },
+      ];
+    } else {
+      cart = await Cart.findOne({ userId }).populate("items.productId");
+
+      if (!cart || cart.items.length === 0) {
+        throw new AppError("Cart is empty", HTTP_STATUS.BAD_REQUEST);
+      }
+
+      cartItems       = cart.items;
+      couponDiscount  = cart.couponDiscountAmount || 0;
+      appliedCouponId = cart.appliedCoupon?.couponId || null;
     }
 
     const address = await Address.findOne({ _id: addressId, userId });
@@ -59,7 +87,7 @@ export const placeOrderService = async ({
     const orderNumber = await generateOrderNumber();
 
     // ================= LOOP =================
-    for (const item of cart.items) {
+    for (const item of cartItems) {
       const product = item.productId;
 
       if (!product) {
@@ -69,7 +97,6 @@ export const placeOrderService = async ({
       const index = product.variants.findIndex(
         (v) => String(v._id) === String(item.variantId),
       );
-
       if (index === -1) {
         throw new AppError("Variant not found", HTTP_STATUS.NOT_FOUND);
       }
@@ -198,12 +225,9 @@ export const placeOrderService = async ({
     }
 
     // ================= FINAL =================
-    const couponDiscount  = cart.couponDiscountAmount || 0;
     const finalPriceTotal = subtotal + gstTotal;                          // = sum of finalPrice×qty
     const deliveryCharge  = (finalPriceTotal - couponDiscount) >= 500 ? 0 : 40;
-    // finalAmount = what user actually pays
-    // subtotal (finalPrice_total) already includes GST — do NOT add gstTotal again
-    const finalAmount = finalPriceTotal - couponDiscount + deliveryCharge;
+    const finalAmount     = finalPriceTotal - couponDiscount + deliveryCharge;
 
     const expectedDate = new Date();
     expectedDate.setDate(expectedDate.getDate() + 7);
@@ -254,12 +278,20 @@ export const placeOrderService = async ({
       })),
     );
 
-    // 🧹 CLEAR CART
-    const appliedCouponId = cart.appliedCoupon?.couponId || null;
-    cart.items = [];
-    cart.couponDiscountAmount = 0;
-    cart.appliedCoupon = { code: null, couponId: null, discountAmount: 0 };
-    await cart.save();
+    // 🧹 CLEAR CART — only for regular cart orders, not buy-now
+    if (!buyNow && cart) {
+      const appliedCouponId = cart.appliedCoupon?.couponId || null;
+      cart.items = [];
+      cart.couponDiscountAmount = 0;
+      cart.appliedCoupon = { code: null, couponId: null, discountAmount: 0 };
+      await cart.save();
+
+      // Mark coupon as used
+      if (appliedCouponId) {
+        const { markCouponUsed } = await import("../product/coupon.service.js");
+        await markCouponUsed({ userId, couponId: appliedCouponId });
+      }
+    }
 
     // 💳 WALLET PAYMENT — debit wallet and mark order paid
     if (paymentMethod === "wallet") {
@@ -271,15 +303,9 @@ export const placeOrderService = async ({
         source:      "order_payment",
         orderId:     order._id,
       });
-      order.payment.status       = "paid";
+      order.payment.status         = "paid";
       order.payment.walletDeducted = finalAmount;
       await order.save();
-    }
-
-    // Mark coupon as used
-    if (appliedCouponId) {
-      const { markCouponUsed } = await import("../product/coupon.service.js");
-      await markCouponUsed({ userId, couponId: appliedCouponId });
     }
 
     return {

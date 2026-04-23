@@ -1,4 +1,4 @@
-import { getReportService, getReportAllService } from "../../services/admin/report.service.js";
+import { getReportService, getReportAllService, getChartDataService } from "../../services/admin/report.service.js";
 
 const REPORT_TITLES = {
   orders:    "Orders Report",
@@ -9,7 +9,7 @@ const REPORT_TITLES = {
 
 // ── Shared filter extraction ──────────────────────────────────────────────────
 const extractFilters = (query) => ({
-  reportType:  query.reportType  || "orders",
+  reportType:  query.reportType  || "sales",
   preset:      query.preset      || "monthly",
   from:        query.from        || "",
   to:          query.to          || "",
@@ -37,6 +37,17 @@ export const getReportPage = async (req, res, next) => {
       ...data,
       ...filters,
     });
+  } catch (err) {
+    next(err);
+  }
+};
+
+// ── Chart data API (AJAX — tab switching) ─────────────────────────────────────
+export const getChartData = async (req, res, next) => {
+  try {
+    const filters = extractFilters(req.query);
+    const data    = await getChartDataService(filters);
+    return res.json({ success: true, ...data });
   } catch (err) {
     next(err);
   }

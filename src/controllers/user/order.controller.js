@@ -10,17 +10,28 @@ import {
 } from "../../services/user/order.service.js";
 import { generateInvoiceService } from "../../services/user/invoice.service.js";
 import renderView from "../../utils/admin/renderView.util.js";
+import {
+  getBuyNowSession,
+  clearBuyNowSession,
+} from "../../services/user/checkout.service.js";
 
 export const placeOrder = async (req, res, next) => {
   try {
     const userId = req.user._id;
     const { addressId, paymentMethod } = req.body;
 
+    // Check if this is a buy-now order
+    const buyNow = await getBuyNowSession(String(userId));
+
     const order = await placeOrderService({
       userId,
       addressId,
       paymentMethod,
+      buyNow: buyNow || null,
     });
+
+    // Clear buy-now session after successful order
+    if (buyNow) await clearBuyNowSession(String(userId));
 
     return res.json({
       success: true,

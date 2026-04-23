@@ -145,7 +145,7 @@ otpForm.addEventListener("submit", async (e) => {
     const data = await response.json();
 
     if (response.ok) {
-      showToast(data.message);
+      showToast(data.message, "success");
 
       setTimeout(() => {
         window.location.href = "/auth/login";

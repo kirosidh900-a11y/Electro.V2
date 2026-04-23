@@ -244,3 +244,13 @@ export const getReportAllService = async ({ reportType = "orders", preset = "mon
 
   return { orders, summary };
 };
+
+// ── Chart data only — used by AJAX tab switching ──────────────────────────────
+export const getChartDataService = async ({ reportType = "sales", preset = "monthly", from, to, excludeBad }) => {
+  const matchStage     = buildMatchStage({ reportType, preset, from, to, excludeBad });
+  const dateFilter     = buildDateRange(preset, from, to);
+  const dailyBreakdown = await buildDailyBreakdown(matchStage);
+  const summary        = await buildAccountingSummary(dateFilter);
+
+  return { dailyBreakdown, summary, reportType };
+};
