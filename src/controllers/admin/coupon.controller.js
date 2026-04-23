@@ -1,4 +1,3 @@
-import Coupon from "../../models/couponSchema.model.js";
 import redisClient from "../../utils/partials/redisClient.util.js";
 import {
   getCouponsService,
@@ -7,7 +6,9 @@ import {
   updateCouponService,
   toggleCouponStatusService,
   deleteCouponService,
+  checkCouponCodeService,
 } from "../../services/admin/coupon.service.js";
+import HTTP_STATUS from "../../constant/statusCode.js";
 
 export const getCouponsPage = async (req, res, next) => {
   try {
@@ -20,7 +21,7 @@ export const getCouponsPage = async (req, res, next) => {
 export const createCoupon = async (req, res, next) => {
   try {
     const coupon = await createCouponService(req.body);
-    res.status(201).json({ success: true, message: "Coupon created successfully", data: coupon });
+    res.status(HTTP_STATUS.CREATED).json({ success: true, message: "Coupon created successfully", data: coupon });
   } catch (err) { next(err); }
 };
 
@@ -62,27 +63,26 @@ export const checkCouponCode = async (req, res, next) => {
     const { code } = req.query;
     if (!code?.trim()) return res.json({ available: false });
 
-    // Rate limit check
-    const adminId  = req.cookies.adminToken?.slice(-16) || req.ip;
-    const rateKey  = `coupon:gen1:${adminId}`;
+    // Rate limit check via Redis
+    const adminId = req.cookies.adminToken?.slice(-16) || req.ip;
+    const rateKey = `coupon:gen1:${adminId}`;
 
     const count = await redisClient.incr(rateKey);
     if (count === 1) {
-      // First call — set 1hr expiry
       await redisClient.expire(rateKey, 3600);
     }
 
     if (count > 10) {
-      const ttl = await redisClient.ttl(rateKey);
+      const ttl  = await redisClient.ttl(rateKey);
       const mins = Math.ceil(ttl / 60);
-      return res.status(429).json({
+      return res.status(HTTP_STATUS.TOO_MANY_REQUESTS).json({
         available: false,
         message: `Auto-generate limit reached (10/hr). Try again in ${mins} minute(s).`,
         rateLimited: true,
       });
     }
 
-    const exists = await Coupon.findOne({ code: code.trim().toUpperCase() }).lean();
-    res.json({ available: !exists });
+    const available = await checkCouponCodeService(code);
+    res.json({ available });
   } catch (err) { next(err); }
 };

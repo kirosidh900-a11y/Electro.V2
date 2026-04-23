@@ -88,7 +88,7 @@ app.use("/api/wishlist", wishlistRoutes);
 
 // 404 Handler (FIXED)
 app.use((req, res) => {
-  const err = new AppError("Route not found", 404);
+  const err = new AppError("Route not found", HTTP_STATUS.NOT_FOUND);
 
   if (
     req.originalUrl.startsWith("/admin") ||
@@ -101,7 +101,7 @@ app.use((req, res) => {
     errorResponse(res, err.message, HTTP_STATUS.NOT_FOUND);
   }
 
-  return res.status(404).render("404", { user: req.user || null });
+  return res.status(HTTP_STATUS.NOT_FOUND).render("404", { user: req.user || null });
 });
 
 // Global Error Handler

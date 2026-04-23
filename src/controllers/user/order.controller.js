@@ -1,4 +1,5 @@
 import mongoose from "mongoose";
+import HTTP_STATUS from "../../constant/statusCode.js";
 import {
   placeOrderService,
   getOrderSuccessService,
@@ -8,7 +9,6 @@ import {
   returnOrderItemService,
 } from "../../services/user/order.service.js";
 import { generateInvoiceService } from "../../services/user/invoice.service.js";
-
 import renderView from "../../utils/admin/renderView.util.js";
 
 export const placeOrder = async (req, res, next) => {
@@ -212,7 +212,7 @@ export const cancelOrder = async (req, res, next) => {
       comments,
     });
 
-    return res.status(200).json({
+    return res.status(HTTP_STATUS.OK).json({
       success: true,
       message: result.message,
     });
@@ -231,7 +231,7 @@ export const returnOrderItem = async (req, res, next) => {
 
     await returnOrderItemService({ userId, orderItemId, returnReason, returnComments, itemCondition });
 
-    res.status(200).json({ success: true, message: "Return request submitted successfully" });
+    res.status(HTTP_STATUS.OK).json({ success: true, message: "Return request submitted successfully" });
   } catch (error) {
     console.error("Return Order Error:", error);
     next(error);
@@ -244,7 +244,7 @@ export const downloadInvoice = async (req, res, next) => {
     const { orderId } = req.params;
 
     if (!mongoose.Types.ObjectId.isValid(orderId)) {
-      return res.status(400).json({ message: "Invalid order ID" });
+      return res.status(HTTP_STATUS.BAD_REQUEST).json({ message: "Invalid order ID" });
     }
 
     await generateInvoiceService({ userId, orderId }, res);

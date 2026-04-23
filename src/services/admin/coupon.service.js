@@ -64,3 +64,8 @@ export const deleteCouponService = async (id) => {
   if (!coupon) throw new AppError("Coupon not found", HTTP_STATUS.NOT_FOUND);
   return coupon;
 };
+
+export const checkCouponCodeService = async (code) => {
+  const exists = await Coupon.findOne({ code: code.trim().toUpperCase() }).lean();
+  return !exists; // true = available
+};

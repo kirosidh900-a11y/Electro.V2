@@ -7,7 +7,11 @@ import {
   schedulePickupService,
   completeReturnService,
   updateItemStatusService,
-} from "../../services/admin/order.service.js";import renderView from "../../utils/admin/renderView.util.js";
+  processItemRefundAdminService,
+} from "../../services/admin/order.service.js";
+import renderView from "../../utils/admin/renderView.util.js";
+import AppError from "../../utils/partials/AppError.utils.js";
+import HTTP_STATUS from "../../constant/statusCode.js";
 
 export const getAdminOrdersPage = async (req, res, next) => {
   try {
@@ -110,7 +114,7 @@ export const cancelOrder = async (req, res, next) => {
     const { orderId } = req.params;
     const { reason, comments, refundMethod, internalNote } = req.body;
 
-    if (!reason) return res.status(400).json({ success: false, message: "Cancel reason is required" });
+    if (!reason) return res.status(HTTP_STATUS.BAD_REQUEST).json({ success: false, message: "Cancel reason is required" });
 
     const result = await cancelOrderService(orderId, { reason, comments, refundMethod, internalNote });
 
@@ -194,7 +198,7 @@ export const updateItemStatus = async (req, res, next) => {
     const { itemId } = req.params;
     const { status, reason, comment } = req.body;
 
-    if (!status) return res.status(400).json({ success: false, message: "Status is required" });
+    if (!status) return res.status(HTTP_STATUS.BAD_REQUEST).json({ success: false, message: "Status is required" });
 
     await updateItemStatusService(itemId, status, reason, comment);
     res.json({ success: true, message: "Item status updated" });
@@ -208,25 +212,9 @@ export const processItemRefundController = async (req, res, next) => {
     const { itemId } = req.params;
     const { orderId } = req.body;
 
-    if (!orderId) return res.status(400).json({ success: false, message: "orderId required" });
+    if (!orderId) return res.status(HTTP_STATUS.BAD_REQUEST).json({ success: false, message: "orderId required" });
 
-    const OrderItem = (await import("../../models/orderItemSchema.model.js")).default;
-    const Order     = (await import("../../models/orderSchema.model.js")).default;
-    const { processItemRefund } = await import("../../services/product/refund.service.js");
-
-    const item  = await OrderItem.findById(itemId);
-    const order = await Order.findById(orderId);
-
-    if (!item || !order) return res.status(404).json({ success: false, message: "Item or order not found" });
-    if (item.refund?.status === "processed") return res.status(400).json({ success: false, message: "Already refunded" });
-
-    const refundAmount = await processItemRefund({
-      orderItemId: itemId,
-      orderId,
-      userId:  order.userId,
-      reason:  "admin_manual",
-      isCOD:   order.payment.method === "cod",
-    });
+    const refundAmount = await processItemRefundAdminService({ itemId, orderId });
 
     res.json({ success: true, message: "Refund processed", refundAmount });
   } catch (err) {

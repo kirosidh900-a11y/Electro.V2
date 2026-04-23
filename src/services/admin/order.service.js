@@ -2,6 +2,7 @@ import Order from "../../models/orderSchema.model.js";
 import orderItem from "../../models/orderItemSchema.model.js";
 import Products from "../../models/productSchema.model.js";
 import AppError from "../../utils/partials/AppError.utils.js";
+import HTTP_STATUS from "../../constant/statusCode.js";
 
 // ── Emit real-time stock update after any DB stock change ─────────────────────
 const emitStockUpdate = async (productId, variantId) => {
@@ -246,8 +247,8 @@ export const updateOrderStatusService = async (orderId, status) => {
 
 export const cancelOrderService = async (orderId, { reason, comments, refundMethod, internalNote }) => {
   const order = await Order.findById(orderId);
-  if (!order) throw new AppError("Order not found", 404);
-  if (order.isCancelled) throw new AppError("Order already cancelled", 400);
+  if (!order) throw new AppError("Order not found", HTTP_STATUS.NOT_FOUND);
+  if (order.isCancelled) throw new AppError("Order already cancelled", HTTP_STATUS.BAD_REQUEST);
 
   const payMethod  = order.payment.method;
   const payStatus  = order.payment.status;
@@ -541,11 +542,11 @@ export const calculateOrderStatusFromItems = async (orderId) => {
 
 export const updateItemStatusService = async (itemId, newStatus, reason = null, comment = null) => {
   if (!VALID_ITEM_STATUSES.includes(newStatus)) {
-    throw new AppError(`Invalid item status: ${newStatus}`, 400);
+    throw new AppError(`Invalid item status: ${newStatus}`, HTTP_STATUS.BAD_REQUEST);
   }
 
   const item = await orderItem.findById(itemId);
-  if (!item) throw new AppError("Order item not found", 404);
+  if (!item) throw new AppError("Order item not found", HTTP_STATUS.NOT_FOUND);
 
   const prevStatus = item.itemStatus;
   item.itemStatus  = newStatus;
@@ -576,4 +577,25 @@ export const updateItemStatusService = async (itemId, newStatus, reason = null, 
   await calculateOrderStatusFromItems(item.orderId);
 
   return item;
+};
+
+// ── Admin: manually trigger a refund for a single item ───────────────────────
+export const processItemRefundAdminService = async ({ itemId, orderId }) => {
+  const OrderItem = (await import("../../models/orderItemSchema.model.js")).default;
+  const Order     = (await import("../../models/orderSchema.model.js")).default;
+  const { processItemRefund } = await import("../product/refund.service.js");
+
+  const item  = await OrderItem.findById(itemId);
+  const order = await Order.findById(orderId);
+
+  if (!item || !order) throw new AppError("Item or order not found", HTTP_STATUS.NOT_FOUND);
+  if (item.refund?.status === "processed") throw new AppError("Already refunded", HTTP_STATUS.BAD_REQUEST);
+
+  return processItemRefund({
+    orderItemId: itemId,
+    orderId,
+    userId:  order.userId,
+    reason:  "admin_manual",
+    isCOD:   order.payment.method === "cod",
+  });
 };

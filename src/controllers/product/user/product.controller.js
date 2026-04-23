@@ -129,7 +129,7 @@ export const updateWishlist = async (req, res, next) => {
     const userId = req.user?._id;
 
     if (!userId) {
-      throw new AppError("User not found! Please login first.", 401);
+      throw new AppError("User not found! Please login first.", HTTP_STATUS.UNAUTHORIZED);
     }
 
     const result = await updateWishlistService({
@@ -139,7 +139,7 @@ export const updateWishlist = async (req, res, next) => {
     });
 
     if (!result.success) {
-      throw new AppError(result.message, result.status || 400);
+      throw new AppError(result.message, result.status || HTTP_STATUS.BAD_REQUEST);
     }
 
     return successResponse(res, result.message, result.status, result);

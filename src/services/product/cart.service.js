@@ -164,44 +164,44 @@ export const updateCartService = async ({
 
 export const updateCartQuantityService = async (userId, itemId, quantity) => {
   if (!userId) {
-    throw new AppError("Please login", 401);
+    throw new AppError("Please login", HTTP_STATUS.UNAUTHORIZED);
   }
 
   // FIXED VALIDATION
   if (!itemId || quantity === undefined || quantity === null) {
-    throw new AppError("Invalid data", 400);
+    throw new AppError("Invalid data", HTTP_STATUS.BAD_REQUEST);
   }
 
   const qty = Number(quantity);
 
   if (isNaN(qty)) {
-    throw new AppError("Quantity must be a number", 400);
+    throw new AppError("Quantity must be a number", HTTP_STATUS.BAD_REQUEST);
   }
 
   if (qty < 1) {
-    throw new AppError("Minimum quantity is 1", 400);
+    throw new AppError("Minimum quantity is 1", HTTP_STATUS.BAD_REQUEST);
   }
 
   const cart = await Cart.findOne({ userId });
-  if (!cart) throw new AppError("Cart not found", 404);
+  if (!cart) throw new AppError("Cart not found", HTTP_STATUS.NOT_FOUND);
 
   const item = cart.items.id(itemId);
-  if (!item) throw new AppError("Item not found", 404);
+  if (!item) throw new AppError("Item not found", HTTP_STATUS.NOT_FOUND);
 
   const product = await Products.findById(item.productId);
-  if (!product) throw new AppError("Product not found", 404);
+  if (!product) throw new AppError("Product not found", HTTP_STATUS.NOT_FOUND);
 
   const variant = product.variants.find(
     (v) => v._id.toString() === item.variantId.toString(),
   );
 
-  if (!variant) throw new AppError("Variant not found", 404);
+  if (!variant) throw new AppError("Variant not found", HTTP_STATUS.NOT_FOUND);
 
   // Available stock = stock minus reserved
   const availableStock = Math.max(variant.stock - (variant.reserved || 0), 0);
 
   if (availableStock === 0) {
-    throw new AppError("Out of stock", 400);
+    throw new AppError("Out of stock", HTTP_STATUS.BAD_REQUEST);
   }
 
   const MAX_LIMIT = 3;
@@ -213,7 +213,7 @@ export const updateCartQuantityService = async (userId, itemId, quantity) => {
       availableStock < MAX_LIMIT
         ? `Only ${availableStock} item(s) available in stock`
         : `Maximum ${MAX_LIMIT} items allowed per product`,
-      400
+      HTTP_STATUS.BAD_REQUEST,
     );
   }
 

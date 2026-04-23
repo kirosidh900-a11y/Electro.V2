@@ -9,6 +9,7 @@ import {
 import { placeOrderService } from "../../services/user/order.service.js";
 import { creditWallet } from "../../services/user/wallet.service.js";
 import AppError from "../../utils/partials/AppError.utils.js";
+import HTTP_STATUS from "../../constant/statusCode.js";
 
 export const createPaymentOrder = async (req, res, next) => {
   try {
@@ -79,7 +80,7 @@ export const verifyPaymentController = async (req, res, next) => {
     });
 
     if (!isValid) {
-      throw new AppError("Payment verification failed", 400);
+      throw new AppError("Payment verification failed", HTTP_STATUS.BAD_REQUEST);
     }
 
     await handlePaymentSuccessService({
@@ -139,7 +140,7 @@ export const retryPaymentController = async (req, res, next) => {
 export const createWalletTopupOrder = async (req, res, next) => {
   try {
     const amount = parseFloat(req.body.amount);
-    if (!amount || amount < 1) throw new AppError("Invalid amount", 400);
+    if (!amount || amount < 1) throw new AppError("Invalid amount", HTTP_STATUS.BAD_REQUEST);
 
     const razorpayOrder = await createRazorpayOrder(amount);
 
@@ -166,7 +167,7 @@ export const verifyWalletTopup = async (req, res, next) => {
       razorpay_signature,
     });
 
-    if (!isValid) throw new AppError("Payment verification failed", 400);
+    if (!isValid) throw new AppError("Payment verification failed", HTTP_STATUS.BAD_REQUEST);
 
     const newBalance = await creditWallet({
       userId,

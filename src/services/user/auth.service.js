@@ -13,7 +13,7 @@ import {
 
 import { isValidReferral, createRef, applyReferralBonus } from "./referral.service.js";
 import { checkGoogleAuth } from "../../utils/partials/auth/auth.util.js";
-
+import { hashPassword } from "../../utils/partials/auth/password.utils.js";
 // Check if user already exists
 export const isUserExist = async (email) => {
   const existingUser = await findUserByEmail(email);
@@ -119,4 +119,13 @@ export const findUserById = async (id, pass = false) => {
     qurey = "-password -googleId -photo";
   }
   return await User.findById(id).select(qurey);
+};
+
+// Reset password after forgot-password OTP verification
+export const resetPasswordService = async (email, password) => {
+  const user = await findUserByEmail(email);
+  if (!user) throw new AppError("Email not found", HTTP_STATUS.NOT_FOUND);
+
+  user.password = await hashPassword(password);
+  await user.save();
 };

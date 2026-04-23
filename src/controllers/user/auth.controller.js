@@ -12,6 +12,7 @@ import {
   isVerifyUser,
   verifyForgotOTP,
   findUserByEmail,
+  resetPasswordService,
 } from "../../services/user/auth.service.js";
 
 import {
@@ -29,7 +30,6 @@ import { isConfirmPassword } from "../../utils/partials/validation.utils.js";
 import generateJWT from "../../utils/partials/jwt.utils.js";
 import setAuthCookie from "../../utils/partials/setAuthCookie.js";
 import clearAuthCookie from "../../utils/partials/clearCookie.js";
-import { hashPassword } from "../../utils/partials/auth/password.utils.js";
 import AppError from "../../utils/partials/AppError.utils.js";
 
 // External
@@ -221,23 +221,9 @@ export const savePassword = async (req, res, next) => {
 
     isConfirmPassword(password, confirmPassword);
 
-    const hashedPassword = await hashPassword(password);
+    await resetPasswordService(email, password);
 
-    const user = await findUserByEmail(email);
-
-    if (!user) {
-      return errorResponse(res, "Email not found", HTTP_STATUS.NOT_FOUND);
-    }
-
-    user.password = hashedPassword;
-
-    await user.save();
-
-    return successResponse(
-      res,
-      "Password updated successfully",
-      HTTP_STATUS.OK,
-    );
+    return successResponse(res, "Password updated successfully", HTTP_STATUS.OK);
   } catch (err) {
     next(err);
   }

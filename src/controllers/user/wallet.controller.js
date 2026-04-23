@@ -1,4 +1,6 @@
 import { getWalletService, creditWallet } from "../../services/user/wallet.service.js";
+import AppError from "../../utils/partials/AppError.utils.js";
+import HTTP_STATUS from "../../constant/statusCode.js";
 
 export const getWalletPage = async (req, res, next) => {
   try {
@@ -23,7 +25,7 @@ export const addMoneyToWallet = async (req, res, next) => {
     const amount = parseFloat(req.body.amount);
 
     if (!amount || amount < 1) {
-      return res.status(400).json({ success: false, message: "Invalid amount" });
+      throw new AppError("Invalid amount", HTTP_STATUS.BAD_REQUEST);
     }
 
     const newBalance = await creditWallet({

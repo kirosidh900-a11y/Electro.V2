@@ -1,5 +1,6 @@
 import User from "../../models/userSchema.model.js";
 import AppError from "../../utils/partials/AppError.utils.js";
+import HTTP_STATUS from "../../constant/statusCode.js";
 import { creditWallet } from "./wallet.service.js";
 
 const REFERRAL_BONUS = 500;
@@ -24,16 +25,16 @@ export const isValidReferral = async (referral_by, currentEmail = null) => {
   if (!code) return null;
 
   const owner = await User.findOne({ referralCode: code });
-  if (!owner) throw new AppError("Invalid referral code", 400);
+  if (!owner) throw new AppError("Invalid referral code", HTTP_STATUS.BAD_REQUEST);
 
   if (currentEmail && owner.email === currentEmail) {
-    throw new AppError("You cannot refer yourself", 400);
+    throw new AppError("You cannot refer yourself", HTTP_STATUS.BAD_REQUEST);
   }
 
   if (owner.referralCount >= MAX_REFERRALS) {
     throw new AppError(
       "This referral code has reached its maximum usage limit",
-      400,
+      HTTP_STATUS.BAD_REQUEST,
     );
   }
 
@@ -46,7 +47,7 @@ export const applyReferralBonus = async (referral_by) => {
   if (!code) return;
 
   const owner = await User.findOne({ referralCode: code });
-  if (!owner || owner.referralCount >= MAX_REFERRALS) return;
+  if (!owner || owner?.referralCount >= MAX_REFERRALS) return;
 
   // Increment count atomically
   await User.findByIdAndUpdate(owner._id, { $inc: { referralCount: 1 } });
