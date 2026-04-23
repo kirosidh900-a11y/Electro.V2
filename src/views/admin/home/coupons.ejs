@@ -609,6 +609,12 @@
     };
 
   </script>
+  <script>
+    // Prevent mouse wheel from changing number input values
+    document.querySelectorAll('input[type="number"]').forEach((el) => {
+      el.addEventListener('wheel', (e) => { e.preventDefault(); }, { passive: false });
+    });
+  </script>
 
 </body>
 </html>
