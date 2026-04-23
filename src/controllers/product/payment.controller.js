@@ -10,19 +10,25 @@ import { placeOrderService } from "../../services/user/order.service.js";
 import { creditWallet } from "../../services/user/wallet.service.js";
 import AppError from "../../utils/partials/AppError.utils.js";
 import HTTP_STATUS from "../../constant/statusCode.js";
+import {
+  getBuyNowSession,
+  clearBuyNowSession,
+} from "../../services/user/checkout.service.js";
 
 export const createPaymentOrder = async (req, res, next) => {
   try {
     const { addressId } = req.body;
     const userId = req.user._id;
 
-    console.log("ENV KEY:", process.env.RAZORPAY_KEY);
+    // Check if this is a buy-now order
+    const buyNow = await getBuyNowSession(String(userId));
 
     // ================= CREATE ORDER IN DB =================
     const result = await placeOrderService({
       userId,
       addressId,
       paymentMethod: "razorpay",
+      buyNow: buyNow || null,
     });
 
     // ================= CREATE RAZORPAY ORDER =================
@@ -35,16 +41,9 @@ export const createPaymentOrder = async (req, res, next) => {
       razorpayOrderId: razorpayOrder.id,
     });
 
-    // ================= SEND RESPONSE =================
-    console.log(order.payment?.expiresAt);
+    // Clear buy-now session — order is now in DB
+    if (buyNow) await clearBuyNowSession(String(userId));
 
-
-    const dateString = order.payment?.expiresAt.toLocaleString("en-IN", {
-      timeZone: "Asia/Kolkata",
-    });
-
-    console.log(dateString);
-    
     const redirectUrl = `/order/success/${order.orderId}`;
 
     res.json({
@@ -54,8 +53,8 @@ export const createPaymentOrder = async (req, res, next) => {
       razorpayOrderId: razorpayOrder.id,
       orderId: order._id,
       orderNumber: order.orderNumber,
-      expiresAt: order.payment.expiresAt, // 🔥 SEND EXPIRY TIME TO FRONTEND
-      redirectUrl, // 🔥 SEND REDIRECT URL TO FRONTEND
+      expiresAt: order.payment.expiresAt,
+      redirectUrl,
     });
   } catch (err) {
     console.error("Create Payment Order Error:", err);
