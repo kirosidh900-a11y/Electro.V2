@@ -897,11 +897,11 @@
                                                 const isEdit = !!document.getElementById("offer-id").value;
 
                                                 // ✅ CREATE MODE
-                                                // if (!isEdit) {
-                                                //         if (start < today) {
-                                                //                 return show("Start date cannot be in the past");
-                                                //         }
-                                                // }
+                                                if (!isEdit) {
+                                                        if (start <= today) {
+                                                                return show("Start date must be from today onwards");
+                                                        }
+                                                }
 
                                                 // ✅ EDIT MODE
                                                 if (isEdit) {
@@ -915,8 +915,8 @@
                                                                         return show("Cannot change start date after offer has started");
                                                                 }
 
-                                                                if (start < today) {
-                                                                        return show("Start date cannot be in the past");
+                                                                if (start <= today) {
+                                                                        return show("Start date must be from today onwards");
                                                                 }
                                                         }
                                                 }
@@ -981,12 +981,13 @@
                                         });
 
                                 </script>
-  <script>
-    // Prevent mouse wheel from changing number input values
-    document.querySelectorAll('input[type="number"]').forEach((el) => {
-      el.addEventListener('wheel', (e) => { e.preventDefault(); }, { passive: false });
-    });
-  </script>
+                                <script>
+                                        // Prevent mouse wheel from changing number input values
+                                        document.querySelectorAll('input[type="number"]').forEach((el) => {
+                                                el.addEventListener('wheel', (e) => { e.preventDefault(); }, { passive: false });
+                                        });
+                                </script>
 
 </body>
+
 </html>
