@@ -9,7 +9,7 @@ const REPORT_TITLES = {
 
 // ── Shared filter extraction ──────────────────────────────────────────────────
 const extractFilters = (query) => ({
-  reportType:  query.reportType  || "orders",
+  reportType:  query.reportType  || "sales",
   preset:      query.preset      || "monthly",
   from:        query.from        || "",
   to:          query.to          || "",
