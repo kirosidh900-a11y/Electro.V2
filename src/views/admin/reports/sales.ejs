@@ -42,7 +42,7 @@
     </div>
 
     <!-- ── Report Type Tabs ────────────────────────────────────────────── -->
-    <div class="flex gap-2 flex-wrap">
+    <div class="flex gap-2 flex-wrap" id="reportTabs">
       <%
         const tabs = [
           { key: 'orders',    label: 'All Orders',       icon: 'fa-list'         },
@@ -52,13 +52,15 @@
         ];
       %>
       <% tabs.forEach(tab => { %>
-        <a href="?reportType=<%= tab.key %>&preset=<%= preset %>&from=<%= from %>&to=<%= to %>"
-          class="flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold border transition
+        <button type="button"
+          data-tab="<%= tab.key %>"
+          onclick="switchTab('<%= tab.key %>')"
+          class="report-tab flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold border transition
           <%= activeType === tab.key
             ? 'bg-cyan-600 text-white border-cyan-600'
             : 'bg-white/5 text-gray-400 border-white/10 hover:border-cyan-500/40 hover:text-gray-200' %>">
           <i class="fas <%= tab.icon %>"></i> <%= tab.label %>
-        </a>
+        </button>
       <% }) %>
     </div>
 
@@ -198,6 +200,17 @@
       %>
       <% summaryCards.forEach(card => { %>
         <% const c = cmap[card.color]; %>
+        <%
+          const summaryIdMap = {
+            'Total Orders':    'summaryTotalOrders',
+            'Gross Sales':     'summaryGrossRevenue',
+            'Refunds':         'summaryRefundAmount',
+            'Net Sales':       'summaryNetRevenue',
+            'Cancelled':       'summaryCancelledValue',
+            'Avg Order Value': 'summaryAvgOrder',
+          };
+          const cardId = summaryIdMap[card.label] || '';
+        %>
         <div class="bg-[#0b1220] border border-white/5 rounded-2xl p-4 flex flex-col gap-3">
           <div class="flex items-center justify-between">
             <p class="text-[10px] text-gray-500 uppercase tracking-wider font-semibold"><%= card.label %></p>
@@ -205,7 +218,7 @@
               <i class="fas <%= card.icon %> <%= c.text %> text-xs"></i>
             </div>
           </div>
-          <p class="text-lg font-black text-white leading-none"><%= card.value %></p>
+          <p id="<%= cardId %>" class="text-lg font-black text-white leading-none"><%= card.value %></p>
           <p class="text-[10px] text-gray-600"><%= card.sub %></p>
         </div>
       <% }) %>
@@ -238,7 +251,7 @@
 
     <!-- ── Daily Trend Chart ───────────────────────────────────────────── -->
     <% if (dailyBreakdown && dailyBreakdown.length > 0) { %>
-    <div class="bg-[#0b1220] border border-white/5 rounded-2xl p-5">
+    <div id="chartWrapper" class="bg-[#0b1220] border border-white/5 rounded-2xl p-5 transition-opacity duration-300">
       <div class="flex items-center justify-between mb-4">
         <p class="text-[10px] text-gray-500 uppercase tracking-wider font-semibold">Daily Revenue Trend</p>
         <div class="flex items-center gap-4 text-[9px] text-gray-600">
@@ -261,7 +274,7 @@
 
         const ctx = document.getElementById('trendChart').getContext('2d');
 
-        new Chart(ctx, {
+        window._reportChart = new Chart(ctx, {
           type: 'bar',
           data: {
             labels,
@@ -357,6 +370,120 @@
     </script>
     <% } %>
 
+    <!-- ── Dynamic tab switching ──────────────────────────────────────── -->
+    <script>
+    (function () {
+      // Current filter state — read from what the server rendered
+      let _currentTab    = '<%= activeType %>';
+      const _preset      = () => document.getElementById('presetInput')?.value || '<%= preset %>';
+      const _from        = () => new URLSearchParams(location.search).get('from') || '';
+      const _to          = () => new URLSearchParams(location.search).get('to')   || '';
+      const _excludeBad  = () => document.querySelector('[name="excludeBad"]')?.checked ? '1' : '';
+
+      const TAB_LABELS = {
+        orders:    'All Orders',
+        sales:     'Sales Report',
+        refunds:   'Refund Report',
+        cancelled: 'Cancelled Orders',
+      };
+
+      // Summary field mapping per tab
+      const SUMMARY_MAP = {
+        orders:    { primary: 'totalOrders',   secondary: 'grossRevenue',  label: 'Total Orders / Gross Sales' },
+        sales:     { primary: 'grossRevenue',  secondary: 'netRevenue',    label: 'Gross Sales / Net Sales'    },
+        refunds:   { primary: 'refundAmount',  secondary: 'refundOrders',  label: 'Refund Amount / Orders'     },
+        cancelled: { primary: 'cancelledValue',secondary: 'cancelledOrders', label: 'Cancelled Value / Orders' },
+      };
+
+      window.switchTab = async function (tabKey) {
+        if (tabKey === _currentTab) return;
+        _currentTab = tabKey;
+
+        // ── 1. Update tab button styles ──────────────────────────────────
+        document.querySelectorAll('.report-tab').forEach(btn => {
+          const isActive = btn.dataset.tab === tabKey;
+          btn.className = btn.className
+            .replace(/bg-cyan-600 text-white border-cyan-600/g, '')
+            .replace(/bg-white\/5 text-gray-400 border-white\/10 hover:border-cyan-500\/40 hover:text-gray-200/g, '')
+            .trim();
+          btn.classList.add(
+            ...(isActive
+              ? ['bg-cyan-600', 'text-white', 'border-cyan-600']
+              : ['bg-white/5', 'text-gray-400', 'border-white/10', 'hover:border-cyan-500/40', 'hover:text-gray-200'])
+          );
+        });
+
+        // ── 2. Update hidden reportType inputs in all forms ──────────────
+        document.querySelectorAll('[name="reportType"]').forEach(el => { el.value = tabKey; });
+
+        // ── 3. Show chart loading state ──────────────────────────────────
+        const chartWrap = document.getElementById('chartWrapper');
+        if (chartWrap) chartWrap.style.opacity = '0.4';
+
+        // ── 4. Fetch new chart data ──────────────────────────────────────
+        try {
+          const params = new URLSearchParams({
+            reportType: tabKey,
+            preset:     _preset(),
+            from:       _from(),
+            to:         _to(),
+            excludeBad: _excludeBad(),
+          });
+
+          const res  = await fetch(`/admin/reports/chart-data?${params}`);
+          const data = await res.json();
+
+          if (!data.success) return;
+
+          // ── 5. Update chart ──────────────────────────────────────────
+          const chart = window._reportChart;
+          if (chart && data.dailyBreakdown) {
+            const bd = data.dailyBreakdown;
+            chart.data.labels              = bd.map(d => d._id.slice(5));
+            chart.data.datasets[0].data    = bd.map(d => d.revenue  || 0);
+            chart.data.datasets[1].data    = bd.map(d => d.discount || 0);
+            chart.data.datasets[2].data    = bd.map(d => d.orders   || 0);
+            chart.update('active');
+          }
+
+          // ── 6. Update summary cards ──────────────────────────────────
+          if (data.summary) {
+            const s = data.summary;
+            const fmt = n => (n || 0).toLocaleString('en-IN');
+            const fmtRs = n => '₹' + fmt(n);
+
+            const updates = {
+              'summaryTotalOrders':    fmt(s.totalOrders),
+              'summaryGrossRevenue':   fmtRs(s.grossRevenue),
+              'summaryRefundAmount':   fmtRs(s.refundAmount),
+              'summaryNetRevenue':     fmtRs(s.netRevenue),
+              'summaryCancelledValue': fmtRs(s.cancelledValue),
+              'summaryAvgOrder':       fmtRs(s.avgOrderValue),
+            };
+            Object.entries(updates).forEach(([id, val]) => {
+              const el = document.getElementById(id);
+              if (el) el.textContent = val;
+            });
+          }
+
+          // ── 7. Update page title label ───────────────────────────────
+          const titleEl = document.getElementById('reportTitle');
+          if (titleEl) titleEl.textContent = TAB_LABELS[tabKey] || 'Report';
+
+        } catch (e) {
+          console.error('Chart update failed:', e);
+        } finally {
+          if (chartWrap) chartWrap.style.opacity = '1';
+        }
+
+        // ── 8. Update URL without reload ────────────────────────────────
+        const url = new URL(location.href);
+        url.searchParams.set('reportType', tabKey);
+        history.replaceState({}, '', url.toString());
+      };
+    })();
+    </script>
+
     <!-- ── Orders Table ────────────────────────────────────────────────── -->
     <div class="bg-[#0b1220] border border-white/5 rounded-2xl overflow-hidden">
 
@@ -364,7 +491,7 @@
       <div class="px-5 py-4 border-b border-white/5 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div class="flex items-center gap-3">
           <h2 class="text-xs font-bold text-gray-300 uppercase tracking-wider">
-            <%= title %> &nbsp;<span class="text-gray-600">(<%= totalCount %>)</span>
+            <span id="reportTitle"><%= title %></span> &nbsp;<span class="text-gray-600">(<%= totalCount %>)</span>
           </h2>
           <!-- Color legend -->
           <div class="hidden sm:flex items-center gap-3 text-[9px] text-gray-600">
