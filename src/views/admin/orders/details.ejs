@@ -46,7 +46,7 @@
             <%= isSingleItem ? 'Single Item' : itemCount + ' Items' %>
           </span>
           
-          <% if(order.orderStatus !== 'cancelled' && order.orderStatus !== 'delivered') { %>
+          <% if(order.orderStatus !== 'cancelled' && order.orderStatus !== 'delivered' && order.orderStatus !== 'pending_payment' && order.payment?.status !== 'failed') { %>
             <% if(isSingleItem) { %>
               <!-- Single Item: Show order-level update button -->
               <button onclick="openUpdateModal()" class="px-4 py-1.5 rounded-lg bg-cyan-600 hover:bg-cyan-700 text-white text-xs font-bold transition flex items-center gap-2">
@@ -61,6 +61,12 @@
             <button onclick="openCancelModal()" class="px-4 py-1.5 rounded-lg bg-red-500/20 hover:bg-red-500/30 text-red-400 border border-red-500/20 text-xs font-bold transition flex items-center gap-2">
               <i class="fas fa-ban"></i> Cancel Order
             </button>
+          <% } %>
+          <% if(order.orderStatus === 'pending_payment' || order.payment?.status === 'failed') { %>
+            <span class="px-3 py-1.5 rounded-lg bg-red-500/10 text-red-400 text-xs font-semibold border border-red-500/20">
+              <i class="fas fa-clock mr-1"></i>
+              <%= order.payment?.status === 'failed' ? 'Payment failed — awaiting retry' : 'Awaiting payment' %>
+            </span>
           <% } %>
           
         </div>
@@ -279,7 +285,7 @@
                         'return_requested','return_approved','return_rejected','pickup_scheduled'
                       ].includes(item.itemStatus); %>
                       
-                      <% if (!isTerminal) { %>
+                      <% if (!isTerminal && item.itemStatus !== 'pending_payment') { %>
                         <% if (!isSingleItem) { %>
                           <!-- Multi-item order: Show item-level controls -->
                           <select id="item-status-<%= item._id %>"

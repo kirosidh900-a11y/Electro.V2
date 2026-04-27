@@ -94,6 +94,24 @@ export const placeOrderService = async ({
         throw new AppError("Product not found", HTTP_STATUS.NOT_FOUND);
       }
 
+      // ── Listing validation: product / category / brand ───────────────
+      if (product.isDeleted || product.status !== "listed") {
+        throw new AppError(`${product.name} is no longer available`, HTTP_STATUS.BAD_REQUEST);
+      }
+
+      const [cat, brand] = await Promise.all([
+        (await import("../../models/CategorySchema.model.js")).default.findById(product.category).select("status isDeleted").lean(),
+        (await import("../../models/brandSchema.model.js")).default.findById(product.brand).select("status isDeleted").lean(),
+      ]);
+
+      if (!cat || cat.isDeleted || cat.status !== "listed") {
+        throw new AppError(`${product.name} — category is no longer available`, HTTP_STATUS.BAD_REQUEST);
+      }
+
+      if (!brand || brand.isDeleted || brand.status !== "listed") {
+        throw new AppError(`${product.name} — brand is no longer available`, HTTP_STATUS.BAD_REQUEST);
+      }
+
       const index = product.variants.findIndex(
         (v) => String(v._id) === String(item.variantId),
       );
