@@ -30,15 +30,21 @@
                                                         <% category.attributes.forEach(attr=> { %>
 
                                                                 <span id="attr-<%= category._id %>-<%= attr.key %>"
-                                                                        class="flex items-center gap-1 px-2 py-1 text-xs bg-white/10 rounded-md">
+                                                                        class="flex items-center gap-1 px-2 py-1 text-xs bg-white/10 rounded-md group">
 
-                                                                        <%= attr.label %>
+                                                                        <button class="edit-attr hover:text-cyan-300 transition-colors"
+                                                                                data-category="<%= category._id %>"
+                                                                                data-attr='<%- JSON.stringify(attr) %>'
+                                                                                title="Click to edit">
+                                                                                <%= attr.label %>
+                                                                        </button>
 
-                                                                                <button class="remove-attr text-red-400 hover:text-red-300"
-                                                                                        data-category="<%= category._id %>"
-                                                                                        data-key="<%= attr.key %>">
-                                                                                        <i class="fas fa-times"></i>
-                                                                                </button>
+                                                                        <button class="remove-attr text-red-400 hover:text-red-300 ml-1"
+                                                                                data-category="<%= category._id %>"
+                                                                                data-key="<%= attr.key %>"
+                                                                                title="Delete attribute">
+                                                                                <i class="fas fa-times"></i>
+                                                                        </button>
 
                                                                 </span>
 

@@ -2,6 +2,8 @@ import mongoose from "mongoose";
 import HTTP_STATUS from "../../constant/statusCode.js";
 import Cart from "../../models/cartSchema.models.js";
 import Products from "../../models/productSchema.model.js";
+import Category from "../../models/CategorySchema.model.js";
+import Brand from "../../models/brandSchema.model.js";
 import AppError from "../../utils/partials/AppError.utils.js";
 import Wishlist from "../../models/wishlistSchema.model.js";
 
@@ -399,7 +401,13 @@ export const getWishlistService = async (userId) => {
 };
 
 export const validateCartStockServiceCheck = async (userId) => {
-  const cart = await Cart.findOne({ userId }).populate("items.productId");
+  const cart = await Cart.findOne({ userId }).populate({
+    path: "items.productId",
+    populate: [
+      { path: "category", select: "status isDeleted title" },
+      { path: "brand",    select: "status isDeleted title" },
+    ],
+  });
 
   if (!cart || cart.items.length === 0) {
     return { success: false, message: "Cart is empty" };
@@ -410,16 +418,48 @@ export const validateCartStockServiceCheck = async (userId) => {
   cart.items.forEach((item) => {
     const product = item.productId;
 
+    // ❌ Product deleted or unlisted
+    if (!product || product.isDeleted || product.status !== "listed") {
+      invalidItems.push({
+        itemId: item._id,
+        name: product?.name || "Unknown product",
+        reason: `${product?.name || "A product"} is no longer available`,
+      });
+      return;
+    }
+
+    // ❌ Category unlisted or deleted
+    const cat = product.category;
+    if (!cat || cat.isDeleted || cat.status !== "listed") {
+      invalidItems.push({
+        itemId: item._id,
+        name: product.name,
+        reason: `${product.name} — category is no longer available`,
+      });
+      return;
+    }
+
+    // ❌ Brand unlisted or deleted
+    const brand = product.brand;
+    if (!brand || brand.isDeleted || brand.status !== "listed") {
+      invalidItems.push({
+        itemId: item._id,
+        name: product.name,
+        reason: `${product.name} — brand is no longer available`,
+      });
+      return;
+    }
+
     const variant = product.variants.find(
       (v) => v._id.toString() === item.variantId.toString(),
     );
 
-    // ❌ no variant
-    if (!variant) {
+    // ❌ Variant deleted or not found
+    if (!variant || variant.isDeleted) {
       invalidItems.push({
         itemId: item._id,
         name: product.name,
-        reason: "Variant not found",
+        reason: "Selected variant is no longer available",
       });
       return;
     }
@@ -451,10 +491,7 @@ export const validateCartStockServiceCheck = async (userId) => {
   });
 
   if (invalidItems.length > 0) {
-    return {
-      success: false,
-      items: invalidItems,
-    };
+    return { success: false, items: invalidItems };
   }
 
   return { success: true };

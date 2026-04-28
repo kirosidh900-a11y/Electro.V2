@@ -9,6 +9,7 @@ import {
   toggleCategoryService,
   addCategoryAttributeService,
   deleteAttributeService,
+  updateAttributeService,
   getAttributesService,
 } from "../../services/product/category.service.js";
 
@@ -221,6 +222,29 @@ export const deleteAttribute = async (req, res, next) => {
     await clearCategoryCache(categoryId);
 
     return successResponse(res, "Attribute deleted successfully");
+
+  } catch (error) {
+    next(error);
+  }
+};
+
+
+
+// =====================================================
+// ✅ UPDATE ATTRIBUTE
+// =====================================================
+export const updateAttribute = async (req, res, next) => {
+  try {
+    const categoryId = req.params.id;
+    const originalKey = decodeURIComponent(req.params.key);
+    const updatedAttribute = req.body;
+
+    await updateAttributeService(categoryId, originalKey, updatedAttribute);
+
+    // 🔥 OPTIONAL CACHE CLEAR
+    await clearCategoryCache(categoryId);
+
+    return successResponse(res, "Attribute updated successfully");
 
   } catch (error) {
     next(error);

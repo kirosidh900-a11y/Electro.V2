@@ -114,3 +114,59 @@ export const markCouponUsed = async ({ userId, couponId }) => {
 
   await coupon.save();
 };
+
+// ── Get available coupons for user ───────────────────────────────────────────
+export const getAvailableCouponsService = async ({ userId, cartTotal }) => {
+  const now = new Date();
+
+  // Find all active coupons that are currently valid
+  const coupons = await Coupon.find({
+    isActive: true,
+    startDate: { $lte: now },
+    expiryDate: { $gte: now },
+    $or: [
+      { usageLimit: null },
+      { $expr: { $lt: ["$usedCount", "$usageLimit"] } }
+    ]
+  })
+  .select('code description discountType discountValue maxDiscount minOrderAmount perUserLimit usedBy')
+  .sort({ discountValue: -1 })
+  .limit(10);
+
+  // Filter coupons based on user eligibility
+  const availableCoupons = coupons.filter(coupon => {
+    // Check per-user limit
+    if (coupon.perUserLimit !== null) {
+      const userUsage = coupon.usedBy.find(u => String(u.userId) === String(userId));
+      if (userUsage && userUsage.usedCount >= coupon.perUserLimit) {
+        return false;
+      }
+    }
+    return true;
+  });
+
+  // Format coupons for display
+  return availableCoupons.map(coupon => {
+    let discountText = '';
+    if (coupon.discountType === 'percentage') {
+      discountText = `${coupon.discountValue}% OFF`;
+      if (coupon.maxDiscount) {
+        discountText += ` (Max ₹${coupon.maxDiscount})`;
+      }
+    } else {
+      discountText = `₹${coupon.discountValue} OFF`;
+    }
+
+    const isApplicable = cartTotal >= coupon.minOrderAmount;
+
+    return {
+      code: coupon.code,
+      description: coupon.description || 'Save on your order',
+      discountText,
+      minOrderAmount: coupon.minOrderAmount,
+      isApplicable,
+      discountType: coupon.discountType,
+      discountValue: coupon.discountValue
+    };
+  });
+};

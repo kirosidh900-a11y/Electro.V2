@@ -13,21 +13,21 @@
                         { %>
 
                         <tr id="row-<%= product._id %>" onclick="location.href='/admin/products/<%= product._id %>'"
-                                class="border-b border-white/5 hover:bg-white/5">
+                                class="border-b border-white/5 hover:bg-white/5 <%= product.status === 'unlisted' ? 'bg-red-500/5 border-l-4 border-l-red-500' : '' %>">
 
                                 <td class="px-6 py-4">
                                         <%= (currentPage-1)*6 + index +1 %>
                                 </td>
 
-                                <td id="title-<%= product._id %>" class="px-6 py-4 font-semibold text-white">
+                                <td id="title-<%= product._id %>" class="px-6 py-4 font-semibold <%= product.status === 'unlisted' ? 'text-red-400' : 'text-white' %>">
                                         <%= product.name %>
                                 </td>
 
-                                <td id="category-<%= product._id %>" class="px-6 py-4">
+                                <td id="category-<%= product._id %>" class="px-6 py-4 <%= product.status === 'unlisted' ? 'text-red-300' : '' %>">
                                         <%= product.category?.title || "-" %>
                                 </td>
 
-                                <td id="brand-<%= product._id %>" class="px-6 py-4">
+                                <td id="brand-<%= product._id %>" class="px-6 py-4 <%= product.status === 'unlisted' ? 'text-red-300' : '' %>">
                                         <%= product.brand?.title || "-" %>
                                 </td>
 

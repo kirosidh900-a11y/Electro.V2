@@ -170,6 +170,48 @@ export const deleteAttributeService = async (categoryId, key) => {
   }
 };
 
+//    Update Attribute
+export const updateAttributeService = async (categoryId, originalKey, updatedAttribute) => {
+  const category = await Category.findById(categoryId);
+
+  if (!category) {
+    throw new AppError("Category not found", HTTP_STATUS.NOT_FOUND);
+  }
+
+  const attrIndex = category.attributes.findIndex(attr => attr.key === originalKey);
+
+  if (attrIndex === -1) {
+    throw new AppError("Attribute not found", HTTP_STATUS.NOT_FOUND);
+  }
+
+  const newKey = updatedAttribute.key.trim().toLowerCase();
+  const newLabel = updatedAttribute.label.trim().toLowerCase();
+
+  // Check if new key/label conflicts with other attributes (excluding current one)
+  const exists = category.attributes.some(
+    (attr, index) =>
+      index !== attrIndex &&
+      (attr.key.toLowerCase() === newKey || attr.label.toLowerCase() === newLabel)
+  );
+
+  if (exists) {
+    throw new AppError(
+      "Attribute key or label already exists",
+      HTTP_STATUS.CONFLICT
+    );
+  }
+
+  // Update the attribute
+  category.attributes[attrIndex] = {
+    ...category.attributes[attrIndex],
+    ...updatedAttribute,
+    key: newKey,
+    label: updatedAttribute.label.trim()
+  };
+
+  await category.save();
+};
+
 //    Get Attributes
 export const getAttributesService = async (id) => {
   const category = await Category.findById(id);

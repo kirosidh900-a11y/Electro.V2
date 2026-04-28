@@ -2,13 +2,11 @@
  * Central Refund Service
  *
  * Refund rules:
- * - Refund amount = item.pricing.total (what user actually paid for this item)
- * - If coupon was applied, coupon discount is proportionally excluded
- *   (user only gets back what they actually paid after coupon)
- * - Razorpay orders → wallet credit (source: "refund")
- * - Wallet orders   → wallet credit (source: "refund")
- * - COD orders      → wallet credit only after delivery + return
- * - All transactions stored in WalletTransaction
+ * - item.pricing.total = finalPrice × qty (offer discount already excluded)
+ * - Coupon discount is deducted proportionally across all items
+ * - Delivery charge is refunded proportionally; fully refunded on last item cancel
+ * - Razorpay / Wallet orders → wallet credit (source: "refund")
+ * - COD orders → wallet credit only after delivery + return
  */
 
 import Order     from "../../models/orderSchema.model.js";
@@ -18,24 +16,27 @@ import AppError  from "../../utils/partials/AppError.utils.js";
 import HTTP_STATUS from "../../constant/statusCode.js";
 
 /**
- * Calculate the refund amount for a single item, accounting for coupon.
+ * Calculate the refund amount for a single item.
  *
  * Formula:
- *   paidBase     = sum of ALL order items' pricing.total (original totals, status-agnostic)
- *   itemShare    = item.pricing.total / paidBase
- *   couponShare  = order.pricing.couponDiscount * itemShare
- *   refundAmount = item.pricing.total - couponShare
+ *   paidBase      = sum of ALL order items' pricing.total (status-agnostic, original totals)
+ *   itemShare     = item.pricing.total / paidBase
+ *   couponShare   = order.pricing.couponDiscount  * itemShare   (deduct — user didn't pay this)
+ *   deliveryShare = order.pricing.deliveryCharge  * itemShare   (add back — user paid this)
+ *   refundAmount  = item.pricing.total - couponShare + deliveryShare
  *
- * We query ALL items regardless of status so that already-cancelled items
- * don't shrink the base and inflate the refund.
+ * Using ALL items (regardless of status) keeps the base fixed so that
+ * already-cancelled items don't inflate the share of remaining items.
  */
 export const calculateItemRefund = async (item, order) => {
-  const itemTotal      = item.pricing?.total ?? 0;
+  const itemTotal      = item.pricing?.total        ?? 0;
   const couponDiscount = order.pricing?.couponDiscount ?? 0;
+  const deliveryCharge = order.pricing?.deliveryCharge ?? 0;
 
-  if (couponDiscount <= 0) return itemTotal;
+  // Fast path — no order-level adjustments
+  if (couponDiscount <= 0 && deliveryCharge <= 0) return itemTotal;
 
-  // Use ALL items (no status filter) so the base is always the original order total
+  // Use ALL items so the base never shrinks as items get cancelled
   const allItems = await OrderItem.find({ orderId: order._id })
     .select("pricing.total")
     .lean();
@@ -44,10 +45,15 @@ export const calculateItemRefund = async (item, order) => {
 
   if (paidBase <= 0) return itemTotal;
 
-  const itemShare   = itemTotal / paidBase;
+  const itemShare = itemTotal / paidBase;
+
+  // Coupon share — user didn't pay this portion, so deduct it from refund
   const couponShare = Math.round(couponDiscount * itemShare);
 
-  return Math.max(0, itemTotal - couponShare);
+  // Delivery share — user paid this, so add it back to refund
+  const deliveryShare = Math.round(deliveryCharge * itemShare);
+
+  return Math.max(0, itemTotal - couponShare + deliveryShare);
 };
 
 /**

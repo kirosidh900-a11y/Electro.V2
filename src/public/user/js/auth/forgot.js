@@ -146,12 +146,30 @@ document.addEventListener("DOMContentLoaded", () => {
   form1?.addEventListener("submit", async (e) => {
     e.preventDefault();
 
-    const email = document.getElementById("email").value.trim();
+    const emailEl = document.getElementById("email");
+    const email = emailEl.value.trim();
+
+    // Inline error for empty email
+    let emailErr = document.getElementById("emailInlineError");
+    if (!emailErr) {
+      emailErr = document.createElement("span");
+      emailErr.id = "emailInlineError";
+      emailErr.className = "text-red-400 text-xs mt-1 block";
+      emailEl.parentNode.appendChild(emailErr);
+    }
 
     if (!email) {
-      showToast("Please enter your email.", "warning");
+      emailErr.textContent = "Email is required";
+      emailEl.focus();
       return;
     }
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      emailErr.textContent = "Enter a valid email address";
+      emailEl.focus();
+      return;
+    }
+    emailErr.textContent = "";
 
     const btn = document.getElementById("btn-step-1");
     const restore = loadBtn(btn, "Sending OTP...");
@@ -197,11 +215,24 @@ document.addEventListener("DOMContentLoaded", () => {
   form2?.addEventListener("submit", async (e) => {
     e.preventDefault();
 
-    const otp = document.getElementById("otp").value.trim();
+    const otpEl = document.getElementById("otp");
+    const otp = otpEl.value.trim();
+
+    // Inline error for empty OTP
+    let otpErr = document.getElementById("otpInlineError");
+    if (!otpErr) {
+      otpErr = document.createElement("span");
+      otpErr.id = "otpInlineError";
+      otpErr.className = "text-red-400 text-xs mt-1 block";
+      otpEl.parentNode.appendChild(otpErr);
+    }
+
     if (!otp) {
-      showToast("Enter the OTP sent to your email.", "warning");
+      otpErr.textContent = "Please enter the OTP sent to your email";
+      otpEl.focus();
       return;
     }
+    otpErr.textContent = "";
 
     if (!storedEmail) {
       showToast("Session expired, Please restart the process.", "error");
@@ -269,12 +300,9 @@ document.addEventListener("DOMContentLoaded", () => {
       return;
     }
 
-    // Client-side validation
+    // Client-side validation — inline errors shown by isValidPassword / isConfirmPasswordValid
     const valid = isValidPassword() && isConfirmPasswordValid();
-    if (!valid) {
-      showToast("Please Fix Errors.", "error");
-      return;
-    }
+    if (!valid) return;
 
     const btn = document.getElementById("btn-step-3");
     const restore = loadBtn(btn, "Updating...");

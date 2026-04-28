@@ -293,11 +293,26 @@ export const cancelOrderService = async (orderId, { reason, comments, refundMeth
     ]},
   });
 
+  // Razorpay orders that were never paid had stock reserved, not decremented
+  const isUnpaidRazorpay = payMethod === "razorpay" && payStatus !== "paid";
+
   for (const item of items) {
-    await Products.updateOne(
-      { _id: item.productId, variants: { $elemMatch: { _id: item.variantId } } },
-      { $inc: { "variants.$.stock": item.quantity } },
-    );
+    if (isUnpaidRazorpay) {
+      // Release reserved quantity back
+      await Products.updateOne(
+        {
+          _id: item.productId,
+          variants: { $elemMatch: { _id: item.variantId, reserved: { $gte: item.quantity } } },
+        },
+        { $inc: { "variants.$.reserved": -item.quantity } },
+      );
+    } else {
+      // Restore stock (COD / wallet / paid Razorpay)
+      await Products.updateOne(
+        { _id: item.productId, variants: { $elemMatch: { _id: item.variantId } } },
+        { $inc: { "variants.$.stock": item.quantity } },
+      );
+    }
     await emitStockUpdate(item.productId, item.variantId);
     item.itemStatus = "cancelled";
     item.cancel     = { reason, comments, cancelledAt: new Date(), requestedAt: new Date() };
@@ -566,10 +581,24 @@ export const updateItemStatusService = async (itemId, newStatus, reason = null, 
 
   // Restore stock when cancelling (only if not already cancelled)
   if (newStatus === "cancelled" && prevStatus !== "cancelled") {
-    await Products.updateOne(
-      { _id: item.productId, variants: { $elemMatch: { _id: item.variantId } } },
-      { $inc: { "variants.$.stock": item.quantity } },
-    );
+    const order = await Order.findById(item.orderId).select("payment").lean();
+    const isUnpaidRazorpay =
+      order?.payment?.method === "razorpay" && order?.payment?.status !== "paid";
+
+    if (isUnpaidRazorpay) {
+      await Products.updateOne(
+        {
+          _id: item.productId,
+          variants: { $elemMatch: { _id: item.variantId, reserved: { $gte: item.quantity } } },
+        },
+        { $inc: { "variants.$.reserved": -item.quantity } },
+      );
+    } else {
+      await Products.updateOne(
+        { _id: item.productId, variants: { $elemMatch: { _id: item.variantId } } },
+        { $inc: { "variants.$.stock": item.quantity } },
+      );
+    }
     await emitStockUpdate(item.productId, item.variantId);
   }
 

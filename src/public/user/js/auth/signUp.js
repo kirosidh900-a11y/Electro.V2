@@ -62,7 +62,7 @@ signUpForm.addEventListener("submit", async (e) => {
     isValidReferral();
 
   if (!valid) {
-    showToast("Please fix the errors in the form before submitting.", "error");
+    // Inline errors are already shown per-field above
     return;
   }
 
@@ -216,7 +216,7 @@ resendBtn.addEventListener("click", async (e) => {
     const data = await response.json();
 
     if (response.ok) {
-      showToast(data.message);
+      showToast(data.message, "success");
 
       startOtpTimer();
     } else {

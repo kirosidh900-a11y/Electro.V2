@@ -3,8 +3,6 @@
 
 <head>
         <%- include('../../partials/head') %>
-                <link rel="stylesheet" href="https://unpkg.com/cropperjs@1.6.2/dist/cropper.min.css">
-                <script src="https://unpkg.com/cropperjs@1.6.2/dist/cropper.min.js"></script>
 </head>
 
 <body class="min-h-screen flex">
@@ -98,6 +96,7 @@
 
                                                 <input type="text" name="title" id="brand-title"
                                                         class="w-full mt-1 bg-[#0f172a] border border-white/10 px-3 py-2 rounded-lg text-sm">
+                                                <span id="brandTitleError" class="text-red-400 text-xs mt-1 hidden block"></span>
                                         </div>
 
                                         <!-- Brand Logo -->
@@ -107,6 +106,7 @@
                                                 <input type="file" name="logo" id="brand-logo"
                                                         accept="image/png,image/jpeg,image/webp,image/svg+xml"
                                                         class="w-full mt-1 bg-[#0f172a] border border-white/10 px-3 py-2 rounded-lg text-sm">
+                                                <span id="brandLogoError" class="text-red-400 text-xs mt-1 hidden block"></span>
                                                 <!-- Preview -->
                                                 <img id="brand-logo-preview"
                                                         class="mt-3 w-20 h-20 object-contain rounded-2xl bg-white hidden">
@@ -151,24 +151,36 @@
                 </div>
 
                 <!-- Image Crop Modal -->
-                <div id="cropModal" class="fixed inset-0 bg-black/70 hidden z-50 flex items-center justify-center">
+                <div id="cropModal" class="fixed inset-0 bg-black/80 hidden z-50 flex items-center justify-center p-4">
 
-                        <div class="bg-[#0b1220] p-6 rounded-xl w-[600px]">
+                        <div class="bg-[#0b1220] p-6 rounded-xl w-full max-w-[800px] border border-white/10">
 
-                                <h2 class="text-white mb-4">Crop Logo</h2>
+                                <h2 class="text-white text-xl font-semibold mb-4">Crop Logo</h2>
 
-                                <div class="max-h-[400px]">
-                                        <img id="cropImage" class="max-w-full">
+                                <div class="relative bg-[#1a1a2e] rounded-lg overflow-hidden flex items-center justify-center" style="height: 500px;">
+                                        <canvas id="cropCanvas" class="cursor-move"></canvas>
                                 </div>
 
-                                <div class="flex justify-end gap-3 mt-4">
-                                        <button onclick="closeCrop()" class="px-4 py-2 bg-gray-600 rounded">
-                                                Cancel
-                                        </button>
-
-                                        <button onclick="cropImage()" class="px-4 py-2 bg-cyan-600 rounded">
-                                                Crop
-                                        </button>
+                                <div class="flex flex-col sm:flex-row justify-between items-center gap-4 mt-6">
+                                        <div class="flex gap-2 flex-wrap">
+                                                <button onclick="zoomIn()" class="px-3 py-2 bg-gray-700 hover:bg-gray-600 text-white rounded-lg text-sm transition-colors">
+                                                        <i class="fas fa-search-plus"></i> Zoom In
+                                                </button>
+                                                <button onclick="zoomOut()" class="px-3 py-2 bg-gray-700 hover:bg-gray-600 text-white rounded-lg text-sm transition-colors">
+                                                        <i class="fas fa-search-minus"></i> Zoom Out
+                                                </button>
+                                                <button onclick="resetCrop()" class="px-3 py-2 bg-gray-700 hover:bg-gray-600 text-white rounded-lg text-sm transition-colors">
+                                                        <i class="fas fa-redo"></i> Reset
+                                                </button>
+                                        </div>
+                                        <div class="flex gap-3">
+                                                <button onclick="closeCrop()" class="px-5 py-2 bg-gray-600 hover:bg-gray-700 text-white rounded-lg transition-colors">
+                                                        Cancel
+                                                </button>
+                                                <button onclick="cropImage()" class="px-5 py-2 bg-cyan-600 hover:bg-cyan-700 text-white rounded-lg transition-colors">
+                                                        Crop & Save
+                                                </button>
+                                        </div>
                                 </div>
 
                         </div>
@@ -180,12 +192,22 @@
                         import { showToast } from "../../partials/errorMsg.utils.js";
                         import { confirmAction } from "../../partials/confirm.util.js";
 
-                        let cropper;
                         let croppedBlob;
+                        let cropState = {
+                                image: null,
+                                scale: 1,
+                                offsetX: 0,
+                                offsetY: 0,
+                                isDragging: false,
+                                startX: 0,
+                                startY: 0,
+                                cropSize: 300
+                        };
 
                         const logoInput = document.getElementById("brand-logo");
                         const cropModal = document.getElementById("cropModal");
-                        const cropImageElement = document.getElementById("cropImage");
+                        const canvas = document.getElementById("cropCanvas");
+                        const ctx = canvas.getContext("2d");
                         const preview = document.getElementById("brand-logo-preview");
                         const brandForm = document.getElementById("brandForm");
 
@@ -214,6 +236,12 @@
                                 preview.src = "";
                                 preview.classList.add("hidden");
 
+                                // Clear inline errors
+                                document.getElementById("brandTitleError").textContent = "";
+                                document.getElementById("brandTitleError").classList.add("hidden");
+                                document.getElementById("brandLogoError").textContent = "";
+                                document.getElementById("brandLogoError").classList.add("hidden");
+
                                 document.getElementById("brandModal").classList.remove("hidden");
 
                         }
@@ -222,6 +250,12 @@
 
 
                         function closeModal() {
+                                // Clear inline errors
+                                document.getElementById("brandTitleError").textContent = "";
+                                document.getElementById("brandTitleError").classList.add("hidden");
+                                document.getElementById("brandLogoError").textContent = "";
+                                document.getElementById("brandLogoError").classList.add("hidden");
+                                
                                 document.getElementById("brandModal").classList.add("hidden");
                         }
                         window.closeModal = closeModal;
@@ -244,6 +278,12 @@
                                         preview.classList.remove("hidden");
                                 }
 
+                                // Clear inline errors
+                                document.getElementById("brandTitleError").textContent = "";
+                                document.getElementById("brandTitleError").classList.add("hidden");
+                                document.getElementById("brandLogoError").textContent = "";
+                                document.getElementById("brandLogoError").classList.add("hidden");
+
                                 document.getElementById("brandModal").classList.remove("hidden");
 
                         }
@@ -262,23 +302,35 @@
 
                                 reader.onload = function (e) {
 
-                                        cropImageElement.src = e.target.result;
-
-                                        cropModal.classList.remove("hidden");
-
-                                        setTimeout(() => {
-
-                                                if (cropper) cropper.destroy();
-
-                                                cropper = new Cropper(cropImageElement, {
-                                                        aspectRatio: 1,
-                                                        viewMode: 1,
-                                                        autoCropArea: 1,
-                                                        responsive: true,
-                                                        background: false,
-                                                });
-
-                                        }, 100);
+                                        const img = new Image();
+                                        img.onload = function () {
+                                                cropState.image = img;
+                                                
+                                                // Show modal first
+                                                cropModal.classList.remove("hidden");
+                                                
+                                                // Wait for modal to render, then set canvas size
+                                                setTimeout(() => {
+                                                        const container = canvas.parentElement;
+                                                        canvas.width = container.clientWidth;
+                                                        canvas.height = container.clientHeight;
+                                                        
+                                                        // Calculate initial scale to fit image
+                                                        const scaleX = canvas.width / img.width;
+                                                        const scaleY = canvas.height / img.height;
+                                                        cropState.scale = Math.min(scaleX, scaleY) * 0.7;
+                                                        
+                                                        // Center the image
+                                                        cropState.offsetX = 0;
+                                                        cropState.offsetY = 0;
+                                                        
+                                                        // Set crop size (smaller of canvas dimensions)
+                                                        cropState.cropSize = Math.min(canvas.width, canvas.height) * 0.6;
+                                                        
+                                                        drawCanvas();
+                                                }, 100);
+                                        };
+                                        img.src = e.target.result;
 
                                 };
 
@@ -286,22 +338,221 @@
 
                         });
 
+                        // Canvas drawing function
+                        function drawCanvas() {
+                                if (!cropState.image || !canvas.width) return;
+
+                                // Clear canvas
+                                ctx.fillStyle = '#1a1a2e';
+                                ctx.fillRect(0, 0, canvas.width, canvas.height);
+                                
+                                // Calculate image position
+                                const imgWidth = cropState.image.width * cropState.scale;
+                                const imgHeight = cropState.image.height * cropState.scale;
+                                const x = (canvas.width - imgWidth) / 2 + cropState.offsetX;
+                                const y = (canvas.height - imgHeight) / 2 + cropState.offsetY;
+                                
+                                // Draw image
+                                ctx.drawImage(cropState.image, x, y, imgWidth, imgHeight);
+                                
+                                // Draw dark overlay
+                                ctx.fillStyle = 'rgba(0, 0, 0, 0.6)';
+                                ctx.fillRect(0, 0, canvas.width, canvas.height);
+                                
+                                // Calculate crop area
+                                const cropX = (canvas.width - cropState.cropSize) / 2;
+                                const cropY = (canvas.height - cropState.cropSize) / 2;
+                                
+                                // Clear and redraw image in crop area
+                                ctx.save();
+                                ctx.beginPath();
+                                ctx.rect(cropX, cropY, cropState.cropSize, cropState.cropSize);
+                                ctx.clip();
+                                
+                                // Clear the crop area
+                                ctx.clearRect(cropX, cropY, cropState.cropSize, cropState.cropSize);
+                                
+                                // Redraw image in crop area
+                                ctx.drawImage(cropState.image, x, y, imgWidth, imgHeight);
+                                ctx.restore();
+                                
+                                // Draw crop border and grid
+                                ctx.strokeStyle = '#00bcd4';
+                                ctx.lineWidth = 3;
+                                ctx.strokeRect(cropX, cropY, cropState.cropSize, cropState.cropSize);
+                                
+                                // Draw grid lines (rule of thirds)
+                                ctx.strokeStyle = 'rgba(0, 188, 212, 0.3)';
+                                ctx.lineWidth = 1;
+                                ctx.setLineDash([5, 5]);
+                                
+                                // Vertical lines
+                                ctx.beginPath();
+                                ctx.moveTo(cropX + cropState.cropSize / 3, cropY);
+                                ctx.lineTo(cropX + cropState.cropSize / 3, cropY + cropState.cropSize);
+                                ctx.moveTo(cropX + (cropState.cropSize * 2) / 3, cropY);
+                                ctx.lineTo(cropX + (cropState.cropSize * 2) / 3, cropY + cropState.cropSize);
+                                ctx.stroke();
+                                
+                                // Horizontal lines
+                                ctx.beginPath();
+                                ctx.moveTo(cropX, cropY + cropState.cropSize / 3);
+                                ctx.lineTo(cropX + cropState.cropSize, cropY + cropState.cropSize / 3);
+                                ctx.moveTo(cropX, cropY + (cropState.cropSize * 2) / 3);
+                                ctx.lineTo(cropX + cropState.cropSize, cropY + (cropState.cropSize * 2) / 3);
+                                ctx.stroke();
+                                
+                                ctx.setLineDash([]);
+                                
+                                // Draw corner handles
+                                const handleSize = 12;
+                                ctx.fillStyle = '#00bcd4';
+                                
+                                // Top-left
+                                ctx.fillRect(cropX - handleSize/2, cropY - handleSize/2, handleSize, handleSize);
+                                // Top-right
+                                ctx.fillRect(cropX + cropState.cropSize - handleSize/2, cropY - handleSize/2, handleSize, handleSize);
+                                // Bottom-left
+                                ctx.fillRect(cropX - handleSize/2, cropY + cropState.cropSize - handleSize/2, handleSize, handleSize);
+                                // Bottom-right
+                                ctx.fillRect(cropX + cropState.cropSize - handleSize/2, cropY + cropState.cropSize - handleSize/2, handleSize, handleSize);
+                        }
+
+                        // Mouse events for dragging
+                        canvas.addEventListener('mousedown', (e) => {
+                                cropState.isDragging = true;
+                                const rect = canvas.getBoundingClientRect();
+                                cropState.startX = e.clientX - rect.left;
+                                cropState.startY = e.clientY - rect.top;
+                        });
+
+                        canvas.addEventListener('mousemove', (e) => {
+                                if (!cropState.isDragging) return;
+                                
+                                const rect = canvas.getBoundingClientRect();
+                                const currentX = e.clientX - rect.left;
+                                const currentY = e.clientY - rect.top;
+                                
+                                const dx = currentX - cropState.startX;
+                                const dy = currentY - cropState.startY;
+                                
+                                cropState.offsetX += dx;
+                                cropState.offsetY += dy;
+                                
+                                cropState.startX = currentX;
+                                cropState.startY = currentY;
+                                
+                                drawCanvas();
+                        });
+
+                        canvas.addEventListener('mouseup', () => {
+                                cropState.isDragging = false;
+                        });
+
+                        canvas.addEventListener('mouseleave', () => {
+                                cropState.isDragging = false;
+                        });
+
+                        // Touch events for mobile
+                        canvas.addEventListener('touchstart', (e) => {
+                                e.preventDefault();
+                                cropState.isDragging = true;
+                                const rect = canvas.getBoundingClientRect();
+                                const touch = e.touches[0];
+                                cropState.startX = touch.clientX - rect.left;
+                                cropState.startY = touch.clientY - rect.top;
+                        });
+
+                        canvas.addEventListener('touchmove', (e) => {
+                                e.preventDefault();
+                                if (!cropState.isDragging) return;
+                                
+                                const rect = canvas.getBoundingClientRect();
+                                const touch = e.touches[0];
+                                const currentX = touch.clientX - rect.left;
+                                const currentY = touch.clientY - rect.top;
+                                
+                                const dx = currentX - cropState.startX;
+                                const dy = currentY - cropState.startY;
+                                
+                                cropState.offsetX += dx;
+                                cropState.offsetY += dy;
+                                
+                                cropState.startX = currentX;
+                                cropState.startY = currentY;
+                                
+                                drawCanvas();
+                        });
+
+                        canvas.addEventListener('touchend', () => {
+                                cropState.isDragging = false;
+                        });
+
+                        // Zoom functions
+                        function zoomIn() {
+                                cropState.scale *= 1.2;
+                                drawCanvas();
+                        }
+                        window.zoomIn = zoomIn;
+
+                        function zoomOut() {
+                                cropState.scale *= 0.8;
+                                drawCanvas();
+                        }
+                        window.zoomOut = zoomOut;
+
+                        function resetCrop() {
+                                if (!cropState.image) return;
+                                const scaleX = canvas.width / cropState.image.width;
+                                const scaleY = canvas.height / cropState.image.height;
+                                cropState.scale = Math.min(scaleX, scaleY) * 0.7;
+                                cropState.offsetX = 0;
+                                cropState.offsetY = 0;
+                                drawCanvas();
+                        }
+                        window.resetCrop = resetCrop;
+
 
                         function cropImage() {
 
-                                if (!cropper) return;
+                                if (!cropState.image) return;
 
-                                const canvas = cropper.getCroppedCanvas({
-                                        viewMode: 1,
-                                        responsive: true,
-                                        autoCropArea: NaN,
+                                // Create a temporary canvas for the cropped image
+                                const tempCanvas = document.createElement('canvas');
+                                const outputSize = 400; // Output size for the cropped image
+                                tempCanvas.width = outputSize;
+                                tempCanvas.height = outputSize;
+                                const tempCtx = tempCanvas.getContext('2d');
+                                
+                                // Calculate source coordinates
+                                const imgWidth = cropState.image.width * cropState.scale;
+                                const imgHeight = cropState.image.height * cropState.scale;
+                                const x = (canvas.width - imgWidth) / 2 + cropState.offsetX;
+                                const y = (canvas.height - imgHeight) / 2 + cropState.offsetY;
+                                
+                                const cropX = (canvas.width - cropState.cropSize) / 2;
+                                const cropY = (canvas.height - cropState.cropSize) / 2;
+                                
+                                // Calculate the portion of the original image to crop
+                                const sourceX = (cropX - x) / cropState.scale;
+                                const sourceY = (cropY - y) / cropState.scale;
+                                const sourceWidth = cropState.cropSize / cropState.scale;
+                                const sourceHeight = cropState.cropSize / cropState.scale;
+                                
+                                // Draw the cropped portion
+                                tempCtx.drawImage(
+                                        cropState.image,
+                                        sourceX,
+                                        sourceY,
+                                        sourceWidth,
+                                        sourceHeight,
+                                        0,
+                                        0,
+                                        outputSize,
+                                        outputSize
+                                );
 
-                                        // ✅ Full control to user
-                                        movable: true,
-                                        zoomable: true,
-                                });
-
-                                canvas.toBlob((blob) => {
+                                tempCanvas.toBlob((blob) => {
 
                                         croppedBlob = blob;
 
@@ -320,11 +571,10 @@
                         function closeCrop() {
 
                                 cropModal.classList.add("hidden");
-
-                                if (cropper) {
-                                        cropper.destroy();
-                                        cropper = null;
-                                }
+                                cropState.image = null;
+                                cropState.scale = 1;
+                                cropState.offsetX = 0;
+                                cropState.offsetY = 0;
 
                         }
                         window.closeCrop = closeCrop;
@@ -340,9 +590,6 @@
                                 const submitBtn = document.getElementById("brand-submit-btn");
                                 if (submitBtn.disabled) return;
 
-                                submitBtn.disabled = true;
-                                submitBtn.textContent = "Processing...";
-
                                 const brandId = document.getElementById("brand-id").value;
                                 const title = document.getElementById("brand-title").value.trim();
                                 const status = document.getElementById("brand-status").value;
@@ -351,16 +598,41 @@
 
                                 const titlePattern = /^[A-Za-z]+(?: [A-Za-z]+)*$/;
 
+                                // Get error elements
+                                const titleError = document.getElementById("brandTitleError");
+                                const logoError = document.getElementById("brandLogoError");
+
+                                // Clear previous errors
+                                titleError.textContent = "";
+                                titleError.classList.add("hidden");
+                                logoError.textContent = "";
+                                logoError.classList.add("hidden");
+
+                                // Validate
+                                let hasError = false;
+
+                                if (!title) {
+                                        titleError.textContent = "Brand name is required";
+                                        titleError.classList.remove("hidden");
+                                        hasError = true;
+                                } else if (!titlePattern.test(title)) {
+                                        titleError.textContent = "Brand name must contain letters only";
+                                        titleError.classList.remove("hidden");
+                                        hasError = true;
+                                }
+
+                                if (!brandId && !logoFile) {
+                                        logoError.textContent = "Brand logo is required";
+                                        logoError.classList.remove("hidden");
+                                        hasError = true;
+                                }
+
+                                if (hasError) return;
+
+                                submitBtn.disabled = true;
+                                submitBtn.textContent = "Processing...";
+
                                 try {
-
-                                        if (!title) throw new Error("Brand name required");
-
-                                        if (!titlePattern.test(title))
-                                                throw new Error("Brand name must contain letters only");
-
-                                        if (!brandId && !logoFile)
-                                                throw new Error("Brand logo required");
-
 
                                         const formData = new FormData();
 
@@ -384,7 +656,10 @@
 
                                         const data = await res.json();
 
-                                        if (!data.success) throw new Error(data.message);
+                                        if (!data.success) {
+                                                showToast(data.message, "error");
+                                                return;
+                                        }
 
 
                                         showToast(
@@ -499,30 +774,36 @@
                                                 method: "PATCH"
                                         });
 
-                                        const data = await res.json();
+                                        const result = await res.json();
 
-                                        if (!data.success) throw new Error(data.message);
+                                        if (!result.success) throw new Error(result.message);
 
                                         const badge = document.getElementById(`badge-${brand_id}`);
                                         const btn = document.getElementById(`status-${brand_id}`);
 
-                                        const newStatus = data.status;
+                                        // Get the new status from the response
+                                        const newStatus = result.data.status;
 
-                                        badge.textContent = newStatus;
+                                        // Update badge text with proper capitalization
+                                        badge.textContent = newStatus.charAt(0).toUpperCase() + newStatus.slice(1);
 
+                                        // Update badge styling
                                         badge.className =
                                                 newStatus === "listed"
                                                         ? "px-3 py-1 rounded-full text-xs bg-emerald-500/20 text-emerald-400"
                                                         : "px-3 py-1 rounded-full text-xs bg-red-500/20 text-red-400";
 
+                                        // Update button text
                                         btn.textContent = newStatus === "listed" ? "Unlist" : "List";
 
+                                        // Update button styling
                                         btn.className =
                                                 `px-3 py-1 text-xs rounded-md font-semibold ${newStatus === "listed"
                                                         ? "bg-yellow-500/20 text-yellow-400 hover:bg-yellow-500/30"
                                                         : "bg-emerald-500/20 text-emerald-400 hover:bg-emerald-500/30"
                                                 }`;
 
+                                        // Update onclick handler with new status
                                         btn.setAttribute(
                                                 "onclick",
                                                 `toggleBrandStatus('${brand_id}','${newStatus}')`
