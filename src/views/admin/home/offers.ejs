@@ -287,6 +287,7 @@
                                                 <label class="text-sm text-gray-400">Offer Name</label>
                                                 <input type="text" id="offer-name"
                                                         class="w-full mt-1 bg-[#0f172a] border border-white/10 px-3 py-2 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-cyan-500">
+                                                <span id="offerNameError" class="text-red-400 text-xs mt-1 hidden block"></span>
                                         </div>
 
                                         <!-- Discount Type -->
@@ -298,21 +299,24 @@
                                                         <option value="percentage">Percentage</option>
                                                         <option value="fixed">Fixed</option>
                                                 </select>
+                                                <span id="offerDiscountTypeError" class="text-red-400 text-xs mt-1 hidden block"></span>
                                         </div>
 
                                         <!-- Discount Value (only for fixed type) -->
                                         <div>
                                                 <label class="text-sm text-gray-400">Discount Value</label>
-                                                <input step="none" min="0" type="number" id="offer-discount"
+                                                <input type="number" id="offer-discount"
                                                         class="w-full mt-1 bg-[#0f172a] border border-white/10 px-3 py-2 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-cyan-500">
+                                                <span id="offerDiscountError" class="text-red-400 text-xs mt-1 hidden block"></span>
                                         </div>
 
                                         <!-- Max Discount Value (only for percentage type) -->
                                         <div id="max-discount-container" class="hidden">
                                                 <label class="text-sm text-gray-400">Max Discount Value</label>
-                                                <input min="0" type="number" id="offer-max-discount"
+                                                <input type="number" id="offer-max-discount"
                                                         placeholder="Only for percentage offers"
                                                         class="w-full mt-1 bg-[#0f172a] border border-white/10 px-3 py-2 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-cyan-500">
+                                                <span id="offerMaxDiscountError" class="text-red-400 text-xs mt-1 hidden block"></span>
                                         </div>
 
                                         <!-- Applies To -->
@@ -326,6 +330,7 @@
                                                         <option value="brand">Brand</option>
                                                         <option value="all">All</option>
                                                 </select>
+                                                <span id="offerAppliesToError" class="text-red-400 text-xs mt-1 hidden block"></span>
                                         </div>
 
                                         <!-- Target -->
@@ -334,6 +339,7 @@
                                                 <select id="offer-target" multiple placeholder="Select targets..."
                                                         class="w-full mt-1 bg-[#0f172a] border border-white/10 px-3 py-2 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-cyan-500">
                                                 </select>
+                                                <span id="offerTargetError" class="text-red-400 text-xs mt-1 hidden block"></span>
                                         </div>
 
                                         <!-- Dates -->
@@ -342,12 +348,14 @@
                                                         <label class="text-sm text-gray-400">Start Date</label>
                                                         <input type="date" id="offer-start"
                                                                 class="w-full mt-1 bg-[#0f172a] border border-white/10 px-3 py-2 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-cyan-500">
+                                                        <span id="offerStartError" class="text-red-400 text-xs mt-1 hidden block"></span>
                                                 </div>
 
                                                 <div class="flex-1">
                                                         <label class="text-sm text-gray-400">End Date</label>
                                                         <input type="date" id="offer-end"
                                                                 class="w-full mt-1 bg-[#0f172a] border border-white/10 px-3 py-2 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-cyan-500">
+                                                        <span id="offerEndError" class="text-red-400 text-xs mt-1 hidden block"></span>
                                                 </div>
                                         </div>
 
@@ -526,13 +534,39 @@
                                                 document.getElementById("offer-submit-btn").textContent = "Create Offer";
                                                 document.getElementById("offerModalTitle").textContent = "Add Offer";
 
+                                                // Clear all inline errors
+                                                clearOfferErrors();
+
                                                 document.getElementById("offerModal").classList.remove("hidden");
                                         }
 
                                         // ================= CLOSE MODAL =================
 
                                         function closeOfferModal() {
+                                                // Clear all inline errors
+                                                clearOfferErrors();
                                                 document.getElementById("offerModal").classList.add("hidden");
+                                        }
+
+                                        // ================= CLEAR ERRORS =================
+
+                                        function clearOfferErrors() {
+                                                document.getElementById("offerNameError").textContent = "";
+                                                document.getElementById("offerNameError").classList.add("hidden");
+                                                document.getElementById("offerDiscountTypeError").textContent = "";
+                                                document.getElementById("offerDiscountTypeError").classList.add("hidden");
+                                                document.getElementById("offerDiscountError").textContent = "";
+                                                document.getElementById("offerDiscountError").classList.add("hidden");
+                                                document.getElementById("offerMaxDiscountError").textContent = "";
+                                                document.getElementById("offerMaxDiscountError").classList.add("hidden");
+                                                document.getElementById("offerAppliesToError").textContent = "";
+                                                document.getElementById("offerAppliesToError").classList.add("hidden");
+                                                document.getElementById("offerTargetError").textContent = "";
+                                                document.getElementById("offerTargetError").classList.add("hidden");
+                                                document.getElementById("offerStartError").textContent = "";
+                                                document.getElementById("offerStartError").classList.add("hidden");
+                                                document.getElementById("offerEndError").textContent = "";
+                                                document.getElementById("offerEndError").classList.add("hidden");
                                         }
 
                                         // ================= TARGET LOAD =================
@@ -711,6 +745,9 @@
                                                         document.getElementById("offerModalTitle").textContent = "Edit Offer";
                                                         document.getElementById("offer-submit-btn").textContent = "Update Offer";
 
+                                                        // Clear all inline errors
+                                                        clearOfferErrors();
+
                                                         document.getElementById("offerModal").classList.remove("hidden");
                                                         window.originalStartDate = offer.start_date?.split("T")[0];
 
@@ -834,6 +871,8 @@
 
 
                                         function validateOfferForm(showError = true) {
+                                                // Clear all errors first
+                                                clearOfferErrors();
 
                                                 const name = document.getElementById("offer-name").value.trim();
                                                 const discount_type = document.getElementById("offer-discount-type").value;
@@ -843,46 +882,49 @@
                                                 const start_date = document.getElementById("offer-start").value;
                                                 const end_date = document.getElementById("offer-end").value;
 
-                                                const show = (msg) => {
-                                                        if (showError) showToast(msg, "warning");
+                                                const showInline = (elementId, msg) => {
+                                                        if (showError) {
+                                                                const errorEl = document.getElementById(elementId);
+                                                                errorEl.textContent = msg;
+                                                                errorEl.classList.remove("hidden");
+                                                        }
                                                         return false;
                                                 };
 
                                                 // Name
-                                                if (!name) return show("Offer name required");
-                                                if (name.length < 3) return show("Offer name must be at least 3 characters");
+                                                if (!name) return showInline("offerNameError", "Offer name is required");
+                                                if (name.length < 3) return showInline("offerNameError", "Offer name must be at least 3 characters");
 
                                                 // Discount Type
-                                                if (!discount_type) return show("Select discount type");
+                                                if (!discount_type) return showInline("offerDiscountTypeError", "Please select discount type");
 
                                                 // Discount
                                                 if (!discount || isNaN(discount) || discount <= 0) {
-                                                        return show("Enter valid discount value");
+                                                        return showInline("offerDiscountError", "Enter valid discount value greater than 0");
                                                 }
 
                                                 // Percentage
                                                 if (discount_type === "percentage") {
-                                                        if (discount > 100) return show("Percentage cannot exceed 100%");
+                                                        if (discount > 100) return showInline("offerDiscountError", "Percentage cannot exceed 100%");
                                                         if (!max_discount || max_discount <= 0) {
-                                                                return show("Enter valid max discount value");
+                                                                return showInline("offerMaxDiscountError", "Enter valid max discount value");
                                                         }
                                                 }
 
                                                 // Applies To
-                                                if (!applies_to) return show("Select applies to");
+                                                if (!applies_to) return showInline("offerAppliesToError", "Please select applies to");
 
                                                 // Targets
                                                 if (applies_to !== "all") {
                                                         const selectedTargets = targetSelectInstance?.getValue() || [];
                                                         if (selectedTargets.length === 0) {
-                                                                return show("Select at least one target");
+                                                                return showInline("offerTargetError", "Select at least one target");
                                                         }
                                                 }
 
                                                 // Dates
-                                                if (!start_date || !end_date) {
-                                                        return show("Select start and end date");
-                                                }
+                                                if (!start_date) return showInline("offerStartError", "Start date is required");
+                                                if (!end_date) return showInline("offerEndError", "End date is required");
 
                                                 const start = new Date(start_date);
                                                 const end = new Date(end_date);
@@ -890,7 +932,7 @@
                                                 today.setHours(0, 0, 0, 0);
 
                                                 if (isNaN(start) || isNaN(end)) {
-                                                        return show("Invalid date format");
+                                                        return showInline("offerStartError", "Invalid date format");
                                                 }
 
                                                 // CHECK MODE
@@ -898,8 +940,8 @@
 
                                                 // ✅ CREATE MODE
                                                 if (!isEdit) {
-                                                        if (start <= today) {
-                                                                return show("Start date must be from today onwards");
+                                                        if (start < today) {
+                                                                return showInline("offerStartError", "Start date must be from today onwards");
                                                         }
                                                 }
 
@@ -912,18 +954,18 @@
 
                                                                 // If offer already started → restrict changes
                                                                 if (originalStart < today) {
-                                                                        return show("Cannot change start date after offer has started");
+                                                                        return showInline("offerStartError", "Cannot change start date after offer has started");
                                                                 }
 
-                                                                if (start <= today) {
-                                                                        return show("Start date must be from today onwards");
+                                                                if (start < today) {
+                                                                        return showInline("offerStartError", "Start date must be from today onwards");
                                                                 }
                                                         }
                                                 }
 
                                                 // Common rule
                                                 if (end <= start) {
-                                                        return show("End date must be after start date");
+                                                        return showInline("offerEndError", "End date must be after start date");
                                                 }
 
                                                 return true;

@@ -7,6 +7,7 @@ import {
   addCategoryAttribute,
   toggleCategoryStatus,
   deleteAttribute,
+  updateAttribute,
   getAttributes,
 } from "../../controllers/product/category.controller.js";
 
@@ -28,6 +29,7 @@ router
   .post(isAuth, addCategoryAttribute);
 
 router.delete("/:id/attribute/:key", isAuth, deleteAttribute);
+router.patch("/:id/attribute/:key", isAuth, updateAttribute);
 
 //Products Page atributes geting route
 router.get('/:id/attributes', isAuth , getAttributes)

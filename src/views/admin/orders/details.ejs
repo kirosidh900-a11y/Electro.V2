@@ -542,6 +542,7 @@
           <option value="pricing_error">Pricing Error</option>
           <option value="other">Other</option>
         </select>
+        <span id="itemCancelReasonError" class="hidden text-red-400 text-xs mt-1 block"></span>
         <textarea id="itemCancelComment" rows="2" placeholder="Additional comments (optional)"
           class="w-full bg-[#0f172a] border border-white/10 text-gray-200 rounded-lg px-3 py-2.5 text-sm resize-none focus:outline-none focus:border-red-500 placeholder-gray-600"></textarea>
       </div>
@@ -634,6 +635,7 @@
             <option value="fraud_suspected">Fraud Suspected</option>
             <option value="other">Other</option>
           </select>
+          <span id="cancelReasonError" class="hidden text-red-400 text-xs mt-1 block"></span>
         </div>
 
         <!-- Comments -->
@@ -731,6 +733,7 @@
     <textarea id="rejectReasonInput" rows="3"
       placeholder="Enter reject reason"
       class="w-full bg-[#0f172a] border border-white/10 text-gray-200 rounded-lg px-3 py-2 text-sm"></textarea>
+    <span id="rejectReasonError" class="hidden text-red-400 text-xs mt-1 block"></span>
 
     <div class="flex justify-end gap-3 mt-4">
       <button onclick="closeRejectModal()" class="px-4 py-2 bg-gray-600 text-white rounded">Cancel</button>
@@ -751,6 +754,7 @@
     <label class="text-xs text-gray-400">Pickup Date</label>
     <input type="date" id="pickupDate"
       class="w-full mt-1 bg-[#0f172a] border border-white/10 text-gray-200 rounded-lg px-3 py-2 text-sm" />
+    <span id="pickupDateError" class="hidden text-red-400 text-xs mt-1 block"></span>
 
     <!-- ACTIONS -->
     <div class="flex justify-end gap-3 mt-5">
@@ -838,8 +842,14 @@
   window.submitItemCancel = async () => {
     const reason  = document.getElementById('itemCancelReason').value;
     const comment = document.getElementById('itemCancelComment').value.trim();
+    const reasonErr = document.getElementById('itemCancelReasonError');
 
-    if (!reason) { showToast('Please select a cancellation reason', 'error'); return; }
+    if (!reason) {
+      reasonErr.textContent = 'Please select a cancellation reason';
+      reasonErr.classList.remove('hidden');
+      return;
+    }
+    reasonErr.classList.add('hidden');
 
     const btn = document.getElementById('itemCancelSubmitBtn');
     btn.disabled = true; btn.textContent = 'Cancelling...';
@@ -1020,8 +1030,6 @@
     const internalNote = document.getElementById('internalNote').value.trim();
 
     if (!reason) { showToast('Please select a cancel reason', 'error'); return; }
-
-    const confirmed = await confirmAction('Cancel this order? This cannot be undone.');
     if (!confirmed) return;
 
     const btn = document.getElementById('cancelSubmitBtn');

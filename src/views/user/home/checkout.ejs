@@ -311,6 +311,7 @@
                                                                     <i class="fa-solid fa-plus text-[10px]"></i> Add Money
                                                                   </button>
                                                                 </div>
+                                                                <span id="checkoutTopupError" class="hidden text-red-500 text-xs mt-1 block px-1"></span>
                                                                 <p class="text-[10px] text-gray-400 px-1">
                                                                   <i class="fa-solid fa-lock text-[9px] mr-1"></i>Secure top-up via Razorpay. Page won't reload.
                                                                 </p>
@@ -467,6 +468,22 @@
                                                                 </button>
                                                         </div>
                                                         <div id="couponMsg" class="mt-2.5 hidden"></div>
+
+                                                        <!-- Available Coupons Section -->
+                                                        <div id="availableCouponsSection" class="mt-4">
+                                                                <div class="flex items-center justify-between mb-3">
+                                                                        <p class="text-xs font-semibold text-gray-600 uppercase tracking-wide">Available Coupons</p>
+                                                                        <button type="button" id="refreshCouponsBtn" class="text-xs text-blue-600 hover:text-blue-700 font-medium">
+                                                                                <i class="fa-solid fa-rotate-right text-[10px]"></i> Refresh
+                                                                        </button>
+                                                                </div>
+                                                                <div id="availableCouponsList" class="space-y-2 max-h-64 overflow-y-auto custom-scrollbar">
+                                                                        <!-- Coupons will be loaded here -->
+                                                                        <div class="text-center py-4 text-gray-400 text-sm">
+                                                                                <i class="fa-solid fa-spinner fa-spin"></i> Loading coupons...
+                                                                        </div>
+                                                                </div>
+                                                        </div>
                                                 </div>
                                                 <% } %>
 
@@ -573,6 +590,9 @@
                                                                         ₹<%= finalGrandTotal.toLocaleString('en-IN') %>
                                                                 </span>
                                                         </div>
+
+                                                        <span id="addressSelectionError" class="hidden text-red-500 text-xs mb-2 block text-center"></span>
+                                                        <span id="paymentSelectionError" class="hidden text-red-500 text-xs mb-2 block text-center"></span>
 
                                                         <button id="checkoutProceedBtn"
                                                                 class="group relative w-full flex justify-center items-center gap-3 bg-black text-white py-4 rounded-xl font-semibold text-lg hover:bg-gray-800 transition-all shadow-lg hover:shadow-xl overflow-hidden disabled:opacity-50 disabled:cursor-not-allowed"
@@ -801,9 +821,11 @@
                   const amount = parseFloat(input?.value) || parseFloat(input?.placeholder) || 0;
 
                   if (!amount || amount < 1) {
-                    showToast('Enter a valid amount', 'error');
+                    const errEl = document.getElementById('checkoutTopupError');
+                    if (errEl) { errEl.textContent = 'Enter a valid amount (min ₹1)'; errEl.classList.remove('hidden'); }
                     return;
                   }
+                  if (document.getElementById('checkoutTopupError')) document.getElementById('checkoutTopupError').classList.add('hidden');
 
                   btn.disabled    = true;
                   btn.textContent = 'Processing...';
@@ -897,6 +919,9 @@
                         const modal = document.getElementById('addressModal');
                         const form = document.getElementById('addressForm');
 
+                        // Clear all field errors
+                        document.querySelectorAll('.field-err').forEach(err => err.textContent = '');
+
                         modal.classList.remove('hidden');
 
                         // Pre-fill Values
@@ -955,30 +980,66 @@
                 };
 
                 window.closeAddressModal = () => {
+                        // Clear all field errors
+                        document.querySelectorAll('.field-err').forEach(err => err.textContent = '');
+                        
                         document.getElementById('addressModal').classList.add('hidden');
                 };
 
-                // Form Validator (Extracted directly from backend logic)
+                // Form Validator — inline errors per field
                 function validateForm(form, stateSelect, districtSelect) {
-                        const name = form.name.value.trim();
-                        const phone = form.phone.value.trim();
+                        const name     = form.name.value.trim();
+                        const phone    = form.phone.value.trim();
                         const altPhone = form.altPhone.value.trim();
-                        const pincode = form.pincode.value.trim();
+                        const pincode  = form.pincode.value.trim();
                         const locality = form.locality.value.trim();
-                        const address = form.address.value.trim();
-                        const city = form.city.value.trim();
-                        const state = stateSelect.value;
+                        const address  = form.address.value.trim();
+                        const city     = form.city.value.trim();
+                        const state    = stateSelect.value;
                         const district = districtSelect.value;
 
-                        if (!/^[A-Za-z ]{3,}$/.test(name)) { showToast("Name must be at least 3 letters", "warning"); form.name.focus(); return false; }
-                        if (!/^[6-9]\d{9}$/.test(phone)) { showToast("Enter valid 10-digit phone number", "warning"); form.phone.focus(); return false; }
-                        if (altPhone && !/^[6-9]\d{9}$/.test(altPhone)) { showToast("Invalid alternate phone number", "warning"); form.altPhone.focus(); return false; }
-                        if (!/^[1-9][0-9]{5}$/.test(pincode)) { showToast("Invalid pincode", "warning"); form.pincode.focus(); return false; }
-                        if (locality.length < 3) { showToast("Locality must be at least 3 characters", "warning"); form.locality.focus(); return false; }
-                        if (address.length < 5) { showToast("Address too short", "warning"); form.address.focus(); return false; }
-                        if (!/^[A-Za-z ]{2,}$/.test(city)) { showToast("Enter valid city name", "warning"); form.city.focus(); return false; }
-                        if (!state) { showToast("Please select state", "warning"); return false; }
-                        if (!district) { showToast("Please select district", "warning"); return false; }
+                        // helper: show inline error below a field
+                        function fieldErr(el, msg) {
+                                let span = el.parentNode.querySelector('.field-err');
+                                if (!span) {
+                                        span = document.createElement('span');
+                                        span.className = 'field-err text-red-500 text-xs mt-1 block';
+                                        el.parentNode.appendChild(span);
+                                }
+                                span.textContent = msg;
+                                el.classList.add('border-red-500');
+                                el.focus();
+                        }
+                        function clearErr(el) {
+                                const span = el.parentNode.querySelector('.field-err');
+                                if (span) span.textContent = '';
+                                el.classList.remove('border-red-500');
+                        }
+
+                        // Clear all first
+                        [form.name, form.phone, form.altPhone, form.pincode,
+                         form.locality, form.address, form.city].forEach(clearErr);
+
+                        if (!/^[A-Za-z ]{3,}$/.test(name))           { fieldErr(form.name,     "Name must be at least 3 letters");          return false; }
+                        if (!/^[6-9]\d{9}$/.test(phone))              { fieldErr(form.phone,    "Enter valid 10-digit phone number");         return false; }
+                        if (altPhone && !/^[6-9]\d{9}$/.test(altPhone)) { fieldErr(form.altPhone, "Invalid alternate phone number");          return false; }
+                        if (!/^[1-9][0-9]{5}$/.test(pincode))         { fieldErr(form.pincode,  "Invalid 6-digit pincode");                  return false; }
+                        if (locality.length < 3)                       { fieldErr(form.locality, "Locality must be at least 3 characters");   return false; }
+                        if (address.length < 5)                        { fieldErr(form.address,  "Address is too short");                     return false; }
+                        if (!/^[A-Za-z ]{2,}$/.test(city))            { fieldErr(form.city,     "Enter a valid city name");                  return false; }
+
+                        if (!state) {
+                                let span = stateSelect.parentNode.querySelector('.field-err');
+                                if (!span) { span = document.createElement('span'); span.className = 'field-err text-red-500 text-xs mt-1 block'; stateSelect.parentNode.appendChild(span); }
+                                span.textContent = 'Please select a state';
+                                return false;
+                        }
+                        if (!district) {
+                                let span = districtSelect.parentNode.querySelector('.field-err');
+                                if (!span) { span = document.createElement('span'); span.className = 'field-err text-red-500 text-xs mt-1 block'; districtSelect.parentNode.appendChild(span); }
+                                span.textContent = 'Please select a district';
+                                return false;
+                        }
 
                         return true;
                 }
@@ -1092,120 +1153,213 @@
                         const grand          = afterDiscount + delivery;
                         const totalSavings   = BASE_DISCOUNTS + couponDiscount;
 
-                        grandTotalDisplay.textContent = '₹' + fmt(grand);
+                        if (grandTotalDisplay) grandTotalDisplay.textContent = '₹' + fmt(grand);
 
-                        if (couponDiscount > 0) {
-                                couponSavingsRow.classList.remove('hidden');
-                                couponSavingsAmt.textContent = '- ₹' + fmt(couponDiscount);
-                        } else {
-                                couponSavingsRow.classList.add('hidden');
+                        if (couponSavingsRow) {
+                                if (couponDiscount > 0) {
+                                        couponSavingsRow.classList.remove('hidden');
+                                        if (couponSavingsAmt) couponSavingsAmt.textContent = '- ₹' + fmt(couponDiscount);
+                                } else {
+                                        couponSavingsRow.classList.add('hidden');
+                                }
                         }
 
-                        if (totalSavings > 0) {
-                                overallSaveLabel.textContent = 'Overall save ₹' + fmt(totalSavings);
-                                overallSaveLabel.classList.remove('hidden');
-                        } else {
-                                overallSaveLabel.classList.add('hidden');
+                        if (overallSaveLabel) {
+                                if (totalSavings > 0) {
+                                        overallSaveLabel.textContent = 'Overall save ₹' + fmt(totalSavings);
+                                        overallSaveLabel.classList.remove('hidden');
+                                } else {
+                                        overallSaveLabel.classList.add('hidden');
+                                }
                         }
                 }
 
-                function setCouponAppliedState(code, discount) {
-                        couponInput.value    = code;
-                        couponInput.readOnly = true;
-                        couponActionBtn.dataset.state = 'applied';
-                        couponActionBtn.textContent   = 'Remove';
-                        couponActionBtn.className     = 'bg-red-50 text-red-600 border border-red-100 hover:bg-red-100 px-4 py-2.5 rounded-lg text-sm font-semibold transition-colors';
-                        couponActionBtn.disabled      = false;
-                        couponMsg.innerHTML  = '<i class="fa-solid fa-circle-check text-green-500 text-xs mr-1.5"></i><span class="text-xs font-semibold text-green-600">Coupon applied! You save ₹' + fmt(discount) + '</span>';
-                        couponMsg.classList.remove('hidden');
-                        recalcTotal(discount);
-                }
+                // Coupon block only exists on regular checkout (not Buy Now)
+                if (couponInput && couponActionBtn) {
 
-                function setCouponRemovedState() {
-                        couponInput.value    = '';
-                        couponInput.readOnly = false;
-                        couponActionBtn.dataset.state = 'idle';
-                        couponActionBtn.textContent   = 'Apply';
-                        couponActionBtn.className     = 'bg-gray-900 text-white px-5 py-2.5 rounded-lg text-sm font-semibold hover:bg-gray-800 transition-colors shadow-sm';
-                        couponActionBtn.disabled      = false;
-                        couponMsg.classList.add('hidden');
-                        recalcTotal(0);
-                        couponInput.focus();
-                }
+                        function setCouponAppliedState(code, discount) {
+                                couponInput.value    = code;
+                                couponInput.readOnly = true;
+                                couponActionBtn.dataset.state = 'applied';
+                                couponActionBtn.textContent   = 'Remove';
+                                couponActionBtn.className     = 'bg-red-50 text-red-600 border border-red-100 hover:bg-red-100 px-4 py-2.5 rounded-lg text-sm font-semibold transition-colors';
+                                couponActionBtn.disabled      = false;
+                                if (couponMsg) {
+                                        couponMsg.innerHTML = '<i class="fa-solid fa-circle-check text-green-500 text-xs mr-1.5"></i><span class="text-xs font-semibold text-green-600">Coupon applied! You save ₹' + fmt(discount) + '</span>';
+                                        couponMsg.classList.remove('hidden');
+                                }
+                                recalcTotal(discount);
+                        }
 
-                // Pre-fill applied coupon state on page load (after functions defined)
-                if (INITIAL_COUPON_CODE) {
-                        setCouponAppliedState(INITIAL_COUPON_CODE, INITIAL_COUPON_DISCOUNT);
-                }
+                        function setCouponRemovedState() {
+                                couponInput.value    = '';
+                                couponInput.readOnly = false;
+                                couponActionBtn.dataset.state = 'idle';
+                                couponActionBtn.textContent   = 'Apply';
+                                couponActionBtn.className     = 'bg-gray-900 text-white px-5 py-2.5 rounded-lg text-sm font-semibold hover:bg-gray-800 transition-colors shadow-sm';
+                                couponActionBtn.disabled      = false;
+                                if (couponMsg) couponMsg.classList.add('hidden');
+                                recalcTotal(0);
+                                couponInput.focus();
+                        }
 
-                couponActionBtn.addEventListener('click', async () => {
-                        const isApplied = couponActionBtn.dataset.state === 'applied';
+                        // Pre-fill applied coupon state on page load
+                        if (INITIAL_COUPON_CODE) {
+                                setCouponAppliedState(INITIAL_COUPON_CODE, INITIAL_COUPON_DISCOUNT);
+                        } else {
+                                // Ensure button starts in idle state
+                                couponActionBtn.dataset.state = 'idle';
+                        }
 
-                        if (isApplied) {
-                                couponActionBtn.disabled    = true;
-                                couponActionBtn.textContent = 'Removing...';
+                        // Load available coupons
+                        async function loadAvailableCoupons() {
+                                const couponsList = document.getElementById('availableCouponsList');
+                                if (!couponsList) return;
+
                                 try {
-                                        const res    = await fetch('/cart/coupon/remove', { method: 'DELETE' });
+                                        const res = await fetch('/cart/coupon/available');
                                         const result = await res.json();
-                                        if (result.success) {
-                                                showToast('Coupon removed', 'success');
-                                                setCouponRemovedState();
-                                                // Wallet re-evaluates without coupon discount
-                                                window.updateWalletCard?.(0);
+
+                                        if (result.success && result.coupons.length > 0) {
+                                                couponsList.innerHTML = result.coupons.map(coupon => `
+                                                        <div class="coupon-card bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-100 rounded-lg p-3 cursor-pointer hover:shadow-md transition-all ${!coupon.isApplicable ? 'opacity-60' : ''}"
+                                                                data-code="${coupon.code}"
+                                                                onclick="applyCouponFromCard('${coupon.code}', ${coupon.isApplicable})">
+                                                                <div class="flex items-start justify-between gap-3">
+                                                                        <div class="flex-1">
+                                                                                <div class="flex items-center gap-2 mb-1">
+                                                                                        <span class="font-mono font-bold text-blue-700 text-sm">${coupon.code}</span>
+                                                                                        ${!coupon.isApplicable ? '<span class="text-[9px] bg-orange-100 text-orange-600 px-1.5 py-0.5 rounded font-semibold">MIN ₹' + coupon.minOrderAmount + '</span>' : ''}
+                                                                                </div>
+                                                                                <p class="text-xs text-gray-600 mb-1">${coupon.description}</p>
+                                                                                <p class="text-xs font-bold text-green-600">${coupon.discountText}</p>
+                                                                        </div>
+                                                                        <button type="button" class="text-xs font-semibold ${coupon.isApplicable ? 'text-blue-600 hover:text-blue-700' : 'text-gray-400'} bg-white px-3 py-1.5 rounded-md border ${coupon.isApplicable ? 'border-blue-200 hover:bg-blue-50' : 'border-gray-200'} transition-colors">
+                                                                                ${coupon.isApplicable ? 'APPLY' : 'N/A'}
+                                                                        </button>
+                                                                </div>
+                                                        </div>
+                                                `).join('');
                                         } else {
-                                                showToast(result.message || 'Failed to remove', 'error');
+                                                couponsList.innerHTML = `
+                                                        <div class="text-center py-6 text-gray-400 text-sm">
+                                                                <i class="fa-solid fa-ticket text-2xl mb-2 block opacity-30"></i>
+                                                                <p>No coupons available at the moment</p>
+                                                        </div>
+                                                `;
+                                        }
+                                } catch (error) {
+                                        console.error('Error loading coupons:', error);
+                                        couponsList.innerHTML = `
+                                                <div class="text-center py-4 text-red-400 text-sm">
+                                                        <i class="fa-solid fa-exclamation-circle"></i> Failed to load coupons
+                                                </div>
+                                        `;
+                                }
+                        }
+
+                        // Apply coupon from card click
+                        window.applyCouponFromCard = async function(code, isApplicable) {
+                                if (!isApplicable) {
+                                        showToast('Minimum order amount not met for this coupon', 'warning');
+                                        return;
+                                }
+
+                                couponInput.value = code;
+                                couponActionBtn.click();
+                        };
+
+                        // Refresh coupons button
+                        const refreshBtn = document.getElementById('refreshCouponsBtn');
+                        if (refreshBtn) {
+                                refreshBtn.addEventListener('click', loadAvailableCoupons);
+                        }
+
+                        // Load coupons on page load
+                        loadAvailableCoupons();
+
+                        couponActionBtn.addEventListener('click', async () => {
+                                const isApplied = couponActionBtn.dataset.state === 'applied';
+
+                                if (isApplied) {
+                                        couponActionBtn.disabled    = true;
+                                        couponActionBtn.textContent = 'Removing...';
+                                        try {
+                                                const res    = await fetch('/cart/coupon/remove', { method: 'DELETE' });
+                                                const result = await res.json();
+                                                if (result.success) {
+                                                        showToast('Coupon removed', 'success');
+                                                        setCouponRemovedState();
+                                                        window.updateWalletCard?.(0);
+                                                } else {
+                                                        showToast(result.message || 'Failed to remove', 'error');
+                                                        couponActionBtn.disabled    = false;
+                                                        couponActionBtn.textContent = 'Remove';
+                                                }
+                                        } catch {
+                                                showToast('Network error', 'error');
                                                 couponActionBtn.disabled    = false;
                                                 couponActionBtn.textContent = 'Remove';
                                         }
-                                } catch {
-                                        showToast('Network error', 'error');
-                                        couponActionBtn.disabled    = false;
-                                        couponActionBtn.textContent = 'Remove';
-                                }
 
-                        } else {
-                                const code = couponInput.value.trim();
-                                if (!code) return showToast('Please enter a coupon code', 'warning');
+                                } else {
+                                        const code = couponInput.value.trim();
+                                        if (!code) {
+                                                if (couponMsg) { couponMsg.innerHTML = '<span class="text-xs text-red-500">Please enter a coupon code</span>'; couponMsg.classList.remove('hidden'); }
+                                                return;
+                                        }
 
-                                couponActionBtn.disabled    = true;
-                                couponActionBtn.textContent = 'Applying...';
-                                try {
-                                        const res    = await fetch('/cart/coupon/apply', {
-                                                method:  'POST',
-                                                headers: { 'Content-Type': 'application/json' },
-                                                body:    JSON.stringify({ code }),
-                                        });
-                                        const result = await res.json();
-                                        if (result.success) {
-                                                showToast(result.message, 'success');
-                                                setCouponAppliedState(code.toUpperCase(), result.discountAmount);
-                                                // Update wallet availability with new coupon discount
-                                                window.updateWalletCard?.(result.discountAmount);
-                                        } else {
-                                                showToast(result.message || 'Invalid coupon', 'error');
+                                        couponActionBtn.disabled    = true;
+                                        couponActionBtn.textContent = 'Applying...';
+                                        try {
+                                                const res    = await fetch('/cart/coupon/apply', {
+                                                        method:  'POST',
+                                                        headers: { 'Content-Type': 'application/json' },
+                                                        body:    JSON.stringify({ code }),
+                                                });
+                                                const result = await res.json();
+                                                if (result.success) {
+                                                        showToast(result.message, 'success');
+                                                        setCouponAppliedState(code.toUpperCase(), result.discountAmount);
+                                                        window.updateWalletCard?.(result.discountAmount);
+                                                } else {
+                                                        showToast(result.message || 'Invalid coupon', 'error');
+                                                        couponActionBtn.disabled    = false;
+                                                        couponActionBtn.textContent = 'Apply';
+                                                }
+                                        } catch {
+                                                showToast('Network error applying coupon', 'error');
                                                 couponActionBtn.disabled    = false;
                                                 couponActionBtn.textContent = 'Apply';
                                         }
-                                } catch {
-                                        showToast('Network error applying coupon', 'error');
-                                        couponActionBtn.disabled    = false;
-                                        couponActionBtn.textContent = 'Apply';
                                 }
-                        }
-                });
+                        });
 
-                // uppercase as user types
-                couponInput.addEventListener('input', () => {
-                        couponInput.value = couponInput.value.toUpperCase();
-                });
+                        // Uppercase as user types
+                        couponInput.addEventListener('input', () => {
+                                couponInput.value = couponInput.value.toUpperCase();
+                        });
+
+                } // end coupon block guard
 
                 // ---------------- Checkout Order Submission ----------------
                 document.getElementById('checkoutProceedBtn').addEventListener('click', async () => {
                         const selectedAddress = document.querySelector('input[name="selectedAddress"]:checked');
                         const selectedPayment = document.querySelector('input[name="paymentMethod"]:checked');
 
-                        if (!selectedAddress) return showToast("Select address", "warning");
-                        if (!selectedPayment) return showToast("Select payment method", "warning");
+                        if (!selectedAddress) {
+                                const el = document.getElementById('addressSelectionError');
+                                if (el) { el.textContent = 'Please select a delivery address'; el.classList.remove('hidden'); }
+                                return;
+                        }
+                        if (document.getElementById('addressSelectionError')) document.getElementById('addressSelectionError').classList.add('hidden');
+
+                        if (!selectedPayment) {
+                                const el = document.getElementById('paymentSelectionError');
+                                if (el) { el.textContent = 'Please select a payment method'; el.classList.remove('hidden'); }
+                                return;
+                        }
+                        if (document.getElementById('paymentSelectionError')) document.getElementById('paymentSelectionError').classList.add('hidden');
 
                         const btn = document.getElementById('checkoutProceedBtn');
                         const original = btn.innerHTML;

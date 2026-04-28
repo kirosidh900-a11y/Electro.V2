@@ -272,11 +272,13 @@
                   <i class="fas fa-wand-magic-sparkles"></i>
                 </button>
               </div>
+              <span id="couponCodeError" class="text-red-400 text-xs mt-1 hidden block"></span>
             </div>
             <div>
               <label class="text-xs text-gray-400 uppercase tracking-widest mb-1.5 block">Description</label>
               <input type="text" id="coupon-description" placeholder="Short description..."
                 class="w-full bg-[#0f172a] border border-white/10 px-3 py-2.5 rounded-lg text-sm text-gray-200 placeholder-gray-600 focus:outline-none focus:ring-2 focus:ring-cyan-500">
+              <span id="couponDescriptionError" class="text-red-400 text-xs mt-1 hidden block"></span>
             </div>
           </div>
 
@@ -290,37 +292,42 @@
                 <option value="percentage">Percentage (%)</option>
                 <option value="fixed">Fixed Amount (₹)</option>
               </select>
+              <span id="couponDiscountTypeError" class="text-red-400 text-xs mt-1 hidden block"></span>
             </div>
             <div>
               <label class="text-xs text-gray-400 uppercase tracking-widest mb-1.5 block">Discount Value *</label>
               <div class="relative">
                 <span id="discountPrefix"
                   class="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 text-sm">%</span>
-                <input type="number" id="coupon-discount-value" min="0" placeholder="0"
+                <input type="number" id="coupon-discount-value" placeholder="0"
                   class="w-full bg-[#0f172a] border border-white/10 pl-8 pr-3 py-2.5 rounded-lg text-sm text-gray-200 placeholder-gray-600 focus:outline-none focus:ring-2 focus:ring-cyan-500">
               </div>
+              <span id="couponDiscountValueError" class="text-red-400 text-xs mt-1 hidden block"></span>
             </div>
           </div>
 
           <!-- Max Discount (percentage only) -->
           <div id="maxDiscountRow" class="hidden">
             <label class="text-xs text-gray-400 uppercase tracking-widest mb-1.5 block">Max Discount Cap (₹)</label>
-            <input type="number" id="coupon-max-discount" min="0" placeholder="e.g. 500"
+            <input type="number" id="coupon-max-discount" placeholder="e.g. 500"
               class="w-full bg-[#0f172a] border border-white/10 px-3 py-2.5 rounded-lg text-sm text-gray-200 placeholder-gray-600 focus:outline-none focus:ring-2 focus:ring-cyan-500">
+            <span id="couponMaxDiscountError" class="text-red-400 text-xs mt-1 hidden block"></span>
           </div>
 
           <!-- Min Order + Usage Limit -->
           <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <label class="text-xs text-gray-400 uppercase tracking-widest mb-1.5 block">Min Order Amount (₹)</label>
-              <input type="number" id="coupon-min-order" min="0" placeholder="0"
+              <input type="number" id="coupon-min-order" placeholder="0"
                 class="w-full bg-[#0f172a] border border-white/10 px-3 py-2.5 rounded-lg text-sm text-gray-200 placeholder-gray-600 focus:outline-none focus:ring-2 focus:ring-cyan-500">
+              <span id="couponMinOrderError" class="text-red-400 text-xs mt-1 hidden block"></span>
             </div>
             <div>
               <label class="text-xs text-gray-400 uppercase tracking-widest mb-1.5 block">Usage Limit <span
                   class="text-gray-600 normal-case">(blank = unlimited)</span></label>
-              <input type="number" id="coupon-usage-limit" min="1" placeholder="e.g. 100"
+              <input type="number" id="coupon-usage-limit" placeholder="e.g. 100"
                 class="w-full bg-[#0f172a] border border-white/10 px-3 py-2.5 rounded-lg text-sm text-gray-200 placeholder-gray-600 focus:outline-none focus:ring-2 focus:ring-cyan-500">
+              <span id="couponUsageLimitError" class="text-red-400 text-xs mt-1 hidden block"></span>
             </div>
           </div>
 
@@ -328,8 +335,9 @@
           <div>
             <label class="text-xs text-gray-400 uppercase tracking-widest mb-1.5 block">Per User Limit <span
                 class="text-gray-600 normal-case">(blank = unlimited)</span></label>
-            <input type="number" id="coupon-per-user" min="1" placeholder="e.g. 1"
+            <input type="number" id="coupon-per-user" placeholder="e.g. 1"
               class="w-full bg-[#0f172a] border border-white/10 px-3 py-2.5 rounded-lg text-sm text-gray-200 placeholder-gray-600 focus:outline-none focus:ring-2 focus:ring-cyan-500">
+            <span id="couponPerUserError" class="text-red-400 text-xs mt-1 hidden block"></span>
           </div>
 
           <!-- Start + Expiry Date -->
@@ -338,11 +346,13 @@
               <label class="text-xs text-gray-400 uppercase tracking-widest mb-1.5 block">Start Date *</label>
               <input type="date" id="coupon-start"
                 class="w-full bg-[#0f172a] border border-white/10 px-3 py-2.5 rounded-lg text-sm text-gray-200 focus:outline-none focus:ring-2 focus:ring-cyan-500 [color-scheme:dark]">
+              <span id="couponStartError" class="text-red-400 text-xs mt-1 hidden block"></span>
             </div>
             <div>
               <label class="text-xs text-gray-400 uppercase tracking-widest mb-1.5 block">Expiry Date *</label>
               <input type="date" id="coupon-expiry"
                 class="w-full bg-[#0f172a] border border-white/10 px-3 py-2.5 rounded-lg text-sm text-gray-200 focus:outline-none focus:ring-2 focus:ring-cyan-500 [color-scheme:dark]">
+              <span id="couponExpiryError" class="text-red-400 text-xs mt-1 hidden block"></span>
             </div>
           </div>
 
@@ -425,13 +435,41 @@
         document.getElementById('couponModalTitle').textContent = isEdit ? 'Edit Coupon' : 'Add Coupon';
         document.getElementById('coupon-submit-btn').textContent = isEdit ? 'Update Coupon' : 'Create Coupon';
 
+        // Clear all inline errors
+        clearCouponErrors();
+
         toggleMaxDiscount();
         document.getElementById('couponModal').classList.remove('hidden');
       }
 
       function closeCouponModal() {
+        // Clear all inline errors
+        clearCouponErrors();
         document.getElementById('couponModal').classList.add('hidden');
         document.getElementById('couponForm').reset();
+      }
+
+      function clearCouponErrors() {
+        document.getElementById('couponCodeError').textContent = '';
+        document.getElementById('couponCodeError').classList.add('hidden');
+        document.getElementById('couponDescriptionError').textContent = '';
+        document.getElementById('couponDescriptionError').classList.add('hidden');
+        document.getElementById('couponDiscountTypeError').textContent = '';
+        document.getElementById('couponDiscountTypeError').classList.add('hidden');
+        document.getElementById('couponDiscountValueError').textContent = '';
+        document.getElementById('couponDiscountValueError').classList.add('hidden');
+        document.getElementById('couponMaxDiscountError').textContent = '';
+        document.getElementById('couponMaxDiscountError').classList.add('hidden');
+        document.getElementById('couponMinOrderError').textContent = '';
+        document.getElementById('couponMinOrderError').classList.add('hidden');
+        document.getElementById('couponUsageLimitError').textContent = '';
+        document.getElementById('couponUsageLimitError').classList.add('hidden');
+        document.getElementById('couponPerUserError').textContent = '';
+        document.getElementById('couponPerUserError').classList.add('hidden');
+        document.getElementById('couponStartError').textContent = '';
+        document.getElementById('couponStartError').classList.add('hidden');
+        document.getElementById('couponExpiryError').textContent = '';
+        document.getElementById('couponExpiryError').classList.add('hidden');
       }
 
       function toggleMaxDiscount() {
@@ -512,44 +550,63 @@
 
       // ── Frontend validation ──────────────────────────────────────────
       function validateForm() {
+        // Clear all errors first
+        clearCouponErrors();
+
         const code = document.getElementById('coupon-code').value.trim();
         const type = document.getElementById('coupon-discount-type').value;
         const value = parseFloat(document.getElementById('coupon-discount-value').value);
         const maxDiscount = parseFloat(document.getElementById('coupon-max-discount').value);
+        const minOrder = parseFloat(document.getElementById('coupon-min-order').value);
+        const usageLimit = document.getElementById('coupon-usage-limit').value;
+        const perUser = document.getElementById('coupon-per-user').value;
         const startDate = document.getElementById('coupon-start').value;
         const expiryDate = document.getElementById('coupon-expiry').value;
         const isEdit = !!document.getElementById('coupon-id').value;
 
-        if (!code) return "Coupon code is required";
-        if (!/^[A-Z0-9]{3,20}$/.test(code)) return "Code must be 3–20 alphanumeric characters";
-        if (!type) return "Discount type is required";
-        if (!value || isNaN(value)) return "Discount value is required";
+        const showInline = (elementId, msg) => {
+          const errorEl = document.getElementById(elementId);
+          errorEl.textContent = msg;
+          errorEl.classList.remove('hidden');
+          return false;
+        };
+
+        if (!code) return showInline('couponCodeError', 'Coupon code is required');
+        if (!/^[A-Z0-9]{3,20}$/.test(code)) return showInline('couponCodeError', 'Code must be 3–20 alphanumeric characters');
+        if (!type) return showInline('couponDiscountTypeError', 'Discount type is required');
+        if (!value || isNaN(value)) return showInline('couponDiscountValueError', 'Discount value is required');
         if (type === 'percentage' && (value < 1 || value > 100))
-          return "Percentage must be between 1% and 100%";
-        if (type === 'fixed' && value <= 0) return "Fixed discount must be greater than 0";
-        if (type === 'percentage' && document.getElementById('coupon-max-discount').value && maxDiscount <= 0)
-          return "Max discount cap must be greater than 0";
-        if (!startDate) return "Start date is required";
+          return showInline('couponDiscountValueError', 'Percentage must be between 1% and 100%');
+        if (type === 'fixed' && value <= 0) return showInline('couponDiscountValueError', 'Fixed discount must be greater than 0');
+        if (type === 'percentage' && document.getElementById('coupon-max-discount').value && (isNaN(maxDiscount) || maxDiscount <= 0))
+          return showInline('couponMaxDiscountError', 'Max discount cap must be greater than 0');
+        if (minOrder && (isNaN(minOrder) || minOrder < 0))
+          return showInline('couponMinOrderError', 'Min order amount must be 0 or greater');
+        if (usageLimit && (isNaN(parseInt(usageLimit)) || parseInt(usageLimit) < 1))
+          return showInline('couponUsageLimitError', 'Usage limit must be at least 1');
+        if (perUser && (isNaN(parseInt(perUser)) || parseInt(perUser) < 1))
+          return showInline('couponPerUserError', 'Per user limit must be at least 1');
+        if (!startDate) return showInline('couponStartError', 'Start date is required');
         
         const today = new Date();
         today.setHours(0, 0, 0, 0);
 
         if (new Date(startDate) < today) {
-          return "Start date must be from today onwards";
+          return showInline('couponStartError', 'Start date must be from today onwards');
         }
 
-        if (!expiryDate) return "Expiry date is required";
+        if (!expiryDate) return showInline('couponExpiryError', 'Expiry date is required');
         if (new Date(expiryDate) <= new Date(startDate))
-          return "Expiry date must be after start date";
-        return null;
+          return showInline('couponExpiryError', 'Expiry date must be after start date');
+        return true;
       }
 
       // ── Submit ───────────────────────────────────────────────────────
       document.getElementById('couponForm').addEventListener('submit', async (e) => {
         e.preventDefault();
 
-        const error = validateForm();
-        if (error) return showToast(error, 'error');
+        const isValid = validateForm();
+        if (!isValid) return;
 
         const id = document.getElementById('coupon-id').value;
         const isEdit = !!id;

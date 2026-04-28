@@ -100,6 +100,7 @@
 
                                                 <input type="text" id="product-name"
                                                         class="w-full mt-1 bg-[#0f172a] border border-white/10 px-3 py-2 rounded-lg text-sm">
+                                                <span id="productNameError" class="text-red-400 text-xs mt-1 hidden block"></span>
 
                                         </div>
 
@@ -125,6 +126,7 @@
                                                                 <% }) %>
 
                                                 </select>
+                                                <span id="productCategoryError" class="text-red-400 text-xs mt-1 hidden block"></span>
 
                                         </div>
 
@@ -148,6 +150,7 @@
                                                                 <% }) %>
 
                                                 </select>
+                                                <span id="productBrandError" class="text-red-400 text-xs mt-1 hidden block"></span>
 
                                         </div>
 
@@ -158,6 +161,7 @@
                                                 <label class="text-sm text-gray-400">Attributes</label>
 
                                                 <div id="productAttributes" class="flex flex-col gap-2"></div>
+                                                <span id="productAttributesError" class="text-red-400 text-xs mt-1 hidden block"></span>
 
                                         </div>
 
@@ -299,6 +303,16 @@
 
                                                 editingAttributes = {};
 
+                                                // Clear inline errors
+                                                document.getElementById("productNameError").textContent = "";
+                                                document.getElementById("productNameError").classList.add("hidden");
+                                                document.getElementById("productCategoryError").textContent = "";
+                                                document.getElementById("productCategoryError").classList.add("hidden");
+                                                document.getElementById("productBrandError").textContent = "";
+                                                document.getElementById("productBrandError").classList.add("hidden");
+                                                document.getElementById("productAttributesError").textContent = "";
+                                                document.getElementById("productAttributesError").classList.add("hidden");
+
                                                 document.getElementById("product-submit-btn").textContent = "Create Product";
 
                                                 const title = document.getElementById("productModalTitle");
@@ -311,6 +325,16 @@
                                         // ================= CLOSE MODAL =================
 
                                         function closeModal() {
+                                                // Clear inline errors
+                                                document.getElementById("productNameError").textContent = "";
+                                                document.getElementById("productNameError").classList.add("hidden");
+                                                document.getElementById("productCategoryError").textContent = "";
+                                                document.getElementById("productCategoryError").classList.add("hidden");
+                                                document.getElementById("productBrandError").textContent = "";
+                                                document.getElementById("productBrandError").classList.add("hidden");
+                                                document.getElementById("productAttributesError").textContent = "";
+                                                document.getElementById("productAttributesError").classList.add("hidden");
+                                                
                                                 document.getElementById("productModal").classList.add("hidden");
                                         }
 
@@ -377,35 +401,80 @@
                                                 const brand = document.getElementById("product-brand").value;
                                                 const status = document.getElementById("product-status").value;
 
-                                                const productNamePattern = /^[A-Za-z0-9]+(?:[ _-][A-Za-z0-9]+)*$/;
+                                                // Updated pattern to allow letters, numbers, spaces, hyphens, underscores, and forward slashes
+                                                const productNamePattern = /^[A-Za-z0-9/]+(?:[ _-][A-Za-z0-9/]+)*$/;
 
-                                                if (!name)
-                                                        return showToast("Product name required", "warning");
+                                                // Get error elements
+                                                const nameError = document.getElementById("productNameError");
+                                                const categoryError = document.getElementById("productCategoryError");
+                                                const brandError = document.getElementById("productBrandError");
+                                                const attributesError = document.getElementById("productAttributesError");
 
-                                                if (!productNamePattern.test(name))
-                                                        return showToast("Invalid product name", "warning");
+                                                // Clear previous errors
+                                                nameError.textContent = "";
+                                                nameError.classList.add("hidden");
+                                                categoryError.textContent = "";
+                                                categoryError.classList.add("hidden");
+                                                brandError.textContent = "";
+                                                brandError.classList.add("hidden");
+                                                attributesError.textContent = "";
+                                                attributesError.classList.add("hidden");
 
-                                                if (!category)
-                                                        return showToast("Select category", "warning");
+                                                // Validate
+                                                let hasError = false;
 
-                                                if (!brand)
-                                                        return showToast("Select brand", "warning");
+                                                if (!name) {
+                                                        nameError.textContent = "Product name is required";
+                                                        nameError.classList.remove("hidden");
+                                                        hasError = true;
+                                                } else if (!productNamePattern.test(name)) {
+                                                        nameError.textContent = "Product name can only contain letters, numbers, spaces, -, _, and /";
+                                                        nameError.classList.remove("hidden");
+                                                        hasError = true;
+                                                }
 
+                                                if (!category) {
+                                                        categoryError.textContent = "Please select a category";
+                                                        categoryError.classList.remove("hidden");
+                                                        hasError = true;
+                                                }
+
+                                                if (!brand) {
+                                                        brandError.textContent = "Please select a brand";
+                                                        brandError.classList.remove("hidden");
+                                                        hasError = true;
+                                                }
 
                                                 const attributes = {};
                                                 const inputs = document.querySelectorAll("#productAttributes input");
+
+                                                // Pattern for attributes - allows letters, numbers, spaces, -, _, and /
+                                                const attributePattern = /^[A-Za-z0-9/]+(?:[ _-][A-Za-z0-9/]+)*$/;
 
                                                 for (const input of inputs) {
 
                                                         const key = input.name;
                                                         const value = input.value.trim();
 
-                                                        if (!value)
-                                                                return showToast(`${key} is required`, "warning");
+                                                        if (!value) {
+                                                                attributesError.textContent = `${input.placeholder} is required`;
+                                                                attributesError.classList.remove("hidden");
+                                                                hasError = true;
+                                                                break;
+                                                        }
+
+                                                        if (!attributePattern.test(value)) {
+                                                                attributesError.textContent = `${input.placeholder} can only contain letters, numbers, spaces, -, _, and /`;
+                                                                attributesError.classList.remove("hidden");
+                                                                hasError = true;
+                                                                break;
+                                                        }
 
                                                         attributes[key] = value;
 
                                                 }
+
+                                                if (hasError) return;
 
 
                                                 let url = "/admin/products";
@@ -543,6 +612,16 @@
                                                         // 🔥 load category attributes + fill values
                                                         await loadCategoryAttributes(product.category, editingAttributes);
 
+                                                        // Clear inline errors
+                                                        document.getElementById("productNameError").textContent = "";
+                                                        document.getElementById("productNameError").classList.add("hidden");
+                                                        document.getElementById("productCategoryError").textContent = "";
+                                                        document.getElementById("productCategoryError").classList.add("hidden");
+                                                        document.getElementById("productBrandError").textContent = "";
+                                                        document.getElementById("productBrandError").classList.add("hidden");
+                                                        document.getElementById("productAttributesError").textContent = "";
+                                                        document.getElementById("productAttributesError").classList.add("hidden");
+
                                                         document.getElementById("product-submit-btn").textContent = "Update Product";
 
                                                         const title = document.getElementById("productModalTitle");
@@ -613,14 +692,36 @@
                                                         if (!result.success)
                                                                 return showToast(data.message, "error");
                                                        
-                                                        const newStatus =result.data.action; // backend should return updated status
+                                                        const newStatus = result.data.action; // backend should return updated status
 
                                                         const badge = document.getElementById(`badge-${product_id}`);
                                                         const btn = document.getElementById(`status-${product_id}`);
+                                                        const row = document.getElementById(`row-${product_id}`);
+                                                        const titleCell = document.getElementById(`title-${product_id}`);
+                                                        const categoryCell = document.getElementById(`category-${product_id}`);
+                                                        const brandCell = document.getElementById(`brand-${product_id}`);
+
+                                                        // ================= UPDATE ROW STYLING =================
+
+                                                        if (newStatus === "unlisted") {
+                                                                // Add red styling for unlisted products
+                                                                row.classList.add('bg-red-500/5', 'border-l-4', 'border-l-red-500');
+                                                                titleCell.classList.remove('text-white');
+                                                                titleCell.classList.add('text-red-400');
+                                                                categoryCell.classList.add('text-red-300');
+                                                                brandCell.classList.add('text-red-300');
+                                                        } else {
+                                                                // Remove red styling for listed products
+                                                                row.classList.remove('bg-red-500/5', 'border-l-4', 'border-l-red-500');
+                                                                titleCell.classList.remove('text-red-400');
+                                                                titleCell.classList.add('text-white');
+                                                                categoryCell.classList.remove('text-red-300');
+                                                                brandCell.classList.remove('text-red-300');
+                                                        }
 
                                                         // ================= UPDATE BADGE =================
 
-                                                        badge.textContent = newStatus;
+                                                        badge.textContent = newStatus.charAt(0).toUpperCase() + newStatus.slice(1);
 
                                                         if (newStatus === "listed") {
                                                                 badge.className =

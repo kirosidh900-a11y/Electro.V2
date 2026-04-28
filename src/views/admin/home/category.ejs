@@ -132,7 +132,7 @@
 
                                 <div class="flex justify-between items-center mb-4">
 
-                                        <h2 class="text-lg font-semibold text-white">
+                                        <h2 id="attributeModalTitle" class="text-lg font-semibold text-white">
                                                 Add Category Attributes
                                         </h2>
 
@@ -145,6 +145,8 @@
                                 <p class="text-sm text-gray-400 mb-6">
                                         Define attributes used for products and variants
                                 </p>
+
+                                <input type="hidden" id="attrOriginalKey">
 
                                 <div class="grid grid-cols-2 gap-4">
 
@@ -258,7 +260,7 @@ after:transition-all peer-checked:after:translate-x-full">
                                                 Cancel
                                         </button>
 
-                                        <button onclick="saveAttribute()"
+                                        <button id="saveAttributeBtn" onclick="saveAttribute()"
                                                 class="px-4 py-2 bg-cyan-600 hover:bg-cyan-700 text-white rounded-lg text-sm">
                                                 Save Attributes
                                         </button>
@@ -293,6 +295,19 @@ after:transition-all peer-checked:after:translate-x-full">
                                 const key = btn.dataset.key;
 
                                 removeAttribute(categoryId, key);
+
+                        });
+
+                        // Edit attribute click handler
+                        document.addEventListener("click", (e) => {
+
+                                const btn = e.target.closest(".edit-attr");
+                                if (!btn) return;
+
+                                const categoryId = btn.dataset.category;
+                                const attr = JSON.parse(btn.dataset.attr);
+
+                                openAttributeModal(categoryId, attr);
 
                         });
 
@@ -343,6 +358,10 @@ after:transition-all peer-checked:after:translate-x-full">
                                 document.getElementById("categoryModalTitle").textContent = "Add Category";
                                 document.getElementById("category-submit-btn").textContent = "Create Category";
 
+                                // Clear any existing error messages
+                                const titleErr = document.getElementById("categoryTitleError");
+                                if (titleErr) titleErr.textContent = "";
+
                                 categoryModal.classList.remove("hidden");
 
                         }
@@ -350,6 +369,10 @@ after:transition-all peer-checked:after:translate-x-full">
 
 
                         function closeCategoryModal() {
+                                // Clear error messages when closing
+                                const titleErr = document.getElementById("categoryTitleError");
+                                if (titleErr) titleErr.textContent = "";
+                                
                                 categoryModal.classList.add("hidden");
                         }
                         window.closeCategoryModal = closeCategoryModal;
@@ -371,6 +394,10 @@ after:transition-all peer-checked:after:translate-x-full">
                                 document.getElementById("categoryModalTitle").textContent = "Edit Category";
                                 document.getElementById("category-submit-btn").textContent = "Update Category";
 
+                                // Clear any existing error messages
+                                const titleErr = document.getElementById("categoryTitleError");
+                                if (titleErr) titleErr.textContent = "";
+
                                 categoryModal.classList.remove("hidden");
 
                         }
@@ -387,13 +414,27 @@ after:transition-all peer-checked:after:translate-x-full">
                                 const title = document.getElementById("category-title").value.trim();
                                 const status = document.getElementById("category-status").value;
 
-                                const pattern = /^[A-Za-z&-]+(?: [A-Za-z&-]+)*$/;
+                                const pattern = /^[A-Za-z&'\-]+(?: [A-Za-z&'\-]+)*$/;
+                                const titleInput = document.getElementById("category-title");
+                                let titleErr = document.getElementById("categoryTitleError");
+                                if (!titleErr) {
+                                        titleErr = document.createElement("span");
+                                        titleErr.id = "categoryTitleError";
+                                        titleErr.className = "text-red-400 text-xs mt-1 block";
+                                        titleInput.parentNode.appendChild(titleErr);
+                                }
 
-                                if (!title)
-                                        return showToast("Category name required", "warning");
-
-                                if (!pattern.test(title))
-                                        return showToast("Only letters allowed", "warning");
+                                if (!title) {
+                                        titleErr.textContent = "Category name is required";
+                                        titleInput.focus();
+                                        return;
+                                }
+                                if (!pattern.test(title)) {
+                                        titleErr.textContent = "Only letters, spaces, &, - and ' allowed";
+                                        titleInput.focus();
+                                        return;
+                                }
+                                titleErr.textContent = "";
 
                                 try {
 
@@ -553,9 +594,43 @@ after:transition-all peer-checked:after:translate-x-full">
 
                         let currentCategory = null;
 
-                        function openAttributeModal(categoryId) {
+                        function openAttributeModal(categoryId, attributeData = null) {
 
                                 currentCategory = categoryId;
+                                const isEdit = !!attributeData;
+
+                                // Clear error messages when opening
+                                const attrErr = document.getElementById("attrInlineError");
+                                if (attrErr) attrErr.textContent = "";
+
+                                // Update modal title and button text
+                                document.getElementById("attributeModalTitle").textContent = 
+                                        isEdit ? "Edit Attribute" : "Add Category Attributes";
+                                document.getElementById("saveAttributeBtn").textContent = 
+                                        isEdit ? "Update Attribute" : "Save Attributes";
+
+                                if (isEdit) {
+                                        // Fill form with existing attribute data
+                                        document.getElementById("attrOriginalKey").value = attributeData.key;
+                                        document.getElementById("attrKey").value = attributeData.key;
+                                        document.getElementById("attrLabel").value = attributeData.label;
+                                        document.getElementById("attrType").value = attributeData.data_type;
+                                        document.getElementById("attrUnit").value = attributeData.unit || "";
+                                        document.getElementById("attrValues").value = 
+                                                (attributeData.allowed_values || []).join(", ");
+                                        document.getElementById("attrRequired").checked = attributeData.is_required || false;
+                                        document.getElementById("attrVariant").checked = attributeData.is_variant_level || false;
+                                } else {
+                                        // Reset form fields for new attribute
+                                        document.getElementById("attrOriginalKey").value = "";
+                                        document.getElementById("attrKey").value = "";
+                                        document.getElementById("attrLabel").value = "";
+                                        document.getElementById("attrType").value = "text";
+                                        document.getElementById("attrUnit").value = "";
+                                        document.getElementById("attrValues").value = "";
+                                        document.getElementById("attrRequired").checked = false;
+                                        document.getElementById("attrVariant").checked = false;
+                                }
 
                                 document.getElementById("attributeModal").classList.remove("hidden");
                                 document.getElementById("attributeModal").classList.add("flex");
@@ -565,6 +640,24 @@ after:transition-all peer-checked:after:translate-x-full">
 
 
                         function closeAttributeModal() {
+                                // Clear error messages when closing
+                                const attrErr = document.getElementById("attrInlineError");
+                                if (attrErr) attrErr.textContent = "";
+                                
+                                // Reset form fields
+                                document.getElementById("attrOriginalKey").value = "";
+                                document.getElementById("attrKey").value = "";
+                                document.getElementById("attrLabel").value = "";
+                                document.getElementById("attrType").value = "text";
+                                document.getElementById("attrUnit").value = "";
+                                document.getElementById("attrValues").value = "";
+                                document.getElementById("attrRequired").checked = false;
+                                document.getElementById("attrVariant").checked = false;
+
+                                // Reset modal title and button
+                                document.getElementById("attributeModalTitle").textContent = "Add Category Attributes";
+                                document.getElementById("saveAttributeBtn").textContent = "Save Attributes";
+                                
                                 document.getElementById("attributeModal").classList.add("hidden");
                         }
                         window.closeAttributeModal = closeAttributeModal;
@@ -573,6 +666,9 @@ after:transition-all peer-checked:after:translate-x-full">
                         /* ================= SAVE ATTRIBUTE ================= */
 
                         async function saveAttribute() {
+
+                                const originalKey = document.getElementById("attrOriginalKey").value.trim();
+                                const isEdit = !!originalKey;
 
                                 const label = document.getElementById("attrLabel").value.trim();
                                 const data_type = document.getElementById("attrType").value;
@@ -595,13 +691,35 @@ after:transition-all peer-checked:after:translate-x-full">
                                 const is_required = document.getElementById("attrRequired").checked;
                                 const is_variant_level = document.getElementById("attrVariant").checked;
 
-                                if (!key || !label)
-                                        return showToast("Key and label required", "warning");
+                                if (!key || !label) {
+                                        const keyInput   = document.getElementById("attrKey");
+                                        const labelInput = document.getElementById("attrLabel");
+                                        let attrErr = document.getElementById("attrInlineError");
+                                        if (!attrErr) {
+                                                attrErr = document.createElement("span");
+                                                attrErr.id = "attrInlineError";
+                                                attrErr.className = "text-red-400 text-xs mt-1 block col-span-2";
+                                                keyInput.closest(".grid").appendChild(attrErr);
+                                        }
+                                        attrErr.textContent = !key ? "Attribute key is required" : "Display label is required";
+                                        (!key ? keyInput : labelInput).focus();
+                                        return;
+                                }
+                                if (document.getElementById("attrInlineError")) document.getElementById("attrInlineError").textContent = "";
 
                                 try {
 
-                                        const res = await fetch(`/admin/category/${currentCategory}`, {
-                                                method: "POST",
+                                        let url = `/admin/category/${currentCategory}`;
+                                        let method = "POST";
+
+                                        // If editing, use PATCH method and include original key
+                                        if (isEdit) {
+                                                url = `/admin/category/${currentCategory}/attribute/${encodeURIComponent(originalKey)}`;
+                                                method = "PATCH";
+                                        }
+
+                                        const res = await fetch(url, {
+                                                method,
                                                 headers: { "Content-Type": "application/json" },
                                                 body: JSON.stringify({
                                                         key,
@@ -619,7 +737,7 @@ after:transition-all peer-checked:after:translate-x-full">
                                         if (!data.success)
                                                 return showToast(data.message, "error");
 
-                                        showToast("Attribute added successfully", "success");
+                                        showToast(isEdit ? "Attribute updated successfully" : "Attribute added successfully", "success");
 
                                         closeAttributeModal();
                                         location.reload();

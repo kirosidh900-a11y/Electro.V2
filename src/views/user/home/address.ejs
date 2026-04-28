@@ -276,6 +276,9 @@
                                 const modal = document.getElementById('addressModal');
                                 const form = document.getElementById('addressForm');
 
+                                // Clear all field errors
+                                document.querySelectorAll('.field-err').forEach(err => err.textContent = '');
+
                                 modal.classList.remove('hidden');
 
                                 // Fill basic fields
@@ -423,80 +426,63 @@
 
                         // CLOSE MODAL
                         window.closeAddressModal = () => {
+                                // Clear all field errors
+                                document.querySelectorAll('.field-err').forEach(err => err.textContent = '');
+                                
                                 document.getElementById('addressModal').classList.add('hidden');
                         };
 
 
                         function validateForm(form, stateSelect, districtSelect) {
 
-                                const name = form.name.value.trim();
-                                const phone = form.phone.value.trim();
+                                const name     = form.name.value.trim();
+                                const phone    = form.phone.value.trim();
                                 const altPhone = form.altPhone.value.trim();
-                                const pincode = form.pincode.value.trim();
+                                const pincode  = form.pincode.value.trim();
                                 const locality = form.locality.value.trim();
-                                const address = form.address.value.trim();
-                                const city = form.city.value.trim();
-                                const state = stateSelect.value;
+                                const address  = form.address.value.trim();
+                                const city     = form.city.value.trim();
+                                const state    = stateSelect.value;
                                 const district = districtSelect.value;
 
-                                // NAME
-                                if (!/^[A-Za-z ]{3,}$/.test(name)) {
-                                        showToast("Name must be at least 3 letters", "warning");
-                                        form.name.focus();
-                                        return false;
+                                function fieldErr(el, msg) {
+                                        let span = el.parentNode.querySelector('.field-err');
+                                        if (!span) {
+                                                span = document.createElement('span');
+                                                span.className = 'field-err text-red-500 text-xs mt-1 block';
+                                                el.parentNode.appendChild(span);
+                                        }
+                                        span.textContent = msg;
+                                        el.classList.add('border-red-500');
+                                        el.focus();
+                                }
+                                function clearErr(el) {
+                                        const span = el.parentNode.querySelector('.field-err');
+                                        if (span) span.textContent = '';
+                                        el.classList.remove('border-red-500');
                                 }
 
-                                // PHONE
-                                if (!/^[6-9]\d{9}$/.test(phone)) {
-                                        showToast("Enter valid 10-digit phone number", "warning");
-                                        form.phone.focus();
-                                        return false;
-                                }
+                                [form.name, form.phone, form.altPhone, form.pincode,
+                                 form.locality, form.address, form.city].forEach(clearErr);
 
-                                // ALT PHONE
-                                if (altPhone && !/^[6-9]\d{9}$/.test(altPhone)) {
-                                        showToast("Invalid alternate phone number", "warning");
-                                        form.altPhone.focus();
-                                        return false;
-                                }
+                                if (!/^[A-Za-z ]{3,}$/.test(name))             { fieldErr(form.name,     "Name must be at least 3 letters");        return false; }
+                                if (!/^[6-9]\d{9}$/.test(phone))                { fieldErr(form.phone,    "Enter valid 10-digit phone number");       return false; }
+                                if (altPhone && !/^[6-9]\d{9}$/.test(altPhone)) { fieldErr(form.altPhone, "Invalid alternate phone number");          return false; }
+                                if (!/^[1-9][0-9]{5}$/.test(pincode))           { fieldErr(form.pincode,  "Invalid 6-digit pincode");                 return false; }
+                                if (locality.length < 3)                         { fieldErr(form.locality, "Locality must be at least 3 characters"); return false; }
+                                if (address.length < 5)                          { fieldErr(form.address,  "Address is too short");                   return false; }
+                                if (!/^[A-Za-z ]{2,}$/.test(city))              { fieldErr(form.city,     "Enter a valid city name");                 return false; }
 
-                                // PINCODE
-                                if (!/^[1-9][0-9]{5}$/.test(pincode)) {
-                                        showToast("Invalid pincode", "warning");
-                                        form.pincode.focus();
-                                        return false;
-                                }
-
-                                // LOCALITY
-                                if (locality.length < 3) {
-                                        showToast("Locality must be at least 3 characters", "warning");
-                                        form.locality.focus();
-                                        return false;
-                                }
-
-                                // ADDRESS
-                                if (address.length < 5) {
-                                        showToast("Address too short", "warning");
-                                        form.address.focus();
-                                        return false;
-                                }
-
-                                // CITY
-                                if (!/^[A-Za-z ]{2,}$/.test(city)) {
-                                        showToast("Enter valid city name", "warning");
-                                        form.city.focus();
-                                        return false;
-                                }
-
-                                // STATE
                                 if (!state) {
-                                        showToast("Please select state", "warning");
+                                        let span = stateSelect.parentNode.querySelector('.field-err');
+                                        if (!span) { span = document.createElement('span'); span.className = 'field-err text-red-500 text-xs mt-1 block'; stateSelect.parentNode.appendChild(span); }
+                                        span.textContent = 'Please select a state';
                                         return false;
                                 }
-
-                                // DISTRICT
                                 if (!district) {
-                                        showToast("Please select district", "warning");
+                                        let span = districtSelect.parentNode.querySelector('.field-err');
+                                        if (!span) { span = document.createElement('span'); span.className = 'field-err text-red-500 text-xs mt-1 block'; districtSelect.parentNode.appendChild(span); }
+                                        span.textContent = 'Please select a district';
                                         return false;
                                 }
 

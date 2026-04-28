@@ -64,7 +64,7 @@ loginForm.addEventListener("submit", async (e) => {
   const valid = isValidEmail() && isValidPassword();
 
   if (!valid) {
-    showToast("Please correct the errors in the form.", "error");
+    // Inline errors are already shown per-field above
     return;
   }
 
