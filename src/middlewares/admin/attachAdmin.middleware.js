@@ -1,7 +1,7 @@
 import { adminMenu } from "../../config/adminMenu.js";
 import clearAuthCookie from "../../utils/partials/clearCookie.js";
 import { verifyAdmin } from "../../utils/partials/verifyToken.utils.js";
-import setCookieMSG from "../../utils/partials/setCookieMSG.utils.js";
+import setCookieMSG from "../../utils/partials/setCookieMsg.utils.js";
 
 const adminAuth = async (req, res, next) => {
   const token = req.cookies.adminToken;
