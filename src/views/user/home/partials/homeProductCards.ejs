@@ -43,7 +43,7 @@ shadow-sm hover:shadow-2xl transition-all duration-300 border border-gray-100"
     overflow-hidden cursor-pointer p-4 md:p-8 bg-[#f8f9fa] group-hover:bg-white transition-colors">
 
             <img src="<%= image %>" onclick="window.location.href='/product/<%= product._id %>'" alt="<%= product.name
-                %>" class="w-full h-full object-contain group-hover:scale-110 transition-transform duration-500
+                %>" loading="lazy" class="w-full h-full object-contain group-hover:scale-110 transition-transform duration-500
                 mix-blend-multiply">
 
             <!-- DISCOUNT BADGE -->

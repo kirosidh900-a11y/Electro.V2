@@ -10,8 +10,19 @@
         transform: scale(1.2);
         transition: 0.2s;
     }
+
+    /* Skeleton shimmer */
+    @keyframes shimmer {
+        0% { background-position: -400px 0; }
+        100% { background-position: 400px 0; }
+    }
+    .skeleton {
+        background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+        background-size: 400px 100%;
+        animation: shimmer 1.4s ease infinite;
+        border-radius: 12px;
+    }
 </style>
-<!-- <link rel="stylesheet" href="/user/css/output.css"> -->
 <script>
     tailwind.config = {
         theme: {
@@ -166,6 +177,10 @@
                 <!-- Product Grid -->
                 <div id="homeProductContainer"
                     class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4 md:gap-6 lg:gap-8">
+                    <!-- Skeleton placeholders shown while loading -->
+                    <% for(let i=0; i<8; i++) { %>
+                    <div class="skeleton h-72 w-full"></div>
+                    <% } %>
                 </div>
             </div>
         </section>

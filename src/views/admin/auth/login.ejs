@@ -5,12 +5,12 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Electro Admin | Command Center</title>
-    <script defer src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/toastify-js/src/toastify.min.css">
-    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
-
-    <script defer src="https://cdn.jsdelivr.net/npm/toastify-js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/toastify-js"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;500;800&display=swap');
 
@@ -43,13 +43,8 @@
         }
 
         @keyframes scan {
-            0% {
-                top: 0;
-            }
-
-            100% {
-                top: 100%;
-            }
+            0% { top: 0; }
+            100% { top: 100%; }
         }
 
         input:focus {
@@ -68,22 +63,30 @@
             background: #ffffff;
             box-shadow: 0 0 20px rgba(255, 255, 255, 0.2);
         }
+
+        /* Page load fade-in */
+        .page-content {
+            animation: fadeIn 0.4s ease-out;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(8px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
     </style>
 </head>
 
-<body class="min-h-screen flex items-center justify-center p-6 hex-bg relative overflow-hidden">
+<body class="min-h-screen flex items-center justify-center p-4 sm:p-6 hex-bg relative overflow-hidden">
 
     <div class="scanline"></div>
 
-    <div
-        class="max-w-4xl w-full flex flex-col md:flex-row terminal-panel rounded-lg overflow-hidden relative z-10 border-t-4 border-t-[#00d2ff]">
+    <div class="page-content max-w-4xl w-full flex flex-col md:flex-row terminal-panel rounded-lg overflow-hidden relative z-10 border-t-4 border-t-[#00d2ff]">
 
         <div class="hidden md:flex md:w-1/3 p-8 flex-col bg-black/40 border-r border-white/5">
             <div class="mb-10">
                 <div class="flex items-center gap-2 mb-1">
                     <i class="fas fa-bolt text-[#00d2ff]"></i>
-                    <span class="text-lg font-800 tracking-tighter">ELECTRO<span
-                            class="text-white/30 font-light">_v3</span></span>
+                    <span class="text-lg font-800 tracking-tighter">ELECTRO<span class="text-white/30 font-light">_v3</span></span>
                 </div>
                 <div class="text-[10px] text-gray-500 font-mono">CORE ADMIN INTERFACE</div>
             </div>
@@ -96,12 +99,10 @@
                         PRODUCTION_NODE_01
                     </div>
                 </div>
-
                 <div>
                     <div class="text-[10px] text-gray-500 mb-2 uppercase tracking-widest">Encryption</div>
                     <div class="text-xs text-white">RSA_4096_BIT</div>
                 </div>
-
                 <div>
                     <div class="text-[10px] text-gray-500 mb-2 uppercase tracking-widest">IP_RESOLVER</div>
                     <div class="text-xs text-cyan-400 font-mono">192.168.1.104</div>
@@ -113,50 +114,40 @@
             </div>
         </div>
 
-        <div class="w-full md:w-2/3 p-10 md:p-16">
+        <div class="w-full md:w-2/3 p-8 sm:p-10 md:p-16">
             <div class="mb-10">
-                <div class="inline-block px-2 py-1 bg-[#00d2ff]/10 text-[#00d2ff] text-[10px] font-bold rounded mb-4">
-                    SECURE GATEWAY</div>
+                <div class="inline-block px-2 py-1 bg-[#00d2ff]/10 text-[#00d2ff] text-[10px] font-bold rounded mb-4">SECURE GATEWAY</div>
                 <h2 class="text-2xl font-bold text-white mb-2 italic">INITIALIZE LOGIN</h2>
                 <div class="h-1 w-12 bg-[#00d2ff]"></div>
             </div>
 
             <form id="loginForm" class="space-y-6">
                 <div class="space-y-2">
-                    <div class="flex justify-between">
-                        <label class="text-[10px] font-bold text-gray-500 uppercase tracking-widest">Admin
-                            Identifier</label>
-                    </div>
-                    <div class="relative">
-                        <input id="email" type="email" name="email" required
-                            class="w-full bg-[#05070a] border border-white/10 rounded px-4 py-4 focus:outline-none transition-all text-sm font-mono text-white"
-                            placeholder="admin@electro.root">
-                    </div>
+                    <label class="text-[10px] font-bold text-gray-500 uppercase tracking-widest">Admin Identifier</label>
+                    <input id="email" type="email" name="email"
+                        class="w-full bg-[#05070a] border border-white/10 rounded px-4 py-4 focus:outline-none transition-all text-sm font-mono text-white"
+                        placeholder="admin@electro.root" autocomplete="email">
                     <span id="emailError" class="hidden text-red-400 text-xs mt-2 block"></span>
                 </div>
 
                 <div class="space-y-2">
                     <div class="flex justify-between items-center">
                         <label class="text-[10px] font-bold text-gray-500 uppercase tracking-widest">Secret Key</label>
-                        <a href="/admin/auth/forgot"
-                            class="text-[10px] text-[#00d2ff] hover:underline uppercase tracking-tighter">Forgot
-                            Key?</a>
+                        <a href="/admin/auth/forgot" class="text-[10px] text-[#00d2ff] hover:underline uppercase tracking-tighter">Forgot Key?</a>
                     </div>
                     <div class="relative">
-                        <input id="password" type="password" name="password" required
+                        <input id="password" type="password" name="password"
                             class="w-full bg-[#05070a] border border-white/10 rounded px-4 py-4 pr-12 focus:outline-none transition-all text-sm font-mono text-white"
-                            placeholder="****************">
-
-                        <!-- Toggle Icon -->
+                            placeholder="****************" autocomplete="current-password">
                         <button type="button" id="togglePassword"
                             class="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-[#00d2ff] transition-all">
                             <i id="toggleIcon" class="fas fa-eye"></i>
                         </button>
-                        <span id="passwordError" class="hidden text-red-400 text-xs mt-2 block"></span>
                     </div>
+                    <span id="passwordError" class="hidden text-red-400 text-xs mt-2 block"></span>
                 </div>
 
-                <button type="submit"
+                <button type="submit" id="loginBtn"
                     class="btn-primary w-full font-800 py-4 rounded text-xs uppercase tracking-[0.3em] flex items-center justify-center gap-3">
                     EXECUTE_LOGIN
                 </button>
