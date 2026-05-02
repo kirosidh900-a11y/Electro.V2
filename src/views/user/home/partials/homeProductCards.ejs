@@ -19,53 +19,50 @@
      data-product-id="<%= product._id %>"
      data-variant-id="<%= variantId %>">
 
-    <!-- IMAGE AREA -->
-    <div class="relative w-full aspect-square overflow-hidden bg-gray-50 group-hover:bg-white transition-colors duration-300 cursor-pointer"
-         onclick="window.location.href='/product/<%= product._id %>'">
+    <!-- IMAGE AREA — clicking navigates to product -->
+    <a href="/product/<%= product._id %>"
+       class="relative w-full aspect-square overflow-hidden bg-gray-50 group-hover:bg-white transition-colors duration-300 block">
 
         <img src="<%= image %>"
              alt="<%= product.name %>"
              loading="lazy"
-             class="w-full h-full object-contain p-5 group-hover:scale-108 transition-transform duration-500 mix-blend-multiply"
-             style="--tw-scale-x:1.08;--tw-scale-y:1.08;">
+             class="w-full h-full object-contain p-5 group-hover:scale-105 transition-transform duration-500 mix-blend-multiply">
 
         <!-- Discount badge -->
         <% if (discountPct > 0) { %>
-        <span class="absolute top-3 left-3 bg-red-500 text-white text-[10px] font-black px-2.5 py-1 rounded-xl tracking-wide">
+        <span class="absolute top-3 left-3 bg-red-500 text-white text-[10px] font-black px-2.5 py-1 rounded-xl tracking-wide pointer-events-none">
             -<%= discountPct %>%
         </span>
         <% } %>
+    </a>
 
-        <!-- Action buttons — slide in from right on hover -->
-        <div class="absolute top-3 right-3 flex flex-col gap-2
-                    opacity-100 lg:opacity-0 lg:translate-x-3
-                    lg:group-hover:translate-x-0 lg:group-hover:opacity-100
-                    transition-all duration-300">
+    <!-- Action buttons — positioned over the image, OUTSIDE the <a> tag so clicks don't navigate -->
+    <div class="absolute top-3 right-3 flex flex-col gap-2 z-10
+                opacity-100 lg:opacity-0 lg:translate-x-3
+                lg:group-hover:translate-x-0 lg:group-hover:opacity-100
+                transition-all duration-300">
 
-            <!-- Wishlist -->
-            <button id="wishlist-<%= variantId %>"
-                    data-product-id="<%= product._id %>"
-                    data-variant-id="<%= variantId %>"
-                    <%= isCarted ? 'disabled' : '' %>
-                    class="wishlist w-9 h-9 bg-white shadow-md rounded-xl flex items-center justify-center hover:bg-red-50 transition-colors <%= isCarted ? 'opacity-40 cursor-not-allowed' : '' %>">
-                <i class="fa-heart text-sm <%= isWishlisted ? 'fa-solid text-red-500' : 'fa-regular text-gray-500' %>"></i>
-            </button>
+        <!-- Wishlist -->
+        <button id="wishlist-<%= variantId %>"
+                data-product-id="<%= product._id %>"
+                data-variant-id="<%= variantId %>"
+                <%= isCarted ? 'disabled' : '' %>
+                class="wishlist w-9 h-9 bg-white shadow-md rounded-xl flex items-center justify-center hover:bg-red-50 transition-colors <%= isCarted ? 'opacity-40 cursor-not-allowed' : '' %>">
+            <i class="fa-heart text-sm <%= isWishlisted ? 'fa-solid text-red-500' : 'fa-regular text-gray-500' %>"></i>
+        </button>
 
-            <!-- Cart -->
-            <% if (!isCarted) { %>
-            <button data-product-id="<%= product._id %>"
-                    data-variant-id="<%= variantId %>"
-                    class="add-to-cart w-9 h-9 bg-white shadow-md rounded-xl flex items-center justify-center hover:bg-blue-50 transition-colors">
-                <i class="fa-solid fa-cart-shopping text-sm text-gray-500 hover:text-blue-600"></i>
-            </button>
-            <% } else { %>
-            <button data-product-id="<%= product._id %>"
-                    data-variant-id="<%= variantId %>"
-                    class="add-to-cart increase w-9 h-9 bg-green-500 shadow-md rounded-xl flex items-center justify-center">
-                <i class="fa-solid fa-check text-sm text-white"></i>
-            </button>
-            <% } %>
+        <!-- Cart icon button -->
+        <% if (!isCarted) { %>
+        <button data-product-id="<%= product._id %>"
+                data-variant-id="<%= variantId %>"
+                class="add-to-cart w-9 h-9 bg-white shadow-md rounded-xl flex items-center justify-center hover:bg-blue-50 transition-colors">
+            <i class="fa-solid fa-cart-shopping text-sm text-gray-500"></i>
+        </button>
+        <% } else { %>
+        <div class="w-9 h-9 bg-green-500 shadow-md rounded-xl flex items-center justify-center">
+            <i class="fa-solid fa-check text-sm text-white"></i>
         </div>
+        <% } %>
     </div>
 
     <!-- INFO AREA -->
@@ -91,17 +88,17 @@
         <!-- Price row -->
         <div class="mt-auto">
             <div class="flex items-baseline gap-2 flex-wrap">
-                <span class="text-red-500 text-lg font-black">₹<%= finalPrice.toLocaleString('en-IN') %></span>
+                <span class="text-red-500 text-lg font-black">&#8377;<%= finalPrice.toLocaleString('en-IN') %></span>
                 <% if (discountPct > 0) { %>
-                <span class="text-xs text-gray-400 line-through">₹<%= regularPrice.toLocaleString('en-IN') %></span>
+                <span class="text-xs text-gray-400 line-through">&#8377;<%= regularPrice.toLocaleString('en-IN') %></span>
                 <% } %>
             </div>
             <% if (savings > 0) { %>
-            <p class="text-[10px] text-emerald-600 font-semibold mt-0.5">Save ₹<%= savings.toLocaleString('en-IN') %></p>
+            <p class="text-[10px] text-emerald-600 font-semibold mt-0.5">Save &#8377;<%= savings.toLocaleString('en-IN') %></p>
             <% } %>
         </div>
 
-        <!-- Quick add button (mobile-friendly) -->
+        <!-- Quick add button -->
         <% if (!isCarted) { %>
         <button data-product-id="<%= product._id %>"
                 data-variant-id="<%= variantId %>"
