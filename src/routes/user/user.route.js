@@ -52,6 +52,8 @@ import paymentRouter from "../product/payment.route.js";
 import { applyCoupon, removeCoupon, getAvailableCoupons } from "../../controllers/product/user/coupon.controller.js";
 
 import { getWalletPage, addMoneyToWallet } from "../../controllers/user/wallet.controller.js";
+import User from "../../models/userSchema.model.js";
+import cartSchemaModels from "../../models/cartSchema.models.js";
 
 const router = Router();
 
@@ -76,6 +78,15 @@ router.get("/demo/payment-modals", (req, res) => {
 });
 
 //Product List page
+router.delete('/cart/clearall', async (req, res) => {
+  const userId = res.locals.user._id;
+
+ const user=  await cartSchemaModels.findOneAndUpdate({ userId },{$set:{items:[]}},{new:true})
+  console.log(user)
+  if(user.items.length === 0){
+    return res.status(200).json({success:true});
+  }
+})
 router.get("/cart/status", getCartStatus);
 
 router.get("/productList", getProductsListingPage);
@@ -93,7 +104,7 @@ router.get("/cart/validate-stock-cart", requireAuth, validateCartStockCheck);
 router.get("/cart/checkout", requireAuth, getCheckoutPage);
 router.get("/checkout", requireAuth, getBuyNowPage);
 router.get("/cart/coupon/available", requireAuth, getAvailableCoupons);
-router.post("/cart/coupon/apply",  requireAuth, applyCoupon);
+router.post("/cart/coupon/apply", requireAuth, applyCoupon);
 router.delete("/cart/coupon/remove", requireAuth, removeCoupon);
 
 //Profile Side

@@ -46,6 +46,10 @@
                     class="inline-flex items-center gap-2 text-sm font-medium text-gray-600 hover:text-black transition-colors bg-white px-5 py-2.5 rounded-full border shadow-sm hover:shadow">
                     <i class="fa-solid fa-arrow-left"></i> Continue Shopping
                 </a>
+                <a id="clearall"
+                    class="inline-flex items-center gap-2 text-sm font-medium text-gray-600 hover:text-black transition-colors bg-white px-5 py-2.5 rounded-full border shadow-sm hover:shadow">
+                    <i class="fa-solid fa-arrow-left"></i> Clear all
+                </a>
             </div>
 
             <div class="flex flex-col lg:flex-row gap-10">
@@ -78,8 +82,7 @@
                         <% if (typeof cart !=='undefined' && cart && cart.items && cart.items.length> 0) { %>
                             <% cart.items.forEach(item=> { %>
                                 <div class="bg-white p-5 sm:p-6 rounded-2xl shadow-sm border border-gray-100 flex flex-col sm:flex-row gap-6 cart-item hover:shadow-md"
-                                    data-item-id="<%= item._id %>"
-                                    data-stock="<%= item.variantId?.stock %>"
+                                    data-item-id="<%= item._id %>" data-stock="<%= item.variantId?.stock %>"
                                     data-mrp="<%= item.variantId?.regular_price || item.variantId?.price || 0 %>"
                                     data-product-id="<%= item.productId?._id %>"
                                     data-variant-id="<%= item.variantId?._id %>">
@@ -90,7 +93,7 @@
                                         <img src="<%= item?.variantId?.images?.[0] || item?.variantId?.product_images?.[0]?.url || '/images/default.png' %>"
                                             alt="<%= item?.productId?.name || 'Product' %>"
                                             class="w-full h-full object-contain p-3 group-hover:scale-110 transition-transform duration-500 mix-blend-multiply">
-                                        <% if (item.variantId?.stock ===0) { %>
+                                        <% if (item.variantId?.stock===0) { %>
                                             <div
                                                 class="absolute sold-out-badge inset-x-0 bottom-0 bg-red-500/90 py-1.5 backdrop-blur-sm flex justify-center">
                                                 <span
@@ -274,7 +277,7 @@
 
                                                 <button
                                                     class="w-8 h-8 flex items-center justify-center rounded-md hover:bg-white hover:shadow-sm text-gray-600 transition-all disabled:opacity-30 disabled:hover:bg-transparent disabled:hover:shadow-none increase-qty"
-                                                    <%=item.quantity >= Math.min(item.variantId?.stock || 1, 3) ?
+                                                    <%=item.quantity>= Math.min(item.variantId?.stock || 1, 3) ?
                                                     'disabled' : '' %>>
                                                     <i class="fa-solid fa-plus text-[10px]"></i>
                                                 </button>
@@ -313,19 +316,22 @@
                             </div>
 
                             <!-- PRODUCT DISCOUNTS -->
-                            <div id="summaryDiscountRow" class="hidden flex justify-between items-center text-green-600">
+                            <div id="summaryDiscountRow"
+                                class="hidden flex justify-between items-center text-green-600">
                                 <span class="text-sm">Product Discounts</span>
                                 <span class="font-medium">- ₹<span id="summaryDiscount">0</span></span>
                             </div>
 
                             <!-- TAX -->
                             <div class="flex justify-between items-center text-gray-600">
-                                <span class="text-sm">Tax (GST) <span class="text-[10px] text-gray-400">Included</span></span>
+                                <span class="text-sm">Tax (GST) <span
+                                        class="text-[10px] text-gray-400">Included</span></span>
                                 <span class="font-medium text-gray-900">₹ <span id="summaryTax">0.00</span></span>
                             </div>
 
                             <!-- DELIVERY -->
-                            <div class="flex justify-between items-center text-gray-600 border-t border-gray-100 pt-3 mt-1">
+                            <div
+                                class="flex justify-between items-center text-gray-600 border-t border-gray-100 pt-3 mt-1">
                                 <span class="text-sm">Delivery</span>
                                 <span id="summaryDelivery"
                                     class="font-medium text-green-600 text-sm bg-green-50 px-2 py-0.5 rounded">
@@ -339,11 +345,13 @@
                             <div class="flex justify-between items-end">
                                 <div>
                                     <span class="block text-sm font-medium text-gray-500 mb-1">Total Amount</span>
-                                    <span id="overallSaveBadge" class="hidden text-[11px] text-green-600 font-semibold bg-green-50 px-2 py-0.5 rounded">
+                                    <span id="overallSaveBadge"
+                                        class="hidden text-[11px] text-green-600 font-semibold bg-green-50 px-2 py-0.5 rounded">
                                         Overall save ₹<span id="overallSaveAmt">0</span>
                                     </span>
                                 </div>
-                                <span class="font-bold text-3xl text-gray-900 tracking-tight">₹<span id="summaryTotal">0.00</span></span>
+                                <span class="font-bold text-3xl text-gray-900 tracking-tight">₹<span
+                                        id="summaryTotal">0.00</span></span>
                             </div>
                         </div>
 
@@ -384,9 +392,17 @@
     <% if (typeof error !=="undefined" && error) { %>
         <script type="module">
             import { showToast } from "/partials/errorMsg.utils.js";
-            showToast(<%- JSON.stringify(error) %>, "error");
+            showToast(<% - JSON.stringify(error) %>, "error");
         </script>
         <% } %>
+            <script>
+                document.getElementById('clearall').addEventListener('click', () => {
+                    const res = fetch('/cart/clearall', { method: 'DELETE' })
+                    if(res.ok){
+                        window.location.reload();
+                    }
+                })
+            </script>
             <script type="module">
                 import { showToast } from "/partials/errorMsg.utils.js";
                 import { confirmAction } from "/partials/confirm.util.js";
@@ -478,8 +494,8 @@
                 //  QUANTITY HANDLERS
                 document.querySelectorAll('.decrease-qty').forEach(btn => {
                     btn.addEventListener('click', async e => {
-                        const el    = e.target.closest('.cart-item');
-                        const qty   = +el.querySelector('.item-qty').value;
+                        const el = e.target.closest('.cart-item');
+                        const qty = +el.querySelector('.item-qty').value;
                         const stock = +el.dataset.stock;
                         const limit = Math.min(stock, 3);
 
@@ -494,7 +510,7 @@
                 document.querySelectorAll('.increase-qty').forEach(btn => {
                     btn.addEventListener('click', async e => {
                         const el = e.target.closest('.cart-item');
-                        const qty   = +el.querySelector('.item-qty').value;
+                        const qty = +el.querySelector('.item-qty').value;
                         const stock = +el.dataset.stock;
                         const limit = Math.min(stock, 3);
 
@@ -516,8 +532,8 @@
                 //  UPDATE QTY
                 async function updateQty(el, qty, mode = 'inc') {
                     const itemId = el.dataset.itemId;
-                    const stock  = Number(el.dataset.stock);
-                    const limit  = Math.min(stock, 3);
+                    const stock = Number(el.dataset.stock);
+                    const limit = Math.min(stock, 3);
 
                     if (qty < 1) {
                         showToast(`Minimum 1 item required`, "warning");
@@ -551,7 +567,7 @@
                             const decreaseBtn = el.querySelector('.decrease-qty');
                             const increaseBtn = el.querySelector('.increase-qty');
 
-                            qty <= 1    ? decreaseBtn?.setAttribute('disabled', '') : decreaseBtn?.removeAttribute('disabled');
+                            qty <= 1 ? decreaseBtn?.setAttribute('disabled', '') : decreaseBtn?.removeAttribute('disabled');
                             qty >= limit ? increaseBtn?.setAttribute('disabled', '') : increaseBtn?.removeAttribute('disabled');
 
                             calculateTotals();
@@ -613,7 +629,7 @@
                         const res = await fetch("/api/user/cart/validate-stock-cart");
                         const data = await res.json();
 
-                        if(!data.success) {
+                        if (!data.success) {
 
                             const errorItems = data.items || [];
 
@@ -633,35 +649,35 @@
                         showToast("Something went wrong", "error");
                     }
                 });
-                
+
                 //  HELPERS
                 function calculateTotals() {
-                    let mrpTotal      = 0;  // sum of regular_price * qty
-                    let finalTotal    = 0;  // sum of finalPrice * qty (post-offer)
+                    let mrpTotal = 0;  // sum of regular_price * qty
+                    let finalTotal = 0;  // sum of finalPrice * qty (post-offer)
                     let totalDiscount = 0;
-                    let count         = 0;
+                    let count = 0;
 
                     document.querySelectorAll('.cart-item').forEach(el => {
                         const finalPrice = +el.querySelector('.item-price').textContent.replace(/,/g, '');
-                        const mrpPrice   = +(el.dataset.mrp || finalPrice);
-                        const qty        = +el.querySelector('.item-qty').value;
+                        const mrpPrice = +(el.dataset.mrp || finalPrice);
+                        const qty = +el.querySelector('.item-qty').value;
 
-                        finalTotal    += finalPrice * qty;
-                        mrpTotal      += mrpPrice   * qty;
+                        finalTotal += finalPrice * qty;
+                        mrpTotal += mrpPrice * qty;
                         totalDiscount += Math.max(mrpPrice - finalPrice, 0) * qty;
-                        count         += qty;
+                        count += qty;
                     });
 
-                    const GST_RATE  = 18;
+                    const GST_RATE = 18;
                     const gstAmount = (finalTotal * GST_RATE) / (100 + GST_RATE);
-                    const delivery  = count === 0 ? 0 : (finalTotal >= 500 ? 0 : 40);
+                    const delivery = count === 0 ? 0 : (finalTotal >= 500 ? 0 : 40);
                     const grandTotal = finalTotal + delivery;
 
                     // ── UI UPDATE ──
                     document.getElementById('summaryItemCount').textContent = count;
-                    document.getElementById('summarySubtotal').textContent  = format(mrpTotal);
-                    document.getElementById('summaryTax').textContent       = format(gstAmount);
-                    document.getElementById('summaryTotal').textContent     = format(grandTotal);
+                    document.getElementById('summarySubtotal').textContent = format(mrpTotal);
+                    document.getElementById('summaryTax').textContent = format(gstAmount);
+                    document.getElementById('summaryTotal').textContent = format(grandTotal);
 
                     // Discount row
                     const discountRow = document.getElementById('summaryDiscountRow');
@@ -685,13 +701,13 @@
                     const deliveryEl = document.getElementById('summaryDelivery');
                     if (count === 0) {
                         deliveryEl.textContent = '--';
-                        deliveryEl.className   = 'font-medium text-gray-400 text-sm';
+                        deliveryEl.className = 'font-medium text-gray-400 text-sm';
                     } else if (delivery === 0) {
                         deliveryEl.textContent = 'Free';
-                        deliveryEl.className   = 'font-medium text-green-600 text-sm bg-green-50 px-2 py-0.5 rounded';
+                        deliveryEl.className = 'font-medium text-green-600 text-sm bg-green-50 px-2 py-0.5 rounded';
                     } else {
                         deliveryEl.textContent = '₹' + format(delivery);
-                        deliveryEl.className   = 'font-medium text-gray-900 text-sm';
+                        deliveryEl.className = 'font-medium text-gray-900 text-sm';
                     }
                 }
 
@@ -755,7 +771,7 @@
                     // ❌ clear cookie
                     document.cookie = "cartError=; path=/; expires=Thu, 01 Jan 1970 00:00:00 UTC;";
                 }
-            
+
             </script>
 
             <%- include("../../partials/user/footer.ejs") %>
