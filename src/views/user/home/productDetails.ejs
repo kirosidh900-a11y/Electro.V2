@@ -1,7 +1,6 @@
-<link rel="preconnect" href="https://fonts.googleapis.com">
+﻿<link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&display=swap"
-  rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/toastify-js/src/toastify.min.css">
 <script src="https://cdn.jsdelivr.net/npm/toastify-js"></script>
 <script src="https://cdn.tailwindcss.com"></script>
@@ -11,1429 +10,829 @@
   tailwind.config = {
     theme: {
       extend: {
-        fontFamily: {
-          sans: ['Outfit', 'sans-serif'],
-        },
+        fontFamily: { sans: ['Outfit','sans-serif'] },
         colors: {
-          brand: {
-            50: '#eef2ff',
-            100: '#e0e7ff',
-            500: '#6366f1',
-            600: '#4f46e5',
-            700: '#4338ca',
-            900: '#1e1b4b',
-          }
+          brand: { 50:'#eef2ff',100:'#e0e7ff',500:'#6366f1',600:'#4f46e5',700:'#4338ca',900:'#1e1b4b' }
         }
       }
     }
   }
 </script>
 <style>
-  body {
-    font-family: 'Outfit', sans-serif;
-    background: linear-gradient(to bottom, #f8fafc, #eef2ff);
-    overflow-x: hidden;
+  body { font-family:'Outfit',sans-serif; background:linear-gradient(to bottom,#f8fafc,#eef2ff); overflow-x:hidden; }
+  .hide-scrollbar::-webkit-scrollbar { display:none; }
+  .hide-scrollbar { -ms-overflow-style:none; scrollbar-width:none; }
+  @media (hover:hover) and (pointer:fine) {
+    #mainImage { will-change:transform; transition:transform 0.2s ease-out; cursor:zoom-in; }
   }
-
-  .hide-scrollbar::-webkit-scrollbar { display: none; }
-  .hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
-
-  /* Zoom — desktop only */
-  @media (hover: hover) and (pointer: fine) {
-    #mainImage {
-      will-change: transform;
-      transition: transform 0.2s ease-out;
-      cursor: zoom-in;
-    }
+  .variant-option.active { border-color:#2563eb; background-color:#eff6ff; box-shadow:0 4px 15px rgba(37,99,235,.15); }
+  .thumb.active { border-color:#2563eb; box-shadow:0 4px 10px rgba(37,99,235,.2); }
+  .variant-out-of-stock img { filter:grayscale(1); opacity:.5; }
+  .glass-panel { background:rgba(255,255,255,.7); backdrop-filter:blur(12px); -webkit-backdrop-filter:blur(12px); }
+  .line-clamp-3 { display:-webkit-box; -webkit-line-clamp:3; -webkit-box-orient:vertical; overflow:hidden; }
+  /* Fixed bottom action bar — below lg breakpoint (1024px) */
+  .pd-action-bar {
+    position:fixed; bottom:0; left:0; right:0; z-index:40;
+    background:#fff; border-top:1px solid #e2e8f0;
+    padding:10px 16px; display:flex; gap:10px;
+    box-shadow:0 -4px 20px rgba(0,0,0,.08);
   }
-
-  .variant-option.active {
-    border-color: #2563eb;
-    background-color: #eff6ff;
-    box-shadow: 0 4px 15px rgba(37, 99, 235, 0.15);
-  }
-
-  .thumb.active {
-    border-color: #2563eb;
-    box-shadow: 0 4px 10px rgba(37, 99, 235, 0.2);
-  }
-
-  .variant-out-of-stock img {
-    filter: grayscale(1);
-    opacity: 0.5;
-  }
-
-  .glass-panel {
-    background: rgba(255, 255, 255, 0.7);
-    backdrop-filter: blur(12px);
-    -webkit-backdrop-filter: blur(12px);
-  }
-
-  .line-clamp-3 {
-    display: -webkit-box;
-    -webkit-line-clamp: 3;
-    -webkit-box-orient: vertical;
-    overflow: hidden;
-  }
-
-  /* Mobile action bar — fixed bottom strip */
-  @media (max-width: 767px) {
-    .mobile-action-bar {
-      position: fixed;
-      bottom: 0;
-      left: 0;
-      right: 0;
-      z-index: 40;
-      background: white;
-      border-top: 1px solid #e2e8f0;
-      padding: 10px 16px;
-      display: flex;
-      gap: 10px;
-      box-shadow: 0 -4px 20px rgba(0,0,0,0.08);
-    }
-    /* Add bottom padding so content isn't hidden behind the bar */
-    .product-detail-section {
-      padding-bottom: 90px;
-    }
-  }
+  @media (min-width:1024px) { .pd-action-bar { display:none !important; } }
+  .pd-section { padding-bottom:80px; }
+  @media (min-width:1024px) { .pd-section { padding-bottom:0; } }
 </style>
 
 <%- include("../../partials/user/header.ejs") %>
 
-  <section class="text-slate-900 font-sans antialiased pb-6 md:pb-20 pt-4 md:pt-6 product-detail-section">
-    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+<section class="text-slate-900 font-sans antialiased pt-4 lg:pt-6 pd-section">
+  <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
 
-      <!-- Breadcrumb -->
-      <nav class="flex text-xs sm:text-sm text-slate-500 mb-4 sm:mb-8 items-center space-x-1.5 font-medium flex-wrap gap-y-1">
-        <a href="/" class="hover:text-blue-600 transition">Home</a>
-        <span><i class="fas fa-chevron-right text-[9px] text-slate-300"></i></span>
-        <a href="/shop" class="hover:text-blue-600 transition">Products</a>
-        <% if (product.category?.title) { %>
-          <span><i class="fas fa-chevron-right text-[9px] text-slate-300"></i></span>
-          <a href="/shop?category=<%= product.category._id %>"
-            class="hover:text-blue-600 transition"><%= product.category.title %></a>
-        <% } %>
-        <% if (product.brand?.title) { %>
-          <span><i class="fas fa-chevron-right text-[9px] text-slate-300"></i></span>
-          <a href="/shop?brand=<%= product.brand._id %>"
-            class="hover:text-blue-600 transition"><%= product.brand.title %></a>
-        <% } %>
-        <span><i class="fas fa-chevron-right text-[9px] text-slate-300"></i></span>
-        <span class="text-slate-900 font-bold truncate max-w-[160px] sm:max-w-[200px]"><%= product.name %></span>
-      </nav>
+    <!-- Breadcrumb -->
+    <nav class="flex text-xs text-slate-500 mb-4 items-center flex-wrap gap-x-1.5 gap-y-1 font-medium">
+      <a href="/" class="hover:text-blue-600 transition">Home</a>
+      <i class="fas fa-chevron-right text-[8px] text-slate-300"></i>
+      <a href="/shop" class="hover:text-blue-600 transition">Products</a>
+      <% if (product.category?.title) { %>
+        <i class="fas fa-chevron-right text-[8px] text-slate-300"></i>
+        <a href="/shop?category=<%= product.category._id %>" class="hover:text-blue-600 transition"><%= product.category.title %></a>
+      <% } %>
+      <i class="fas fa-chevron-right text-[8px] text-slate-300"></i>
+      <span class="text-slate-900 font-bold truncate max-w-[180px]"><%= product.name %></span>
+    </nav>
 
-      <!-- Main Product Section -->
-      <div class="lg:grid lg:grid-cols-12 lg:gap-12">
+    <!-- ═══ TWO-COLUMN LAYOUT ═══ -->
+    <div class="lg:grid lg:grid-cols-12 lg:gap-10">
 
-        <!-- Left Column: Images -->
-        <div class="lg:col-span-5 mb-6 lg:mb-0">
-          <div class="lg:sticky lg:top-24">
+      <!-- ── LEFT: Images ── -->
+      <div class="lg:col-span-5 mb-5 lg:mb-0">
+        <div class="lg:sticky lg:top-24">
 
-            <!-- Main image -->
-            <div id="mainImageContainer"
-              class="w-full bg-white border border-slate-100 rounded-2xl sm:rounded-[2rem] flex items-center justify-center relative overflow-hidden h-[280px] sm:h-[380px] md:h-[460px] lg:h-[500px] shadow-lg shadow-slate-200/40 group mb-3">
-              <div class="absolute inset-0 bg-gradient-to-tr from-slate-50 to-transparent z-0 pointer-events-none"></div>
-              <img id="mainImage"
-                src="<%= product.variants?.[0]?.product_images?.[0]?.url || '/images/placeholder.png' %>"
-                alt="<%= product.name %>"
-                class="relative z-10 max-h-[80%] max-w-[80%] object-contain select-none transition-transform duration-500">
-            </div>
-
-            <!-- Thumbnails — horizontal scroll strip on all sizes -->
-            <div id="thumbnailList"
-              class="flex flex-row gap-2 sm:gap-3 overflow-x-auto hide-scrollbar py-1 px-0.5">
-              <!-- Rendered via JS -->
-            </div>
+          <!-- Main image -->
+          <div id="mainImageContainer"
+            class="w-full bg-white border border-slate-100 rounded-2xl flex items-center justify-center relative overflow-hidden shadow-md mb-3"
+            style="height: clamp(240px, 45vw, 500px);">
+            <div class="absolute inset-0 bg-gradient-to-tr from-slate-50 to-transparent z-0 pointer-events-none"></div>
+            <img id="mainImage"
+              src="<%= product.variants?.[0]?.product_images?.[0]?.url || '/images/placeholder.png' %>"
+              alt="<%= product.name %>"
+              class="relative z-10 max-h-[80%] max-w-[80%] object-contain select-none">
           </div>
+
+          <!-- Thumbnails — horizontal scroll -->
+          <div id="thumbnailList" class="flex flex-row gap-2 overflow-x-auto hide-scrollbar py-1"></div>
         </div>
+      </div>
 
-        <!-- Right Column: Details -->
-        <div class="lg:col-span-7">
-          <div class="flex flex-col h-full pt-0 lg:pt-2">
+      <!-- ── RIGHT: Details ── -->
+      <div class="lg:col-span-7">
+        <div class="flex flex-col">
 
-            <div class="mb-4 sm:mb-5 flex flex-col items-start gap-2">
-              <span
-                class="bg-brand-50 text-brand-600 font-bold tracking-wide uppercase text-[10px] px-3 py-1.5 rounded-full border border-brand-100 shadow-sm">
-                <%= product.category?.title || 'Electronics' %>
-              </span>
-              <h1 class="product-title text-2xl sm:text-3xl lg:text-4xl font-black text-slate-900 leading-tight tracking-tight">
-                  <%= product.name %>
-              </h1>
-            </div>
+          <!-- Category + Title -->
+          <div class="mb-4 flex flex-col items-start gap-2">
+            <span class="bg-brand-50 text-brand-600 font-bold tracking-wide uppercase text-[10px] px-3 py-1.5 rounded-full border border-brand-100 shadow-sm">
+              <%= product.category?.title || 'Electronics' %>
+            </span>
+            <h1 class="text-xl sm:text-2xl lg:text-3xl xl:text-4xl font-black text-slate-900 leading-tight tracking-tight">
+              <%= product.name %>
+            </h1>
+          </div>
 
-            <!-- Rating & Brand Row -->
-            <div class="flex items-center gap-3 sm:gap-6 flex-wrap mb-5 sm:mb-8">
-              <div class="flex items-center gap-2 sm:gap-3 bg-white border border-slate-100 rounded-2xl p-1.5 pr-3 sm:pr-4 shadow-sm">
-                <div
-                  class="flex items-center bg-slate-900 text-white px-2.5 py-1 sm:px-3 sm:py-1.5 rounded-xl text-xs sm:text-sm font-black shadow-lg shadow-slate-900/20">
-                  <%= (product.rating || 5).toFixed(1) %> <i class="fas fa-star ml-1 sm:ml-1.5 text-[9px] sm:text-[10px] text-yellow-400"></i>
-                </div>
-                <a href="#reviews" class="text-slate-500 text-xs sm:text-sm font-bold hover:text-brand-600 transition">
-                  <%= product.reviewCount || 0 %> Reviews
-                </a>
+          <!-- Rating + Brand -->
+          <div class="flex items-center gap-3 flex-wrap mb-4">
+            <div class="flex items-center gap-2 bg-white border border-slate-100 rounded-2xl p-1.5 pr-3 shadow-sm">
+              <div class="flex items-center bg-slate-900 text-white px-2.5 py-1 rounded-xl text-xs font-black shadow-lg">
+                <%= (product.rating || 5).toFixed(1) %> <i class="fas fa-star ml-1 text-[9px] text-yellow-400"></i>
               </div>
-
-              <% if (product.brand) { %>
-                <div class="h-5 w-[1px] bg-slate-200 hidden sm:block"></div>
-                <div class="flex items-center gap-2">
-                  <img class="h-7 w-7 sm:h-8 sm:w-8 object-contain rounded-full bg-white shadow-sm border border-slate-100 p-1"
-                    src="<%= product.brand.logo || '/images/placeholder.png' %>" alt="Brand">
-                  <span class="text-slate-700 font-extrabold text-xs sm:text-sm">
-                    <%= product.brand.title %>
-                  </span>
-                </div>
-              <% } %>
+              <a href="#reviews" class="text-slate-500 text-xs font-bold hover:text-brand-600 transition">
+                <%= product.reviewCount || 0 %> Reviews
+              </a>
             </div>
+            <% if (product.brand) { %>
+              <div class="flex items-center gap-2">
+                <img class="h-7 w-7 object-contain rounded-full bg-white shadow-sm border border-slate-100 p-1"
+                  src="<%= product.brand.logo || '/images/placeholder.png' %>" alt="Brand">
+                <span class="text-slate-700 font-extrabold text-xs"><%= product.brand.title %></span>
+              </div>
+            <% } %>
+          </div>
 
-            <!-- Price & Stock Card -->
-            <div
-              class="bg-white p-4 sm:p-6 rounded-2xl sm:rounded-[2rem] border border-slate-100 shadow-xl shadow-slate-200/50 mb-5 sm:mb-8 relative overflow-hidden">
-              <div id="stockTopBar"
-                class="absolute top-0 left-0 h-[4px] w-full bg-emerald-500 transition-colors duration-500"></div>
-
-              <div class="flex justify-between items-start mb-3 sm:mb-4">
-                <div id="priceContainer" class="flex items-end gap-3 flex-wrap"></div>
-                <button
-                  class="w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-slate-50 text-slate-400 hover:text-brand-600 hover:bg-brand-50 flex items-center justify-center transition focus:outline-none shrink-0">
+          <!-- Price & Stock Card -->
+          <div class="bg-white rounded-2xl border border-slate-100 shadow-lg mb-4 relative overflow-hidden">
+            <div id="stockTopBar" class="absolute top-0 left-0 h-[4px] w-full bg-emerald-500 transition-colors duration-500"></div>
+            <div class="p-4">
+              <div class="flex justify-between items-start gap-3">
+                <div id="priceContainer" class="flex-1 min-w-0"></div>
+                <button class="w-9 h-9 rounded-full bg-slate-50 text-slate-400 hover:text-brand-600 hover:bg-brand-50 flex items-center justify-center transition shrink-0">
                   <i class="fas fa-share-alt text-sm"></i>
                 </button>
               </div>
-
-              <div
-                class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mt-3 sm:mt-4 pt-3 sm:pt-4 border-t border-slate-50">
-                <div id="stockWrapper" class="flex items-center gap-2">
-                  <!-- JS will inject stock text here -->
-                </div>
-                <div id="deliveryText"
-                  class="flex items-center gap-2 text-xs sm:text-sm font-bold text-slate-700 bg-slate-50 px-3 py-1.5 rounded-xl w-fit">
+              <div class="flex flex-wrap items-center justify-between gap-2 mt-3 pt-3 border-t border-slate-100">
+                <div id="stockWrapper" class="flex items-center gap-2"></div>
+                <div class="flex items-center gap-1.5 text-xs font-bold text-slate-700 bg-slate-50 px-3 py-1.5 rounded-xl">
                   <i class="fas fa-truck-fast text-brand-500"></i> Free Delivery
                 </div>
               </div>
             </div>
+          </div>
 
-            <!-- Promo/Coupon Code Card -->
-            <!-- <div
-                          class="relative overflow-hidden bg-slate-900 rounded-[2rem] p-6 mb-10 shadow-2xl shadow-brand-900/20 group">
-                          <div
-                            class="absolute -top-24 -right-10 w-48 h-48 bg-brand-500/30 rounded-full blur-3xl group-hover:bg-brand-400/40 transition-all duration-700 pointer-events-none">
-                          </div>
-                          <div
-                            class="absolute -bottom-24 -left-10 w-48 h-48 bg-purple-500/20 rounded-full blur-3xl pointer-events-none">
-                          </div>
-            
-                          <div class="relative z-10">
-                            <div class="flex items-center gap-3 mb-5">
-                              <div
-                                class="bg-gradient-to-br from-brand-400 to-brand-600 p-2.5 rounded-xl shadow-lg shadow-brand-500/30">
-                                <i class="fas fa-bolt text-white"></i>
-                              </div>
-                              <h3 class="text-white font-black text-lg tracking-tight">Unlock Secret Offers</h3>
-                            </div>
-            
-                            <div class="flex flex-col sm:flex-row gap-3">
-                              <div class="relative flex-1">
-                                <input type="text" id="couponCode" placeholder="Enter Promo Code"
-                                  class="w-full bg-white/10 border border-white/20 text-white placeholder-slate-400 rounded-2xl px-5 py-3.5 text-sm font-bold focus:outline-none focus:ring-2 focus:ring-brand-500 focus:bg-white/20 uppercase tracking-widest backdrop-blur-md transition-all">
-                              </div>
-                              <button type="button" id="applyCouponBtn"
-                                class="bg-white text-slate-900 hover:bg-brand-50 px-8 py-3.5 rounded-2xl text-sm font-black transition-all active:scale-95 shadow-lg shadow-white/10 flex items-center justify-center gap-2">
-                                REDEEM <i class="fas fa-arrow-right text-[10px]"></i>
-                              </button>
-                            </div>
-            
-                            <div id="couponMessage" class="mt-4 text-sm font-bold hidden px-4 py-2 rounded-xl backdrop-blur-sm">
-                            </div>
-            
-                            <div class="mt-5 flex items-center gap-3">
-                              <span class="text-[10px] text-slate-400 uppercase font-bold">Trending:</span>
-                              <button onclick="document.getElementById('couponCode').value='SAVE10'"
-                                class="text-xs bg-white/5 border border-white/10 text-brand-300 px-3 py-1.5 rounded-lg hover:bg-white/10 hover:border-brand-400 transition cursor-pointer font-bold tracking-wider">SAVE10</button>
-                              <button onclick="document.getElementById('couponCode').value='MEGAOFF'"
-                                class="text-xs bg-white/5 border border-white/10 text-brand-300 px-3 py-1.5 rounded-lg hover:bg-white/10 hover:border-brand-400 transition cursor-pointer font-bold tracking-wider">MEGAOFF</button>
-                            </div>
-                          </div>
-                        </div> -->
-            
-            <!-- PRODUCT DESCRIPTION -->
-            <div class="mb-5 sm:mb-10 bg-white p-4 sm:p-6 rounded-2xl sm:rounded-[2rem] border border-slate-100 shadow-sm">
-              <h3 class="text-base sm:text-lg font-extrabold mb-3 sm:mb-4 flex items-center gap-2">
-                <div class="w-1.5 h-4 bg-brand-500 rounded-full"></div>
-                Description
-              </h3>
-              <p id="dynamicDescription" class="text-slate-600 text-sm font-medium leading-relaxed line-clamp-3 transition-all">
-                Loading...
-              </p>
-              <button id="readMoreBtn" class="mt-3 text-brand-600 text-xs font-bold hover:underline hidden">
-                Read More
+          <!-- Description -->
+          <div class="bg-white rounded-2xl border border-slate-100 shadow-sm mb-4 p-4">
+            <h3 class="text-sm font-extrabold mb-2 flex items-center gap-2">
+              <div class="w-1.5 h-4 bg-brand-500 rounded-full shrink-0"></div>Description
+            </h3>
+            <p id="dynamicDescription" class="text-slate-600 text-sm font-medium leading-relaxed line-clamp-3">Loading...</p>
+            <button id="readMoreBtn" class="mt-2 text-brand-600 text-xs font-bold hover:underline hidden">Read More</button>
+          </div>
+
+          <!-- Variants -->
+          <% if (product.variants && product.variants.length > 0) { %>
+          <div class="bg-white rounded-2xl border border-slate-100 shadow-sm mb-4 p-4">
+            <h3 class="text-sm font-extrabold mb-3 flex items-center gap-2">
+              <div class="w-1.5 h-4 bg-brand-500 rounded-full shrink-0"></div>Choose Variant
+            </h3>
+            <div class="flex flex-wrap gap-2" id="variantOptions">
+              <% product.variants.forEach((variant, index) => {
+                const attrs = variant.attributes || {};
+                const primary = attrs.color || attrs.ram || Object.values(attrs)[0] || "Variant";
+                const isOutOfStock = (variant.stock <= 0); %>
+                <button type="button"
+                  class="variant-option border-2 relative <%= index === 0 ? 'active border-brand-600' : 'border-slate-100' %> <%= isOutOfStock ? 'opacity-60' : 'cursor-pointer hover:border-brand-300 hover:shadow-md hover:-translate-y-0.5' %> flex flex-col items-center justify-center rounded-xl p-2 transition-all bg-white w-[76px]"
+                  data-index="<%= index %>">
+                  <% if (isOutOfStock) { %>
+                    <span class="absolute -top-2.5 left-1/2 -translate-x-1/2 bg-slate-800 text-white text-[8px] font-black px-1.5 py-0.5 rounded-full z-10 uppercase whitespace-nowrap">Sold Out</span>
+                  <% } else { %>
+                    <div class="check-icon absolute -top-1.5 -right-1.5 h-5 w-5 bg-brand-600 text-white rounded-full flex items-center justify-center shadow-md scale-0 transition-transform duration-300 <%= index === 0 ? 'scale-100' : '' %>">
+                      <i class="fas fa-check text-[9px]"></i>
+                    </div>
+                  <% } %>
+                  <img class="h-10 w-10 object-contain rounded-lg drop-shadow-sm mb-1"
+                    src="<%= variant.product_images?.[0]?.url || '/images/no-image.png' %>" alt="variant">
+                  <p class="text-[10px] font-bold text-slate-800 text-center leading-tight"><%= primary %></p>
+                </button>
+              <% }) %>
+            </div>
+          </div>
+          <% } %>
+
+          <!-- Action buttons — always in DOM, desktop row hidden below lg via CSS -->
+          <div class="hidden lg:flex gap-3 mb-6">
+            <form id="cartForm" class="flex-1">
+              <input type="hidden" name="productId" value="<%= product._id %>">
+              <input type="hidden" name="variantId" id="cartVariantId" value="">
+              <input type="hidden" name="quantity" value="1">
+              <button type="submit" class="w-full py-3.5 bg-slate-100 text-slate-900 font-black rounded-2xl transition hover:bg-slate-200 active:scale-95 flex items-center justify-center gap-2 text-sm">
+                <i class="fas fa-shopping-bag"></i> ADD TO CART
               </button>
-            </div> 
-            
-            <!-- Variants -->
-            <% if (product.variants && product.variants.length> 0) { %>
-              <div class="mb-5 sm:mb-10 bg-white p-4 sm:p-6 rounded-2xl sm:rounded-[2rem] border border-slate-100 shadow-sm">
-                <h3 class="text-slate-900 font-extrabold mb-4 sm:mb-5 flex items-center gap-2 text-sm sm:text-base">
-                  <div class="w-1.5 h-4 bg-brand-500 rounded-full"></div> Choose Variant
-                </h3>
-                <div class="flex flex-wrap gap-2 sm:gap-4" id="variantOptions">
-                  <% product.variants.forEach((variant, index)=> {
-                    const attrs = variant.attributes || {};
-                    const primary = attrs.color || attrs.ram || Object.values(attrs)[0] || "Variant";
-                    const isOutOfStock = (variant.stock <= 0); %>
-                      <button type="button"
-                        class="variant-option border-2 relative <%= index === 0 ? 'active border-brand-600' : 'border-slate-100' %> <%= isOutOfStock ? ' opacity-60' : 'cursor-pointer hover:border-brand-300 hover:shadow-lg hover:-translate-y-1' %> group flex flex-col items-center justify-center rounded-2xl sm:rounded-[1.5rem] p-2 sm:p-3 transition-all duration-300 bg-white w-[80px] sm:w-[100px]"
-                        data-index="<%= index %>">
+            </form>
+            <form id="buyNowForm" action="/checkout" method="GET" class="flex-1">
+              <input type="hidden" name="productId" value="<%= product._id %>">
+              <input type="hidden" name="variantId" id="checkoutVariantId" value="">
+              <input type="hidden" name="qty" value="1">
+              <button type="submit" class="w-full py-3.5 bg-brand-600 text-white font-black rounded-2xl transition hover:bg-brand-700 active:scale-95 flex items-center justify-center gap-2 shadow-xl shadow-brand-500/30 text-sm">
+                <i class="fas fa-bolt text-yellow-300"></i> BUY NOW
+              </button>
+            </form>
+            <div id="notifyAction" class="hidden w-full">
+              <form id="notifyForm" action="/product/notify" method="POST">
+                <input type="hidden" name="productId" value="<%= product._id %>">
+                <input type="hidden" name="variantId" id="notifyVariantId" value="">
+                <button type="submit" class="w-full py-3.5 bg-slate-900 text-white font-black rounded-2xl transition hover:bg-slate-800 active:scale-95 flex items-center justify-center gap-2 text-sm">
+                  <i class="fas fa-bell animate-pulse"></i> ALERT ME WHEN BACK IN STOCK
+                </button>
+              </form>
+            </div>
+            <button id="wishlistBtn" data-product-id="<%= product._id %>" data-variant-id="" type="button"
+              class="p-3.5 bg-white border-2 border-slate-100 rounded-2xl flex items-center justify-center text-slate-400 hover:text-red-500 hover:border-red-200 hover:bg-red-50 transition drop-shadow-sm group shrink-0">
+              <i id="heartIcon" class="fa-regular fa-heart text-xl group-hover:scale-110 transition-transform"></i>
+            </button>
+          </div>
 
-                        <% if (isOutOfStock) { %>
-                          <span
-                            class="absolute -top-3 left-1/2 -translate-x-1/2 bg-slate-800 text-white text-[8px] sm:text-[9px] font-black px-2 py-0.5 rounded-full z-10 uppercase tracking-widest whitespace-nowrap shadow-md">Sold Out</span>
-                          <% } else { %>
-                            <div
-                              class="check-icon absolute -top-2 -right-2 h-5 w-5 sm:h-6 sm:w-6 bg-brand-600 text-white rounded-full flex items-center justify-center shadow-md scale-0 transition-transform duration-300 <%= index === 0 ? 'scale-100' : '' %>">
-                              <i class="fas fa-check text-[9px] sm:text-[10px]"></i>
-                            </div>
-                            <% } %>
+          <!-- Hidden inputs for mobile action bar (no duplicate IDs — these are the only forms) -->
+          <!-- The mobile bar buttons reference cartForm/buyNowForm above via JS -->
 
-                              <img class="h-11 w-11 sm:h-14 sm:w-14 object-contain rounded-xl drop-shadow-sm mb-1.5 sm:mb-2"
-                                src="<%= variant.product_images?.[0]?.url || '/images/no-image.png' %>" alt="variant">
-                              <p class="text-[10px] sm:text-xs font-bold text-slate-800 text-center leading-tight">
-                                <%= primary %>
-                              </p>
-                      </button>
-                      <% }) %>
-                </div>
+          <!-- Features -->
+          <div class="grid grid-cols-3 gap-2 mb-4">
+            <div class="glass-panel border border-slate-100 p-3 rounded-xl flex flex-col items-center text-center gap-1.5">
+              <div class="w-8 h-8 rounded-full bg-brand-50 text-brand-600 flex items-center justify-center shrink-0">
+                <i class="fas fa-truck-fast text-sm"></i>
               </div>
+              <h4 class="text-[11px] font-black text-slate-800 leading-tight">Swift Delivery</h4>
+              <p class="text-[10px] text-slate-500 hidden sm:block">24hrs</p>
+            </div>
+            <div class="glass-panel border border-slate-100 p-3 rounded-xl flex flex-col items-center text-center gap-1.5">
+              <div class="w-8 h-8 rounded-full bg-brand-50 text-brand-600 flex items-center justify-center shrink-0">
+                <i class="fas fa-undo text-sm"></i>
+              </div>
+              <h4 class="text-[11px] font-black text-slate-800 leading-tight">Easy Returns</h4>
+              <p class="text-[10px] text-slate-500 hidden sm:block">7 Days</p>
+            </div>
+            <div class="glass-panel border border-slate-100 p-3 rounded-xl flex flex-col items-center text-center gap-1.5">
+              <div class="w-8 h-8 rounded-full bg-brand-50 text-brand-600 flex items-center justify-center shrink-0">
+                <i class="fas fa-shield-check text-sm"></i>
+              </div>
+              <h4 class="text-[11px] font-black text-slate-800 leading-tight">Warranty</h4>
+              <p class="text-[10px] text-slate-500 hidden sm:block">Brand backed</p>
+            </div>
+          </div>
+
+          <!-- Specifications (dynamic) -->
+          <div class="specifications-section space-y-4 mb-4"></div>
+
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══ SIMILAR PRODUCTS ═══ -->
+    <% if (typeof similarProducts !== 'undefined' && similarProducts.length > 0) { %>
+    <div class="mt-10 pt-8 border-t border-slate-200">
+      <div class="flex items-center justify-between mb-6">
+        <div>
+          <h3 class="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">You Might Also Like</h3>
+          <p class="text-xs text-slate-500 mt-1">Customers who viewed this also bought.</p>
+        </div>
+        <a href="/shop" class="hidden sm:flex items-center gap-1.5 px-4 py-2 bg-white border border-slate-200 rounded-full text-xs font-bold text-slate-700 hover:border-brand-300 hover:text-brand-600 transition shadow-sm">
+          View All <i class="fas fa-arrow-right text-[9px]"></i>
+        </a>
+      </div>
+      <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3 sm:gap-4">
+        <% similarProducts.forEach(simProd => {
+          const simVariant = simProd.variants?.[0];
+          const simVariantId = simVariant?._id;
+          const simPrice = simVariant?.price || 0;
+          const simFinalPrice = simVariant?.finalPrice ?? simVariant?.regular_price ?? simPrice;
+          const simKey = `${simProd._id}_${simVariantId}`;
+          const simIsWishlisted = wishlistSet?.has(simKey);
+          const simIsCarted = cartSet?.has(simKey);
+        %>
+        <div class="group bg-white border border-slate-100 rounded-2xl p-3 sm:p-4 transition-all duration-300 hover:shadow-xl hover:-translate-y-1 relative">
+          <a href="/product/<%= simProd._id %>" class="block absolute inset-0 z-10 w-full h-full rounded-2xl"></a>
+          <div class="relative w-full aspect-square rounded-xl bg-slate-50 flex items-center justify-center overflow-hidden mb-3 group-hover:bg-slate-100 transition-colors">
+            <img src="<%= simVariant?.product_images?.[0]?.url || '/images/placeholder.png' %>"
+              alt="<%= simProd.name %>"
+              class="max-w-[70%] max-h-[70%] object-contain group-hover:scale-110 transition-transform duration-500">
+            <% if (simFinalPrice < simPrice) { %>
+              <div class="absolute top-2 left-2 bg-red-500 text-white text-[9px] font-black uppercase px-2 py-0.5 rounded-lg z-20">Sale</div>
+            <% } %>
+            <% if (simVariantId) { %>
+              <button id="wishlist-<%= simVariantId %>" data-product-id="<%= simProd._id %>" data-variant-id="<%= simVariantId %>"
+                <%= simIsCarted ? 'disabled' : '' %>
+                class="wishlist absolute top-2 right-2 z-20 w-7 h-7 bg-white/90 backdrop-blur rounded-full shadow flex items-center justify-center hover:bg-red-50 transition <%= simIsCarted ? 'opacity-50 cursor-not-allowed' : '' %>">
+                <i class="fa-heart <%= simIsWishlisted ? 'fa-solid text-red-500' : 'fa-regular text-gray-500' %> text-xs"></i>
+              </button>
+            <% } %>
+          </div>
+          <h4 class="text-slate-900 font-black text-xs sm:text-sm mb-1 line-clamp-2 group-hover:text-brand-600 transition-colors leading-snug">
+            <%= simProd.name %>
+          </h4>
+          <div class="flex items-end justify-between mt-2">
+            <div class="flex flex-col">
+              <% if (simFinalPrice < simPrice) { %>
+                <span class="text-[10px] text-slate-400 line-through font-bold">₹<%= Number(simPrice).toLocaleString('en-IN') %></span>
               <% } %>
+              <span class="text-brand-600 font-black text-sm sm:text-base leading-none">₹<%= Number(simFinalPrice).toLocaleString('en-IN') %></span>
+            </div>
+            <% if (simVariantId) { %>
+              <% if (!simIsCarted) { %>
+                <button data-product-id="<%= simProd._id %>" data-variant-id="<%= simVariantId %>"
+                  class="add-to-cart relative z-20 w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center text-slate-500 group-hover:bg-slate-900 group-hover:text-white transition-all shadow-sm">
+                  <i class="fas fa-shopping-cart text-xs"></i>
+                </button>
+              <% } else { %>
+                <button data-product-id="<%= simProd._id %>" data-variant-id="<%= simVariantId %>"
+                  class="add-to-cart increase relative z-20 w-8 h-8 rounded-full bg-slate-900 flex items-center justify-center text-white transition-all shadow-sm">
+                  <i class="fas fa-check text-xs"></i>
+                </button>
+              <% } %>
+            <% } %>
+          </div>
+        </div>
+        <% }) %>
+      </div>
+    </div>
+    <% } %>
 
-                <!-- Action Buttons — desktop only (mobile uses fixed bottom bar) -->
-                <div class="hidden md:flex flex-wrap gap-4 mb-8">
-                  <div id="purchaseActions" class="flex flex-1 gap-4 flex-wrap">
-                    <form id="cartForm" class="flex-1 min-w-[160px]">
-                      <input type="hidden" name="productId" value="<%= product._id %>">
-                      <input type="hidden" name="variantId" id="cartVariantId" value="">
-                      <input type="hidden" name="quantity" value="1">
-                      <button type="submit"
-                        class="w-full h-14 bg-slate-100 text-slate-900 font-black rounded-2xl transition hover:bg-slate-200 active:scale-95 flex items-center justify-center gap-3 text-sm">
-                        <i class="fas fa-shopping-bag"></i> ADD TO CART
-                      </button>
-                    </form>
-
-                    <form id="buyNowForm" action="/checkout" method="GET" class="flex-1 min-w-[160px]">
-                      <input type="hidden" name="productId" value="<%= product._id %>">
-                      <input type="hidden" name="variantId" id="checkoutVariantId" value="">
-                      <input type="hidden" name="qty" value="1">
-                      <button type="submit"
-                        class="w-full h-14 bg-brand-600 text-white font-black rounded-2xl transition hover:bg-brand-700 active:scale-95 flex items-center justify-center gap-3 shadow-xl shadow-brand-500/30 text-sm">
-                        <i class="fas fa-bolt text-yellow-300"></i> BUY NOW
-                      </button>
-                    </form>
-                  </div>
-
-                  <!-- Notify Me State -->
-                  <div id="notifyAction" class="hidden flex-1 min-w-[100%]">
-                    <form id="notifyForm" action="/product/notify" method="POST">
-                      <input type="hidden" name="productId" value="<%= product._id %>">
-                      <input type="hidden" name="variantId" id="notifyVariantId" value="">
-                      <button type="submit"
-                        class="w-full h-14 bg-slate-900 text-white font-black rounded-2xl transition hover:bg-slate-800 active:scale-95 flex items-center justify-center gap-3 shadow-xl shadow-slate-900/20 text-sm">
-                        <i class="fas fa-bell animate-pulse mr-1"></i> ALERT ME WHEN BACK IN STOCK
-                      </button>
-                    </form>
-                  </div>
-
-                  <div id="wishlistWrapper">
-                    <input type="hidden" id="wishProductId" value="<%= product._id %>">
-                    <input type="hidden" id="wishVariantId" value="">
-                    <button
-                      id="wishlistBtn"
-                      data-product-id="<%= product._id %>"
-                      data-variant-id=""
-                      type="button"
-                      class="w-14 h-14 bg-white border-2 border-slate-100 rounded-2xl flex items-center justify-center text-slate-400 hover:text-red-500 hover:border-red-200 hover:bg-red-50 transition drop-shadow-sm group">
-                      <i id="heartIcon" class="fa-regular fa-heart text-xl group-hover:scale-110 transition-transform"></i>
-                    </button>
-                  </div>
-                </div>
-
-                <!-- Mobile hidden form inputs (used by mobile action bar) -->
-                <div class="md:hidden">
-                  <form id="cartFormMobile" class="hidden">
-                    <input type="hidden" name="productId" value="<%= product._id %>">
-                    <input type="hidden" name="variantId" id="cartVariantIdMobile" value="">
-                    <input type="hidden" name="quantity" value="1">
-                  </form>
-                  <form id="buyNowFormMobile" action="/checkout" method="GET" class="hidden">
-                    <input type="hidden" name="productId" value="<%= product._id %>">
-                    <input type="hidden" name="variantId" id="checkoutVariantIdMobile" value="">
-                    <input type="hidden" name="qty" value="1">
-                  </form>
-                  <div id="notifyAction" class="hidden">
-                    <form id="notifyForm" action="/product/notify" method="POST">
-                      <input type="hidden" name="productId" value="<%= product._id %>">
-                      <input type="hidden" name="variantId" id="notifyVariantId" value="">
-                    </form>
-                  </div>
-                  <div id="wishlistWrapper">
-                    <input type="hidden" id="wishProductId" value="<%= product._id %>">
-                    <input type="hidden" id="wishVariantId" value="">
-                    <button id="wishlistBtn" data-product-id="<%= product._id %>" data-variant-id="" type="button" class="hidden">
-                      <i id="heartIcon" class="fa-regular fa-heart"></i>
-                    </button>
-                  </div>
-                </div>
-
-                <!-- Features Grid -->
-                <div class="grid grid-cols-3 gap-2 sm:gap-4">
-                  <div class="glass-panel border border-slate-100 p-3 sm:p-4 rounded-xl sm:rounded-2xl flex flex-col sm:flex-row items-center sm:items-start gap-2 sm:gap-4 text-center sm:text-left">
-                    <div class="w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-brand-50 text-brand-600 flex items-center justify-center shrink-0">
-                      <i class="fas fa-truck-fast text-sm sm:text-base"></i>
-                    </div>
-                    <div>
-                      <h4 class="text-[11px] sm:text-sm font-black text-slate-800">Swift Delivery</h4>
-                      <p class="text-[10px] sm:text-xs text-slate-500 font-medium mt-0.5 hidden sm:block">Doorstep in 24hrs</p>
-                    </div>
-                  </div>
-                  <div class="glass-panel border border-slate-100 p-3 sm:p-4 rounded-xl sm:rounded-2xl flex flex-col sm:flex-row items-center sm:items-start gap-2 sm:gap-4 text-center sm:text-left">
-                    <div class="w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-brand-50 text-brand-600 flex items-center justify-center shrink-0">
-                      <i class="fas fa-undo text-sm sm:text-base"></i>
-                    </div>
-                    <div>
-                      <h4 class="text-[11px] sm:text-sm font-black text-slate-800">Easy Returns</h4>
-                      <p class="text-[10px] sm:text-xs text-slate-500 font-medium mt-0.5 hidden sm:block">7 Days guaranteed</p>
-                    </div>
-                  </div>
-                  <div class="glass-panel border border-slate-100 p-3 sm:p-4 rounded-xl sm:rounded-2xl flex flex-col sm:flex-row items-center sm:items-start gap-2 sm:gap-4 text-center sm:text-left">
-                    <div class="w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-brand-50 text-brand-600 flex items-center justify-center shrink-0">
-                      <i class="fas fa-shield-check text-sm sm:text-base"></i>
-                    </div>
-                    <div>
-                      <h4 class="text-[11px] sm:text-sm font-black text-slate-800">Warranty</h4>
-                      <p class="text-[10px] sm:text-xs text-slate-500 font-medium mt-0.5 hidden sm:block">100% Brand backed</p>
-                    </div>
-                  </div>
-                </div>
-
-                <!-- Specifications Section Inserted dynamically -->
-                <div class="mt-8 sm:mt-12 specifications-section space-y-4"></div>
-
+    <!-- ═══ REVIEWS ═══ -->
+    <div id="reviews" class="mt-10 pt-8 border-t border-slate-200">
+      <!-- Header -->
+      <div class="flex flex-col sm:flex-row sm:items-end justify-between gap-4 mb-6 bg-white p-5 sm:p-6 rounded-2xl shadow-md border border-slate-50">
+        <div>
+          <h3 class="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">Verified Feedback</h3>
+          <p class="text-slate-500 text-xs mt-1">Real reviews from people who bought this gadget.</p>
+        </div>
+        <div class="flex items-center gap-4 bg-slate-50 p-3 rounded-2xl border border-slate-100 w-fit">
+          <div class="text-center px-2">
+            <div class="text-2xl sm:text-3xl font-black text-slate-900 leading-none"><%= (product.rating || 0).toFixed(1) %></div>
+            <div class="text-[9px] text-slate-400 font-black uppercase tracking-widest mt-1">Average</div>
+          </div>
+          <div class="h-8 w-[1px] bg-slate-200 rounded-full"></div>
+          <div class="text-center px-2">
+            <div class="text-2xl sm:text-3xl font-black text-brand-600 leading-none"><%= product.reviewCount || 0 %></div>
+            <div class="text-[9px] text-slate-400 font-black uppercase tracking-widest mt-1">Reviews</div>
           </div>
         </div>
       </div>
 
-      <!-- SIMILAR PRODUCTS SECTION -->
-      <% if (typeof similarProducts !=='undefined' && similarProducts.length> 0) { %>
-        <div class="mt-14 sm:mt-24 pt-8 sm:pt-10 border-t border-slate-200">
-          <div class="flex items-center justify-between mb-6 sm:mb-10">
-            <div>
-              <h3 class="text-xl sm:text-3xl font-black text-slate-900 tracking-tight">You Might Also Like</h3>
-              <p class="text-xs sm:text-sm text-slate-500 font-medium mt-1">Customers who viewed this also bought.</p>
-            </div>
-            <a href="/shop"
-              class="hidden sm:flex items-center justify-center gap-2 px-5 py-2.5 bg-white border border-slate-200 rounded-full text-sm font-bold text-slate-700 hover:border-brand-300 hover:text-brand-600 transition shadow-sm">
-              View All <i class="fas fa-arrow-right text-[10px]"></i>
-            </a>
-          </div>
-
-          <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3 sm:gap-6">
-            <% similarProducts.forEach(simProd=> {
-              const simVariant = simProd.variants?.[0];
-              const simVariantId = simVariant?._id;
-              const simPrice = simVariant?.price || 0;
-              const simFinalPrice = simVariant?.finalPrice ?? simVariant?.regular_price ?? simPrice;
-              const simKey = `${simProd._id}_${simVariantId}`;
-              const simIsWishlisted = wishlistSet?.has(simKey);
-              const simIsCarted = cartSet?.has(simKey);
-              %>
-              <div class="group bg-white border border-slate-100 rounded-2xl sm:rounded-[2rem] p-3 sm:p-5 transition-all duration-300 hover:shadow-2xl hover:shadow-brand-900/10 hover:-translate-y-2 relative">
-                <a href="/product/<%= simProd._id %>" class="block absolute inset-0 z-10 w-full h-full"></a>
-
-                <div class="relative w-full aspect-square rounded-[1.5rem] bg-slate-50 flex items-center justify-center overflow-hidden mb-5 group-hover:bg-slate-100 transition-colors">
-                  <img src="<%= simVariant?.product_images?.[0]?.url || '/images/placeholder.png' %>"
-                    alt="<%= simProd.name %>"
-                    class="max-w-[70%] max-h-[70%] object-contain group-hover:scale-110 transition-transform duration-500">
-
-                  <% if (simFinalPrice < simPrice) { %>
-                    <div class="absolute top-3 left-3 bg-red-500 text-white text-[10px] font-black uppercase tracking-widest px-2.5 py-1 rounded-lg shadow-sm z-20">Sale</div>
-                  <% } %>
-
-                  <!-- Wishlist button -->
-                  <% if (simVariantId) { %>
-                    <button
-                      id="wishlist-<%= simVariantId %>"
-                      data-product-id="<%= simProd._id %>"
-                      data-variant-id="<%= simVariantId %>"
-                      <%= simIsCarted ? 'disabled' : '' %>
-                      class="wishlist absolute top-3 right-3 z-20 w-8 h-8 bg-white/90 backdrop-blur rounded-full shadow flex items-center justify-center hover:bg-red-50 transition <%= simIsCarted ? 'opacity-50 cursor-not-allowed' : '' %>">
-                      <i class="fa-heart <%= simIsWishlisted ? 'fa-solid text-red-500' : 'fa-regular text-gray-500' %> text-xs"></i>
-                    </button>
-                  <% } %>
+      <div class="grid lg:grid-cols-12 gap-6">
+        <!-- Review Form -->
+        <div class="lg:col-span-4">
+          <div class="lg:sticky lg:top-24 bg-white border border-slate-100 p-5 sm:p-6 rounded-2xl shadow-md">
+            <h4 class="text-base font-black text-slate-900 mb-4 flex items-center gap-2">
+              <span class="w-1.5 h-5 bg-brand-600 rounded-full"></span> Share your thoughts
+            </h4>
+            <form id="reviewForm" action="/product/review" method="POST" class="space-y-4">
+              <input type="hidden" name="productId" value="<%= product._id %>">
+              <div class="bg-slate-50 p-3 rounded-xl border border-slate-100">
+                <div class="flex justify-between items-center mb-2">
+                  <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest">Rate Experience</label>
+                  <span id="ratingStatus" class="text-[10px] font-bold text-brand-600 bg-brand-50 px-2 py-0.5 rounded-md">Select Stars</span>
                 </div>
-
-                <h4 class="text-slate-900 font-black text-sm sm:text-base mb-1 truncate group-hover:text-brand-600 transition-colors">
-                  <%= simProd.name %>
-                </h4>
-
-                <div class="flex items-end justify-between mt-3 sm:mt-4">
-                  <div class="flex flex-col">
-                    <% if (simFinalPrice < simPrice) { %>
-                      <span class="text-xs text-slate-400 line-through font-bold">₹<%= Number(simPrice).toLocaleString('en-IN') %></span>
-                    <% } %>
-                    <span class="text-brand-600 font-black text-base sm:text-xl leading-none mt-1">₹<%= Number(simFinalPrice).toLocaleString('en-IN') %></span>
-                  </div>
-
-                  <!-- Cart button -->
-                  <% if (simVariantId) { %>
-                    <% if (!simIsCarted) { %>
-                      <button
-                        data-product-id="<%= simProd._id %>"
-                        data-variant-id="<%= simVariantId %>"
-                        class="add-to-cart relative z-20 w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center text-slate-500 group-hover:bg-slate-900 group-hover:text-white transition-all shadow-sm">
-                        <i class="fas fa-shopping-cart text-xs"></i>
-                      </button>
-                    <% } else { %>
-                      <button
-                        data-product-id="<%= simProd._id %>"
-                        data-variant-id="<%= simVariantId %>"
-                        class="add-to-cart increase relative z-20 w-10 h-10 rounded-full bg-slate-900 flex items-center justify-center text-white transition-all shadow-sm">
-                        <i class="fas fa-check text-xs"></i>
-                      </button>
-                    <% } %>
-                  <% } %>
+                <div class="flex items-center gap-2 text-2xl text-slate-200 cursor-pointer justify-center py-1" id="starRating">
+                  <i class="fas fa-star transition-all hover:scale-110" data-rating="1"></i>
+                  <i class="fas fa-star transition-all hover:scale-110" data-rating="2"></i>
+                  <i class="fas fa-star transition-all hover:scale-110" data-rating="3"></i>
+                  <i class="fas fa-star transition-all hover:scale-110" data-rating="4"></i>
+                  <i class="fas fa-star transition-all hover:scale-110" data-rating="5"></i>
                 </div>
+                <input type="hidden" name="rating" id="ratingValue" value="0">
               </div>
-              <% }) %>
+              <div>
+                <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-2">Detailed Review</label>
+                <textarea name="comment" rows="4"
+                  class="w-full bg-slate-50 border border-slate-200 rounded-xl p-4 text-slate-700 focus:outline-none focus:ring-2 focus:ring-brand-500/30 focus:border-brand-400 focus:bg-white transition-all text-sm resize-none font-medium placeholder:text-slate-400"
+                  placeholder="What makes this special to you?"></textarea>
+              </div>
+              <button type="submit"
+                class="w-full bg-slate-900 text-white font-black py-3 rounded-xl transition-all hover:bg-brand-600 active:scale-95 flex items-center justify-center gap-2 text-sm group">
+                POST REVIEW <i class="fas fa-paper-plane text-[10px] group-hover:-translate-y-0.5 group-hover:translate-x-0.5 transition-transform"></i>
+              </button>
+            </form>
           </div>
         </div>
-        <% } %>
 
-          <!-- COMPREHENSIVE REVIEWS SECTION -->
-          <div id="reviews" class="mt-12 sm:mt-20 pt-10 sm:pt-16 border-t border-slate-200">
-            <div
-              class="flex flex-col md:flex-row md:items-end justify-between gap-4 sm:gap-6 mb-8 sm:mb-12 bg-white p-5 sm:p-8 rounded-2xl sm:rounded-[2rem] shadow-xl shadow-slate-100 border border-slate-50">
-              <div>
-                <h3 class="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight">Verified Feedback</h3>
-                <p class="text-slate-500 font-medium mt-1 sm:mt-2 text-sm">Real reviews from people who bought this gadget.</p>
-              </div>
-              <div
-                class="flex items-center gap-4 sm:gap-6 bg-slate-50 p-3 sm:p-4 rounded-2xl sm:rounded-[1.5rem] border border-slate-100 shadow-inner w-fit">
-                <div class="text-center px-2 sm:px-4">
-                  <div class="text-3xl sm:text-4xl font-black text-slate-900 leading-none">
-                    <%= (product.rating || 0).toFixed(1) %>
+        <!-- Review List -->
+        <div class="lg:col-span-8 space-y-4">
+          <% if (typeof product.reviews !== 'undefined' && product.reviews.length > 0) { %>
+            <% product.reviews.forEach(review => { %>
+            <div class="bg-white border border-slate-100 p-5 sm:p-6 rounded-2xl transition-all hover:border-brand-200 hover:shadow-lg">
+              <div class="flex flex-col sm:flex-row sm:items-start justify-between gap-3 mb-3">
+                <div class="flex items-center gap-3">
+                  <div class="h-11 w-11 bg-gradient-to-br from-slate-800 to-slate-900 text-white rounded-full flex items-center justify-center font-black text-base shadow-md border-4 border-slate-50 shrink-0">
+                    <%= review.user?.name?.charAt(0) || 'U' %>
                   </div>
-                  <div class="text-[10px] text-slate-400 font-black uppercase tracking-widest mt-1 sm:mt-2">Average</div>
-                </div>
-                <div class="h-8 sm:h-10 w-[2px] bg-slate-200 rounded-full"></div>
-                <div class="text-center px-2 sm:px-4">
-                  <div class="text-3xl sm:text-4xl font-black text-brand-600 leading-none">
-                    <%= product.reviewCount || 0 %>
-                  </div>
-                  <div class="text-[10px] text-slate-400 font-black uppercase tracking-widest mt-1 sm:mt-2">Reviews</div>
-                </div>
-              </div>
-            </div>
-
-            <div class="grid lg:grid-cols-12 gap-6 sm:gap-10">
-              <!-- Add Review Form -->
-              <div class="lg:col-span-4">
-                <div
-                  class="lg:sticky lg:top-24 bg-white border border-slate-100 p-5 sm:p-8 rounded-2xl sm:rounded-[2rem] shadow-xl shadow-slate-100">
-                  <h4 class="text-lg sm:text-xl font-black text-slate-900 mb-5 sm:mb-6 flex items-center gap-3">
-                    <span class="w-1.5 h-6 bg-brand-600 rounded-full"></span> Share your thoughts
-                  </h4>
-                  <form id="reviewForm" action="/product/review" method="POST" class="space-y-6">
-                    <input type="hidden" name="productId" value="<%= product._id %>">
-
-                    <div class="bg-slate-50 p-4 rounded-2xl border border-slate-100">
-                      <div class="flex justify-between items-center mb-3">
-                        <label class="text-xs font-black text-slate-400 uppercase tracking-widest">Rate
-                          Experience</label>
-                        <span id="ratingStatus"
-                          class="text-xs font-bold text-brand-600 bg-brand-50 px-2 py-1 rounded-md">Select Stars</span>
-                      </div>
-                      <!-- Interactive Stars -->
-                      <div class="flex items-center gap-2 text-3xl text-slate-200 cursor-pointer justify-center py-2"
-                        id="starRating">
-                        <i class="fas fa-star transition-all duration-300 hover:scale-110 drop-shadow-sm"
-                          data-rating="1"></i>
-                        <i class="fas fa-star transition-all duration-300 hover:scale-110 drop-shadow-sm"
-                          data-rating="2"></i>
-                        <i class="fas fa-star transition-all duration-300 hover:scale-110 drop-shadow-sm"
-                          data-rating="3"></i>
-                        <i class="fas fa-star transition-all duration-300 hover:scale-110 drop-shadow-sm"
-                          data-rating="4"></i>
-                        <i class="fas fa-star transition-all duration-300 hover:scale-110 drop-shadow-sm"
-                          data-rating="5"></i>
-                      </div>
-                      <input type="hidden" name="rating" id="ratingValue" value="0">
-                    </div>
-
-                    <div>
-                      <label
-                        class="text-xs font-black text-slate-400 uppercase tracking-widest block mb-3 pl-1">Detailed
-                        Review</label>
-                      <textarea name="comment" rows="5"
-                        class="w-full bg-slate-50 border border-slate-200 rounded-2xl p-5 text-slate-700 focus:outline-none focus:ring-2 focus:ring-brand-500/30 focus:border-brand-400 focus:bg-white transition-all text-sm resize-none font-medium placeholder:text-slate-400 shadow-inner"
-                        placeholder="What makes this special to you?"></textarea>
-                    </div>
-
-                    <button type="submit"
-                      class="w-full bg-slate-900 text-white font-black py-4 rounded-2xl transition-all duration-300 hover:bg-brand-600 hover:shadow-lg hover:shadow-brand-300 active:scale-95 flex items-center justify-center gap-2 group">
-                      POST REVIEW <i
-                        class="fas fa-paper-plane text-[10px] group-hover:-translate-y-1 group-hover:translate-x-1 transition-transform"></i>
-                    </button>
-                  </form>
-                </div>
-              </div>
-
-              <!-- Render List of Reviews -->
-              <div class="lg:col-span-8 space-y-5">
-                <% if (typeof product.reviews !=='undefined' && product.reviews.length> 0) { %>
-                  <% product.reviews.forEach(review=> { %>
-                    <div
-                      class="group bg-white border border-slate-100 p-8 rounded-[2rem] transition-all duration-300 hover:border-brand-200 hover:shadow-xl hover:shadow-brand-50/50">
-                      <div class="flex flex-col sm:flex-row sm:items-start justify-between gap-4 mb-4">
-                        <div class="flex items-center gap-4">
-                          <div
-                            class="h-14 w-14 bg-gradient-to-br from-slate-800 to-slate-900 text-white rounded-full flex items-center justify-center font-black text-xl shadow-lg border-4 border-slate-50">
-                            <%= review.user?.name?.charAt(0) || 'U' %>
-                          </div>
-                          <div>
-                            <h5 class="text-base font-black text-slate-900 leading-tight">
-                              <%= review.user?.name || 'Anonymous User' %>
-                            </h5>
-                            <div class="flex items-center gap-3 mt-1.5">
-                              <div class="flex text-yellow-400 text-[11px] drop-shadow-sm">
-                                <% for(let i=1; i<=5; i++) { %>
-                                  <i class="fas fa-star <%= i <= review.rating ? '' : 'text-slate-200' %>"></i>
-                                  <% } %>
-                              </div>
-                              <span
-                                class="text-[9px] text-emerald-700 font-extrabold uppercase tracking-widest bg-emerald-100 px-2 py-0.5 rounded-full inline-flex items-center gap-1">
-                                <i class="fas fa-check-circle"></i> Verified
-                              </span>
-                            </div>
-                          </div>
-                        </div>
-                        <span
-                          class="text-[11px] font-bold text-slate-400 bg-slate-50 px-3 py-1.5 rounded-xl border border-slate-100">
-                          <%= new Date(review.createdAt || Date.now()).toLocaleDateString('en-US', {month: 'short' ,
-                            day: 'numeric' , year: 'numeric' }) %>
-                        </span>
-                      </div>
-                      <p class="text-[15px] text-slate-600 font-medium leading-relaxed sm:pl-16 pt-2">
-                        "<%= review.comment %>"
-                      </p>
-
-                      <div class="mt-6 sm:pl-16 flex items-center gap-5">
-                        <button
-                          class="text-[12px] font-bold text-slate-400 hover:text-brand-600 hover:bg-brand-50 px-3 py-1.5 rounded-lg transition-all flex items-center gap-1.5 border border-transparent hover:border-brand-100">
-                          <i class="far fa-thumbs-up"></i> Helpful
-                        </button>
-                        <div class="w-1 h-1 bg-slate-200 rounded-full"></div>
-                        <button
-                          class="text-[12px] font-bold text-slate-400 hover:text-red-500 hover:bg-red-50 px-3 py-1.5 rounded-lg transition-all flex items-center gap-1.5 border border-transparent hover:border-red-100">
-                          <i class="far fa-flag"></i> Report
-                        </button>
-                      </div>
-                    </div>
-                    <% }) %>
-                      <% } else { %>
-                        <div
-                          class="flex flex-col items-center justify-center h-full min-h-[400px] bg-slate-50/50 rounded-[3rem] border border-dashed border-slate-200 p-10">
-                          <div
-                            class="w-24 h-24 bg-white rounded-[2rem] shadow-xl shadow-slate-200/50 flex items-center justify-center mb-6 drop-shadow-sm">
-                            <i class="far fa-comments text-brand-300 text-4xl"></i>
-                          </div>
-                          <h5 class="text-2xl text-slate-900 font-black tracking-tight">Crickets so far...</h5>
-                          <p class="text-slate-500 font-medium mt-2 max-w-sm text-center">There are no reviews yet. Grab
-                            this product and be the absolute first to share your thoughts!</p>
-                        </div>
+                  <div>
+                    <h5 class="text-sm font-black text-slate-900"><%= review.user?.name || 'Anonymous User' %></h5>
+                    <div class="flex items-center gap-2 mt-1">
+                      <div class="flex text-yellow-400 text-[10px]">
+                        <% for(let i=1; i<=5; i++) { %>
+                          <i class="fas fa-star <%= i <= review.rating ? '' : 'text-slate-200' %>"></i>
                         <% } %>
+                      </div>
+                      <span class="text-[9px] text-emerald-700 font-extrabold uppercase bg-emerald-100 px-1.5 py-0.5 rounded-full inline-flex items-center gap-0.5">
+                        <i class="fas fa-check-circle"></i> Verified
+                      </span>
+                    </div>
+                  </div>
+                </div>
+                <span class="text-[10px] font-bold text-slate-400 bg-slate-50 px-2.5 py-1 rounded-lg border border-slate-100 shrink-0">
+                  <%= new Date(review.createdAt || Date.now()).toLocaleDateString('en-US', {month:'short',day:'numeric',year:'numeric'}) %>
+                </span>
+              </div>
+              <p class="text-sm text-slate-600 font-medium leading-relaxed sm:pl-14">"<%= review.comment %>"</p>
+              <div class="mt-4 sm:pl-14 flex items-center gap-4">
+                <button class="text-[11px] font-bold text-slate-400 hover:text-brand-600 hover:bg-brand-50 px-2.5 py-1 rounded-lg transition-all flex items-center gap-1 border border-transparent hover:border-brand-100">
+                  <i class="far fa-thumbs-up"></i> Helpful
+                </button>
+                <button class="text-[11px] font-bold text-slate-400 hover:text-red-500 hover:bg-red-50 px-2.5 py-1 rounded-lg transition-all flex items-center gap-1 border border-transparent hover:border-red-100">
+                  <i class="far fa-flag"></i> Report
+                </button>
               </div>
             </div>
-          </div>
-          <!-- END REVIEWS SECTION -->
-
+            <% }) %>
+          <% } else { %>
+            <div class="flex flex-col items-center justify-center min-h-[300px] bg-slate-50/50 rounded-2xl border border-dashed border-slate-200 p-8">
+              <div class="w-16 h-16 bg-white rounded-2xl shadow-md flex items-center justify-center mb-4">
+                <i class="far fa-comments text-brand-300 text-3xl"></i>
+              </div>
+              <h5 class="text-lg text-slate-900 font-black tracking-tight">No reviews yet</h5>
+              <p class="text-slate-500 text-sm font-medium mt-1 text-center max-w-xs">Be the first to share your thoughts on this product!</p>
+            </div>
+          <% } %>
+        </div>
+      </div>
     </div>
-  </section>
 
-<script type="module">
-  import { showToast } from "/partials/errorMsg.utils.js"; 
-  window.showMessage = showToast;
-</script>
+  </div>
+</section>
 
-<!-- Mobile fixed action bar -->
-<div class="mobile-action-bar md:hidden" id="mobileActionBar">
+<!-- ═══ MOBILE FIXED ACTION BAR (below lg) ═══ -->
+<div class="pd-action-bar" id="pdActionBar">
   <button id="mobileCartBtn"
-    class="flex-1 h-12 bg-slate-100 text-slate-900 font-black rounded-xl flex items-center justify-center gap-2 text-sm active:scale-95 transition">
+    class="flex-1 h-11 bg-slate-100 text-slate-900 font-black rounded-xl flex items-center justify-center gap-2 text-sm active:scale-95 transition">
     <i class="fas fa-shopping-bag text-sm"></i> Add to Cart
   </button>
   <button id="mobileBuyBtn"
-    class="flex-1 h-12 bg-brand-600 text-white font-black rounded-xl flex items-center justify-center gap-2 text-sm shadow-lg shadow-brand-500/30 active:scale-95 transition">
+    class="flex-1 h-11 bg-brand-600 text-white font-black rounded-xl flex items-center justify-center gap-2 text-sm shadow-lg shadow-brand-500/30 active:scale-95 transition">
     <i class="fas fa-bolt text-yellow-300 text-sm"></i> Buy Now
   </button>
   <button id="mobileWishBtn"
-    class="w-12 h-12 bg-white border-2 border-slate-200 rounded-xl flex items-center justify-center text-slate-400 active:scale-95 transition shrink-0">
-    <i id="mobileHeartIcon" class="fa-regular fa-heart text-lg"></i>
+    class="w-11 h-11 bg-white border-2 border-slate-200 rounded-xl flex items-center justify-center text-slate-400 active:scale-95 transition shrink-0">
+    <i id="mobileHeartIcon" class="fa-regular fa-heart text-base"></i>
   </button>
 </div>
+
+<script type="module">
+  import { showToast } from "/partials/errorMsg.utils.js";
+  window.showMessage = showToast;
+</script>
 
 <script>
   // ── Desktop zoom (hover devices only) ────────────────────────────────────
   const isHoverDevice = window.matchMedia('(hover: hover) and (pointer: fine)').matches;
   if (isHoverDevice) {
-    const container = document.getElementById("mainImageContainer");
-    const image = document.getElementById("mainImage");
-    const zoomLevel = 2;
-
-    container.addEventListener("mousemove", (e) => {
-      const rect = container.getBoundingClientRect();
-      const xPercent = ((e.clientX - rect.left) / rect.width) * 100;
-      const yPercent = ((e.clientY - rect.top) / rect.height) * 100;
-      image.style.transformOrigin = `${xPercent}% ${yPercent}%`;
-      image.style.transform = `scale(${zoomLevel})`;
-    });
-
-    container.addEventListener("mouseleave", () => {
-      image.style.transform = "scale(1)";
-      image.style.transformOrigin = "center center";
-    });
+    const _zoomContainer = document.getElementById("mainImageContainer");
+    const _zoomImage = document.getElementById("mainImage");
+    if (_zoomContainer && _zoomImage) {
+      _zoomContainer.addEventListener("mousemove", (e) => {
+        const rect = _zoomContainer.getBoundingClientRect();
+        const xPct = ((e.clientX - rect.left) / rect.width) * 100;
+        const yPct = ((e.clientY - rect.top) / rect.height) * 100;
+        _zoomImage.style.transformOrigin = `${xPct}% ${yPct}%`;
+        _zoomImage.style.transform = "scale(2)";
+      });
+      _zoomContainer.addEventListener("mouseleave", () => {
+        _zoomImage.style.transform = "scale(1)";
+        _zoomImage.style.transformOrigin = "center center";
+      });
+    }
   }
 </script>
 
 <script>
-    const productVariants = <%- JSON.stringify((product.variants || []).map(v => ({
-      _id: String(v._id || ''),
-      price: v.regular_price || 0,
-      finalPrice: v.finalPrice ?? v.price ?? 0,
-      stock: Number(v.stock || 0),
-      description: v.description || "",
-      attributes: v.attributes || {},
-      product_images: (v.product_images || []).map(img => ({ url: img.url || '' }))
-    }))) %>;
+  const productVariants = <%- JSON.stringify((product.variants || []).map(v => ({
+    _id: String(v._id || ''),
+    price: v.regular_price || 0,
+    finalPrice: v.finalPrice ?? v.price ?? 0,
+    stock: Number(v.stock || 0),
+    description: v.description || "",
+    attributes: v.attributes || {},
+    product_images: (v.product_images || []).map(img => ({ url: img.url || '' }))
+  }))) %>;
 
   const isLoggedIn = <%= user ? 'true' : 'false' %>;
-
   let currentVariant = null;
   let isInCart = false;
 
-  const isMobile = () => window.innerWidth < 768;
-
   // ── Element refs ──────────────────────────────────────────────────────────
-  const wishlistBtn  = document.getElementById('wishlistBtn');
-  const heartIcon    = document.getElementById('heartIcon');
+  const wishlistBtn     = document.getElementById('wishlistBtn');
+  const heartIcon       = document.getElementById('heartIcon');
   const mobileHeartIcon = document.getElementById('mobileHeartIcon');
+  const cartForm        = document.getElementById('cartForm');
+  const cartBtn         = cartForm?.querySelector("button");
+  const mobileCartBtn   = document.getElementById('mobileCartBtn');
+  const mobileBuyBtn    = document.getElementById('mobileBuyBtn');
+  const mobileWishBtn   = document.getElementById('mobileWishBtn');
 
-  // Desktop forms
-  const cartForm  = document.getElementById('cartForm');
-  const cartBtn   = cartForm?.querySelector("button");
-  const buyNowForm = document.getElementById('buyNowForm');
-
-  // Mobile buttons
-  const mobileCartBtn = document.getElementById('mobileCartBtn');
-  const mobileBuyBtn  = document.getElementById('mobileBuyBtn');
-  const mobileWishBtn = document.getElementById('mobileWishBtn');
-
-  //  HEART UI
+  // ── Heart UI ──────────────────────────────────────────────────────────────
   function setHeart(active) {
-    const cls = active
-      ? "fa-solid fa-heart text-red-500 text-xl group-hover:scale-110 transition-transform drop-shadow-sm"
+    if (heartIcon) heartIcon.className = active
+      ? "fa-solid fa-heart text-red-500 text-xl group-hover:scale-110 transition-transform"
       : "fa-regular fa-heart text-xl group-hover:scale-110 transition-transform";
-    if (heartIcon) heartIcon.className = cls;
     if (mobileHeartIcon) mobileHeartIcon.className = active
-      ? "fa-solid fa-heart text-red-500 text-lg"
-      : "fa-regular fa-heart text-lg";
+      ? "fa-solid fa-heart text-red-500 text-base"
+      : "fa-regular fa-heart text-base";
   }
 
-  // PRICE RENDER
-    function renderPrice(v) {
-      if (!v) return;
-
-      const priceContainer = document.getElementById('priceContainer');
-      const price = v.price || 0;
-      const finalPrice = v.finalPrice ?? price;
-
-      if (finalPrice < price) {
-        const discount = Math.round(((price - finalPrice) / price) * 100);
-        const saved = price - finalPrice;
-
-        priceContainer.innerHTML = `
-      <div class="flex flex-col gap-1">
-        <!-- Main Price Row -->
-        <div class="flex items-center gap-2 flex-wrap">
-          <span class="text-2xl sm:text-3xl lg:text-4xl font-black text-brand-600 tracking-tight">
-            ₹${finalPrice.toLocaleString('en-IN')}
-          </span>
-          <span class="text-xs sm:text-sm text-slate-400 line-through font-bold">
-            ₹${price.toLocaleString('en-IN')}
-          </span>
-          <span class="bg-green-600 text-white text-[10px] sm:text-xs font-bold px-2 py-0.5 sm:py-1 rounded-md whitespace-nowrap">
-            ${discount}% OFF
-          </span>
-        </div>
-        <span class="text-xs text-green-600 font-bold">
-          You save ₹${saved.toLocaleString('en-IN')}
-        </span>
-        <span class="text-[11px] text-slate-500 font-medium">
-          Inclusive of all taxes
-        </span>
-      </div>
-    `;
-      } else {
-        priceContainer.innerHTML = `
-      <div class="flex flex-col">
-        <span class="text-2xl sm:text-3xl lg:text-4xl font-black text-brand-600 tracking-tight">
-          ₹${price.toLocaleString('en-IN')}
-        </span>
-        <span class="text-[11px] text-slate-500 font-medium">
-          Inclusive of all taxes
-        </span>
-      </div>
-    `;
-      }
+  // ── Price render ──────────────────────────────────────────────────────────
+  function renderPrice(v) {
+    const pc = document.getElementById('priceContainer');
+    if (!pc || !v) return;
+    const price = v.price || 0;
+    const fp    = v.finalPrice ?? price;
+    if (fp < price) {
+      const disc  = Math.round(((price - fp) / price) * 100);
+      const saved = price - fp;
+      pc.innerHTML = `
+        <div class="flex flex-col gap-1 min-w-0">
+          <div class="flex items-baseline gap-2 flex-wrap">
+            <span class="text-xl sm:text-2xl lg:text-3xl font-black text-brand-600 tracking-tight">&#8377;${fp.toLocaleString('en-IN')}</span>
+            <span class="text-xs text-slate-400 line-through font-bold">&#8377;${price.toLocaleString('en-IN')}</span>
+            <span class="bg-green-600 text-white text-[10px] font-bold px-2 py-0.5 rounded-md whitespace-nowrap">${disc}% OFF</span>
+          </div>
+          <span class="text-xs text-green-600 font-bold">You save &#8377;${saved.toLocaleString('en-IN')}</span>
+          <span class="text-[11px] text-slate-500">Inclusive of all taxes</span>
+        </div>`;
+    } else {
+      pc.innerHTML = `
+        <div class="flex flex-col gap-1 min-w-0">
+          <span class="text-xl sm:text-2xl lg:text-3xl font-black text-brand-600 tracking-tight">&#8377;${price.toLocaleString('en-IN')}</span>
+          <span class="text-[11px] text-slate-500">Inclusive of all taxes</span>
+        </div>`;
     }
-  
-    // STOCK RENDER
+  }
+
+  // ── Stock render ──────────────────────────────────────────────────────────
   function renderStock(v) {
     if (!v) return;
-    const stockWrapper = document.getElementById('stockWrapper');
-    const stockTopBar = document.getElementById('stockTopBar');
-    const buyNowBtn = document.getElementById('buyNowForm')?.querySelector('button');
-
+    const sw  = document.getElementById('stockWrapper');
+    const stb = document.getElementById('stockTopBar');
+    const bnBtn = document.getElementById('buyNowForm')?.querySelector('button');
     if (v.stock > 0) {
-      stockWrapper.innerHTML = `
-        <div class="w-3 h-3 rounded-full bg-emerald-500 animate-pulse"></div>
-        <span class="text-sm font-black text-emerald-600 tracking-tight">In Stock (${v.stock} left)</span>
-      `;
-      if(stockTopBar) stockTopBar.className = "absolute top-0 left-0 h-[4px] w-full bg-emerald-500 transition-colors duration-500";
-
-      // Re-enable cart + buy now
-      cartBtn.disabled = false;
-      cartBtn.classList.remove('opacity-50', 'cursor-not-allowed');
-      if(buyNowBtn) {
-        buyNowBtn.disabled = false;
-        buyNowBtn.classList.remove('opacity-50', 'cursor-not-allowed');
-      }
+      if (sw) sw.innerHTML = `<div class="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse"></div><span class="text-xs font-black text-emerald-600">In Stock (${v.stock} left)</span>`;
+      if (stb) stb.className = "absolute top-0 left-0 h-[4px] w-full bg-emerald-500 transition-colors duration-500";
+      if (cartBtn) { cartBtn.disabled = false; cartBtn.classList.remove('opacity-50','cursor-not-allowed'); }
+      if (bnBtn)   { bnBtn.disabled = false;   bnBtn.classList.remove('opacity-50','cursor-not-allowed'); }
+      if (mobileCartBtn) { mobileCartBtn.disabled = false; mobileCartBtn.classList.remove('opacity-50','cursor-not-allowed'); }
+      if (mobileBuyBtn)  { mobileBuyBtn.disabled = false;  mobileBuyBtn.classList.remove('opacity-50','cursor-not-allowed'); }
     } else {
-      stockWrapper.innerHTML = `
-        <div class="w-3 h-3 rounded-full bg-red-500 hidden"></div>
-        <span class="text-sm font-black text-red-500 tracking-tight"><i class="fas fa-times-circle"></i> Out of Stock</span>
-      `;
-      if(stockTopBar) stockTopBar.className = "absolute top-0 left-0 h-[4px] w-full bg-red-500 transition-colors duration-500";
-
-      // Disable cart + buy now
-      cartBtn.disabled = true;
-      cartBtn.classList.add('opacity-50', 'cursor-not-allowed');
-      if(buyNowBtn) {
-        buyNowBtn.disabled = true;
-        buyNowBtn.classList.add('opacity-50', 'cursor-not-allowed');
-      }
+      if (sw) sw.innerHTML = `<span class="text-xs font-black text-red-500"><i class="fas fa-times-circle mr-1"></i>Out of Stock</span>`;
+      if (stb) stb.className = "absolute top-0 left-0 h-[4px] w-full bg-red-500 transition-colors duration-500";
+      if (cartBtn) { cartBtn.disabled = true; cartBtn.classList.add('opacity-50','cursor-not-allowed'); }
+      if (bnBtn)   { bnBtn.disabled = true;   bnBtn.classList.add('opacity-50','cursor-not-allowed'); }
+      if (mobileCartBtn) { mobileCartBtn.disabled = true; mobileCartBtn.classList.add('opacity-50','cursor-not-allowed'); }
+      if (mobileBuyBtn)  { mobileBuyBtn.disabled = true;  mobileBuyBtn.classList.add('opacity-50','cursor-not-allowed'); }
     }
   }
 
-  // IMAGE RENDER
+  // ── Image render ──────────────────────────────────────────────────────────
   function renderImages(v) {
     if (!v) return;
-    const mainImage = document.getElementById('mainImage');
-    const thumbnailList = document.getElementById('thumbnailList');
-    
-    const imgs = (v.product_images && v.product_images.length)
-      ? v.product_images
-      : [{ url: '/images/placeholder.png' }];
-
-    mainImage.src = imgs[0].url;
-    thumbnailList.innerHTML = '';
-
-    imgs.forEach((img, index) => {
+    const mainImg = document.getElementById('mainImage');
+    const thumbList = document.getElementById('thumbnailList');
+    const imgs = (v.product_images?.length) ? v.product_images : [{ url: '/images/placeholder.png' }];
+    if (mainImg) mainImg.src = imgs[0].url;
+    if (!thumbList) return;
+    thumbList.innerHTML = '';
+    imgs.forEach((img, i) => {
       const btn = document.createElement('button');
-      // Horizontal thumbnails — consistent size on all screens
-      btn.className = "thumb border-2 border-slate-100 rounded-xl overflow-hidden hover:border-brand-300 transition-colors h-14 w-14 sm:h-16 sm:w-16 bg-white shrink-0";
-      if (index === 0) btn.classList.add("active", "border-brand-600");
-      
-      btn.innerHTML = `<img src="${img.url}" class="w-full h-full object-contain p-1">`;
-
+      btn.className = "thumb border-2 border-slate-100 rounded-xl overflow-hidden hover:border-brand-300 transition-colors h-14 w-14 bg-white shrink-0";
+      if (i === 0) btn.classList.add("active","border-brand-600");
+      btn.innerHTML = `<img src="${img.url}" class="w-full h-full object-contain p-1" loading="lazy">`;
       btn.onclick = () => {
-        mainImage.src = img.url;
-        document.querySelectorAll('.thumb').forEach(t => {
-          t.classList.remove('active', 'border-brand-600');
-          t.classList.add('border-slate-100');
-        });
-        btn.classList.add('active', 'border-brand-600');
-        btn.classList.remove('border-slate-100');
+        if (mainImg) mainImg.src = img.url;
+        thumbList.querySelectorAll('.thumb').forEach(t => { t.classList.remove('active','border-brand-600'); t.classList.add('border-slate-100'); });
+        btn.classList.add('active','border-brand-600'); btn.classList.remove('border-slate-100');
       };
-      thumbnailList.appendChild(btn);
+      thumbList.appendChild(btn);
     });
   }
 
-  //  VARIANT CHANGE
+  // ── Description render ────────────────────────────────────────────────────
+  function renderDescription(v) {
+    const el = document.getElementById("dynamicDescription");
+    if (el) el.innerText = v?.description || "No description available for this variant.";
+  }
+
+  // ── Specifications render ─────────────────────────────────────────────────
+  function renderSpecifications() {
+    const sc = document.querySelector(".specifications-section");
+    if (!sc) return;
+    const productAttrs = <%- JSON.stringify(product.attributes || {}) %>;
+    const variantAttrs = currentVariant?.attributes || {};
+    const allSpecs = { ...productAttrs, ...variantAttrs };
+    if (!Object.keys(allSpecs).length) { sc.innerHTML = ""; return; }
+    sc.innerHTML = `
+      <div class="bg-white border border-slate-100 rounded-2xl p-4 sm:p-5 shadow-sm">
+        <h3 class="text-sm font-extrabold mb-3 flex items-center gap-2">
+          <div class="w-1.5 h-4 bg-brand-500 rounded-full"></div>Specifications
+        </h3>
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+          ${Object.entries(allSpecs).map(([k,val]) => `
+            <div class="flex justify-between bg-slate-50 px-3 py-2.5 rounded-xl gap-2">
+              <span class="text-slate-500 text-xs font-bold capitalize shrink-0">${k.replace(/_/g," ")}</span>
+              <span class="text-slate-900 text-xs font-extrabold text-right">${val}</span>
+            </div>`).join("")}
+        </div>
+      </div>`;
+  }
+
+  // ── Variant change ────────────────────────────────────────────────────────
   function setActiveVariant(index) {
     currentVariant = productVariants[index];
-    if(!currentVariant) return;
-
-    if(wishlistBtn) wishlistBtn.dataset.variantId = currentVariant._id;
-
-    // Sync all variant ID inputs (desktop + mobile)
-    ['cartVariantId','checkoutVariantId'].forEach(id => {
-      const el = document.getElementById(id);
-      if (el) el.value = currentVariant._id;
+    if (!currentVariant) return;
+    if (wishlistBtn) wishlistBtn.dataset.variantId = currentVariant._id;
+    ['cartVariantId','checkoutVariantId','notifyVariantId'].forEach(id => {
+      const el = document.getElementById(id); if (el) el.value = currentVariant._id;
     });
-
-    // Render HTML injections dynamically
     renderPrice(currentVariant);
     renderStock(currentVariant);
     renderImages(currentVariant);
-    renderSpecifications(currentVariant);
+    renderSpecifications();
     renderDescription(currentVariant);
-
-    // Apply Active UI outlines on button variants
     document.querySelectorAll('.variant-option').forEach(el => {
-      el.classList.remove('active', 'border-brand-600', 'bg-eff6ff');
-      el.classList.add('border-slate-100');
-      const check = el.querySelector('.check-icon');
-      if(check) check.classList.replace('scale-100', 'scale-0');
+      el.classList.remove('active','border-brand-600'); el.classList.add('border-slate-100');
+      const chk = el.querySelector('.check-icon'); if (chk) chk.classList.replace('scale-100','scale-0');
     });
-    
-    const activeBtn = document.querySelector(`[data-index="${index}"]`);
-    if(activeBtn && !activeBtn.classList.contains('variant-out-of-stock')){
-      activeBtn.classList.add('active', 'border-brand-600');
-      activeBtn.classList.remove('border-slate-100');
-      const check = activeBtn.querySelector('.check-icon');
-      if(check) check.classList.replace('scale-0', 'scale-100');
+    const ab = document.querySelector(`[data-index="${index}"]`);
+    if (ab && !ab.classList.contains('variant-out-of-stock')) {
+      ab.classList.add('active','border-brand-600'); ab.classList.remove('border-slate-100');
+      const chk = ab.querySelector('.check-icon'); if (chk) chk.classList.replace('scale-0','scale-100');
     }
-
     checkWishlistStatus();
     checkCartStatus();
   }
 
-  // CHECK UNIT ALREADY IN CART 
+  // ── Cart status ───────────────────────────────────────────────────────────
   async function checkCartStatus() {
     if (!isLoggedIn || !currentVariant) return;
-
     try {
-      const res = await fetch(`/cart/status?productId=${wishlistBtn?.dataset.productId || '<%= product._id %>'}&variantId=${currentVariant._id}`);
+      const pid = wishlistBtn?.dataset.productId || '<%= product._id %>';
+      const res = await fetch(`/cart/status?productId=${pid}&variantId=${currentVariant._id}`);
       if (!res.ok) return;
-
       const data = await res.json();
       isInCart = data.inCart;
-
       if (isInCart) {
-        // Desktop cart button → "Go to Cart"
-        if (cartBtn) {
-          cartBtn.innerHTML = `GO TO CART <i class="fas fa-arrow-right text-[10px]"></i>`;
-          cartBtn.className = "w-full h-14 bg-emerald-500 text-white font-black rounded-2xl transition hover:bg-emerald-600 active:scale-95 flex items-center justify-center gap-3 shadow-lg shadow-emerald-500/20 text-sm";
-          cartBtn.disabled = false;
-        }
-        // Mobile cart button
-        if (mobileCartBtn) {
-          mobileCartBtn.innerHTML = `<i class="fas fa-arrow-right text-sm"></i> Go to Cart`;
-          mobileCartBtn.className = "flex-1 h-12 bg-emerald-500 text-white font-black rounded-xl flex items-center justify-center gap-2 text-sm active:scale-95 transition";
-        }
-        // Disable wishlist
-        if(wishlistBtn) {
-          wishlistBtn.disabled = true;
-          wishlistBtn.classList.add("opacity-50", "cursor-not-allowed");
-          wishlistBtn.classList.remove("hover:text-red-500", "hover:border-red-200", "hover:bg-red-50");
-        }
-        if(mobileWishBtn) {
-          mobileWishBtn.disabled = true;
-          mobileWishBtn.classList.add("opacity-50", "cursor-not-allowed");
-        }
+        if (cartBtn) { cartBtn.innerHTML = `GO TO CART <i class="fas fa-arrow-right text-[10px]"></i>`; cartBtn.className = "w-full py-3.5 bg-emerald-500 text-white font-black rounded-2xl transition hover:bg-emerald-600 active:scale-95 flex items-center justify-center gap-2 text-sm shadow-lg"; cartBtn.disabled = false; }
+        if (mobileCartBtn) { mobileCartBtn.innerHTML = `<i class="fas fa-arrow-right text-sm"></i> Go to Cart`; mobileCartBtn.className = "flex-1 h-11 bg-emerald-500 text-white font-black rounded-xl flex items-center justify-center gap-2 text-sm active:scale-95 transition"; }
+        if (wishlistBtn) { wishlistBtn.disabled = true; wishlistBtn.classList.add("opacity-50","cursor-not-allowed"); }
+        if (mobileWishBtn) { mobileWishBtn.disabled = true; mobileWishBtn.classList.add("opacity-50","cursor-not-allowed"); }
       } else {
         if (currentVariant.stock > 0) {
-          if (cartBtn) {
-            cartBtn.innerHTML = `<i class="fas fa-shopping-bag"></i> ADD TO CART`;
-            cartBtn.className = "w-full h-14 bg-slate-100 text-slate-900 font-black rounded-2xl transition hover:bg-slate-200 active:scale-95 flex items-center justify-center gap-3 text-sm";
-            cartBtn.disabled = false;
-          }
-          if (mobileCartBtn) {
-            mobileCartBtn.innerHTML = `<i class="fas fa-shopping-bag text-sm"></i> Add to Cart`;
-            mobileCartBtn.className = "flex-1 h-12 bg-slate-100 text-slate-900 font-black rounded-xl flex items-center justify-center gap-2 text-sm active:scale-95 transition";
-          }
+          if (cartBtn) { cartBtn.innerHTML = `<i class="fas fa-shopping-bag"></i> ADD TO CART`; cartBtn.className = "w-full py-3.5 bg-slate-100 text-slate-900 font-black rounded-2xl transition hover:bg-slate-200 active:scale-95 flex items-center justify-center gap-2 text-sm"; cartBtn.disabled = false; }
+          if (mobileCartBtn) { mobileCartBtn.innerHTML = `<i class="fas fa-shopping-bag text-sm"></i> Add to Cart`; mobileCartBtn.className = "flex-1 h-11 bg-slate-100 text-slate-900 font-black rounded-xl flex items-center justify-center gap-2 text-sm active:scale-95 transition"; }
         }
-        if(wishlistBtn) {
-          wishlistBtn.disabled = false;
-          wishlistBtn.classList.remove("opacity-50", "cursor-not-allowed");
-          wishlistBtn.classList.add("hover:text-red-500", "hover:border-red-200", "hover:bg-red-50");
-        }
-        if(mobileWishBtn) {
-          mobileWishBtn.disabled = false;
-          mobileWishBtn.classList.remove("opacity-50", "cursor-not-allowed");
-        }
+        if (wishlistBtn) { wishlistBtn.disabled = false; wishlistBtn.classList.remove("opacity-50","cursor-not-allowed"); }
+        if (mobileWishBtn) { mobileWishBtn.disabled = false; mobileWishBtn.classList.remove("opacity-50","cursor-not-allowed"); }
       }
-    } catch (err) {
-      console.log(err);
-    }
+    } catch(e) { console.log(e); }
   }
 
-  // ── Shared add-to-cart logic ──────────────────────────────────────────────
+  // ── Add to cart ───────────────────────────────────────────────────────────
   async function doAddToCart(btn) {
     if (!isLoggedIn) return showMessage("Please log in to add items to your cart.", "warning");
     if (isInCart) { window.location.href = "/cart"; return; }
-    if (!currentVariant || currentVariant.stock <= 0) {
-      showMessage("This item is currently out of stock", "error"); return;
-    }
-    const cartCount = +document.getElementById('cartCount').textContent || 0;
-    if (cartCount >= 5) { showMessage("Maximum 5 different products allowed in cart.", "warning"); return; }
-
-    const origHTML = btn.innerHTML;
-    btn.disabled = true;
-    btn.innerHTML = `<i class="fas fa-spinner fa-spin"></i>`;
-
+    if (!currentVariant || currentVariant.stock <= 0) { showMessage("This item is currently out of stock", "error"); return; }
+    const cc = +document.getElementById('cartCount').textContent || 0;
+    if (cc >= 5) { showMessage("Maximum 5 different products allowed in cart.", "warning"); return; }
+    const orig = btn.innerHTML;
+    btn.disabled = true; btn.innerHTML = `<i class="fas fa-spinner fa-spin"></i>`;
     try {
-      const res = await fetch("/cart", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          productId: '<%= product._id %>',
-          variantId: currentVariant._id,
-          quantity: 1
-        })
-      });
+      const res = await fetch("/cart", { method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify({ productId:'<%= product._id %>', variantId:currentVariant._id, quantity:1 }) });
       const result = await res.json();
-      if (!res.ok) throw new Error(result.message || "Failed to add to cart");
-
+      if (!res.ok) throw new Error(result.message || "Failed");
       const data = result.data || {};
       showMessage(result.message || "Added to Cart!", "success");
-
-      const countEl = document.getElementById('wishlistCount');
-      const countCartEl = document.getElementById('cartCount');
-      let current = +countEl.textContent || 0;
-      let currentCart = +countCartEl.textContent || 0;
-
-      if (data.removedFromWishlit) {
-        setHeart(false);
-        countEl.textContent = Math.max(0, current - 1);
-      }
-      if (data.added) {
-        countCartEl.textContent = currentCart + 1;
-      }
-
-      isInCart = true;
-      checkCartStatus();
-    } catch (err) {
-      showMessage(err.message, "error");
-      btn.disabled = false;
-      btn.innerHTML = origHTML;
-      checkCartStatus();
-    }
+      const wc = document.getElementById('wishlistCount');
+      const cc2 = document.getElementById('cartCount');
+      if (data.removedFromWishlit && wc) { setHeart(false); wc.textContent = Math.max(0, +wc.textContent - 1); }
+      if (data.added && cc2) cc2.textContent = +cc2.textContent + 1;
+      isInCart = true; checkCartStatus();
+    } catch(err) { showMessage(err.message, "error"); btn.disabled = false; btn.innerHTML = orig; checkCartStatus(); }
   }
 
-  // Desktop cart form submit
-  cartForm?.addEventListener("submit", async (e) => {
-    e.preventDefault();
-    await doAddToCart(cartBtn);
-  });
+  // ── Wishlist toggle ───────────────────────────────────────────────────────
+  async function toggleWishlist() {
+    if (!isLoggedIn) return showMessage("Please log in to manage your wishlist.", "warning");
+    if (isInCart) { showMessage("This item is already in your cart!", "warning"); return; }
+    try {
+      if (wishlistBtn) { wishlistBtn.disabled = true; }
+      if (heartIcon) heartIcon.className = "fas fa-spinner fa-spin text-xl text-slate-400";
+      const res = await fetch("/api/wishlist", { method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify({ productId:wishlistBtn?.dataset.productId || '<%= product._id %>', variantId:currentVariant._id }) });
+      const result = await res.json();
+      if (!res.ok) throw new Error(result.message);
+      const data = result.data || {};
+      const wc = document.getElementById('wishlistCount');
+      let cur = +(wc?.textContent || 0);
+      if (data.added || result.message?.toLowerCase().includes("added")) { cur++; setHeart(true); }
+      else { cur = Math.max(0, cur - 1); setHeart(false); }
+      if (wc) wc.textContent = cur;
+      showMessage(result.message || "Wishlist updated", "success");
+    } catch(err) { showMessage(err.message, "error"); checkWishlistStatus(); }
+    finally { if (!isInCart && wishlistBtn) wishlistBtn.disabled = false; }
+  }
 
-  // Mobile cart button
-  mobileCartBtn?.addEventListener("click", async () => {
-    if (isInCart) { window.location.href = "/cart"; return; }
-    await doAddToCart(mobileCartBtn);
-  });
+  // ── Wishlist status ───────────────────────────────────────────────────────
+  async function checkWishlistStatus() {
+    if (!isLoggedIn || !currentVariant) return;
+    try {
+      const pid = wishlistBtn?.dataset.productId || '<%= product._id %>';
+      const res = await fetch(`/wishlist/status?productId=${pid}&variantId=${currentVariant._id}`);
+      if (!res.ok) return;
+      const data = await res.json();
+      setHeart(data.inWishlist);
+    } catch(e) { console.log(e); }
+  }
 
-  // Mobile buy now button
+  // ── Event wiring ──────────────────────────────────────────────────────────
+  cartForm?.addEventListener("submit", async (e) => { e.preventDefault(); await doAddToCart(cartBtn); });
+  mobileCartBtn?.addEventListener("click", async () => { if (isInCart) { window.location.href="/cart"; return; } await doAddToCart(mobileCartBtn); });
   mobileBuyBtn?.addEventListener("click", () => {
     if (!isLoggedIn) { showMessage("Please log in to continue.", "warning"); return; }
     if (!currentVariant || currentVariant.stock <= 0) { showMessage("Out of stock", "error"); return; }
-    const form = document.getElementById('buyNowForm');
-    if (form) form.submit();
+    document.getElementById('buyNowForm')?.submit();
   });
-
-  // Mobile wishlist button
   mobileWishBtn?.addEventListener("click", toggleWishlist);
 
-  // CHECK WISHLIST
-  async function checkWishlistStatus() {
-    if (!isLoggedIn || !currentVariant) return;
-
-    try {
-      const res = await fetch(`/wishlist/status?productId=${wishlistBtn.dataset.productId}&variantId=${currentVariant._id}`);
-      if (!res.ok) return;
-      const data = await res.json();
-      console.log("Wishlist status:", data);
-
-      setHeart(data.inWishlist);
-    } catch (err) {
-      console.log(err);
-    }
-  }
-
-  // TOGGLE WISHLIST
-  async function toggleWishlist() {
-    if (!isLoggedIn) return showMessage("Please log in to manage your wishlist.", "warning");
-
-    // Stop users from wishlisting if it's already in the cart
-    if (isInCart) {
-      if(window.showMessage) window.showMessage("This item is already safe in your cart!", "warning");
-      return;
-    }
-
-    try {
-      wishlistBtn.disabled = true;
-      heartIcon.className = "fas fa-spinner fa-spin text-2xl text-slate-400";
-
-      const res = await fetch("/api/wishlist", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          productId: wishlistBtn.dataset.productId,
-          variantId: currentVariant._id
-        })
+  // ── Star rating ───────────────────────────────────────────────────────────
+  const starIcons = document.querySelectorAll("#starRating i");
+  const ratingVal = document.getElementById("ratingValue");
+  const ratingStatus = document.getElementById("ratingStatus");
+  starIcons.forEach(star => {
+    star.addEventListener("click", () => {
+      const r = parseInt(star.dataset.rating);
+      if (ratingVal) ratingVal.value = r;
+      starIcons.forEach(s => {
+        const sr = parseInt(s.dataset.rating);
+        s.classList.toggle("text-yellow-400", sr <= r);
+        s.classList.toggle("text-slate-200", sr > r);
       });
-
-      const result = await res.json();
-      if (!res.ok) throw new Error(result.message);
-
-      const data = result.data || {};
-      const countEl = document.getElementById('wishlistCount');
-      let current = +countEl.textContent || 0;
-
-      if (data.added || (result.message && result.message.toLowerCase().includes("added"))) {
-        current += 1;
-        setHeart(true);
-      } else {
-        current = Math.max(0, current - 1);
-        setHeart(false);
-      }
-      countEl.textContent = current;
-
-      if(window.showMessage) window.showMessage(result.message || "Wishlist updated",'success');
-
-    } catch(err) {
-      console.log(err);
-      if(window.showMessage) window.showMessage(err.message, "error");
-      checkWishlistStatus();
-    } finally {
-      // Re-enable if it isn't in cart currently. (If we disable completely, we want it to stay disabled)
-      if (!isInCart) wishlistBtn.disabled = false;
-    }
-  }
-
-//renderSpecifications
-  function renderSpecifications() {
-  const specContainer = document.querySelector(".specifications-section");
-  if (!specContainer) return;
-
-  const productAttrs = <%- JSON.stringify(product.attributes || {}) %>;
-  const variantAttrs = currentVariant?.attributes || {};
-
-  const allSpecs = {
-    ...productAttrs,
-    ...variantAttrs
-  };
-
-  if (Object.keys(allSpecs).length === 0) {
-    specContainer.innerHTML = "";
-    return;
-  }
-
-  specContainer.innerHTML = `
-    <div class="bg-white border border-slate-100 rounded-[2rem] p-6 shadow-sm">
-      <h3 class="text-lg font-extrabold mb-5 flex items-center gap-2">
-        <div class="w-1.5 h-4 bg-brand-500 rounded-full"></div>
-        Specifications
-      </h3>
-
-      <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        ${Object.entries(allSpecs).map(([key, value]) => `
-          <div class="flex justify-between bg-slate-50 px-4 py-3 rounded-xl">
-            <span class="text-slate-500 text-sm font-bold capitalize">
-              ${key.replace(/_/g, " ")}
-            </span>
-            <span class="text-slate-900 text-sm font-extrabold">
-              ${value}
-            </span>
-          </div>
-        `).join("")}
-      </div>
-    </div>
-  `;
-}
-
-//renderDescription
-  function renderDescription(v) {
-    const descEl = document.getElementById("dynamicDescription");
-    if (!descEl) return;
-
-    descEl.innerText = v.description || "No description available for this variant.";
-  }
-
-  // COUPON CODE APPLY LOGIC
-  const applyCouponBtn = document.getElementById("applyCouponBtn");
-  const couponCodeInput = document.getElementById("couponCode");
-  const couponMessage = document.getElementById("couponMessage");
-
-  applyCouponBtn?.addEventListener("click", async () => {
-    const code = couponCodeInput.value.trim();
-    if (!code) {
-      if(window.showMessage) window.showMessage("Please enter a coupon code", "warning");
-      return;
-    }
-    try {
-      applyCouponBtn.disabled = true;
-      applyCouponBtn.innerHTML = `<i class="fas fa-spinner fa-spin"></i>`;
-      
-      const res = await fetch("/coupon/apply", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ code })
-      });
-      const result = await res.json();
-      
-      couponMessage.classList.remove("hidden");
-      if (res.ok && result.success !== false) {
-        couponMessage.classList.add("bg-green-500/20", "text-green-400", "border", "border-green-500/30");
-        couponMessage.classList.remove("bg-red-500/20", "text-red-400", "border-red-500/30");
-        couponMessage.innerHTML = `<i class="fas fa-check-circle"></i> Coupon applied!`;
-        if(window.showMessage) window.showMessage("Awesome! Coupon Applied.", "success");
-      } else {
-        couponMessage.classList.add("bg-red-500/20", "text-red-400", "border", "border-red-500/30");
-        couponMessage.classList.remove("bg-green-500/20", "text-green-400", "border-green-500/30");
-        couponMessage.innerHTML = `<i class="fas fa-times-circle"></i> Invalid code`;
-        if(window.showMessage) window.showMessage(result.message || "Invalid coupon", "error");
-      }
-    } catch (error) {
-       console.error(error);
-       if(window.showMessage) window.showMessage("Error applying. Try again.", "error");     
-    } finally {
-      applyCouponBtn.disabled = false;
-      applyCouponBtn.innerHTML = `REDEEM <i class="fas fa-arrow-right text-[10px]"></i>`;
-    }
+      if (ratingStatus) ratingStatus.innerText = `${r} Stars - ${['Terrible','Bad','Okay','Good','Excellent!'][r-1]}`;
+    });
+  });
+  document.getElementById("reviewForm")?.addEventListener("submit", (e) => {
+    if (ratingVal?.value === "0") { e.preventDefault(); showMessage("Please select a star rating first!", "warning"); }
   });
 
-
-  // REVIEW RATING SYSTEM EVENT LISTENER
-  const starIconsArray = document.querySelectorAll("#starRating i");
-  const ratingValueInput = document.getElementById("ratingValue");
-  const ratingStatusText = document.getElementById("ratingStatus");
-  const reviewForm = document.getElementById("reviewForm");
-  
-  if (starIconsArray.length > 0) {
-    starIconsArray.forEach(star => {
-      // Selection Click Event
-      star.addEventListener("click", () => {
-        const rating = parseInt(star.getAttribute("data-rating"));
-        ratingValueInput.value = rating;
-        
-        starIconsArray.forEach(s => {
-          const sRating = parseInt(s.getAttribute("data-rating"));
-          if (sRating <= rating) {
-            s.classList.add("text-yellow-400", "fa-solid");
-            s.classList.remove("text-slate-200", "fa-regular");
-          } else {
-            s.classList.remove("text-yellow-400", "fa-solid");
-            s.classList.add("text-slate-200", "fa-regular");
-          }
-        });
-        
-        const feedback = ['Terrible', 'Bad', 'Okay', 'Good', 'Excellent!'][rating - 1];
-        if(ratingStatusText) ratingStatusText.innerText = `${rating} Stars - ${feedback}`;
-      });
-    });
-
-    // Review Form submission validation
-    reviewForm?.addEventListener("submit", (e) => {
-      if (ratingValueInput.value === "0") {
-        e.preventDefault(); 
-        if(window.showMessage) window.showMessage("Please select a star rating first!", "warning");
-      }
-    });
-  }
-
-  // INITIALIZATION LOOP
+  // ── Init ──────────────────────────────────────────────────────────────────
   document.addEventListener("DOMContentLoaded", () => {
-    let initialIndex = 0;
-    const inStockIndex = productVariants.findIndex(v => v.stock > 0);
-    if(inStockIndex !== -1) initialIndex = inStockIndex;
-
-    if (productVariants.length) setActiveVariant(initialIndex);
-
+    let idx = 0;
+    const inStock = productVariants.findIndex(v => v.stock > 0);
+    if (inStock !== -1) idx = inStock;
+    if (productVariants.length) setActiveVariant(idx);
     document.getElementById('variantOptions')?.addEventListener('click', e => {
       const btn = e.target.closest('.variant-option');
-      if (btn && !btn.classList.contains('variant-out-of-stock')) {
-        setActiveVariant(btn.dataset.index);
-      } else if (btn) {
-        showMessage("This item variant is currently out of stock", "warning");
-      }
+      if (!btn) return;
+      if (btn.classList.contains('variant-out-of-stock')) { showMessage("This variant is out of stock", "warning"); return; }
+      setActiveVariant(btn.dataset.index);
     });
-
-    if(wishlistBtn) wishlistBtn.addEventListener("click", toggleWishlist);
-    if(mobileWishBtn) mobileWishBtn.addEventListener("click", toggleWishlist);
-
-    renderSpecifications();
+    if (wishlistBtn) wishlistBtn.addEventListener("click", toggleWishlist);
   });
-
 </script>
 
 <script src="/socket.io/socket.io.js"></script>
 <script>
-  // ── Real-time stock updates via Socket.IO ─────────────────────────────────
   const _socket = io();
   const _thisProductId = "<%= String(product._id) %>";
-
-  _socket.on("connect", () => {
-    console.log("[Socket] Connected:", _socket.id);
-  });
-
-  _socket.on("connect_error", (err) => {
-    console.error("[Socket] Connection error:", err.message);
-  });
-
-  _socket.on("stockUpdated", (payload) => {
-    console.log("[Socket] stockUpdated received:", payload);
-
-    const { productId, variantId, stock } = payload;
-
-    if (String(productId) !== _thisProductId) {
-      console.log("[Socket] Ignoring — different product:", productId, "vs", _thisProductId);
-      return;
-    }
-
-    // Update the in-memory variants array
-    const _variant = productVariants.find(v => String(v._id) === String(variantId));
-    if (!_variant) {
-      console.warn("[Socket] Variant not found in productVariants:", variantId);
-      return;
-    }
-
-    console.log("[Socket] Updating variant stock:", variantId, "→", stock);
-    _variant.stock = stock;
-
-    // Update the variant selector button badge
-    const _idx = productVariants.indexOf(_variant);
+  _socket.on("stockUpdated", ({ productId, variantId, stock }) => {
+    if (String(productId) !== _thisProductId) return;
+    const _v = productVariants.find(v => String(v._id) === String(variantId));
+    if (!_v) return;
+    _v.stock = stock;
+    const _idx = productVariants.indexOf(_v);
     const _btn = document.querySelector(`.variant-option[data-index="${_idx}"]`);
     if (_btn) {
       const _badge = _btn.querySelector('.sold-out-badge');
       if (stock <= 0) {
-        _btn.classList.add('opacity-60', 'variant-out-of-stock');
-        _btn.classList.remove('cursor-pointer', 'hover:border-brand-300');
-        if (!_badge) {
-          const b = document.createElement('span');
-          b.className = 'sold-out-badge absolute -top-3 left-1/2 -translate-x-1/2 bg-slate-800 text-white text-[9px] font-black px-2 py-0.5 rounded-full z-10 uppercase tracking-widest whitespace-nowrap shadow-md';
-          b.textContent = 'Sold Out';
-          _btn.appendChild(b);
-        }
+        _btn.classList.add('opacity-60','variant-out-of-stock');
+        _btn.classList.remove('cursor-pointer','hover:border-brand-300');
+        if (!_badge) { const b = document.createElement('span'); b.className='sold-out-badge absolute -top-2.5 left-1/2 -translate-x-1/2 bg-slate-800 text-white text-[8px] font-black px-1.5 py-0.5 rounded-full z-10 uppercase whitespace-nowrap'; b.textContent='Sold Out'; _btn.appendChild(b); }
       } else {
-        _btn.classList.remove('opacity-60', 'variant-out-of-stock');
-        _btn.classList.add('cursor-pointer', 'hover:border-brand-300');
+        _btn.classList.remove('opacity-60','variant-out-of-stock');
+        _btn.classList.add('cursor-pointer','hover:border-brand-300');
         if (_badge) _badge.remove();
       }
     }
-
-    // If this is the currently selected variant, re-render stock UI live
-    if (currentVariant && String(currentVariant._id) === String(variantId)) {
-      currentVariant.stock = stock;
-      renderStock(currentVariant);
-    }
+    if (currentVariant && String(currentVariant._id) === String(variantId)) { currentVariant.stock = stock; renderStock(currentVariant); }
   });
 </script>
 
 <script>
-  // ── Similar Products: Cart & Wishlist delegated handlers ──────────────────
-  const isLoggedInSim = <%= typeof user !== 'undefined' && user ? 'true' : 'false' %>;
-
+  // Similar products wishlist + cart handlers
+  const _isLoggedInSim = <%= typeof user !== 'undefined' && user ? 'true' : 'false' %>;
   document.addEventListener('click', async (e) => {
     const link = e.target.closest('.wishlist');
     if (!link) return;
-    if (!isLoggedInSim) return window.showMessage("Please log in to manage your wishlist.", "warning");
+    if (!_isLoggedInSim) { window.showMessage("Please log in to manage your wishlist.", "warning"); return; }
     if (link.classList.contains("loading")) return;
     link.classList.add("loading");
-
-    const productId = link.dataset.productId;
-    const variantId = link.dataset.variantId;
+    const productId = link.dataset.productId, variantId = link.dataset.variantId;
     if (!productId || !variantId) { link.classList.remove("loading"); return; }
-
     try {
-      const res = await fetch('/wishlist', {
-        method: "POST",
-        headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
-        body: JSON.stringify({ productId, variantId })
-      });
+      const res = await fetch('/wishlist', { method:"POST", headers:{'Content-Type':'application/json','Accept':'application/json'}, body:JSON.stringify({productId,variantId}) });
       const { success, data, message } = await res.json();
-      if (!success) { window.showMessage(message, "error"); return; }
-
+      if (!success) { window.showMessage(message,"error"); return; }
       const icon = link.querySelector("i");
-      const countEl = document.getElementById('wishlistCount');
-      let current = +countEl.textContent || 0;
-      if (data.added) {
-        icon.classList.replace("fa-regular", "fa-solid");
-        icon.classList.add("text-red-500");
-        countEl.textContent = current + 1;
-      } else {
-        icon.classList.replace("fa-solid", "fa-regular");
-        icon.classList.remove("text-red-500");
-        countEl.textContent = Math.max(0, current - 1);
-      }
-      window.showMessage(message || "Wishlist updated", "success");
-    } catch (err) {
-      window.showMessage("Failed to update wishlist", "error");
-    } finally {
-      link.classList.remove("loading");
-    }
+      const wc = document.getElementById('wishlistCount');
+      let cur = +(wc?.textContent || 0);
+      if (data.added) { icon?.classList.replace("fa-regular","fa-solid"); icon?.classList.add("text-red-500"); if(wc) wc.textContent = cur+1; }
+      else { icon?.classList.replace("fa-solid","fa-regular"); icon?.classList.remove("text-red-500"); if(wc) wc.textContent = Math.max(0,cur-1); }
+      window.showMessage(message || "Wishlist updated","success");
+    } catch(err) { window.showMessage("Failed to update wishlist","error"); }
+    finally { link.classList.remove("loading"); }
   });
 
   document.addEventListener('click', async (e) => {
     const btn = e.target.closest('.add-to-cart');
     if (!btn) return;
-    // skip — the main product's cartForm has its own submit handler
     if (btn.closest('#cartForm')) return;
-    if (!isLoggedInSim) return window.showMessage("Please log in to add to cart.", "warning");
+    if (!_isLoggedInSim) { window.showMessage("Please log in to add to cart.","warning"); return; }
     if (btn.classList.contains("loading")) return;
     btn.classList.add("loading");
-
-    const productId = btn.dataset.productId;
-    const variantId = btn.dataset.variantId;
+    const productId = btn.dataset.productId, variantId = btn.dataset.variantId;
     if (!productId || !variantId) { btn.classList.remove("loading"); return; }
-
-    const cartCountEl = document.getElementById('cartCount');
-    if (+cartCountEl.textContent >= 5) {
-      window.showMessage("Maximum 5 different products allowed in cart.", "warning");
-      btn.classList.remove("loading");
-      return;
-    }
-
+    const ccEl = document.getElementById('cartCount');
+    if (+(ccEl?.textContent||0) >= 5) { window.showMessage("Maximum 5 different products allowed in cart.","warning"); btn.classList.remove("loading"); return; }
     try {
-      const res = await fetch('/cart', {
-        method: "POST",
-        headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
-        body: JSON.stringify({ productId, variantId, quantity: 1 })
-      });
+      const res = await fetch('/cart', { method:"POST", headers:{'Content-Type':'application/json','Accept':'application/json'}, body:JSON.stringify({productId,variantId,quantity:1}) });
       const result = await res.json();
-      if (!result.success) { window.showMessage(result.message, "error"); return; }
-
-      const { data } = result;
-
-      // swap cart icon → check
+      if (!result.success) { window.showMessage(result.message,"error"); return; }
       const icon = btn.querySelector("i");
-      if (icon) {
-        icon.classList.remove("fa-shopping-cart");
-        icon.classList.add("fa-check");
-      }
-      btn.classList.remove("bg-slate-100", "text-slate-500");
-      btn.classList.add("bg-slate-900", "text-white");
-
-      if (data.added) {
-        cartCountEl.textContent = (+cartCountEl.textContent || 0) + 1;
-        // disable matching wishlist btn
-        const wishBtn = document.getElementById(`wishlist-${variantId}`);
-        if (wishBtn) {
-          wishBtn.disabled = true;
-          wishBtn.classList.add("opacity-50", "cursor-not-allowed");
-          if (data.removedFromWishlist) {
-            const wi = wishBtn.querySelector("i");
-            if (wi) { wi.classList.replace("fa-solid", "fa-regular"); wi.classList.remove("text-red-500"); }
-            const wCount = document.getElementById('wishlistCount');
-            if (wCount) wCount.textContent = Math.max(0, (+wCount.textContent || 1) - 1);
-          }
-        }
-      }
-
-      window.showMessage(result.message || "Added to cart", "success");
-    } catch (err) {
-      window.showMessage("Failed to add to cart", "error");
-    } finally {
-      btn.classList.remove("loading");
-    }
+      if (icon) { icon.classList.remove("fa-shopping-cart"); icon.classList.add("fa-check"); }
+      btn.classList.remove("bg-slate-100","text-slate-500"); btn.classList.add("bg-slate-900","text-white");
+      if (result.data?.added && ccEl) ccEl.textContent = +(ccEl.textContent||0)+1;
+      window.showMessage(result.message || "Added to cart","success");
+    } catch(err) { window.showMessage("Failed to add to cart","error"); }
+    finally { btn.classList.remove("loading"); }
   });
 </script>
-
 
 <%- include("../../partials/user/footer.ejs") %>
