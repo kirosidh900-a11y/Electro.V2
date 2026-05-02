@@ -392,24 +392,51 @@
             const result = await res.json();
             const { data } = result;
             if (!result.success) { showToast(result.message, "error"); return; }
-            btn.textContent = "Added ✓";
-            btn.classList.remove("bg-blue-600");
-            btn.classList.add("bg-green-600");
-            setTimeout(() => { btn.textContent = "Add to Cart"; btn.classList.remove("bg-green-600"); btn.classList.add("bg-blue-600"); }, 1500);
+
             if (data.added) {
+                // ── Update header cart count ──────────────────────────────
                 const cartCountId = document.getElementById('cartCount');
-                cartCountId.textContent = (+cartCountId.textContent || 0) + 1;
-                if (btnW) { btnW.disabled = true; btnW.classList.add("opacity-50", "cursor-not-allowed"); }
+                if (cartCountId) cartCountId.textContent = (+cartCountId.textContent || 0) + 1;
+
+                // ── Find the parent card ──────────────────────────────────
+                const card = btn.closest('.product-card');
+
+                // ── Update hover icon cart button (top-right) ─────────────
+                const hoverCartBtn = card?.querySelector('.add-to-cart:not(.mt-3)');
+                if (hoverCartBtn) {
+                    hoverCartBtn.outerHTML = `<div class="w-9 h-9 bg-green-500 shadow-md rounded-xl flex items-center justify-center">
+                        <i class="fa-solid fa-check text-sm text-white"></i>
+                    </div>`;
+                }
+
+                // ── Update bottom "Add to Cart" button ────────────────────
+                const bottomCartBtn = card?.querySelector('.add-to-cart.mt-3');
+                if (bottomCartBtn) {
+                    bottomCartBtn.outerHTML = `<div class="mt-3 w-full py-2.5 rounded-xl bg-emerald-500 text-white text-xs font-bold flex items-center justify-center gap-2">
+                        <i class="fa-solid fa-check text-xs"></i> In Cart
+                    </div>`;
+                }
+
+                // ── If the clicked btn was the bottom one, it's already replaced above.
+                // ── If it was the hover icon btn, also replace the bottom one.
+                // ── Disable wishlist button ───────────────────────────────
+                if (btnW) {
+                    btnW.disabled = true;
+                    btnW.classList.add("opacity-40", "cursor-not-allowed");
+                }
             }
+
+            // ── Handle wishlist removal if item was wishlisted ────────────
             if (btnW) {
                 const icon = btnW.querySelector("i");
                 if (data.removedFromWishlist && icon) {
                     icon.classList.remove("fa-solid", "text-red-500");
-                    icon.classList.add("fa-regular", "text-gray-600");
+                    icon.classList.add("fa-regular", "text-gray-500");
                     const countEl = document.getElementById("wishlistCount");
-                    if (countEl) countEl.textContent = Math.max(0, (countEl.textContent || 1) - 1);
+                    if (countEl) countEl.textContent = Math.max(0, (+countEl.textContent || 1) - 1);
                 }
             }
+
             showToast(result.message || "Added to cart", "success");
         } catch (err) { console.error(err); showToast(err.message || "Failed", "error"); }
         finally { btn.classList.remove("loading"); }
