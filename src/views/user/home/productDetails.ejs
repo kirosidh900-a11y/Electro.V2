@@ -34,11 +34,11 @@
   .pd-action-bar {
     position:fixed; bottom:0; left:0; right:0; z-index:40;
     background:#fff; border-top:1px solid #e2e8f0;
-    padding:10px 16px; display:flex; gap:10px;
+    padding:10px 16px 14px; display:flex; gap:10px; align-items:center;
     box-shadow:0 -4px 20px rgba(0,0,0,.08);
   }
   @media (min-width:1024px) { .pd-action-bar { display:none !important; } }
-  .pd-section { padding-bottom:80px; }
+  .pd-section { padding-bottom:90px; }
   @media (min-width:1024px) { .pd-section { padding-bottom:0; } }
 </style>
 
@@ -427,15 +427,16 @@
 <!-- ═══ MOBILE FIXED ACTION BAR (below lg) ═══ -->
 <div class="pd-action-bar" id="pdActionBar">
   <button id="mobileCartBtn"
-    class="flex-1 h-11 bg-slate-100 text-slate-900 font-black rounded-xl flex items-center justify-center gap-2 text-sm active:scale-95 transition">
+    class="flex-1 h-12 bg-gray-100 text-gray-900 font-black rounded-xl flex items-center justify-center gap-2 text-sm active:scale-95 transition">
     <i class="fas fa-shopping-bag text-sm"></i> Add to Cart
   </button>
   <button id="mobileBuyBtn"
-    class="flex-1 h-11 bg-brand-600 text-white font-black rounded-xl flex items-center justify-center gap-2 text-sm shadow-lg shadow-brand-500/30 active:scale-95 transition">
+    style="background:#4f46e5; color:#fff;"
+    class="flex-1 h-12 font-black rounded-xl flex items-center justify-center gap-2 text-sm active:scale-95 transition shadow-lg">
     <i class="fas fa-bolt text-yellow-300 text-sm"></i> Buy Now
   </button>
   <button id="mobileWishBtn"
-    class="w-11 h-11 bg-white border-2 border-slate-200 rounded-xl flex items-center justify-center text-slate-400 active:scale-95 transition shrink-0">
+    class="w-12 h-12 bg-white border-2 border-gray-200 rounded-xl flex items-center justify-center text-gray-400 active:scale-95 transition shrink-0">
     <i id="mobileHeartIcon" class="fa-regular fa-heart text-base"></i>
   </button>
 </div>
