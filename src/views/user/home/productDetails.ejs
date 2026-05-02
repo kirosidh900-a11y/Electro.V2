@@ -32,6 +32,7 @@
   body {
     font-family: 'Outfit', sans-serif;
     background: linear-gradient(to bottom, #f8fafc, #eef2ff);
+    overflow-x: hidden;
   }
 
   .hide-scrollbar::-webkit-scrollbar { display: none; }
@@ -100,7 +101,7 @@
 <%- include("../../partials/user/header.ejs") %>
 
   <section class="text-slate-900 font-sans antialiased pb-6 md:pb-20 pt-4 md:pt-6 product-detail-section">
-    <div class="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
 
       <!-- Breadcrumb -->
       <nav class="flex text-xs sm:text-sm text-slate-500 mb-4 sm:mb-8 items-center space-x-1.5 font-medium flex-wrap gap-y-1">
@@ -757,42 +758,32 @@
 
         priceContainer.innerHTML = `
       <div class="flex flex-col gap-1">
-        
         <!-- Main Price Row -->
-        <div class="flex items-center gap-3 flex-wrap">
-          
-          <span class="text-4xl font-black text-brand-600 tracking-tight">
+        <div class="flex items-center gap-2 flex-wrap">
+          <span class="text-2xl sm:text-3xl lg:text-4xl font-black text-brand-600 tracking-tight">
             ₹${finalPrice.toLocaleString('en-IN')}
           </span>
-
-          <span class="text-sm text-slate-400 line-through font-bold">
+          <span class="text-xs sm:text-sm text-slate-400 line-through font-bold">
             ₹${price.toLocaleString('en-IN')}
           </span>
-
-          <span class="bg-green-600 text-white text-xs font-bold px-2 py-1 rounded-md">
+          <span class="bg-green-600 text-white text-[10px] sm:text-xs font-bold px-2 py-0.5 sm:py-1 rounded-md whitespace-nowrap">
             ${discount}% OFF
           </span>
         </div>
-
-        <!-- Savings -->
         <span class="text-xs text-green-600 font-bold">
           You save ₹${saved.toLocaleString('en-IN')}
         </span>
-
-        <!-- Extra Trust -->
         <span class="text-[11px] text-slate-500 font-medium">
           Inclusive of all taxes
         </span>
-
       </div>
     `;
       } else {
         priceContainer.innerHTML = `
       <div class="flex flex-col">
-        <span class="text-4xl font-black text-brand-600 tracking-tight">
+        <span class="text-2xl sm:text-3xl lg:text-4xl font-black text-brand-600 tracking-tight">
           ₹${price.toLocaleString('en-IN')}
         </span>
-
         <span class="text-[11px] text-slate-500 font-medium">
           Inclusive of all taxes
         </span>
