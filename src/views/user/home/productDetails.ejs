@@ -180,7 +180,9 @@
               <input type="hidden" name="productId" value="<%= product._id %>">
               <input type="hidden" name="variantId" id="cartVariantId" value="">
               <input type="hidden" name="quantity" value="1">
-              <button type="submit" class="w-full py-3.5 bg-slate-100 text-slate-900 font-black rounded-2xl transition hover:bg-slate-200 active:scale-95 flex items-center justify-center gap-2 text-sm">
+              <button type="submit"
+                style="background:#f1f5f9; color:#0f172a;"
+                class="w-full py-3.5 font-black rounded-2xl transition hover:opacity-90 active:scale-95 flex items-center justify-center gap-2 text-sm">
                 <i class="fas fa-shopping-bag"></i> ADD TO CART
               </button>
             </form>
@@ -188,22 +190,27 @@
               <input type="hidden" name="productId" value="<%= product._id %>">
               <input type="hidden" name="variantId" id="checkoutVariantId" value="">
               <input type="hidden" name="qty" value="1">
-              <button type="submit" class="w-full py-3.5 bg-brand-600 text-white font-black rounded-2xl transition hover:bg-brand-700 active:scale-95 flex items-center justify-center gap-2 shadow-xl shadow-brand-500/30 text-sm">
-                <i class="fas fa-bolt text-yellow-300"></i> BUY NOW
+              <button type="submit"
+                style="background:#4f46e5; color:#fff;"
+                class="w-full py-3.5 font-black rounded-2xl transition hover:opacity-90 active:scale-95 flex items-center justify-center gap-2 text-sm shadow-lg">
+                <i class="fas fa-bolt" style="color:#fde047;"></i> BUY NOW
               </button>
             </form>
             <div id="notifyAction" class="hidden w-full">
               <form id="notifyForm" action="/product/notify" method="POST">
                 <input type="hidden" name="productId" value="<%= product._id %>">
                 <input type="hidden" name="variantId" id="notifyVariantId" value="">
-                <button type="submit" class="w-full py-3.5 bg-slate-900 text-white font-black rounded-2xl transition hover:bg-slate-800 active:scale-95 flex items-center justify-center gap-2 text-sm">
+                <button type="submit"
+                  style="background:#0f172a; color:#fff;"
+                  class="w-full py-3.5 font-black rounded-2xl transition hover:opacity-90 active:scale-95 flex items-center justify-center gap-2 text-sm">
                   <i class="fas fa-bell animate-pulse"></i> ALERT ME WHEN BACK IN STOCK
                 </button>
               </form>
             </div>
             <button id="wishlistBtn" data-product-id="<%= product._id %>" data-variant-id="" type="button"
-              class="p-3.5 bg-white border-2 border-slate-100 rounded-2xl flex items-center justify-center text-slate-400 hover:text-red-500 hover:border-red-200 hover:bg-red-50 transition drop-shadow-sm group shrink-0">
-              <i id="heartIcon" class="fa-regular fa-heart text-xl group-hover:scale-110 transition-transform"></i>
+              style="background:#fff; border:2px solid #e2e8f0; color:#94a3b8;"
+              class="p-3.5 rounded-2xl flex items-center justify-center transition drop-shadow-sm group shrink-0 hover:border-red-200 hover:bg-red-50">
+              <i id="heartIcon" class="fa-regular fa-heart text-xl group-hover:scale-110 transition-transform" style="color:inherit;"></i>
             </button>
           </div>
 
@@ -540,17 +547,17 @@
     if (v.stock > 0) {
       if (sw) sw.innerHTML = `<div class="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse"></div><span class="text-xs font-black text-emerald-600">In Stock (${v.stock} left)</span>`;
       if (stb) stb.className = "absolute top-0 left-0 h-[4px] w-full bg-emerald-500 transition-colors duration-500";
-      if (cartBtn) { cartBtn.disabled = false; cartBtn.classList.remove('opacity-50','cursor-not-allowed'); }
-      if (bnBtn)   { bnBtn.disabled = false;   bnBtn.classList.remove('opacity-50','cursor-not-allowed'); }
-      if (mobileCartBtn) { mobileCartBtn.disabled = false; mobileCartBtn.classList.remove('opacity-50','cursor-not-allowed'); }
-      if (mobileBuyBtn)  { mobileBuyBtn.disabled = false;  mobileBuyBtn.classList.remove('opacity-50','cursor-not-allowed'); }
+      if (cartBtn) { cartBtn.disabled = false; cartBtn.style.opacity = "1"; cartBtn.style.cursor = "pointer"; }
+      if (bnBtn)   { bnBtn.disabled = false;   bnBtn.style.opacity = "1"; bnBtn.style.cursor = "pointer"; }
+      if (mobileCartBtn) { mobileCartBtn.disabled = false; mobileCartBtn.style.opacity = "1"; mobileCartBtn.style.cursor = "pointer"; }
+      if (mobileBuyBtn)  { mobileBuyBtn.disabled = false;  mobileBuyBtn.style.opacity = "1"; mobileBuyBtn.style.cursor = "pointer"; }
     } else {
       if (sw) sw.innerHTML = `<span class="text-xs font-black text-red-500"><i class="fas fa-times-circle mr-1"></i>Out of Stock</span>`;
       if (stb) stb.className = "absolute top-0 left-0 h-[4px] w-full bg-red-500 transition-colors duration-500";
-      if (cartBtn) { cartBtn.disabled = true; cartBtn.classList.add('opacity-50','cursor-not-allowed'); }
-      if (bnBtn)   { bnBtn.disabled = true;   bnBtn.classList.add('opacity-50','cursor-not-allowed'); }
-      if (mobileCartBtn) { mobileCartBtn.disabled = true; mobileCartBtn.classList.add('opacity-50','cursor-not-allowed'); }
-      if (mobileBuyBtn)  { mobileBuyBtn.disabled = true;  mobileBuyBtn.classList.add('opacity-50','cursor-not-allowed'); }
+      if (cartBtn) { cartBtn.disabled = true; cartBtn.style.opacity = "0.5"; cartBtn.style.cursor = "not-allowed"; }
+      if (bnBtn)   { bnBtn.disabled = true;   bnBtn.style.opacity = "0.5"; bnBtn.style.cursor = "not-allowed"; }
+      if (mobileCartBtn) { mobileCartBtn.disabled = true; mobileCartBtn.style.opacity = "0.5"; mobileCartBtn.style.cursor = "not-allowed"; }
+      if (mobileBuyBtn)  { mobileBuyBtn.disabled = true;  mobileBuyBtn.style.opacity = "0.5"; mobileBuyBtn.style.cursor = "not-allowed"; }
     }
   }
 
@@ -642,14 +649,32 @@
       const data = await res.json();
       isInCart = data.inCart;
       if (isInCart) {
-        if (cartBtn) { cartBtn.innerHTML = `GO TO CART <i class="fas fa-arrow-right text-[10px]"></i>`; cartBtn.className = "w-full py-3.5 bg-emerald-500 text-white font-black rounded-2xl transition hover:bg-emerald-600 active:scale-95 flex items-center justify-center gap-2 text-sm shadow-lg"; cartBtn.disabled = false; }
-        if (mobileCartBtn) { mobileCartBtn.innerHTML = `<i class="fas fa-arrow-right text-sm"></i> Go to Cart`; mobileCartBtn.className = "flex-1 h-11 bg-emerald-500 text-white font-black rounded-xl flex items-center justify-center gap-2 text-sm active:scale-95 transition"; }
+        if (cartBtn) {
+          cartBtn.innerHTML = `GO TO CART <i class="fas fa-arrow-right text-xs"></i>`;
+          cartBtn.style.cssText = "background:#10b981; color:#fff;";
+          cartBtn.className = "w-full py-3.5 font-black rounded-2xl transition hover:opacity-90 active:scale-95 flex items-center justify-center gap-2 text-sm shadow-lg";
+          cartBtn.disabled = false;
+        }
+        if (mobileCartBtn) {
+          mobileCartBtn.innerHTML = `<i class="fas fa-arrow-right text-sm"></i> Go to Cart`;
+          mobileCartBtn.style.cssText = "background:#10b981; color:#fff;";
+          mobileCartBtn.className = "flex-1 h-12 font-black rounded-xl flex items-center justify-center gap-2 text-sm active:scale-95 transition";
+        }
         if (wishlistBtn) { wishlistBtn.disabled = true; wishlistBtn.classList.add("opacity-50","cursor-not-allowed"); }
         if (mobileWishBtn) { mobileWishBtn.disabled = true; mobileWishBtn.classList.add("opacity-50","cursor-not-allowed"); }
       } else {
         if (currentVariant.stock > 0) {
-          if (cartBtn) { cartBtn.innerHTML = `<i class="fas fa-shopping-bag"></i> ADD TO CART`; cartBtn.className = "w-full py-3.5 bg-slate-100 text-slate-900 font-black rounded-2xl transition hover:bg-slate-200 active:scale-95 flex items-center justify-center gap-2 text-sm"; cartBtn.disabled = false; }
-          if (mobileCartBtn) { mobileCartBtn.innerHTML = `<i class="fas fa-shopping-bag text-sm"></i> Add to Cart`; mobileCartBtn.className = "flex-1 h-11 bg-slate-100 text-slate-900 font-black rounded-xl flex items-center justify-center gap-2 text-sm active:scale-95 transition"; }
+          if (cartBtn) {
+            cartBtn.innerHTML = `<i class="fas fa-shopping-bag"></i> ADD TO CART`;
+            cartBtn.style.cssText = "background:#f1f5f9; color:#0f172a;";
+            cartBtn.className = "w-full py-3.5 font-black rounded-2xl transition hover:opacity-90 active:scale-95 flex items-center justify-center gap-2 text-sm";
+            cartBtn.disabled = false;
+          }
+          if (mobileCartBtn) {
+            mobileCartBtn.innerHTML = `<i class="fas fa-shopping-bag text-sm"></i> Add to Cart`;
+            mobileCartBtn.style.cssText = "background:#f1f5f9; color:#0f172a;";
+            mobileCartBtn.className = "flex-1 h-12 font-black rounded-xl flex items-center justify-center gap-2 text-sm active:scale-95 transition";
+          }
         }
         if (wishlistBtn) { wishlistBtn.disabled = false; wishlistBtn.classList.remove("opacity-50","cursor-not-allowed"); }
         if (mobileWishBtn) { mobileWishBtn.disabled = false; mobileWishBtn.classList.remove("opacity-50","cursor-not-allowed"); }
