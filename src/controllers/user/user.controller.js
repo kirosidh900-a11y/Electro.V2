@@ -167,7 +167,7 @@ export const getReferralPage = async (req, res, next) => {
       user: req.user,
       referralCode: data.referralCode,
       referralCount: data.referralCount,
-      maxReferrals: 3,
+      maxReferrals: 6,
       bonusAmount: 500,      // referrer reward
       refereeBonus: 200,     // new member reward
       currentRoute: "/referral",

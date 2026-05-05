@@ -5,7 +5,7 @@ import { creditWallet } from "./wallet.service.js";
 
 const REFERRER_BONUS = 500;  // referrer (code owner) reward
 const REFEREE_BONUS  = 200;  // new member reward
-const MAX_REFERRALS  = 3;
+const MAX_REFERRALS  = 6;
 
 // Create a unique referral code
 export const createRef = async () => {
