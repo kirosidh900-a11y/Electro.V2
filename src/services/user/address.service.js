@@ -101,10 +101,20 @@ export const setDefaultAddressService = async (userId, addressId) => {
     throw new AppError("Address not found", HTTP_STATUS.NOT_FOUND);
   }
 
-  await Address.updateMany({ userId }, { isDefault: false });
+  // Step 1: unset all addresses for this user atomically
+  await Address.updateMany({ userId }, { $set: { isDefault: false } });
 
-  address.isDefault = true;
-  await address.save();
+  // Step 2: set the target as default using findOneAndUpdate
+  // (avoids pre-save middleware re-running updateMany unnecessarily)
+  const updated = await Address.findOneAndUpdate(
+    { _id: addressId, userId },
+    { $set: { isDefault: true } },
+    { new: true }
+  );
+
+  if (!updated) {
+    throw new AppError("Address not found", HTTP_STATUS.NOT_FOUND);
+  }
 
   return true;
 };

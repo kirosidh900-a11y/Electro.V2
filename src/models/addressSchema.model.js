@@ -79,17 +79,20 @@ const addressSchema = new Schema(
 
 // ADD MIDDLEWARE HERE (inside schema file)
 addressSchema.pre("save", async function () {
-  if (this.isDefault) {
+  // Only act when isDefault is being changed to true
+  if (this.isModified("isDefault") && this.isDefault) {
     await mongoose.model("Address").updateMany(
       { userId: this.userId, _id: { $ne: this._id } },
       { isDefault: false }
     );
-  } else {
+  }
+
+  // Auto-assign default if this is the only address and none is set
+  if (this.isNew) {
     const existingDefault = await mongoose.model("Address").findOne({
       userId: this.userId,
       isDefault: true,
     });
-
     if (!existingDefault) {
       this.isDefault = true;
     }
@@ -98,14 +101,18 @@ addressSchema.pre("save", async function () {
 
 addressSchema.pre("findOneAndUpdate", async function () {
   const update = this.getUpdate();
+  const set = update?.$set || update;
 
-  if (update.isDefault) {
-    const userId = this.getQuery().userId;
-
-    await mongoose.model("Address").updateMany(
-      { userId },
-      { isDefault: false }
-    );
+  // Only unset others when explicitly setting isDefault: true
+  if (set?.isDefault === true) {
+    const filter = this.getFilter();
+    const userId = filter.userId;
+    if (userId) {
+      await mongoose.model("Address").updateMany(
+        { userId, _id: { $ne: filter._id } },
+        { $set: { isDefault: false } }
+      );
+    }
   }
 });
 
