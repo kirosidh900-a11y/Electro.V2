@@ -28,7 +28,7 @@
           <div class="flex items-start justify-between">
             <div>
               <h2 class="text-2xl font-bold text-gray-800">My Referral</h2>
-              <p class="text-sm text-gray-500 mt-1">Invite friends — you earn ₹<%= bonusAmount %>, they earn ₹<%= refereeBonus %></p>
+              <p class="text-sm text-gray-500 mt-1">Invite friends — you earn ₹<%= bonusAmount %>, they earn ₹<%= typeof refereeBonus !== 'undefined' ? refereeBonus : 200 %></p>
             </div>
             <div class="w-11 h-11 bg-purple-100 rounded-xl flex items-center justify-center">
               <i class="fa-solid fa-gift text-purple-600 text-lg"></i>
@@ -52,7 +52,7 @@
               </div>
               <div>
                 <p class="text-xs text-gray-500 font-medium">Friend earns (welcome bonus)</p>
-                <p class="text-lg font-black text-green-700">₹<%= refereeBonus %></p>
+                <p class="text-lg font-black text-green-700">₹<%= typeof refereeBonus !== 'undefined' ? refereeBonus : 200 %></p>
               </div>
             </div>
           </div>
@@ -146,7 +146,7 @@
               </div>
               <div>
                 <p class="text-sm font-semibold text-gray-800">Both Get Rewarded</p>
-                <p class="text-xs text-gray-400 mt-1">You get ₹<%= bonusAmount %>, your friend gets ₹<%= refereeBonus %> — instantly in wallets</p>
+                <p class="text-xs text-gray-400 mt-1">You get ₹<%= bonusAmount %>, your friend gets ₹<%= typeof refereeBonus !== 'undefined' ? refereeBonus : 200 %> — instantly in wallets</p>
               </div>
             </div>
 
