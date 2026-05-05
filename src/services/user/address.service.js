@@ -4,6 +4,9 @@ import HTTP_STATUS from "../../constant/statusCode.js";
 
 // CREATE
 export const createAddressService = async (userId, data) => {
+  // Normalise addressType to lowercase
+  if (data.addressType) data.addressType = data.addressType.toLowerCase();
+
   const address = await Address.create({ ...data, userId });
 
   // ensure single default
@@ -45,6 +48,8 @@ export const getSingleAddressService = async (userId, addressId) => {
 
 // UPDATE
 export const updateAddressService = async (userId, addressId, data) => {
+  // Normalise addressType to lowercase
+  if (data.addressType) data.addressType = data.addressType.toLowerCase();
   if (data.isDefault) {
     await Address.updateMany({ userId }, { isDefault: false });
   }
