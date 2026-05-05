@@ -3,8 +3,9 @@ import AppError from "../../utils/partials/AppError.utils.js";
 import HTTP_STATUS from "../../constant/statusCode.js";
 import { creditWallet } from "./wallet.service.js";
 
-const REFERRAL_BONUS = 500;
-const MAX_REFERRALS = 3;
+const REFERRER_BONUS = 500;  // referrer (code owner) reward
+const REFEREE_BONUS  = 200;  // new member reward
+const MAX_REFERRALS  = 3;
 
 // Create a unique referral code
 export const createRef = async () => {
@@ -52,11 +53,21 @@ export const applyReferralBonus = async (referral_by) => {
   // Increment count atomically
   await User.findByIdAndUpdate(owner._id, { $inc: { referralCount: 1 } });
 
-  // Credit wallet
+  // Credit ₹500 to referrer's wallet
   await creditWallet({
     userId: owner._id,
-    amount: REFERRAL_BONUS,
+    amount: REFERRER_BONUS,
     description: `Referral bonus — someone signed up with your code`,
+    source: "referral",
+  });
+};
+
+// Credit ₹200 to the new member who used a referral code
+export const applyRefereeBonus = async (newUserId) => {
+  await creditWallet({
+    userId: newUserId,
+    amount: REFEREE_BONUS,
+    description: `Welcome bonus — you joined using a referral code`,
     source: "referral",
   });
 };

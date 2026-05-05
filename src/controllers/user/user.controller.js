@@ -168,7 +168,8 @@ export const getReferralPage = async (req, res, next) => {
       referralCode: data.referralCode,
       referralCount: data.referralCount,
       maxReferrals: 3,
-      bonusAmount: 500,
+      bonusAmount: 500,      // referrer reward
+      refereeBonus: 200,     // new member reward
       currentRoute: "/referral",
     });
   } catch (err) {

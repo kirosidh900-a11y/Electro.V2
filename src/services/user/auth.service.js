@@ -11,7 +11,7 @@ import {
   isConfirmPassword,
 } from "../../utils/partials/validation.utils.js";
 
-import { isValidReferral, createRef, applyReferralBonus } from "./referral.service.js";
+import { isValidReferral, createRef, applyReferralBonus, applyRefereeBonus } from "./referral.service.js";
 import { checkGoogleAuth } from "../../utils/partials/auth/auth.util.js";
 import { hashPassword } from "../../utils/partials/auth/password.utils.js";
 // Check if user already exists
@@ -66,6 +66,8 @@ export const addUser = async ({
   // Credit ₹500 to the referrer (if a valid code was used)
   if (referral_by) {
     await applyReferralBonus(referral_by);
+    // Credit ₹200 welcome bonus to the new member
+    await applyRefereeBonus(newUser._id);
   }
 
   return newUser;
