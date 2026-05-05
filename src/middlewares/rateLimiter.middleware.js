@@ -10,10 +10,11 @@ const jsonHandler = (req, res) => {
 
 // ── 1. Global API limiter — 200 req / 15 min per IP ──────────────────────────
 export const globalLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000,   // 15 minutes
+  windowMs: 15 * 60 * 1000,
   max: 200,
   standardHeaders: "draft-7",
   legacyHeaders: false,
+  validate: { xForwardedForHeader: false },  // handled by trust proxy in app.js
   message: { success: false, message: "Too many requests. Please slow down." },
   skip: (req) =>
     req.path.startsWith("/socket.io") ||
@@ -26,6 +27,7 @@ export const loginLimiter = rateLimit({
   max: 5,
   standardHeaders: "draft-7",
   legacyHeaders: false,
+  validate: { xForwardedForHeader: false },
   handler: (req, res) => {
     res.status(429).json({
       success: false,
@@ -40,6 +42,7 @@ export const signupLimiter = rateLimit({
   max: 5,
   standardHeaders: "draft-7",
   legacyHeaders: false,
+  validate: { xForwardedForHeader: false },
   handler: (req, res) => {
     res.status(429).json({
       success: false,
@@ -54,6 +57,7 @@ export const otpSendLimiter = rateLimit({
   max: 5,
   standardHeaders: "draft-7",
   legacyHeaders: false,
+  validate: { xForwardedForHeader: false },
   handler: (req, res) => {
     res.status(429).json({
       success: false,
@@ -68,6 +72,7 @@ export const otpVerifyLimiter = rateLimit({
   max: 10,
   standardHeaders: "draft-7",
   legacyHeaders: false,
+  validate: { xForwardedForHeader: false },
   handler: (req, res) => {
     res.status(429).json({
       success: false,
@@ -82,6 +87,7 @@ export const passwordResetLimiter = rateLimit({
   max: 5,
   standardHeaders: "draft-7",
   legacyHeaders: false,
+  validate: { xForwardedForHeader: false },
   handler: (req, res) => {
     res.status(429).json({
       success: false,
@@ -92,10 +98,11 @@ export const passwordResetLimiter = rateLimit({
 
 // ── 7. Cart / Wishlist / Order mutations — 60 req / min per IP ───────────────
 export const mutationLimiter = rateLimit({
-  windowMs: 60 * 1000,   // 1 minute
+  windowMs: 60 * 1000,
   max: 60,
   standardHeaders: "draft-7",
   legacyHeaders: false,
+  validate: { xForwardedForHeader: false },
   handler: jsonHandler,
 });
 
@@ -105,6 +112,7 @@ export const paymentLimiter = rateLimit({
   max: 20,
   standardHeaders: "draft-7",
   legacyHeaders: false,
+  validate: { xForwardedForHeader: false },
   handler: (req, res) => {
     res.status(429).json({
       success: false,
