@@ -138,81 +138,85 @@
 
                         <form id="addressForm" class="p-6">
                                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+
                                         <div class="col-span-1">
-                                                <label class="block text-xs font-bold text-gray-500 uppercase">Full Name
-                                                        *</label>
-                                                <input name="name" type="text" required
-                                                        class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-red-500 outline-none">
-                                        </div>
-                                        <div class="col-span-1">
-                                                <label class="block text-xs font-bold text-gray-500 uppercase">Phone
-                                                        Number *</label>
-                                                <input name="phone" type="text" required
-                                                        class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-red-500 outline-none">
+                                                <label class="block text-xs font-bold text-gray-500 uppercase mb-1">Full Name *</label>
+                                                <input name="name" type="text" autocomplete="off"
+                                                        class="addr-input w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-red-500 outline-none transition-colors">
+                                                <span class="field-err hidden text-red-500 text-xs mt-1 flex items-center gap-1"><i class="fa fa-circle-exclamation text-[10px]"></i><span class="err-text"></span></span>
                                         </div>
 
                                         <div class="col-span-1">
-                                                <label class="block text-xs font-bold text-gray-500 uppercase">Pincode
-                                                        *</label>
-                                                <input name="pincode" type="text" required
-                                                        class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-red-500 outline-none">
+                                                <label class="block text-xs font-bold text-gray-500 uppercase mb-1">Phone Number *</label>
+                                                <input name="phone" type="text" maxlength="10" autocomplete="off"
+                                                        class="addr-input w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-red-500 outline-none transition-colors">
+                                                <span class="field-err hidden text-red-500 text-xs mt-1 flex items-center gap-1"><i class="fa fa-circle-exclamation text-[10px]"></i><span class="err-text"></span></span>
                                         </div>
+
                                         <div class="col-span-1">
-                                                <label class="block text-xs font-bold text-gray-500 uppercase">Locality
-                                                        *</label>
-                                                <input name="locality" type="text" required
-                                                        class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-red-500 outline-none">
+                                                <label class="block text-xs font-bold text-gray-500 uppercase mb-1">Pincode *</label>
+                                                <input name="pincode" type="text" maxlength="6" autocomplete="off"
+                                                        class="addr-input w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-red-500 outline-none transition-colors">
+                                                <span class="field-err hidden text-red-500 text-xs mt-1 flex items-center gap-1"><i class="fa fa-circle-exclamation text-[10px]"></i><span class="err-text"></span></span>
+                                        </div>
+
+                                        <div class="col-span-1">
+                                                <label class="block text-xs font-bold text-gray-500 uppercase mb-1">Locality *</label>
+                                                <input name="locality" type="text" autocomplete="off"
+                                                        class="addr-input w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-red-500 outline-none transition-colors">
+                                                <span class="field-err hidden text-red-500 text-xs mt-1 flex items-center gap-1"><i class="fa fa-circle-exclamation text-[10px]"></i><span class="err-text"></span></span>
                                         </div>
 
                                         <div class="col-span-2">
-                                                <label class="block text-xs font-bold text-gray-500 uppercase">Address
-                                                        (Area and Street) *</label>
-                                                <textarea name="address" required rows="3"
-                                                        class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-red-500 outline-none"></textarea>
+                                                <label class="block text-xs font-bold text-gray-500 uppercase mb-1">Address (Area and Street) *</label>
+                                                <textarea name="address" rows="3"
+                                                        class="addr-input w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-red-500 outline-none transition-colors"></textarea>
+                                                <span class="field-err hidden text-red-500 text-xs mt-1 flex items-center gap-1"><i class="fa fa-circle-exclamation text-[10px]"></i><span class="err-text"></span></span>
                                         </div>
 
                                         <div class="col-span-1">
-                                                <label class="block text-xs font-bold text-gray-500 uppercase">City/Town
-                                                        *</label>
-                                                <input name="city" type="text" required
-                                                        class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-red-500 outline-none">
-                                        </div>
-                                        <div class="col-span-1">
-                                                <label class="block text-xs font-bold text-gray-500 uppercase">State
-                                                        *</label>
-                                                <select name="state" required
-                                                        class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-red-500 outline-none"></select>
+                                                <label class="block text-xs font-bold text-gray-500 uppercase mb-1">City / Town *</label>
+                                                <input name="city" type="text" autocomplete="off"
+                                                        class="addr-input w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-red-500 outline-none transition-colors">
+                                                <span class="field-err hidden text-red-500 text-xs mt-1 flex items-center gap-1"><i class="fa fa-circle-exclamation text-[10px]"></i><span class="err-text"></span></span>
                                         </div>
 
                                         <div class="col-span-1">
-                                                <label class="block text-xs font-bold text-gray-500 uppercase">District
-                                                        *</label>
-                                                <select name="district" required
-                                                        class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-red-500 outline-none"></select>
+                                                <label class="block text-xs font-bold text-gray-500 uppercase mb-1">State *</label>
+                                                <select name="state"
+                                                        class="addr-input w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-red-500 outline-none transition-colors"></select>
+                                                <span class="field-err hidden text-red-500 text-xs mt-1 flex items-center gap-1"><i class="fa fa-circle-exclamation text-[10px]"></i><span class="err-text"></span></span>
                                         </div>
 
                                         <div class="col-span-1">
-                                                <label class="block text-xs font-bold text-gray-500 uppercase">Landmark
-                                                        (Optional)</label>
-                                                <input name="landmark" type="text"
-                                                        class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-red-500 outline-none">
-                                        </div>
-                                        <div class="col-span-1">
-                                                <label class="block text-xs font-bold text-gray-500 uppercase">Alternate
-                                                        Phone (Optional)</label>
-                                                <input name="altPhone" type="text"
-                                                        class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-red-500 outline-none">
+                                                <label class="block text-xs font-bold text-gray-500 uppercase mb-1">District *</label>
+                                                <select name="district"
+                                                        class="addr-input w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-red-500 outline-none transition-colors"></select>
+                                                <span class="field-err hidden text-red-500 text-xs mt-1 flex items-center gap-1"><i class="fa fa-circle-exclamation text-[10px]"></i><span class="err-text"></span></span>
                                         </div>
 
                                         <div class="col-span-1">
-                                                <label class="block text-xs font-bold text-gray-500 uppercase mb-2">Address
-                                                        Type</label>
+                                                <label class="block text-xs font-bold text-gray-500 uppercase mb-1">Landmark <span class="text-gray-400 normal-case font-normal">(Optional)</span></label>
+                                                <input name="landmark" type="text" autocomplete="off"
+                                                        class="addr-input w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-red-500 outline-none transition-colors">
+                                        </div>
+
+                                        <div class="col-span-1">
+                                                <label class="block text-xs font-bold text-gray-500 uppercase mb-1">Alternate Phone <span class="text-gray-400 normal-case font-normal">(Optional)</span></label>
+                                                <input name="altPhone" type="text" maxlength="10" autocomplete="off"
+                                                        class="addr-input w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-red-500 outline-none transition-colors">
+                                                <span class="field-err hidden text-red-500 text-xs mt-1 flex items-center gap-1"><i class="fa fa-circle-exclamation text-[10px]"></i><span class="err-text"></span></span>
+                                        </div>
+
+                                        <div class="col-span-1">
+                                                <label class="block text-xs font-bold text-gray-500 uppercase mb-2">Address Type</label>
                                                 <div class="flex gap-4">
-                                                        <label class="flex items-center gap-2"><input type="radio"
-                                                                        name="addressType" value="home" checked>
-                                                                Home</label>
-                                                        <label class="flex items-center gap-2"><input type="radio"
-                                                                        name="addressType" value="work"> Work</label>
+                                                        <label class="flex items-center gap-2 cursor-pointer">
+                                                                <input type="radio" name="addressType" value="home" checked> Home
+                                                        </label>
+                                                        <label class="flex items-center gap-2 cursor-pointer">
+                                                                <input type="radio" name="addressType" value="work"> Work
+                                                        </label>
                                                 </div>
                                         </div>
 
@@ -220,8 +224,7 @@
                                                 <label class="flex items-center gap-2 cursor-pointer">
                                                         <input name="isDefault" type="checkbox"
                                                                 class="w-4 h-4 text-red-600 border-gray-300 rounded focus:ring-red-500">
-                                                        <span class="text-sm font-medium text-gray-700">Set as default
-                                                                address</span>
+                                                        <span class="text-sm font-medium text-gray-700">Set as default address</span>
                                                 </label>
                                         </div>
                                 </div>
@@ -230,8 +233,7 @@
                                         <button type="button" onclick="closeAddressModal()"
                                                 class="px-6 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200">Cancel</button>
                                         <button type="submit"
-                                                class="px-6 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition">Save
-                                                Address</button>
+                                                class="px-6 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition">Save Address</button>
                                 </div>
                         </form>
                 </div>
@@ -390,17 +392,153 @@
 
                         };
                        
-                        // PHONE → numbers only & also Pincode
+                        // ── Auto-format: digits only for phone/pincode ────────────────────────
                         document.addEventListener("input", (e) => {
-                                if (e.target.name === "phone" || e.target.name === "altPhone") {
+                                const name = e.target.name;
+                                if (name === "phone" || name === "altPhone") {
                                         e.target.value = e.target.value.replace(/\D/g, "").slice(0, 10);
                                 }
-
-                                if (e.target.name === "pincode") {
+                                if (name === "pincode") {
                                         e.target.value = e.target.value.replace(/\D/g, "").slice(0, 6);
                                 }
+                                // Clear error as user types
+                                clearFieldErr(e.target);
                         });
-                        
+
+                        // ── Blur validation — validate field when user leaves it ───────────────
+                        document.addEventListener("blur", (e) => {
+                                const el = e.target;
+                                if (!el.closest('#addressForm')) return;
+                                const rule = RULES[el.name];
+                                if (rule) {
+                                        const msg = rule(el.value.trim());
+                                        if (msg) showFieldErr(el, msg);
+                                        else clearFieldErr(el);
+                                }
+                        }, true);
+
+                        // ── Validation rules ──────────────────────────────────────────────────
+                        const RULES = {
+                                name: (v) => {
+                                        if (!v)                              return "Full name is required";
+                                        if (v.length < 3)                    return "Name must be at least 3 characters";
+                                        if (v.length > 60)                   return "Name cannot exceed 60 characters";
+                                        if (!/^[A-Za-z\s.'\-]+$/.test(v))   return "Name can only contain letters, spaces, dots and hyphens";
+                                        return null;
+                                },
+                                phone: (v) => {
+                                        if (!v)                              return "Phone number is required";
+                                        if (!/^[6-9]\d{9}$/.test(v))        return "Enter a valid 10-digit mobile number (starts with 6–9)";
+                                        return null;
+                                },
+                                altPhone: (v) => {
+                                        if (!v) return null; // optional
+                                        if (!/^[6-9]\d{9}$/.test(v))        return "Alternate phone must be a valid 10-digit mobile number";
+                                        return null;
+                                },
+                                pincode: (v) => {
+                                        if (!v)                              return "Pincode is required";
+                                        if (!/^[1-9][0-9]{5}$/.test(v))     return "Enter a valid 6-digit pincode (cannot start with 0)";
+                                        return null;
+                                },
+                                locality: (v) => {
+                                        if (!v)                              return "Locality / area is required";
+                                        if (v.length < 3)                    return "Locality must be at least 3 characters";
+                                        if (v.length > 100)                  return "Locality cannot exceed 100 characters";
+                                        return null;
+                                },
+                                address: (v) => {
+                                        if (!v)                              return "Street address is required";
+                                        if (v.length < 5)                    return "Address is too short (min 5 characters)";
+                                        if (v.length > 200)                  return "Address cannot exceed 200 characters";
+                                        return null;
+                                },
+                                city: (v) => {
+                                        if (!v)                              return "City / town is required";
+                                        if (v.length < 2)                    return "City name must be at least 2 characters";
+                                        if (!/^[A-Za-z\s.'\-]+$/.test(v))   return "City name can only contain letters, spaces, dots and hyphens";
+                                        return null;
+                                },
+                        };
+
+                        // ── Show / clear inline error ─────────────────────────────────────────
+                        function showFieldErr(el, msg) {
+                                el.classList.add("border-red-400");
+                                el.classList.remove("border-gray-300", "border-green-400");
+                                const span = el.parentNode.querySelector(".field-err");
+                                if (span) {
+                                        span.classList.remove("hidden");
+                                        span.querySelector(".err-text").textContent = msg;
+                                }
+                        }
+
+                        function clearFieldErr(el) {
+                                el.classList.remove("border-red-400");
+                                const span = el.parentNode.querySelector(".field-err");
+                                if (span) {
+                                        span.classList.add("hidden");
+                                        span.querySelector(".err-text").textContent = "";
+                                }
+                        }
+
+                        function showSelectErr(selectEl, msg) {
+                                selectEl.classList.add("border-red-400");
+                                const span = selectEl.parentNode.querySelector(".field-err");
+                                if (span) {
+                                        span.classList.remove("hidden");
+                                        span.querySelector(".err-text").textContent = msg;
+                                }
+                        }
+
+                        function clearSelectErr(selectEl) {
+                                selectEl.classList.remove("border-red-400");
+                                const span = selectEl.parentNode.querySelector(".field-err");
+                                if (span) {
+                                        span.classList.add("hidden");
+                                        if (span.querySelector(".err-text")) span.querySelector(".err-text").textContent = "";
+                                }
+                        }
+
+                        // ── Full form validation — shows ALL errors at once ───────────────────
+                        function validateForm(form, stateSelect, districtSelect) {
+                                let isValid = true;
+
+                                // Clear all errors first
+                                form.querySelectorAll('.addr-input').forEach(clearFieldErr);
+                                clearSelectErr(stateSelect);
+                                clearSelectErr(districtSelect);
+
+                                // Validate each field
+                                Object.entries(RULES).forEach(([fieldName, rule]) => {
+                                        const el = form[fieldName];
+                                        if (!el) return;
+                                        const msg = rule(el.value.trim());
+                                        if (msg) {
+                                                showFieldErr(el, msg);
+                                                isValid = false;
+                                        }
+                                });
+
+                                // State
+                                if (!stateSelect.value) {
+                                        showSelectErr(stateSelect, "Please select a state");
+                                        isValid = false;
+                                }
+
+                                // District
+                                if (!districtSelect.value) {
+                                        showSelectErr(districtSelect, "Please select a district");
+                                        isValid = false;
+                                }
+
+                                // Scroll to first error
+                                if (!isValid) {
+                                        const firstErr = form.querySelector('.border-red-400');
+                                        if (firstErr) firstErr.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                                }
+
+                                return isValid;
+                        }
                         // DELETE ADDRESS
                         window.deleteAddress = async function (id) {
                                 const confirmed = await confirmAction("Delete Address?", "This action cannot be undone.");
@@ -408,16 +546,11 @@
                                         try {
                                                 const res = await fetch(`/address/${id}`, {
                                                         method: 'DELETE',
-                                                        headers: {
-                                                                "Accept": "application/json"
-                                                        }
+                                                        headers: { "Accept": "application/json" }
                                                 });
-
                                                 const data = await res.json();
-
                                                 if (res.ok) location.reload();
                                                 else throw new Error(data.message);
-
                                         } catch (error) {
                                                 showToast(error.message, "error");
                                         }
@@ -426,67 +559,12 @@
 
                         // CLOSE MODAL
                         window.closeAddressModal = () => {
-                                // Clear all field errors
-                                document.querySelectorAll('.field-err').forEach(err => err.textContent = '');
-                                
+                                document.querySelectorAll('.field-err').forEach(span => {
+                                        span.classList.add('hidden');
+                                        if (span.querySelector('.err-text')) span.querySelector('.err-text').textContent = '';
+                                });
+                                document.querySelectorAll('.addr-input').forEach(el => el.classList.remove('border-red-400'));
                                 document.getElementById('addressModal').classList.add('hidden');
                         };
-
-
-                        function validateForm(form, stateSelect, districtSelect) {
-
-                                const name     = form.name.value.trim();
-                                const phone    = form.phone.value.trim();
-                                const altPhone = form.altPhone.value.trim();
-                                const pincode  = form.pincode.value.trim();
-                                const locality = form.locality.value.trim();
-                                const address  = form.address.value.trim();
-                                const city     = form.city.value.trim();
-                                const state    = stateSelect.value;
-                                const district = districtSelect.value;
-
-                                function fieldErr(el, msg) {
-                                        let span = el.parentNode.querySelector('.field-err');
-                                        if (!span) {
-                                                span = document.createElement('span');
-                                                span.className = 'field-err text-red-500 text-xs mt-1 block';
-                                                el.parentNode.appendChild(span);
-                                        }
-                                        span.textContent = msg;
-                                        el.classList.add('border-red-500');
-                                        el.focus();
-                                }
-                                function clearErr(el) {
-                                        const span = el.parentNode.querySelector('.field-err');
-                                        if (span) span.textContent = '';
-                                        el.classList.remove('border-red-500');
-                                }
-
-                                [form.name, form.phone, form.altPhone, form.pincode,
-                                 form.locality, form.address, form.city].forEach(clearErr);
-
-                                if (!/^[A-Za-z ]{3,}$/.test(name))             { fieldErr(form.name,     "Name must be at least 3 letters");        return false; }
-                                if (!/^[6-9]\d{9}$/.test(phone))                { fieldErr(form.phone,    "Enter valid 10-digit phone number");       return false; }
-                                if (altPhone && !/^[6-9]\d{9}$/.test(altPhone)) { fieldErr(form.altPhone, "Invalid alternate phone number");          return false; }
-                                if (!/^[1-9][0-9]{5}$/.test(pincode))           { fieldErr(form.pincode,  "Invalid 6-digit pincode");                 return false; }
-                                if (locality.length < 3)                         { fieldErr(form.locality, "Locality must be at least 3 characters"); return false; }
-                                if (address.length < 5)                          { fieldErr(form.address,  "Address is too short");                   return false; }
-                                if (!/^[A-Za-z ]{2,}$/.test(city))              { fieldErr(form.city,     "Enter a valid city name");                 return false; }
-
-                                if (!state) {
-                                        let span = stateSelect.parentNode.querySelector('.field-err');
-                                        if (!span) { span = document.createElement('span'); span.className = 'field-err text-red-500 text-xs mt-1 block'; stateSelect.parentNode.appendChild(span); }
-                                        span.textContent = 'Please select a state';
-                                        return false;
-                                }
-                                if (!district) {
-                                        let span = districtSelect.parentNode.querySelector('.field-err');
-                                        if (!span) { span = document.createElement('span'); span.className = 'field-err text-red-500 text-xs mt-1 block'; districtSelect.parentNode.appendChild(span); }
-                                        span.textContent = 'Please select a district';
-                                        return false;
-                                }
-
-                                return true;
-                        }
 
                 </script>
