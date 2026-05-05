@@ -556,8 +556,16 @@
                                                 card.classList.toggle('border-red-400', isTarget);
                                                 card.classList.toggle('border-gray-200', !isTarget);
 
-                                                // Remove any existing dynamic default badge
-                                                card.querySelector('.default-badge')?.remove();
+                                                // Remove ALL default badges — both static (EJS) and dynamic
+                                                // Static badge has fa-circle-check icon inside it
+                                                card.querySelectorAll('span').forEach(span => {
+                                                        if (span.textContent.trim().includes('Default') || span.textContent.trim().includes('DEFAULT')) {
+                                                                // Only remove if it's the badge pill (has rounded-full)
+                                                                if (span.classList.contains('rounded-full') || span.classList.contains('default-badge')) {
+                                                                        span.remove();
+                                                                }
+                                                        }
+                                                });
 
                                                 // Footer row — contains phone + set-default btn
                                                 const footer = card.querySelector('.border-t.border-gray-100');
