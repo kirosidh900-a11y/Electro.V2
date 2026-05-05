@@ -22,6 +22,10 @@ import passport from "passport";
 const app = express();
 startPaymentExpiryJob();
 
+// Trust the first proxy (Nginx) — required for X-Forwarded-For to work correctly
+// with express-rate-limit on hosted servers
+app.set("trust proxy", 1);
+
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
