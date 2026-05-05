@@ -4,13 +4,14 @@ import { fileURLToPath } from "url";
 import cookieParser from "cookie-parser";
 import morgan from "morgan";
 import compression from "compression";
+import helmet from "helmet";
 
 import authRouter from "./routes/user/auth.route.js";
 import userRouter from "./routes/user/user.route.js";
 import adminRouter from "./routes/admin/admin.route.js";
 import wishlistRoutes from "./routes/user/wishlist.route.js";
 import startPaymentExpiryJob from "./jobs/paymentExpiry.job.js";
-
+import { globalLimiter } from "./middlewares/rateLimiter.middleware.js";
 
 import errorMiddleware from "./middlewares/error.middleware.js";
 import AppError from "./utils/partials/AppError.utils.js";
@@ -45,7 +46,13 @@ const morganFormat = process.env.NODE_ENV === "production" ? "combined" : "dev";
 app.use(morgan(morganFormat));
 
 // Security Middlewares
-// app.use(helmet());
+app.use(helmet({
+  contentSecurityPolicy: false,   // disabled — CDN scripts (Tailwind, FA) would break
+  crossOriginEmbedderPolicy: false,
+}));
+
+// Global rate limiter — applied before all routes
+app.use(globalLimiter);
 
 // ✅ nocache only for HTML pages, NOT static assets (already served above)
 app.use((req, res, next) => {

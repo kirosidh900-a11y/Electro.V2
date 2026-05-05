@@ -22,6 +22,21 @@ export const sendOtpToEmail = async ({
     );
   }
 
+  // ── Per-email OTP send rate limit: max 5 per 15 min ──────────────────────
+  const rateLimitKey = `otp:ratelimit:${email}`;
+  const sendCount = await redisClient.incr(rateLimitKey);
+  if (sendCount === 1) {
+    // First request — set 15-min expiry
+    await redisClient.expire(rateLimitKey, 15 * 60);
+  }
+  if (sendCount > 5) {
+    const ttl = await redisClient.ttl(rateLimitKey);
+    throw new AppError(
+      `OTP limit reached. Please try again in ${Math.ceil(ttl / 60)} minute(s).`,
+      HTTP_STATUS.TOO_MANY_REQUESTS,
+    );
+  }
+
   const otp = generateOTP();
 
   const finalPassword = password.startsWith("$argon2")
