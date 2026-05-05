@@ -48,76 +48,64 @@
 
                                                                 <% if (addresses && addresses.length> 0) { %>
                                                                         <% addresses.forEach((addr)=> { %>
-                                                                                <div
-                                                                                        class="relative bg-white border border-gray-200 rounded-2xl p-5 hover:shadow-lg hover:border-red-200 transition-all group flex flex-col justify-between min-h-[200px] h-full">
+                                                                                <div id="addr-card-<%= addr._id %>"
+                                                                                        class="relative bg-white border-2 <%= addr.isDefault ? 'border-red-400' : 'border-gray-200' %> rounded-2xl p-5 hover:shadow-lg transition-all group flex flex-col justify-between min-h-[200px] h-full">
                                                                                         <div>
-                                                                                                <div
-                                                                                                        class="flex justify-between items-start mb-4">
-                                                                                                        <span
-                                                                                                                class="px-3 py-1 bg-red-50 text-red-600 text-[10px] font-bold rounded-full uppercase tracking-wider">
-                                                                                                                <i
-                                                                                                                        class="fa <%= addr.addressType === 'Home' ? 'fa-home' : 'fa-briefcase' %> mr-1"></i>
-                                                                                                                <%= addr.addressType
-                                                                                                                        %>
-                                                                                                        </span>
-                                                                                                        <div
-                                                                                                                class="flex gap-2">
+                                                                                                <div class="flex justify-between items-start mb-4">
+                                                                                                        <div class="flex items-center gap-2 flex-wrap">
+                                                                                                                <span class="px-3 py-1 bg-red-50 text-red-600 text-[10px] font-bold rounded-full uppercase tracking-wider">
+                                                                                                                        <i class="fa <%= addr.addressType === 'home' || addr.addressType === 'Home' ? 'fa-home' : 'fa-briefcase' %> mr-1"></i>
+                                                                                                                        <%= addr.addressType %>
+                                                                                                                </span>
+                                                                                                                <% if (addr.isDefault) { %>
+                                                                                                                <span class="px-2.5 py-1 bg-green-50 text-green-700 text-[10px] font-bold rounded-full uppercase tracking-wider border border-green-200">
+                                                                                                                        <i class="fa fa-circle-check mr-1"></i>Default
+                                                                                                                </span>
+                                                                                                                <% } %>
+                                                                                                        </div>
+                                                                                                        <div class="flex gap-2">
                                                                                                                 <button onclick="openAddressModal('<%= encodeURIComponent(JSON.stringify(addr)) %>')"
-                                                                                                                        class="text-gray-400 hover:text-blue-600 transition-colors p-1">
-                                                                                                                        <i
-                                                                                                                                class="fa fa-pen-to-square"></i>
+                                                                                                                        class="text-gray-400 hover:text-blue-600 transition-colors p-1" title="Edit">
+                                                                                                                        <i class="fa fa-pen-to-square"></i>
                                                                                                                 </button>
                                                                                                                 <button onclick="deleteAddress('<%= addr._id %>')"
-                                                                                                                        class="text-gray-400 hover:text-red-600 transition-colors p-1">
-                                                                                                                        <i
-                                                                                                                                class="fa fa-trash-can"></i>
+                                                                                                                        class="text-gray-400 hover:text-red-600 transition-colors p-1" title="Delete">
+                                                                                                                        <i class="fa fa-trash-can"></i>
                                                                                                                 </button>
                                                                                                         </div>
                                                                                                 </div>
 
-                                                                                                <h3
-                                                                                                        class="font-bold text-gray-800 text-lg mb-2 truncate">
+                                                                                                <h3 class="font-bold text-gray-800 text-lg mb-2 truncate">
                                                                                                         <%= addr.name %>
                                                                                                 </h3>
 
-                                                                                                <div
-                                                                                                        class="space-y-1.5 text-sm text-gray-600">
-                                                                                                        <p
-                                                                                                                class="truncate">
-                                                                                                                <i
-                                                                                                                        class="fa fa-location-dot text-gray-400 w-5 text-center"></i>
-                                                                                                                <%= addr.city
-                                                                                                                        %>
-                                                                                                                        ,
-                                                                                                                        <%= addr.district
-                                                                                                                                %>
+                                                                                                <div class="space-y-1.5 text-sm text-gray-600">
+                                                                                                        <p class="truncate">
+                                                                                                                <i class="fa fa-location-dot text-gray-400 w-5 text-center"></i>
+                                                                                                                <%= addr.city %>, <%= addr.district %>
                                                                                                         </p>
-                                                                                                        <p
-                                                                                                                class="ml-5 text-gray-500 text-xs">
-                                                                                                                <%= addr.state
-                                                                                                                        %>
-                                                                                                                        -
-                                                                                                                        <span
-                                                                                                                                class="font-mono text-gray-800 font-medium">
-                                                                                                                                <%= addr.pincode
-                                                                                                                                        %>
-                                                                                                                        </span>
+                                                                                                        <p class="ml-5 text-gray-500 text-xs">
+                                                                                                                <%= addr.state %> -
+                                                                                                                <span class="font-mono text-gray-800 font-medium"><%= addr.pincode %></span>
                                                                                                         </p>
                                                                                                 </div>
                                                                                         </div>
 
-                                                                                        <div
-                                                                                                class="mt-4 pt-3 border-t border-gray-50">
-                                                                                                <p
-                                                                                                        class="text-sm text-gray-700 font-medium">
-                                                                                                        <i
-                                                                                                                class="fa fa-phone text-gray-400 w-5 text-center"></i>
-                                                                                                        <%= addr.phone
-                                                                                                                %>
+                                                                                        <div class="mt-4 pt-3 border-t border-gray-100 flex items-center justify-between gap-2">
+                                                                                                <p class="text-sm text-gray-700 font-medium">
+                                                                                                        <i class="fa fa-phone text-gray-400 w-5 text-center"></i>
+                                                                                                        <%= addr.phone %>
                                                                                                 </p>
+                                                                                                <% if (!addr.isDefault) { %>
+                                                                                                <button onclick="setDefaultAddress('<%= addr._id %>')"
+                                                                                                        id="set-default-btn-<%= addr._id %>"
+                                                                                                        class="text-xs text-gray-400 hover:text-green-600 hover:bg-green-50 border border-gray-200 hover:border-green-300 px-2.5 py-1 rounded-lg transition-all font-semibold whitespace-nowrap">
+                                                                                                        Set Default
+                                                                                                </button>
+                                                                                                <% } %>
                                                                                         </div>
                                                                                 </div>
-                                                                                <% }) %>
+                                                                        <% }) %>
                                                                                         <% } %>
 
                                                         </div>
@@ -544,6 +532,60 @@
 
                                 return isValid;
                         }
+                        // SET DEFAULT ADDRESS
+                        window.setDefaultAddress = async function (id) {
+                                const btn = document.getElementById(`set-default-btn-${id}`);
+                                if (btn) { btn.textContent = 'Saving...'; btn.disabled = true; }
+
+                                try {
+                                        const res = await fetch(`/address/default/${id}`, {
+                                                method: 'PATCH',
+                                                headers: { "Accept": "application/json", "Content-Type": "application/json" }
+                                        });
+                                        const data = await res.json();
+
+                                        if (!res.ok) throw new Error(data.message || 'Failed to update default');
+
+                                        showToast('Default address updated', 'success');
+
+                                        // Update UI without full reload:
+                                        // 1. Remove green border + Default badge from all cards
+                                        document.querySelectorAll('[id^="addr-card-"]').forEach(card => {
+                                                card.classList.remove('border-red-400');
+                                                card.classList.add('border-gray-200');
+                                                // Remove existing Default badge
+                                                card.querySelector('.default-badge')?.remove();
+                                                // Show "Set Default" button on all non-target cards
+                                                const existingBtn = card.querySelector('[id^="set-default-btn-"]');
+                                                if (existingBtn) { existingBtn.classList.remove('hidden'); }
+                                        });
+
+                                        // 2. Mark the selected card as default
+                                        const targetCard = document.getElementById(`addr-card-${id}`);
+                                        if (targetCard) {
+                                                targetCard.classList.add('border-red-400');
+                                                targetCard.classList.remove('border-gray-200');
+
+                                                // Inject Default badge next to address type badge
+                                                const badgeContainer = targetCard.querySelector('.flex.items-center.gap-2.flex-wrap');
+                                                if (badgeContainer) {
+                                                        const badge = document.createElement('span');
+                                                        badge.className = 'default-badge px-2.5 py-1 bg-green-50 text-green-700 text-[10px] font-bold rounded-full uppercase tracking-wider border border-green-200';
+                                                        badge.innerHTML = '<i class="fa fa-circle-check mr-1"></i>Default';
+                                                        badgeContainer.appendChild(badge);
+                                                }
+
+                                                // Hide "Set Default" button on this card
+                                                const thisBtn = document.getElementById(`set-default-btn-${id}`);
+                                                if (thisBtn) thisBtn.classList.add('hidden');
+                                        }
+
+                                } catch (error) {
+                                        showToast(error.message, 'error');
+                                        if (btn) { btn.textContent = 'Set Default'; btn.disabled = false; }
+                                }
+                        };
+
                         // DELETE ADDRESS
                         window.deleteAddress = async function (id) {
                                 const confirmed = await confirmAction("Delete Address?", "This action cannot be undone.");
