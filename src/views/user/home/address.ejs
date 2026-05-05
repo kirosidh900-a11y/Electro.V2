@@ -278,8 +278,13 @@
                                 const modal = document.getElementById('addressModal');
                                 const form = document.getElementById('addressForm');
 
-                                // Clear all field errors
-                                document.querySelectorAll('.field-err').forEach(err => err.textContent = '');
+                                // Clear all field errors on open
+                                document.querySelectorAll('#addressForm .field-err').forEach(span => {
+                                        span.classList.add('hidden');
+                                        const et = span.querySelector('.err-text');
+                                        if (et) et.textContent = '';
+                                });
+                                document.querySelectorAll('#addressForm .addr-input').forEach(el => el.classList.remove('border-red-400'));
 
                                 modal.classList.remove('hidden');
 
