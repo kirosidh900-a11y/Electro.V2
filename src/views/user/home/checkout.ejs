@@ -636,130 +636,102 @@
                         <!-- Form Body -->
                         <div class="p-6 overflow-y-auto custom-scrollbar">
                                 <form id="addressForm" class="space-y-5">
-                                        <!-- Hidden state passed optionally -->
                                         <input type="hidden" id="addressId" name="addressId">
                                         <input type="hidden" id="addrStateCode" name="addrStateCode">
 
                                         <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
 
                                                 <div class="col-span-1">
-                                                        <label
-                                                                class="block text-xs font-bold text-gray-500 uppercase mb-1.5">Full
-                                                                Name *</label>
-                                                        <input name="name" type="text" required
-                                                                class="w-full bg-gray-50 border border-gray-200 rounded-lg px-4 py-3 focus:bg-white focus:ring-2 focus:ring-black focus:border-black outline-none transition-all text-sm">
+                                                        <label class="block text-xs font-bold text-gray-500 uppercase mb-1.5">Full Name *</label>
+                                                        <input name="name" type="text" autocomplete="off"
+                                                                class="addr-input w-full bg-gray-50 border border-gray-200 rounded-lg px-4 py-3 focus:bg-white focus:ring-2 focus:ring-black focus:border-black outline-none transition-all text-sm">
+                                                        <span class="field-err hidden text-red-500 text-xs mt-1 flex items-center gap-1"><i class="fa-solid fa-circle-exclamation text-[10px]"></i><span class="err-text"></span></span>
                                                 </div>
 
                                                 <div class="col-span-1">
-                                                        <label
-                                                                class="block text-xs font-bold text-gray-500 uppercase mb-1.5">Phone
-                                                                Number *</label>
-                                                        <input name="phone" type="tel" required
-                                                                class="w-full bg-gray-50 border border-gray-200 rounded-lg px-4 py-3 focus:bg-white focus:ring-2 focus:ring-black focus:border-black outline-none transition-all text-sm">
+                                                        <label class="block text-xs font-bold text-gray-500 uppercase mb-1.5">Phone Number *</label>
+                                                        <input name="phone" type="tel" maxlength="10" autocomplete="off"
+                                                                class="addr-input w-full bg-gray-50 border border-gray-200 rounded-lg px-4 py-3 focus:bg-white focus:ring-2 focus:ring-black focus:border-black outline-none transition-all text-sm">
+                                                        <span class="field-err hidden text-red-500 text-xs mt-1 flex items-center gap-1"><i class="fa-solid fa-circle-exclamation text-[10px]"></i><span class="err-text"></span></span>
                                                 </div>
 
                                                 <div class="col-span-1">
-                                                        <label
-                                                                class="block text-xs font-bold text-gray-500 uppercase mb-1.5">Pincode
-                                                                *</label>
-                                                        <input name="pincode" type="text" required
-                                                                class="w-full bg-gray-50 border border-gray-200 rounded-lg px-4 py-3 focus:bg-white focus:ring-2 focus:ring-black focus:border-black outline-none transition-all text-sm">
+                                                        <label class="block text-xs font-bold text-gray-500 uppercase mb-1.5">Pincode *</label>
+                                                        <input name="pincode" type="text" maxlength="6" autocomplete="off"
+                                                                class="addr-input w-full bg-gray-50 border border-gray-200 rounded-lg px-4 py-3 focus:bg-white focus:ring-2 focus:ring-black focus:border-black outline-none transition-all text-sm">
+                                                        <span class="field-err hidden text-red-500 text-xs mt-1 flex items-center gap-1"><i class="fa-solid fa-circle-exclamation text-[10px]"></i><span class="err-text"></span></span>
                                                 </div>
 
                                                 <div class="col-span-1">
-                                                        <label
-                                                                class="block text-xs font-bold text-gray-500 uppercase mb-1.5">Locality
-                                                                *</label>
-                                                        <input name="locality" type="text" required
-                                                                class="w-full bg-gray-50 border border-gray-200 rounded-lg px-4 py-3 focus:bg-white focus:ring-2 focus:ring-black focus:border-black outline-none transition-all text-sm">
+                                                        <label class="block text-xs font-bold text-gray-500 uppercase mb-1.5">Locality *</label>
+                                                        <input name="locality" type="text" autocomplete="off"
+                                                                class="addr-input w-full bg-gray-50 border border-gray-200 rounded-lg px-4 py-3 focus:bg-white focus:ring-2 focus:ring-black focus:border-black outline-none transition-all text-sm">
+                                                        <span class="field-err hidden text-red-500 text-xs mt-1 flex items-center gap-1"><i class="fa-solid fa-circle-exclamation text-[10px]"></i><span class="err-text"></span></span>
                                                 </div>
 
                                                 <div class="col-span-2">
-                                                        <label
-                                                                class="block text-xs font-bold text-gray-500 uppercase mb-1.5">Address
-                                                                (Area and Street) *</label>
-                                                        <textarea name="address" required rows="3"
-                                                                class="w-full bg-gray-50 border border-gray-200 rounded-lg px-4 py-3 focus:bg-white focus:ring-2 focus:ring-black focus:border-black outline-none transition-all text-sm resize-none"></textarea>
+                                                        <label class="block text-xs font-bold text-gray-500 uppercase mb-1.5">Address (Area and Street) *</label>
+                                                        <textarea name="address" rows="3"
+                                                                class="addr-input w-full bg-gray-50 border border-gray-200 rounded-lg px-4 py-3 focus:bg-white focus:ring-2 focus:ring-black focus:border-black outline-none transition-all text-sm resize-none"></textarea>
+                                                        <span class="field-err hidden text-red-500 text-xs mt-1 flex items-center gap-1"><i class="fa-solid fa-circle-exclamation text-[10px]"></i><span class="err-text"></span></span>
                                                 </div>
 
                                                 <div class="col-span-1">
-                                                        <label
-                                                                class="block text-xs font-bold text-gray-500 uppercase mb-1.5">City/Town
-                                                                *</label>
-                                                        <input name="city" type="text" required
-                                                                class="w-full bg-gray-50 border border-gray-200 rounded-lg px-4 py-3 focus:bg-white focus:ring-2 focus:ring-black focus:border-black outline-none transition-all text-sm">
+                                                        <label class="block text-xs font-bold text-gray-500 uppercase mb-1.5">City / Town *</label>
+                                                        <input name="city" type="text" autocomplete="off"
+                                                                class="addr-input w-full bg-gray-50 border border-gray-200 rounded-lg px-4 py-3 focus:bg-white focus:ring-2 focus:ring-black focus:border-black outline-none transition-all text-sm">
+                                                        <span class="field-err hidden text-red-500 text-xs mt-1 flex items-center gap-1"><i class="fa-solid fa-circle-exclamation text-[10px]"></i><span class="err-text"></span></span>
                                                 </div>
 
                                                 <div class="col-span-1">
-                                                        <label
-                                                                class="block text-xs font-bold text-gray-500 uppercase mb-1.5">State
-                                                                *</label>
-                                                        <select name="state" required
-                                                                class="w-full bg-white border border-gray-200 rounded-lg px-4 py-3 focus:ring-2 focus:ring-black focus:border-black outline-none transition-all text-sm cursor-pointer shadow-sm"></select>
+                                                        <label class="block text-xs font-bold text-gray-500 uppercase mb-1.5">State *</label>
+                                                        <select name="state"
+                                                                class="addr-input w-full bg-white border border-gray-200 rounded-lg px-4 py-3 focus:ring-2 focus:ring-black focus:border-black outline-none transition-all text-sm cursor-pointer shadow-sm"></select>
+                                                        <span class="field-err hidden text-red-500 text-xs mt-1 flex items-center gap-1"><i class="fa-solid fa-circle-exclamation text-[10px]"></i><span class="err-text"></span></span>
                                                 </div>
 
                                                 <div class="col-span-1">
-                                                        <label
-                                                                class="block text-xs font-bold text-gray-500 uppercase mb-1.5">District
-                                                                *</label>
-                                                        <select name="district" required
-                                                                class="w-full bg-white border border-gray-200 rounded-lg px-4 py-3 focus:ring-2 focus:ring-black focus:border-black outline-none transition-all text-sm cursor-pointer shadow-sm"></select>
+                                                        <label class="block text-xs font-bold text-gray-500 uppercase mb-1.5">District *</label>
+                                                        <select name="district"
+                                                                class="addr-input w-full bg-white border border-gray-200 rounded-lg px-4 py-3 focus:ring-2 focus:ring-black focus:border-black outline-none transition-all text-sm cursor-pointer shadow-sm"></select>
+                                                        <span class="field-err hidden text-red-500 text-xs mt-1 flex items-center gap-1"><i class="fa-solid fa-circle-exclamation text-[10px]"></i><span class="err-text"></span></span>
                                                 </div>
 
                                                 <div class="col-span-1">
-                                                        <label
-                                                                class="block text-xs font-bold text-gray-500 uppercase mb-1.5">Landmark
-                                                                (Optional)</label>
-                                                        <input name="landmark" type="text"
-                                                                class="w-full bg-gray-50 border border-gray-200 rounded-lg px-4 py-3 focus:bg-white focus:ring-2 focus:ring-black focus:border-black outline-none transition-all text-sm">
+                                                        <label class="block text-xs font-bold text-gray-500 uppercase mb-1.5">Landmark <span class="text-gray-400 normal-case font-normal">(Optional)</span></label>
+                                                        <input name="landmark" type="text" autocomplete="off"
+                                                                class="addr-input w-full bg-gray-50 border border-gray-200 rounded-lg px-4 py-3 focus:bg-white focus:ring-2 focus:ring-black focus:border-black outline-none transition-all text-sm">
                                                 </div>
 
                                                 <div class="col-span-1">
-                                                        <label
-                                                                class="block text-xs font-bold text-gray-500 uppercase mb-1.5">Alternate
-                                                                Phone (Optional)</label>
-                                                        <input name="altPhone" type="tel"
-                                                                class="w-full bg-gray-50 border border-gray-200 rounded-lg px-4 py-3 focus:bg-white focus:ring-2 focus:ring-black focus:border-black outline-none transition-all text-sm">
+                                                        <label class="block text-xs font-bold text-gray-500 uppercase mb-1.5">Alternate Phone <span class="text-gray-400 normal-case font-normal">(Optional)</span></label>
+                                                        <input name="altPhone" type="tel" maxlength="10" autocomplete="off"
+                                                                class="addr-input w-full bg-gray-50 border border-gray-200 rounded-lg px-4 py-3 focus:bg-white focus:ring-2 focus:ring-black focus:border-black outline-none transition-all text-sm">
+                                                        <span class="field-err hidden text-red-500 text-xs mt-1 flex items-center gap-1"><i class="fa-solid fa-circle-exclamation text-[10px]"></i><span class="err-text"></span></span>
                                                 </div>
 
-                                                <!-- Address Type -->
                                                 <div class="col-span-1">
-                                                        <label
-                                                                class="block text-xs font-bold text-gray-500 uppercase mb-2">Address
-                                                                Type</label>
+                                                        <label class="block text-xs font-bold text-gray-500 uppercase mb-2">Address Type</label>
                                                         <div class="flex gap-4">
-                                                                <label
-                                                                        class="flex items-center gap-2 cursor-pointer group">
-                                                                        <input type="radio" name="addressType"
-                                                                                value="home" checked
-                                                                                class="w-4 h-4 text-black border-gray-300 focus:ring-black">
-                                                                        <span
-                                                                                class="text-sm text-gray-700 group-hover:text-black">Home</span>
+                                                                <label class="flex items-center gap-2 cursor-pointer group">
+                                                                        <input type="radio" name="addressType" value="home" checked class="w-4 h-4 text-black border-gray-300 focus:ring-black">
+                                                                        <span class="text-sm text-gray-700 group-hover:text-black">Home</span>
                                                                 </label>
-                                                                <label
-                                                                        class="flex items-center gap-2 cursor-pointer group">
-                                                                        <input type="radio" name="addressType"
-                                                                                value="work"
-                                                                                class="w-4 h-4 text-black border-gray-300 focus:ring-black">
-                                                                        <span
-                                                                                class="text-sm text-gray-700 group-hover:text-black">Work</span>
+                                                                <label class="flex items-center gap-2 cursor-pointer group">
+                                                                        <input type="radio" name="addressType" value="work" class="w-4 h-4 text-black border-gray-300 focus:ring-black">
+                                                                        <span class="text-sm text-gray-700 group-hover:text-black">Work</span>
                                                                 </label>
                                                         </div>
                                                 </div>
 
-                                                <!-- Default Switch -->
                                                 <div class="col-span-2 pt-2">
-                                                        <label
-                                                                class="inline-flex items-center gap-3 cursor-pointer group">
+                                                        <label class="inline-flex items-center gap-3 cursor-pointer group">
                                                                 <div class="relative flex items-center">
                                                                         <input type="checkbox" name="isDefault"
                                                                                 class="peer w-5 h-5 appearance-none border-2 border-gray-300 rounded focus:ring-0 checked:bg-black checked:border-black transition-all cursor-pointer">
-                                                                        <i
-                                                                                class="fa-solid fa-check absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 text-white text-[10px] opacity-0 peer-checked:opacity-100 pointer-events-none transition-opacity"></i>
+                                                                        <i class="fa-solid fa-check absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 text-white text-[10px] opacity-0 peer-checked:opacity-100 pointer-events-none transition-opacity"></i>
                                                                 </div>
-                                                                <span
-                                                                        class="text-sm font-medium text-gray-700 group-hover:text-black transition-colors">Set
-                                                                        as default delivery address</span>
+                                                                <span class="text-sm font-medium text-gray-700 group-hover:text-black transition-colors">Set as default delivery address</span>
                                                         </label>
                                                 </div>
 
@@ -919,8 +891,13 @@
                         const modal = document.getElementById('addressModal');
                         const form = document.getElementById('addressForm');
 
-                        // Clear all field errors
-                        document.querySelectorAll('.field-err').forEach(err => err.textContent = '');
+                        // Clear all field errors on open
+                        form.querySelectorAll('.field-err').forEach(span => {
+                                span.classList.add('hidden');
+                                const et = span.querySelector('.err-text');
+                                if (et) et.textContent = '';
+                        });
+                        form.querySelectorAll('.addr-input').forEach(el => el.classList.remove('border-red-400'));
 
                         modal.classList.remove('hidden');
 
@@ -980,68 +957,141 @@
                 };
 
                 window.closeAddressModal = () => {
-                        // Clear all field errors
-                        document.querySelectorAll('.field-err').forEach(err => err.textContent = '');
-                        
+                        const form = document.getElementById('addressForm');
+                        form?.querySelectorAll('.field-err').forEach(span => {
+                                span.classList.add('hidden');
+                                const et = span.querySelector('.err-text');
+                                if (et) et.textContent = '';
+                        });
+                        form?.querySelectorAll('.addr-input').forEach(el => el.classList.remove('border-red-400'));
                         document.getElementById('addressModal').classList.add('hidden');
                 };
 
-                // Form Validator — inline errors per field
-                function validateForm(form, stateSelect, districtSelect) {
-                        const name     = form.name.value.trim();
-                        const phone    = form.phone.value.trim();
-                        const altPhone = form.altPhone.value.trim();
-                        const pincode  = form.pincode.value.trim();
-                        const locality = form.locality.value.trim();
-                        const address  = form.address.value.trim();
-                        const city     = form.city.value.trim();
-                        const state    = stateSelect.value;
-                        const district = districtSelect.value;
+                // ── Validation rules ──────────────────────────────────────────────────
+                const ADDR_RULES = {
+                        name: (v) => {
+                                if (!v)                             return "Full name is required";
+                                if (v.length < 3)                   return "Name must be at least 3 characters";
+                                if (v.length > 60)                  return "Name cannot exceed 60 characters";
+                                if (!/^[A-Za-z\s.'\-]+$/.test(v))  return "Name can only contain letters, spaces, dots and hyphens";
+                                return null;
+                        },
+                        phone: (v) => {
+                                if (!v)                             return "Phone number is required";
+                                if (!/^[6-9]\d{9}$/.test(v))       return "Enter a valid 10-digit mobile number (starts with 6–9)";
+                                return null;
+                        },
+                        altPhone: (v) => {
+                                if (!v) return null;
+                                if (!/^[6-9]\d{9}$/.test(v))       return "Alternate phone must be a valid 10-digit mobile number";
+                                return null;
+                        },
+                        pincode: (v) => {
+                                if (!v)                             return "Pincode is required";
+                                if (!/^[1-9][0-9]{5}$/.test(v))    return "Enter a valid 6-digit pincode (cannot start with 0)";
+                                return null;
+                        },
+                        locality: (v) => {
+                                if (!v)                             return "Locality / area is required";
+                                if (v.length < 3)                   return "Locality must be at least 3 characters";
+                                return null;
+                        },
+                        address: (v) => {
+                                if (!v)                             return "Street address is required";
+                                if (v.length < 5)                   return "Address is too short (min 5 characters)";
+                                return null;
+                        },
+                        city: (v) => {
+                                if (!v)                             return "City / town is required";
+                                if (v.length < 2)                   return "City name must be at least 2 characters";
+                                if (!/^[A-Za-z\s.'\-]+$/.test(v))  return "City name can only contain letters, spaces, dots and hyphens";
+                                return null;
+                        },
+                };
 
-                        // helper: show inline error below a field
-                        function fieldErr(el, msg) {
-                                let span = el.parentNode.querySelector('.field-err');
-                                if (!span) {
-                                        span = document.createElement('span');
-                                        span.className = 'field-err text-red-500 text-xs mt-1 block';
-                                        el.parentNode.appendChild(span);
-                                }
-                                span.textContent = msg;
-                                el.classList.add('border-red-500');
-                                el.focus();
+                // ── Auto-format: digits only for phone/pincode ────────────────────────
+                document.addEventListener("input", (e) => {
+                        if (!e.target.closest('#addressForm')) return;
+                        const name = e.target.name;
+                        if (name === "phone" || name === "altPhone") {
+                                e.target.value = e.target.value.replace(/\D/g, "").slice(0, 10);
                         }
-                        function clearErr(el) {
-                                const span = el.parentNode.querySelector('.field-err');
-                                if (span) span.textContent = '';
-                                el.classList.remove('border-red-500');
+                        if (name === "pincode") {
+                                e.target.value = e.target.value.replace(/\D/g, "").slice(0, 6);
                         }
+                        // Clear error as user types
+                        _clearFieldErr(e.target);
+                });
+
+                // ── Blur validation ───────────────────────────────────────────────────
+                document.addEventListener("blur", (e) => {
+                        const el = e.target;
+                        if (!el.closest('#addressForm')) return;
+                        const rule = ADDR_RULES[el.name];
+                        if (rule) {
+                                const msg = rule(el.value.trim());
+                                if (msg) _showFieldErr(el, msg);
+                                else _clearFieldErr(el);
+                        }
+                }, true);
+
+                // ── Show / clear helpers ──────────────────────────────────────────────
+                function _showFieldErr(el, msg) {
+                        el.classList.add("border-red-400");
+                        el.classList.remove("border-gray-200");
+                        const span = el.parentNode.querySelector(".field-err");
+                        if (span) {
+                                span.classList.remove("hidden");
+                                span.querySelector(".err-text").textContent = msg;
+                        }
+                }
+                function _clearFieldErr(el) {
+                        el.classList.remove("border-red-400");
+                        const span = el.parentNode.querySelector(".field-err");
+                        if (span) {
+                                span.classList.add("hidden");
+                                const et = span.querySelector(".err-text");
+                                if (et) et.textContent = "";
+                        }
+                }
+                function _showSelectErr(sel, msg) {
+                        sel.classList.add("border-red-400");
+                        const span = sel.parentNode.querySelector(".field-err");
+                        if (span) { span.classList.remove("hidden"); span.querySelector(".err-text").textContent = msg; }
+                }
+                function _clearSelectErr(sel) {
+                        sel.classList.remove("border-red-400");
+                        const span = sel.parentNode.querySelector(".field-err");
+                        if (span) { span.classList.add("hidden"); const et = span.querySelector(".err-text"); if (et) et.textContent = ""; }
+                }
+
+                // Form Validator — shows ALL errors at once
+                function validateForm(form, stateSelect, districtSelect) {
+                        let isValid = true;
 
                         // Clear all first
-                        [form.name, form.phone, form.altPhone, form.pincode,
-                         form.locality, form.address, form.city].forEach(clearErr);
+                        form.querySelectorAll('.addr-input').forEach(_clearFieldErr);
+                        _clearSelectErr(stateSelect);
+                        _clearSelectErr(districtSelect);
 
-                        if (!/^[A-Za-z ]{3,}$/.test(name))           { fieldErr(form.name,     "Name must be at least 3 letters");          return false; }
-                        if (!/^[6-9]\d{9}$/.test(phone))              { fieldErr(form.phone,    "Enter valid 10-digit phone number");         return false; }
-                        if (altPhone && !/^[6-9]\d{9}$/.test(altPhone)) { fieldErr(form.altPhone, "Invalid alternate phone number");          return false; }
-                        if (!/^[1-9][0-9]{5}$/.test(pincode))         { fieldErr(form.pincode,  "Invalid 6-digit pincode");                  return false; }
-                        if (locality.length < 3)                       { fieldErr(form.locality, "Locality must be at least 3 characters");   return false; }
-                        if (address.length < 5)                        { fieldErr(form.address,  "Address is too short");                     return false; }
-                        if (!/^[A-Za-z ]{2,}$/.test(city))            { fieldErr(form.city,     "Enter a valid city name");                  return false; }
+                        // Validate each field
+                        Object.entries(ADDR_RULES).forEach(([fieldName, rule]) => {
+                                const el = form[fieldName];
+                                if (!el) return;
+                                const msg = rule(el.value.trim());
+                                if (msg) { _showFieldErr(el, msg); isValid = false; }
+                        });
 
-                        if (!state) {
-                                let span = stateSelect.parentNode.querySelector('.field-err');
-                                if (!span) { span = document.createElement('span'); span.className = 'field-err text-red-500 text-xs mt-1 block'; stateSelect.parentNode.appendChild(span); }
-                                span.textContent = 'Please select a state';
-                                return false;
-                        }
-                        if (!district) {
-                                let span = districtSelect.parentNode.querySelector('.field-err');
-                                if (!span) { span = document.createElement('span'); span.className = 'field-err text-red-500 text-xs mt-1 block'; districtSelect.parentNode.appendChild(span); }
-                                span.textContent = 'Please select a district';
-                                return false;
+                        if (!stateSelect.value) { _showSelectErr(stateSelect, "Please select a state"); isValid = false; }
+                        if (!districtSelect.value) { _showSelectErr(districtSelect, "Please select a district"); isValid = false; }
+
+                        // Scroll to first error
+                        if (!isValid) {
+                                const firstErr = form.querySelector('.border-red-400');
+                                if (firstErr) firstErr.scrollIntoView({ behavior: 'smooth', block: 'center' });
                         }
 
-                        return true;
+                        return isValid;
                 }
 
                 // Capture Submit Action for Modal Form
