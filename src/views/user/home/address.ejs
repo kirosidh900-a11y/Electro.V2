@@ -543,42 +543,48 @@
                                                 headers: { "Accept": "application/json", "Content-Type": "application/json" }
                                         });
                                         const data = await res.json();
-
                                         if (!res.ok) throw new Error(data.message || 'Failed to update default');
 
                                         showToast('Default address updated', 'success');
 
-                                        // Update UI without full reload:
-                                        // 1. Remove green border + Default badge from all cards
+                                        // ── Update all cards ──────────────────────────────────────────────
                                         document.querySelectorAll('[id^="addr-card-"]').forEach(card => {
-                                                card.classList.remove('border-red-400');
-                                                card.classList.add('border-gray-200');
-                                                // Remove existing Default badge
+                                                const cardId = card.id.replace('addr-card-', '');
+                                                const isTarget = cardId === id;
+
+                                                // Border
+                                                card.classList.toggle('border-red-400', isTarget);
+                                                card.classList.toggle('border-gray-200', !isTarget);
+
+                                                // Remove any existing dynamic default badge
                                                 card.querySelector('.default-badge')?.remove();
-                                                // Show "Set Default" button on all non-target cards
-                                                const existingBtn = card.querySelector('[id^="set-default-btn-"]');
-                                                if (existingBtn) { existingBtn.classList.remove('hidden'); }
-                                        });
 
-                                        // 2. Mark the selected card as default
-                                        const targetCard = document.getElementById(`addr-card-${id}`);
-                                        if (targetCard) {
-                                                targetCard.classList.add('border-red-400');
-                                                targetCard.classList.remove('border-gray-200');
+                                                // Footer row — contains phone + set-default btn
+                                                const footer = card.querySelector('.border-t.border-gray-100');
+                                                if (!footer) return;
 
-                                                // Inject Default badge next to address type badge
-                                                const badgeContainer = targetCard.querySelector('.flex.items-center.gap-2.flex-wrap');
-                                                if (badgeContainer) {
-                                                        const badge = document.createElement('span');
-                                                        badge.className = 'default-badge px-2.5 py-1 bg-green-50 text-green-700 text-[10px] font-bold rounded-full uppercase tracking-wider border border-green-200';
-                                                        badge.innerHTML = '<i class="fa fa-circle-check mr-1"></i>Default';
-                                                        badgeContainer.appendChild(badge);
+                                                // Remove any existing set-default button (both static and dynamic)
+                                                footer.querySelectorAll('[id^="set-default-btn-"], .dyn-set-default-btn').forEach(b => b.remove());
+
+                                                if (isTarget) {
+                                                        // Add Default badge in the badge container
+                                                        const badgeRow = card.querySelector('.flex.items-center.gap-2.flex-wrap');
+                                                        if (badgeRow) {
+                                                                const badge = document.createElement('span');
+                                                                badge.className = 'default-badge px-2.5 py-1 bg-green-50 text-green-700 text-[10px] font-bold rounded-full uppercase tracking-wider border border-green-200';
+                                                                badge.innerHTML = '<i class="fa fa-circle-check mr-1"></i>Default';
+                                                                badgeRow.appendChild(badge);
+                                                        }
+                                                } else {
+                                                        // Add "Set Default" button to footer
+                                                        const newBtn = document.createElement('button');
+                                                        newBtn.id = `set-default-btn-${cardId}`;
+                                                        newBtn.className = 'dyn-set-default-btn text-xs text-gray-400 hover:text-green-600 hover:bg-green-50 border border-gray-200 hover:border-green-300 px-2.5 py-1 rounded-lg transition-all font-semibold whitespace-nowrap';
+                                                        newBtn.textContent = 'Set Default';
+                                                        newBtn.onclick = () => setDefaultAddress(cardId);
+                                                        footer.appendChild(newBtn);
                                                 }
-
-                                                // Hide "Set Default" button on this card
-                                                const thisBtn = document.getElementById(`set-default-btn-${id}`);
-                                                if (thisBtn) thisBtn.classList.add('hidden');
-                                        }
+                                        });
 
                                 } catch (error) {
                                         showToast(error.message, 'error');
