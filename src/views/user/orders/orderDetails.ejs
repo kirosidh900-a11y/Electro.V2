@@ -356,7 +356,7 @@
                         <i class="fa-solid fa-rotate-left text-[10px]"></i> Return
                       </button>
                     <% } %>
-                    <% if(['placed','confirmed'].includes(order.orderStatus) && ['placed','confirmed'].includes(item.itemStatus) && items.length > 1 && (!order.pricing?.couponDiscount || order.pricing.couponDiscount === 0)) { %>
+                    <% if(['placed','confirmed'].includes(order.orderStatus) && ['placed','confirmed'].includes(item.itemStatus) && items.length > 1) { %>
                       <button onclick="openCancelModal(true, '<%= item._id %>')"
                         class="text-xs text-red-600 border border-red-200 px-3 py-1.5 rounded-lg hover:bg-red-50 font-semibold transition flex items-center gap-1">
                         <i class="fa-solid fa-xmark text-[10px]"></i> Cancel Item

@@ -30,7 +30,9 @@ import HTTP_STATUS from "../../constant/statusCode.js";
  */
 export const calculateItemRefund = async (item, order) => {
   const itemTotal      = item.pricing?.total        ?? 0;
-  const couponDiscount = order.pricing?.couponDiscount ?? 0;
+  // Use originalCouponDiscount (immutable) so refunds are always correct
+  // even after partial cancellations reduce order.pricing.couponDiscount
+  const couponDiscount = order.pricing?.originalCouponDiscount ?? order.pricing?.couponDiscount ?? 0;
   const deliveryCharge = order.pricing?.deliveryCharge ?? 0;
 
   // Fast path — no order-level adjustments

@@ -12,6 +12,7 @@ const orderSchema = new Schema(
       subtotal: Number,
       productDiscount: { type: Number, default: 0 },
       couponDiscount: { type: Number, default: 0 },
+      originalCouponDiscount: { type: Number, default: 0 }, // immutable — used for refund calc
       gstTotal: { type: Number, default: 0 },
       deliveryCharge: { type: Number, default: 0 },
       finalAmount: Number,

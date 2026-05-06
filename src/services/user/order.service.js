@@ -255,11 +255,12 @@ export const placeOrderService = async ({
       orderNumber,
 
       pricing: {
-        subtotal:        finalPriceTotal,  // sum of finalPrice×qty (post-offer, GST included)
-        productDiscount,                   // MRP - basePrice savings (for display)
+        subtotal:               finalPriceTotal,
+        productDiscount,
         couponDiscount,
+        originalCouponDiscount: couponDiscount,   // immutable snapshot for refund calc
         deliveryCharge,
-        gstTotal,                          // informational — already inside subtotal
+        gstTotal,
         finalAmount,
       },
 
@@ -515,44 +516,53 @@ export const cancelOrderService = async ({
       "return_rejected",
     ];
 
-    const activeItems = await orderItem.find({
-      orderId,
-      userId,
-      itemStatus: { $nin: terminalStatuses },
-    });
+    const allItems    = await orderItem.find({ orderId, userId });
+    const activeItems = allItems.filter(i => !terminalStatuses.includes(i.itemStatus));
 
     // FULL CANCEL CASE — preserve original pricing for display, just mark as cancelled
     if (activeItems.length === 0) {
-      order.orderStatus = "cancelled";
-      order.isCancelled = true;
+      order.orderStatus  = "cancelled";
+      order.isCancelled  = true;
       order.cancelReason = reason;
       order.cancelComments = comments;
-      order.cancelledAt = new Date();
-
+      order.cancelledAt  = new Date();
       return 0;
     }
 
     // PARTIAL CANCEL — recalculate from remaining active items only
-    let subtotal = 0;        // sum of item.pricing.total (finalPrice × qty, GST included)
+    let subtotal        = 0;
     let productDiscount = 0;
-    let gstTotal = 0;
+    let gstTotal        = 0;
 
     activeItems.forEach((i) => {
-      subtotal        += i.pricing.total;           // finalPrice × qty (GST already inside)
+      subtotal        += i.pricing.total;
       productDiscount += i.pricing.discountAmount || 0;
-      gstTotal        += i.pricing.gstAmount || 0;
+      gstTotal        += i.pricing.gstAmount      || 0;
     });
 
-    const couponDiscount = order.pricing.couponDiscount || 0;
+    // ── Proportional coupon discount ──────────────────────────────────────────
+    // Use originalCouponDiscount (immutable) as the base so repeated partial
+    // cancellations don't compound and over-reduce the coupon.
+    const originalCouponDiscount = order.pricing.originalCouponDiscount ?? order.pricing.couponDiscount ?? 0;
+    let remainingCouponDiscount  = 0;
+
+    if (originalCouponDiscount > 0) {
+      const allItemsTotal = allItems.reduce((sum, i) => sum + (i.pricing?.total ?? 0), 0);
+
+      if (allItemsTotal > 0) {
+        const activeShare = subtotal / allItemsTotal;
+        remainingCouponDiscount = Math.round(originalCouponDiscount * activeShare);
+      }
+    }
+
     const deliveryCharge = order.pricing.deliveryCharge || 0;
 
-    order.pricing.subtotal        = subtotal;
-    order.pricing.productDiscount = productDiscount;
-    order.pricing.gstTotal        = gstTotal;
-    // finalAmount = subtotal (already includes GST) - coupon + delivery
-    // do NOT add gstTotal again
-    order.pricing.finalAmount = Math.max(
-      subtotal - couponDiscount + deliveryCharge,
+    order.pricing.subtotal         = subtotal;
+    order.pricing.productDiscount  = productDiscount;
+    order.pricing.gstTotal         = gstTotal;
+    order.pricing.couponDiscount   = remainingCouponDiscount;
+    order.pricing.finalAmount      = Math.max(
+      subtotal - remainingCouponDiscount + deliveryCharge,
       0
     );
 
