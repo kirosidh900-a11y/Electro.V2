@@ -471,7 +471,7 @@
           if (titleEl) titleEl.textContent = TAB_LABELS[tabKey] || 'Report';
 
         } catch (e) {
-          console.error('Chart update failed:', e);
+          // chart update failed silently
         } finally {
           if (chartWrap) chartWrap.style.opacity = '1';
         }
@@ -869,7 +869,6 @@
         history.pushState({}, '', url.toString());
 
       } catch (e) {
-        console.error('Pagination fetch failed:', e);
         if (tbody) tbody.style.opacity = '1';
       }
     };
