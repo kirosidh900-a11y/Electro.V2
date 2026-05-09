@@ -967,6 +967,13 @@
             hasError = true;
           }
 
+          // Max discount must be less than the selling price
+          if (max_discount_amount !== undefined && max_discount_amount > 0 && !isNaN(price) && max_discount_amount >= price) {
+            maxDiscountError.textContent = "Max discount must be less than the selling price";
+            maxDiscountError.classList.remove("hidden");
+            hasError = true;
+          }
+
           // ATTRIBUTES - Pattern allows letters, numbers, spaces, -, _, and /
           const attributePattern = /^[A-Za-z0-9/]+(?:[ _-][A-Za-z0-9/]+)*$/;
           const attributes = {};

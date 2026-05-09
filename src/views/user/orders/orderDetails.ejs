@@ -768,64 +768,75 @@ function openCancelModal(isSingle = false, itemId = null) {
     btnText.textContent = 'Processing...';
 
     try {
-      const res  = await fetch(`/payment/retry/${ORDER_ID}`, {
+      const res  = await fetch(`/api/user/payment/retry/${ORDER_ID}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
       });
       const data = await res.json();
-      if (!res.ok) throw new Error(data.message || 'Retry failed');
+      if (!res.ok) {
+        throw new Error(data.message || 'Retry failed');
+      }
 
-      const rzp = new Razorpay({
+      var rzp = new Razorpay({
         key:         data.key,
         amount:      data.amount,
         currency:    'INR',
         order_id:    data.razorpayOrderId,
         name:        'Electro Shop',
-        description: `Order #${ORDER_NUMBER}`,
+        description: 'Order #' + ORDER_NUMBER,
         theme:       { color: '#2563EB' },
+        config:      { display: { hide: [{ method: 'netbanking' }] } },
 
-        handler: async function (response) {
+        handler: function (response) {
+          var overlay = document.getElementById('rzpProcessingOverlay');
+          if (overlay) overlay.classList.remove('hidden');
           btnText.textContent = 'Verifying...';
-          try {
-            const verifyRes = await fetch('/payment/verify', {
-              method:  'POST',
-              headers: { 'Content-Type': 'application/json' },
-              credentials: 'include',
-              body: JSON.stringify({
-                razorpay_order_id:   response.razorpay_order_id,
-                razorpay_payment_id: response.razorpay_payment_id,
-                razorpay_signature:  response.razorpay_signature,
-                orderId: data.orderId,
-              }),
-            });
-            const verifyData = await verifyRes.json();
+          fetch('/api/user/payment/verify', {
+            method:  'POST',
+            headers: { 'Content-Type': 'application/json' },
+            credentials: 'include',
+            body: JSON.stringify({
+              razorpay_order_id:   response.razorpay_order_id,
+              razorpay_payment_id: response.razorpay_payment_id,
+              razorpay_signature:  response.razorpay_signature,
+              orderId: data.orderId,
+            })
+          })
+          .then(function (r) { return r.json(); })
+          .then(function (verifyData) {
             if (verifyData.success) {
-              // ✅ Payment confirmed — go to success page
-              window.location.href = `/order/success/${data.orderId}`;
+              window.location.href = '/order/success/' + data.orderId;
             } else {
               throw new Error(verifyData.message || 'Verification failed');
             }
-          } catch (e) {
-            // Verification failed — stay on this page, re-enable button
+          })
+          .catch(function (e) {
             window.showToast && showToast(e.message || 'Verification failed', 'error');
             btn.disabled = false;
             btnText.textContent = 'Retry Payment';
-          }
+          });
         },
 
         modal: {
           ondismiss: function () {
-            // User closed modal — reserved stock stays intact, just re-enable
             btn.disabled = false;
             btnText.textContent = 'Retry Payment';
-          },
-        },
+          }
+        }
       });
 
       rzp.on('payment.failed', function (response) {
-        // Hard failure — redirect to dedicated failure page
-        window.location.href = `/order/failure/${data.orderId}?orderNumber=${ORDER_NUMBER}&error=${encodeURIComponent(response.error?.description || 'Payment failed')}`;
+        fetch('/api/user/payment/failure', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',
+          body: JSON.stringify({ orderId: data.orderId })
+        }).finally(function () {
+          window.location.href = '/order/failure/' + data.orderId +
+            '?orderNumber=' + ORDER_NUMBER +
+            '&error=' + encodeURIComponent((response.error && response.error.description) || 'Payment failed');
+        });
       });
 
       rzp.open();
@@ -838,6 +849,18 @@ function openCancelModal(isSingle = false, itemId = null) {
   }
   <% } %>
 </script>
+
+<!-- Payment processing overlay -->
+<div id="rzpProcessingOverlay" class="hidden fixed inset-0 z-[200] flex flex-col items-center justify-center bg-white/90 backdrop-blur-sm">
+  <div class="flex flex-col items-center gap-4">
+    <svg class="animate-spin h-10 w-10 text-gray-800" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+      <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+      <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"></path>
+    </svg>
+    <p class="text-base font-semibold text-gray-800">Confirming your payment…</p>
+    <p class="text-sm text-gray-500">Please don't close this page</p>
+  </div>
+</div>
 
 <%- include("../../partials/user/footer.ejs") %>
 </body>

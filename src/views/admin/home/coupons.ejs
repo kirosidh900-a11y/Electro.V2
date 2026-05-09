@@ -582,6 +582,16 @@
           return showInline('couponMaxDiscountError', 'Max discount cap must be greater than 0');
         if (minOrder && (isNaN(minOrder) || minOrder < 0))
           return showInline('couponMinOrderError', 'Min order amount must be 0 or greater');
+
+        // Min order must be strictly greater than the discount amount
+        if (type === 'fixed' && minOrder && !isNaN(minOrder) && !isNaN(value)) {
+          if (minOrder <= value)
+            return showInline('couponMinOrderError', 'Min order amount must be greater than the discount value');
+        }
+        if (type === 'percentage' && minOrder && !isNaN(minOrder) && document.getElementById('coupon-max-discount').value && !isNaN(maxDiscount) && maxDiscount > 0) {
+          if (minOrder <= maxDiscount)
+            return showInline('couponMinOrderError', 'Min order amount must be greater than the max discount cap');
+        }
         if (usageLimit && (isNaN(parseInt(usageLimit)) || parseInt(usageLimit) < 1))
           return showInline('couponUsageLimitError', 'Usage limit must be at least 1');
         if (perUser && (isNaN(parseInt(perUser)) || parseInt(perUser) < 1))

@@ -29,7 +29,7 @@ import { setUploadFolder } from "../../middlewares/setUploadFolder.middleware.js
 import attachUser from "../../middlewares/attachUser.middleware.js";
 import userAuth from "../../middlewares/user/userAuth.middleware.js";
 import addresRouter from "./addres.route.js";
-import upload from "../../middlewares/cloudinaryUpload.middleware.js";
+import upload, { validateImageBuffer } from "../../middlewares/cloudinaryUpload.middleware.js";
 import locationRoutes from "./location.route.js";
 import productRouter from "../../routes/product/user/product.route.js";
 import wishlistRouter from "./wishlist.route.js";
@@ -49,6 +49,7 @@ import {
 } from "../../controllers/product/user/checkout.controller.js";
 import { getOrderListingPage } from "../../controllers/user/order.controller.js";
 import paymentRouter from "../product/payment.route.js";
+import { razorpayCallbackController } from "../../controllers/product/payment.controller.js";
 import { applyCoupon, removeCoupon, getAvailableCoupons } from "../../controllers/product/user/coupon.controller.js";
 
 import { getWalletPage, addMoneyToWallet } from "../../controllers/user/wallet.controller.js";
@@ -67,6 +68,10 @@ router.use("/location", requireAuth, locationRoutes);
 router.use("/wishlist", requireAuth, wishlistRouter);
 router.use("/orders", requireAuth, orderRouter);
 router.use("/order", requireAuth, orderRouter);
+
+// Razorpay redirect callback — no auth required (Razorpay POSTs here directly)
+// Must be registered BEFORE the requireAuth payment router to bypass auth
+router.post("/payment/callback", razorpayCallbackController);
 router.use("/payment", requireAuth, paymentRouter);
 
 //Home side
@@ -129,7 +134,7 @@ router
 
 router
   .route("/photo")
-  .patch(setUploadFolder("profile"), upload.single("photo"), updateProfilePhoto)
+  .patch(setUploadFolder("profile"), upload.single("photo"), validateImageBuffer, updateProfilePhoto)
   .delete(deleteProfilePhoto);
 
 export default router;

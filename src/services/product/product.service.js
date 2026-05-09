@@ -428,6 +428,16 @@ export const addVariantService = async ({
     throw new AppError("Price is required", HTTP_STATUS.BAD_REQUEST);
   }
 
+  // regular_price (MRP) must be >= selling price
+  if (regular_price !== undefined && regular_price !== null && Number(regular_price) < Number(price)) {
+    throw new AppError("Regular price (MRP) must be greater than or equal to the selling price", HTTP_STATUS.BAD_REQUEST);
+  }
+
+  // max_discount_amount must be less than the selling price
+  if (max_discount_amount !== undefined && max_discount_amount !== null && Number(max_discount_amount) > 0 && Number(max_discount_amount) >= Number(price)) {
+    throw new AppError("Max discount amount must be less than the selling price", HTTP_STATUS.BAD_REQUEST);
+  }
+
   const normalizedSku = sku.trim().toLowerCase();
 
   const skuExists = await Products.exists({
@@ -521,6 +531,26 @@ export const editVariantService = async (productId, variantId, data) => {
 
   if (data.max_discount_amount !== undefined) {
     variant.max_discount_amount = Number(data.max_discount_amount);
+  }
+
+  // ================= CROSS-FIELD VALIDATION =================
+  // Use the final (post-update) values for validation
+  const finalPrice = variant.price;
+  const finalRegularPrice = variant.regular_price;
+  const finalMaxDiscount = variant.max_discount_amount;
+
+  if (finalRegularPrice !== undefined && finalRegularPrice < finalPrice) {
+    throw new AppError(
+      "Regular price (MRP) must be greater than or equal to the selling price",
+      HTTP_STATUS.BAD_REQUEST
+    );
+  }
+
+  if (finalMaxDiscount > 0 && finalMaxDiscount >= finalPrice) {
+    throw new AppError(
+      "Max discount amount must be less than the selling price",
+      HTTP_STATUS.BAD_REQUEST
+    );
   }
 
   if (data.stock !== undefined) {

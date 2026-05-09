@@ -1,5 +1,7 @@
 import BrandSchema from "../../models/brandSchema.model.js";
 import mongoose from "mongoose";
+import AppError from "../../utils/partials/AppError.utils.js";
+import HTTP_STATUS from "../../constant/statusCode.js";
 
 export const brandService = async ({ limit, page, search, status }) => {
   const query = { isDeleted: false };

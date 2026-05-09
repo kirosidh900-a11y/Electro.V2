@@ -222,67 +222,74 @@
     retryBtnText.textContent = "Processing...";
 
     try {
-      const res = await fetch(`/payment/retry/${ORDER_ID}`, {
+      const res = await fetch(`/api/user/payment/retry/${ORDER_ID}`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         credentials: "include",
       });
 
       const data = await res.json();
-
       if (!res.ok) throw new Error(data.message || "Retry failed");
 
-      const options = {
-        key: data.key,
-        amount: data.amount,
-        currency: "INR",
-        order_id: data.razorpayOrderId,
-        name: "Electro Shop",
-        description: `Order #${data.orderNumber}`,
-        handler: async function (response) {
-          // Payment succeeded — verify and redirect to success page
+      var rzp = new Razorpay({
+        key:         data.key,
+        amount:      data.amount,
+        currency:    "INR",
+        order_id:    data.razorpayOrderId,
+        name:        "Electro Shop",
+        description: "Order #" + data.orderNumber,
+        theme:       { color: "#111827" },
+        config:      { display: { hide: [{ method: 'netbanking' }] } },
+
+        handler: function (response) {
+          var overlay = document.getElementById('rzpProcessingOverlay');
+          if (overlay) overlay.classList.remove('hidden');
           retryBtnText.textContent = "Verifying...";
-          try {
-            const verifyRes = await fetch("/payment/verify", {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              credentials: "include",
-              body: JSON.stringify({
-                razorpay_order_id:   response.razorpay_order_id,
-                razorpay_payment_id: response.razorpay_payment_id,
-                razorpay_signature:  response.razorpay_signature,
-                orderId: data.orderId,
-              }),
-            });
-            const verifyData = await verifyRes.json();
+          fetch("/api/user/payment/verify", {
+            method:  "POST",
+            headers: { "Content-Type": "application/json" },
+            credentials: "include",
+            body: JSON.stringify({
+              razorpay_order_id:   response.razorpay_order_id,
+              razorpay_payment_id: response.razorpay_payment_id,
+              razorpay_signature:  response.razorpay_signature,
+              orderId: data.orderId,
+            })
+          })
+          .then(function (r) { return r.json(); })
+          .then(function (verifyData) {
             if (verifyData.success) {
-              // ✅ Success — redirect to success page, no order collection update needed
-              window.location.href = `/order/success/${data.orderId}`;
+              window.location.href = "/order/success/" + data.orderId;
             } else {
               throw new Error(verifyData.message || "Verification failed");
             }
-          } catch (e) {
-            // Verification failed — go back to failure page, no order update
-            window.location.href = `/order/failure/${data.orderId}?orderNumber=${data.orderNumber}&error=${encodeURIComponent(e.message)}`;
-          }
+          })
+          .catch(function (e) {
+            window.location.href = "/order/failure/" + data.orderId +
+              "?orderNumber=" + data.orderNumber +
+              "&error=" + encodeURIComponent(e.message);
+          });
         },
+
         modal: {
           ondismiss: function () {
-            // User closed the Razorpay modal — just re-enable the button
-            // Do NOT call /payment/failure here — stock was already released on the
-            // previous failure and will be re-released if they close without paying
             retryBtn.disabled = false;
             retryBtnText.textContent = "Retry Payment";
-          },
-        },
-        theme: { color: "#111827" },
-      };
-
-      const rzp = new Razorpay(options);
+          }
+        }
+      });
 
       rzp.on("payment.failed", function (response) {
-        // Razorpay reported a hard failure — go back to failure page
-        window.location.href = `/order/failure/${data.orderId}?orderNumber=${data.orderNumber}&error=${encodeURIComponent(response.error?.description || "Payment failed")}`;
+        fetch("/api/user/payment/failure", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          credentials: "include",
+          body: JSON.stringify({ orderId: data.orderId })
+        }).finally(function () {
+          window.location.href = "/order/failure/" + data.orderId +
+            "?orderNumber=" + data.orderNumber +
+            "&error=" + encodeURIComponent((response.error && response.error.description) || "Payment failed");
+        });
       });
 
       rzp.open();
@@ -294,6 +301,18 @@
     }
   }
 </script>
+
+<!-- Payment processing overlay -->
+<div id="rzpProcessingOverlay" class="hidden fixed inset-0 z-[200] flex flex-col items-center justify-center bg-white/90 backdrop-blur-sm">
+  <div class="flex flex-col items-center gap-4">
+    <svg class="animate-spin h-10 w-10 text-gray-800" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+      <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+      <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"></path>
+    </svg>
+    <p class="text-base font-semibold text-gray-800">Confirming your payment…</p>
+    <p class="text-sm text-gray-500">Please don't close this page</p>
+  </div>
+</div>
 
 </body>
 </html>

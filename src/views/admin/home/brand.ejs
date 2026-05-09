@@ -228,6 +228,9 @@
                                 submitBtn.disabled = false;
                                 submitBtn.textContent = "Create Brand";
 
+                                // Reset modal title
+                                document.querySelector("#brandModal h2").textContent = "Add Brand";
+
                                 document.getElementById("brand-id").value = "";
                                 document.getElementById("brand-title").value = "";
                                 document.getElementById("brand-status").value = "unlisted";
@@ -269,6 +272,9 @@
                                 submitBtn.disabled = false;
                                 submitBtn.textContent = "Update Brand";
 
+                                // Update modal title
+                                document.querySelector("#brandModal h2").textContent = "Edit Brand";
+
                                 document.getElementById("brand-id").value = id;
                                 document.getElementById("brand-title").value = title;
                                 document.getElementById("brand-status").value = status;
@@ -297,6 +303,28 @@
 
                                 const file = this.files[0];
                                 if (!file) return;
+
+                                // Validate file type immediately on selection
+                                const allowedTypes = ["image/jpeg", "image/png", "image/webp", "image/svg+xml", "image/gif"];
+                                const logoError = document.getElementById("brandLogoError");
+
+                                if (!allowedTypes.includes(file.type)) {
+                                        logoError.textContent = "Only image files are allowed (JPG, PNG, WEBP, SVG, GIF)";
+                                        logoError.classList.remove("hidden");
+                                        this.value = ""; // reset input
+                                        return;
+                                }
+
+                                if (file.size > 5 * 1024 * 1024) {
+                                        logoError.textContent = "Image must be less than 5MB";
+                                        logoError.classList.remove("hidden");
+                                        this.value = "";
+                                        return;
+                                }
+
+                                // Clear any previous error
+                                logoError.textContent = "";
+                                logoError.classList.add("hidden");
 
                                 const reader = new FileReader();
 
@@ -627,6 +655,20 @@
                                         hasError = true;
                                 }
 
+                                // Validate file type if a new file was selected (not a cropped blob)
+                                if (logoFile && !croppedBlob) {
+                                        const allowedTypes = ["image/jpeg", "image/png", "image/webp", "image/svg+xml", "image/gif"];
+                                        if (!allowedTypes.includes(logoFile.type)) {
+                                                logoError.textContent = "Only image files are allowed (JPG, PNG, WEBP, SVG, GIF)";
+                                                logoError.classList.remove("hidden");
+                                                hasError = true;
+                                        } else if (logoFile.size > 5 * 1024 * 1024) {
+                                                logoError.textContent = "Image must be less than 5MB";
+                                                logoError.classList.remove("hidden");
+                                                hasError = true;
+                                        }
+                                }
+
                                 if (hasError) return;
 
                                 submitBtn.disabled = true;
@@ -657,7 +699,16 @@
                                         const data = await res.json();
 
                                         if (!data.success) {
-                                                showToast(data.message, "error");
+                                                // Show inline error on title field for duplicate/validation errors,
+                                                // toast for everything else
+                                                const msg = data.message || "Something went wrong";
+                                                const lowerMsg = msg.toLowerCase();
+                                                if (lowerMsg.includes("already exists") || lowerMsg.includes("duplicate") || lowerMsg.includes("title")) {
+                                                        titleError.textContent = msg;
+                                                        titleError.classList.remove("hidden");
+                                                } else {
+                                                        showToast(msg, "error");
+                                                }
                                                 return;
                                         }
 
@@ -676,8 +727,11 @@
                                                 const titleCell = document.getElementById(`title-${brandId}`);
                                                 const badge = document.getElementById(`badge-${brandId}`);
                                                 const row = document.getElementById(`row-${brandId}`);
+                                                const editBtn = document.getElementById(`editBtn-${brandId}`);
 
-                                                if (titleCell) titleCell.textContent = title.toUpperCase();
+                                                const newTitle = title.toUpperCase();
+
+                                                if (titleCell) titleCell.textContent = newTitle;
 
                                                 if (badge) {
 
@@ -690,11 +744,23 @@
 
                                                 }
 
+                                                // Determine the latest logo URL
+                                                let newLogoUrl = preview.src || "";
+
                                                 if (logoFile && row) {
-
                                                         const img = row.querySelector("img");
-                                                        if (img) img.src = URL.createObjectURL(logoFile);
+                                                        newLogoUrl = URL.createObjectURL(logoFile);
+                                                        if (img) img.src = newLogoUrl;
+                                                }
 
+                                                // ✅ Update the edit button onclick so next edit gets fresh data
+                                                if (editBtn) {
+                                                        const safeTitle  = newTitle.replace(/'/g, "\\'");
+                                                        const safeLogo   = newLogoUrl.replace(/'/g, "\\'");
+                                                        editBtn.setAttribute(
+                                                                "onclick",
+                                                                `editBrand('${brandId}', '${safeTitle}', '${status}', '${safeLogo}')`
+                                                        );
                                                 }
 
                                         } else {
@@ -784,8 +850,8 @@
                                         // Get the new status from the response
                                         const newStatus = result.data.status;
 
-                                        // Update badge text with proper capitalization
-                                        badge.textContent = newStatus.charAt(0).toUpperCase() + newStatus.slice(1);
+                                        // Update badge text
+                                        badge.textContent = newStatus;
 
                                         // Update badge styling
                                         badge.className =
@@ -808,6 +874,18 @@
                                                 "onclick",
                                                 `toggleBrandStatus('${brand_id}','${newStatus}')`
                                         );
+
+                                        // ✅ Also update the edit button so it opens with the current status
+                                        const editBtn = document.getElementById(`editBtn-${brand_id}`);
+                                        if (editBtn) {
+                                                const currentOnclick = editBtn.getAttribute("onclick") || "";
+                                                // Replace the status argument (3rd param) in the onclick string
+                                                const updated = currentOnclick.replace(
+                                                        /editBrand\('([^']+)',\s*'([^']+)',\s*'([^']+)',\s*'([^']*)'\)/,
+                                                        `editBrand('$1', '$2', '${newStatus}', '$4')`
+                                                );
+                                                editBtn.setAttribute("onclick", updated);
+                                        }
 
                                         showToast(`Brand ${action}ed successfully`, "success");
 

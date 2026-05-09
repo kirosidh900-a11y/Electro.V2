@@ -618,6 +618,18 @@
                 </div>
         </main>
 
+        <!-- Payment processing overlay — shown while verifying payment after Razorpay handler fires -->
+        <div id="rzpProcessingOverlay" class="hidden fixed inset-0 z-[200] flex flex-col items-center justify-center bg-white/90 backdrop-blur-sm">
+          <div class="flex flex-col items-center gap-4">
+            <svg class="animate-spin h-10 w-10 text-gray-800" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+              <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+              <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"></path>
+            </svg>
+            <p class="text-base font-semibold text-gray-800">Confirming your payment…</p>
+            <p class="text-sm text-gray-500">Please don't close this page</p>
+          </div>
+        </div>
+
         <!-- Updated Advanced Address Modal aligned with Backend Specs -->
         <div id="addressModal" class="hidden fixed inset-0 z-50 flex items-center justify-center transition-opacity">
                 <div class="absolute inset-0 bg-gray-900/40 backdrop-blur-sm transition-opacity"
@@ -780,11 +792,335 @@
 
         <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
 
-        <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
+        <!-- ─── Plain script: all Razorpay open() calls live here ───────────────
+             rzp.open() must be called from a plain (non-module) script so the
+             browser keeps the user-gesture trust chain intact. Calling it from
+             an ES-module (even via window.*) breaks that chain and causes Chrome
+             to open a blank popup instead of the inline payment modal.          -->
+        <script>
+          /* ── Checkout: online payment ── */
+          function openRazorpay(data) {
+            var rzp = new Razorpay({
+              key:         data.key,
+              amount:      data.amount,
+              currency:    'INR',
+              order_id:    data.razorpayOrderId,
+              name:        'Electro Shop',
+              description: 'Order Payment',
+              theme:       { color: '#3399cc' },
+              config:      { display: { hide: [{ method: 'netbanking' }] } },
+
+              handler: function (response) {
+                // Show a full-screen processing overlay so the user knows something is happening
+                var overlay = document.getElementById('rzpProcessingOverlay');
+                if (overlay) overlay.classList.remove('hidden');
+
+                fetch('/api/user/payment/verify', {
+                  method:  'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({
+                    razorpay_order_id:   response.razorpay_order_id,
+                    razorpay_payment_id: response.razorpay_payment_id,
+                    razorpay_signature:  response.razorpay_signature,
+                    orderId: data.orderId
+                  })
+                })
+                .then(function (r) { return r.json(); })
+                .then(function (result) {
+                  if (result.success) {
+                    window.location.href = '/order/success/' + data.orderId;
+                  } else {
+                    if (overlay) overlay.classList.add('hidden');
+                    window.location.href = '/order/failure/' + data.orderId +
+                      '?error=' + encodeURIComponent(result.message || 'Payment failed') +
+                      '&orderNumber=' + data.orderNumber;
+                  }
+                })
+                .catch(function () {
+                  if (overlay) overlay.classList.add('hidden');
+                  window.location.href = '/order/failure/' + data.orderId +
+                    '?error=Payment+failed&orderNumber=' + data.orderNumber;
+                });
+              },
+
+              modal: {
+                ondismiss: function () {
+                  if (window._rzpResetBtn) window._rzpResetBtn();
+                }
+              }
+            });
+
+            rzp.on('payment.failed', function (response) {
+              fetch('/api/user/payment/failure', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ orderId: data.orderId })
+              }).finally(function () {
+                window.location.href = '/order/failure/' + data.orderId +
+                  '?error=' + encodeURIComponent((response.error && response.error.description) || 'Payment failed') +
+                  '&orderNumber=' + data.orderNumber;
+              });
+            });
+
+            rzp.open();
+          }
+
+          /* ── Checkout: wallet top-up ── */
+          function openRazorpayTopup(orderData, amount, onSuccess, onDismiss) {
+            var rzp = new Razorpay({
+              key:         orderData.key,
+              amount:      orderData.amount,
+              currency:    'INR',
+              order_id:    orderData.razorpayOrderId,
+              name:        'Electro Shop',
+              description: 'Wallet Top-up',
+              theme:       { color: '#2874F0' },
+              config:      { display: { hide: [{ method: 'netbanking' }] } },
+
+              handler: function (response) {
+                fetch('/api/user/payment/wallet/verify', {
+                  method:  'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  credentials: 'include',
+                  body: JSON.stringify({
+                    razorpay_order_id:   response.razorpay_order_id,
+                    razorpay_payment_id: response.razorpay_payment_id,
+                    razorpay_signature:  response.razorpay_signature,
+                    amount: amount
+                  })
+                })
+                .then(function (r) { return r.json(); })
+                .then(function (result) {
+                  if (result.success || result.message === undefined) {
+                    onSuccess && onSuccess(amount);
+                  } else {
+                    throw new Error(result.message);
+                  }
+                })
+                .catch(function (e) {
+                  if (window._showToast) window._showToast(e.message || 'Verification failed', 'error');
+                });
+              },
+
+              modal: {
+                ondismiss: function () {
+                  onDismiss && onDismiss();
+                }
+              }
+            });
+
+            rzp.open();
+          }
+
+          /* ── Pre-fetched Razorpay order cache ────────────────────────────────
+             We eagerly fetch the Razorpay order as soon as the user selects
+             Razorpay as payment method (or on page load if it's pre-selected).
+             This means rzp.open() is called synchronously on button click —
+             no async gap, no broken user-gesture trust chain, no blank popup.  */
+          var _rzpCache = null;          // { addressId, data }
+          var _rzpFetching = false;      // prevent concurrent fetches
+          var _rzpFetchError = null;     // last fetch error message
+
+          function prefetchRazorpayOrder(addressId) {
+            // Already cached for this address — nothing to do
+            if (_rzpCache && _rzpCache.addressId === addressId) return;
+
+            _rzpCache = null;
+            _rzpFetchError = null;
+            _rzpFetching = true;
+
+            fetch('/api/user/payment/create-order', {
+              method:  'POST',
+              headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+              body: JSON.stringify({ addressId: addressId })
+            })
+            .then(function (r) { return r.json(); })
+            .then(function (data) {
+              _rzpFetching = false;
+              if (data.success) {
+                _rzpCache = { addressId: addressId, data: data };
+              } else {
+                _rzpFetchError = data.message || 'Failed to prepare payment';
+              }
+            })
+            .catch(function (err) {
+              _rzpFetching = false;
+              _rzpFetchError = err.message || 'Failed to prepare payment';
+            });
+          }
+
+          /* ── Checkout proceed button — entire handler in plain script ──────────
+             MUST be here (not in the ES module) because rzp.open() must be called
+             synchronously within the user-gesture event handler.                 */
+          document.addEventListener('DOMContentLoaded', function () {
+            var proceedBtn = document.getElementById('checkoutProceedBtn');
+            if (!proceedBtn) return;
+
+            // Pre-fetch when Razorpay is already selected on load
+            var initialPayment = document.querySelector('input[name="paymentMethod"]:checked');
+            var initialAddress = document.querySelector('input[name="selectedAddress"]:checked');
+            if (initialPayment && initialPayment.value === 'razorpay' && initialAddress) {
+              prefetchRazorpayOrder(initialAddress.value);
+            }
+
+            // Re-fetch when address changes
+            document.querySelectorAll('input[name="selectedAddress"]').forEach(function (radio) {
+              radio.addEventListener('change', function () {
+                var paymentMethod = document.querySelector('input[name="paymentMethod"]:checked');
+                if (paymentMethod && paymentMethod.value === 'razorpay') {
+                  prefetchRazorpayOrder(this.value);
+                }
+              });
+            });
+
+            // Pre-fetch when user switches to Razorpay
+            document.querySelectorAll('input[name="paymentMethod"]').forEach(function (radio) {
+              radio.addEventListener('change', function () {
+                if (this.value === 'razorpay') {
+                  var addr = document.querySelector('input[name="selectedAddress"]:checked');
+                  if (addr) prefetchRazorpayOrder(addr.value);
+                }
+              });
+            });
+
+            proceedBtn.addEventListener('click', function () {
+              var selectedAddress = document.querySelector('input[name="selectedAddress"]:checked');
+              var selectedPayment = document.querySelector('input[name="paymentMethod"]:checked');
+
+              if (!selectedAddress) {
+                var el = document.getElementById('addressSelectionError');
+                if (el) { el.textContent = 'Please select a delivery address'; el.classList.remove('hidden'); }
+                return;
+              }
+              var addrErr = document.getElementById('addressSelectionError');
+              if (addrErr) addrErr.classList.add('hidden');
+
+              if (!selectedPayment) {
+                var el2 = document.getElementById('paymentSelectionError');
+                if (el2) { el2.textContent = 'Please select a payment method'; el2.classList.remove('hidden'); }
+                return;
+              }
+              var payErr = document.getElementById('paymentSelectionError');
+              if (payErr) payErr.classList.add('hidden');
+
+              var btn      = proceedBtn;
+              var original = btn.innerHTML;
+              btn.disabled = true;
+              btn.innerHTML = '<span class="inline-flex items-center gap-2"><svg class="animate-spin h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"></path></svg>Processing...</span>';
+
+              var method = selectedPayment.value;
+
+              // ── COD ──
+              if (method === 'cod') {
+                fetch('/api/user/cart/validate-stock-cart')
+                .then(function (r) { return r.json(); })
+                .then(function (stockData) {
+                  if (!stockData.success) {
+                    if (window._showToast) window._showToast('Stock issue. Redirecting...', 'error');
+                    setTimeout(function () { location.href = '/cart'; }, 2000);
+                    btn.disabled = false; btn.innerHTML = original;
+                    return;
+                  }
+                  return fetch('/api/user/order/place', {
+                    method:  'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ addressId: selectedAddress.value, paymentMethod: 'cod' })
+                  });
+                })
+                .then(function (r) { return r && r.json(); })
+                .then(function (result) {
+                  if (!result) return;
+                  if (!result.success) throw new Error(result.message);
+                  window.location.href = result.redirectUrl;
+                })
+                .catch(function (err) {
+                  if (window._showToast) window._showToast(err.message || 'Something went wrong', 'error');
+                  btn.disabled = false; btn.innerHTML = original;
+                });
+                return;
+              }
+
+              // ── WALLET ──
+              if (method === 'wallet') {
+                fetch('/api/user/cart/validate-stock-cart')
+                .then(function (r) { return r.json(); })
+                .then(function (stockData) {
+                  if (!stockData.success) {
+                    if (window._showToast) window._showToast('Stock issue. Redirecting...', 'error');
+                    setTimeout(function () { location.href = '/cart'; }, 2000);
+                    btn.disabled = false; btn.innerHTML = original;
+                    return;
+                  }
+                  return fetch('/api/user/order/place', {
+                    method:  'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ addressId: selectedAddress.value, paymentMethod: 'wallet' })
+                  });
+                })
+                .then(function (r) { return r && r.json(); })
+                .then(function (result) {
+                  if (!result) return;
+                  if (!result.success) throw new Error(result.message);
+                  window.location.href = result.redirectUrl;
+                })
+                .catch(function (err) {
+                  if (window._showToast) window._showToast(err.message || 'Something went wrong', 'error');
+                  btn.disabled = false; btn.innerHTML = original;
+                });
+                return;
+              }
+
+              // ── RAZORPAY ──
+              // rzp.open() MUST be called synchronously here (user-gesture trust chain).
+              // We use the pre-fetched order data — no async gap.
+              window._rzpResetBtn = function () {
+                btn.disabled = false;
+                btn.innerHTML = original;
+              };
+
+              // If still fetching, wait briefly then open
+              function tryOpenRazorpay(attempts) {
+                if (_rzpFetchError) {
+                  if (window._showToast) window._showToast(_rzpFetchError, 'error');
+                  btn.disabled = false; btn.innerHTML = original;
+                  // Re-trigger prefetch for next attempt
+                  _rzpFetchError = null;
+                  prefetchRazorpayOrder(selectedAddress.value);
+                  return;
+                }
+
+                if (_rzpCache && _rzpCache.addressId === selectedAddress.value) {
+                  // ✅ Open Razorpay synchronously — no async gap, trust chain intact.
+                  // Stock was already validated during prefetch (order creation).
+                  // If stock runs out between prefetch and payment, handlePaymentSuccessService
+                  // will catch it server-side and auto-refund.
+                  openRazorpay(_rzpCache.data);
+                  // Invalidate cache so next order gets a fresh Razorpay order
+                  _rzpCache = null;
+                  return;
+                }
+
+                // Cache miss — prefetch hasn't completed yet.
+                // Don't use setTimeout (breaks trust chain). Instead, tell the user to retry.
+                if (!_rzpFetching) {
+                  prefetchRazorpayOrder(selectedAddress.value);
+                }
+                if (window._showToast) window._showToast('Almost ready — please click again in a moment.', 'info');
+                btn.disabled = false; btn.innerHTML = original;
+              }
+
+              tryOpenRazorpay();
+            });
+          });
+        </script>
+
         <script type="module">
                 import { showToast } from "/partials/errorMsg.utils.js";
                 import { confirmAction } from "/partials/confirm.util.js";
                 import { confirmPayment } from "/partials/paymentConfirm.util.js";
+
+                // Expose showToast to plain scripts (topup handler)
+                window._showToast = showToast;
 
                 // ── Inline wallet top-up from checkout page ───────────────────────────
                 window.checkoutTopup = async () => {
@@ -799,64 +1135,37 @@
                   }
                   if (document.getElementById('checkoutTopupError')) document.getElementById('checkoutTopupError').classList.add('hidden');
 
-                  btn.disabled    = true;
-                  btn.textContent = 'Processing...';
+                  btn.disabled  = true;
+                  btn.innerHTML = 'Processing...';
 
                   try {
-                    // Create Razorpay order for wallet top-up
-                    const orderRes  = await fetch('/payment/wallet/create-order', {
+                    const orderRes  = await fetch('/api/user/payment/wallet/create-order', {
                       method:  'POST',
                       headers: { 'Content-Type': 'application/json' },
                       credentials: 'include',
-                      body:    JSON.stringify({ amount }),
+                      body: JSON.stringify({ amount }),
                     });
                     const orderData = await orderRes.json();
                     if (!orderRes.ok) throw new Error(orderData.message || 'Failed');
 
-                    const rzp = new Razorpay({
-                      key:      orderData.key,
-                      amount:   orderData.amount,
-                      currency: 'INR',
-                      order_id: orderData.razorpayOrderId,
-                      name:     'Wallet Top-up',
-                      description: `Adding ₹${amount} to wallet`,
-                      theme:    { color: '#2874F0' },
-                      handler: async (response) => {
-                        try {
-                          const verifyRes = await fetch('/payment/wallet/verify', {
-                            method:  'POST',
-                            headers: { 'Content-Type': 'application/json' },
-                            credentials: 'include',
-                            body: JSON.stringify({
-                              razorpay_order_id:   response.razorpay_order_id,
-                              razorpay_payment_id: response.razorpay_payment_id,
-                              razorpay_signature:  response.razorpay_signature,
-                              amount,
-                            }),
-                          });
-                          const verifyData = await verifyRes.json();
-                          if (!verifyRes.ok) throw new Error(verifyData.message);
-
-                          showToast(`₹${amount} added to wallet!`, 'success');
-                          // Reload checkout so wallet balance updates
-                          setTimeout(() => location.reload(), 900);
-                        } catch (e) {
-                          showToast(e.message || 'Verification failed', 'error');
-                        }
+                    // openRazorpayTopup is in the plain script above — keeps popup trust chain
+                    openRazorpayTopup(
+                      orderData,
+                      amount,
+                      function onSuccess(amt) {
+                        showToast('₹' + amt + ' added to wallet!', 'success');
+                        setTimeout(() => location.reload(), 900);
                       },
-                      modal: {
-                        ondismiss: () => {
-                          btn.disabled    = false;
-                          btn.innerHTML   = '<i class="fa-solid fa-plus text-[10px]"></i> Add Money';
-                        },
-                      },
-                    });
-                    rzp.open();
+                      function onDismiss() {
+                        btn.disabled  = false;
+                        btn.innerHTML = '<i class="fa-solid fa-plus text-[10px]"></i> Add Money';
+                      }
+                    );
 
                   } catch (err) {
                     showToast(err.message || 'Something went wrong', 'error');
-                    btn.disabled    = false;
-                    btn.innerHTML   = '<i class="fa-solid fa-plus text-[10px]"></i> Add Money';
+                    btn.disabled  = false;
+                    btn.innerHTML = '<i class="fa-solid fa-plus text-[10px]"></i> Add Money';
                   }
                 };
 
@@ -1391,150 +1700,6 @@
                         });
 
                 } // end coupon block guard
-
-                // ---------------- Checkout Order Submission ----------------
-                document.getElementById('checkoutProceedBtn').addEventListener('click', async () => {
-                        const selectedAddress = document.querySelector('input[name="selectedAddress"]:checked');
-                        const selectedPayment = document.querySelector('input[name="paymentMethod"]:checked');
-
-                        if (!selectedAddress) {
-                                const el = document.getElementById('addressSelectionError');
-                                if (el) { el.textContent = 'Please select a delivery address'; el.classList.remove('hidden'); }
-                                return;
-                        }
-                        if (document.getElementById('addressSelectionError')) document.getElementById('addressSelectionError').classList.add('hidden');
-
-                        if (!selectedPayment) {
-                                const el = document.getElementById('paymentSelectionError');
-                                if (el) { el.textContent = 'Please select a payment method'; el.classList.remove('hidden'); }
-                                return;
-                        }
-                        if (document.getElementById('paymentSelectionError')) document.getElementById('paymentSelectionError').classList.add('hidden');
-
-                        const btn = document.getElementById('checkoutProceedBtn');
-                        const original = btn.innerHTML;
-
-                        btn.disabled = true;
-                        btn.innerHTML = "Processing...";
-
-                        try {
-                                // ✅ STOCK VALIDATION
-                                const stockRes = await fetch("/api/user/cart/validate-stock-cart");
-                                const stockData = await stockRes.json();
-
-                                if (!stockData.success) {
-                                        showToast("Stock issue. Redirecting...", "error");
-                                        setTimeout(() => location.href = "/cart", 2000);
-                                        return;
-                                }
-
-                                // ================= COD =================
-                                if (selectedPayment.value === "cod") {
-                                        const totalAmount = parseFloat(document.getElementById('grandTotalDisplay').textContent.replace('₹', '').replace(/,/g, ''));
-                                        const confirmed = await confirmPayment("cod", totalAmount);
-                                        if (!confirmed) { btn.disabled = false; btn.innerHTML = original; return; }
-
-                                        const res = await fetch('/api/user/order/place', {
-                                                method: 'POST',
-                                                headers: { "Content-Type": "application/json" },
-                                                body: JSON.stringify({
-                                                        addressId: selectedAddress.value,
-                                                        paymentMethod: "cod"
-                                                })
-                                        });
-
-                                        const result = await res.json();
-                                        if (!result.success) throw new Error(result.message);
-                                        window.location.href = result.redirectUrl;
-                                }
-
-                                // ================= WALLET =================
-                                else if (selectedPayment.value === "wallet") {
-                                        const totalAmount = parseFloat(document.getElementById('grandTotalDisplay').textContent.replace('₹', '').replace(/,/g, ''));
-                                        const confirmed = await confirmPayment("wallet", totalAmount);
-                                        if (!confirmed) { btn.disabled = false; btn.innerHTML = original; return; }
-
-                                        const res = await fetch('/api/user/order/place', {
-                                                method: 'POST',
-                                                headers: { "Content-Type": "application/json" },
-                                                body: JSON.stringify({
-                                                        addressId: selectedAddress.value,
-                                                        paymentMethod: "wallet"
-                                                })
-                                        });
-
-                                        const result = await res.json();
-                                        if (!result.success) throw new Error(result.message);
-                                        window.location.href = result.redirectUrl;
-                                }
-
-                                // ================= RAZORPAY =================
-                                else {
-                                        const totalAmount = parseFloat(document.getElementById('grandTotalDisplay').textContent.replace('₹', '').replace(/,/g, ''));
-                                        const confirmed = await confirmPayment("razorpay", totalAmount);
-                                        if (!confirmed) { btn.disabled = false; btn.innerHTML = original; return; }
-
-                                        const res = await fetch('/api/user/payment/create-order', {
-                                                method: 'POST',
-                                                headers: { "Content-Type": "application/json", "Accept": "application/json" },
-                                                body: JSON.stringify({ addressId: selectedAddress.value })
-                                        });
-
-                                        const data = await res.json();
-
-                                        if (!data.success) throw new Error(data.message || "Failed to create payment order");
-
-                                        const rzp = new Razorpay({
-                                                key: data.key,
-                                                amount: data.amount,
-                                                currency: "INR",
-                                                order_id: data.razorpayOrderId,
-                                                theme: { color: "#3399cc" },
-
-                                                handler: async function (response) {
-                                                        try {
-                                                                const verifyRes = await fetch('/api/user/payment/verify', {
-                                                                        method: 'POST',
-                                                                        headers: { "Content-Type": "application/json" },
-                                                                        body: JSON.stringify({ ...response, orderId: data.orderId })
-                                                                });
-                                                                const result = await verifyRes.json();
-
-                                                                if (!verifyRes.ok || !result.success) {
-                                                                        window.location.href = `/order/failure/${data.orderId}?error=Payment+failed&orderNumber=${data.orderNumber}`;
-                                                                        return;
-                                                                }
-                                                                window.location.href = `/order/success/${data.orderId}`;
-                                                        } catch (err) {
-                                                                window.location.href = `/order/failure/${data.orderId}?error=Payment+failed&orderNumber=${data.orderNumber}`;
-                                                        }
-                                                },
-
-                                                modal: {
-                                                        ondismiss: function () {
-                                                                // User closed Razorpay modal — reserved stock stays intact
-                                                                // for retry within the 15-min window. Expiry cron releases it.
-                                                                btn.disabled = false;
-                                                                btn.innerHTML = original;
-                                                        }
-                                                }
-                                        });
-
-                                        rzp.on("payment.failed", function (response) {
-                                                // Hard payment failure — redirect to failure page.
-                                                // Reserved stock stays intact for retry; expiry cron releases after 15 min.
-                                                window.location.href = `/order/failure/${data.orderId}?error=${encodeURIComponent(response.error?.description || "Payment failed")}&orderNumber=${data.orderNumber}`;
-                                        });
-
-                                        rzp.open();
-                                }
-
-                        } catch (err) {
-                                showToast(err.message || "Something went wrong", "error");
-                                btn.disabled = false;
-                                btn.innerHTML = original;
-                        }
-                });
 
                 function customConfirm(title, message) {
                         return new Promise((resolve) => {

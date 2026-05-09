@@ -21,7 +21,7 @@ import {
 } from "../../controllers/product/product.controller.js";
 
 import { setUploadFolder } from "../../middlewares/setUploadFolder.middleware.js";
-import upload from "../../middlewares/cloudinaryUpload.middleware.js";
+import upload, { validateImageBuffer } from "../../middlewares/cloudinaryUpload.middleware.js";
 import { validate } from "../../middlewares/validate.middleware.js";
 import {
   addVariantSchema,
@@ -82,13 +82,14 @@ router
 // Img add and delete
 router
   .route("/:productId/variants/:variantId/image")
-  .post(setUploadFolder("products"), upload.single("image"), addVariantImage)
+  .post(setUploadFolder("products"), upload.single("image"), validateImageBuffer, addVariantImage)
   .delete(deleteVariantImage);
 
 router.patch(
   "/:productId/variants/:variantId/image/replace",
   setUploadFolder("products"),
   upload.single("image"),
+  validateImageBuffer,
   replaceVariantImage,
 );
 

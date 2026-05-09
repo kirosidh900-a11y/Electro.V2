@@ -6,6 +6,7 @@ import {
   retryPaymentController,
   createWalletTopupOrder,
   verifyWalletTopup,
+  razorpayCallbackController,
 } from "../../controllers/product/payment.controller.js";
 import { paymentLimiter } from "../../middlewares/rateLimiter.middleware.js";
 
@@ -13,6 +14,10 @@ const router = express.Router();
 
 // Apply payment rate limiter to all payment mutation routes
 router.use(paymentLimiter);
+
+// 🔁 Razorpay redirect callback (POST from Razorpay after net banking / redirect flow)
+// Must be BEFORE auth middleware — Razorpay posts here directly, no session cookie
+router.post("/callback", razorpayCallbackController);
 
 // 💳 Create Razorpay Order
 router.post("/create-order", createPaymentOrder);

@@ -135,6 +135,67 @@ export const retryPaymentController = async (req, res, next) => {
   }
 };
 
+// RAZORPAY REDIRECT CALLBACK (used when redirect: true is set)
+// Razorpay POSTs here after net banking / redirect-based payment completes.
+// We verify the signature and redirect the browser to success or failure page.
+export const razorpayCallbackController = async (req, res) => {
+  try {
+    const {
+      razorpay_payment_id,
+      razorpay_order_id,
+      razorpay_signature,
+      error_code,
+      error_description,
+    } = req.body;
+
+    // Find our DB order by the Razorpay order id
+    const Order = (await import("../../models/orderSchema.model.js")).default;
+    const order = await Order.findOne({ "payment.razorpayOrderId": razorpay_order_id })
+      .select("_id orderNumber")
+      .lean();
+
+    // Razorpay sends error_code on failure (no valid signature)
+    if (error_code || !razorpay_signature) {
+      if (order) {
+        await handlePaymentFailureService({ orderId: order._id });
+      }
+      const errMsg = encodeURIComponent(error_description || "Payment failed");
+      const orderNum = order?.orderNumber ? encodeURIComponent(order.orderNumber) : "";
+      return res.redirect(`/order/failure/${order?._id || ""}?error=${errMsg}&orderNumber=${orderNum}`);
+    }
+
+    if (!order) {
+      return res.redirect("/orders?error=Order+not+found");
+    }
+
+    // Verify signature
+    const isValid = verifyPaymentSignature({
+      razorpay_order_id,
+      razorpay_payment_id,
+      razorpay_signature,
+    });
+
+    if (!isValid) {
+      await handlePaymentFailureService({ orderId: order._id });
+      return res.redirect(
+        `/order/failure/${order._id}?error=Signature+verification+failed&orderNumber=${encodeURIComponent(order.orderNumber)}`
+      );
+    }
+
+    await handlePaymentSuccessService({
+      orderId: order._id,
+      paymentId: razorpay_payment_id,
+      razorpayOrderId: razorpay_order_id,
+      razorpay_signature,
+    });
+
+    return res.redirect(`/order/success/${order._id}`);
+  } catch (err) {
+    console.error("Razorpay Callback Error:", err);
+    return res.redirect("/orders?error=Payment+processing+failed");
+  }
+};
+
 // WALLET TOP-UP — create razorpay order
 export const createWalletTopupOrder = async (req, res, next) => {
   try {

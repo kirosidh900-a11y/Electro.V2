@@ -26,6 +26,24 @@ export const createCouponService = async (data) => {
   const exists = await Coupon.findOne({ code: data.code.toUpperCase() });
   if (exists) throw new AppError("Coupon code already exists", HTTP_STATUS.BAD_REQUEST);
 
+  // Min order must be greater than the effective discount amount
+  const minOrder = Number(data.minOrderAmount) || 0;
+  const discountValue = Number(data.discountValue) || 0;
+  const maxDiscount = Number(data.maxDiscount) || 0;
+
+  if (data.discountType === "fixed" && minOrder > 0 && minOrder <= discountValue) {
+    throw new AppError(
+      "Minimum order amount must be greater than the discount value",
+      HTTP_STATUS.BAD_REQUEST
+    );
+  }
+  if (data.discountType === "percentage" && minOrder > 0 && maxDiscount > 0 && minOrder <= maxDiscount) {
+    throw new AppError(
+      "Minimum order amount must be greater than the max discount cap",
+      HTTP_STATUS.BAD_REQUEST
+    );
+  }
+
   return Coupon.create(data);
 };
 
@@ -41,6 +59,24 @@ export const updateCouponService = async (id, data) => {
     _id: { $ne: id },
   });
   if (exists) throw new AppError("Coupon code already exists", HTTP_STATUS.BAD_REQUEST);
+
+  // Min order must be greater than the effective discount amount
+  const minOrder = Number(data.minOrderAmount) || 0;
+  const discountValue = Number(data.discountValue) || 0;
+  const maxDiscount = Number(data.maxDiscount) || 0;
+
+  if (data.discountType === "fixed" && minOrder > 0 && minOrder <= discountValue) {
+    throw new AppError(
+      "Minimum order amount must be greater than the discount value",
+      HTTP_STATUS.BAD_REQUEST
+    );
+  }
+  if (data.discountType === "percentage" && minOrder > 0 && maxDiscount > 0 && minOrder <= maxDiscount) {
+    throw new AppError(
+      "Minimum order amount must be greater than the max discount cap",
+      HTTP_STATUS.BAD_REQUEST
+    );
+  }
 
   const coupon = await Coupon.findByIdAndUpdate(id, data, {
     new: true,

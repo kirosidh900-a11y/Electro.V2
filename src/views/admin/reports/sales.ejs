@@ -524,8 +524,9 @@
               <th class="px-4 py-3 text-left text-gray-500 font-semibold uppercase tracking-wider whitespace-nowrap">Order #</th>
               <th class="px-4 py-3 text-left text-gray-500 font-semibold uppercase tracking-wider whitespace-nowrap">Date</th>
               <th class="px-4 py-3 text-left text-gray-500 font-semibold uppercase tracking-wider whitespace-nowrap">Customer</th>
-              <th class="px-4 py-3 text-left text-gray-500 font-semibold uppercase tracking-wider whitespace-nowrap">Payment</th>
-              <th class="px-4 py-3 text-left text-gray-500 font-semibold uppercase tracking-wider whitespace-nowrap">Status</th>
+              <th class="px-4 py-3 text-left text-gray-500 font-semibold uppercase tracking-wider whitespace-nowrap">Pay Method</th>
+              <th class="px-4 py-3 text-left text-gray-500 font-semibold uppercase tracking-wider whitespace-nowrap">Pay Status</th>
+              <th class="px-4 py-3 text-left text-gray-500 font-semibold uppercase tracking-wider whitespace-nowrap">Order Status</th>
               <th class="px-4 py-3 text-right text-gray-500 font-semibold uppercase tracking-wider whitespace-nowrap">Subtotal</th>
               <th class="px-4 py-3 text-right text-gray-500 font-semibold uppercase tracking-wider whitespace-nowrap">Disc</th>
               <th class="px-4 py-3 text-right text-gray-500 font-semibold uppercase tracking-wider whitespace-nowrap">GST</th>
@@ -535,7 +536,7 @@
           <tbody class="divide-y divide-white/[0.04]">
             <% if (!orders || orders.length === 0) { %>
               <tr>
-                <td colspan="9" class="text-center text-gray-600 py-16">
+                <td colspan="10" class="text-center text-gray-600 py-16">
                   <i class="fas fa-inbox text-2xl mb-2 block"></i>
                   No orders found for this period.
                 </td>
@@ -578,6 +579,13 @@
                   placed:           'bg-cyan-500/15 text-cyan-400',
                   cancelled:        'bg-red-500/15 text-red-400',
                 }[os] || 'bg-white/10 text-gray-400';
+
+                const pm = order.payment && order.payment.method ? order.payment.method.toLowerCase() : '';
+                const payMethodBadge = {
+                  cod:      { cls: 'bg-yellow-500/15 text-yellow-400', icon: 'fa-money-bill-wave', label: 'COD' },
+                  razorpay: { cls: 'bg-violet-500/15 text-violet-400', icon: 'fa-bolt',            label: 'Razorpay' },
+                  wallet:   { cls: 'bg-blue-500/15 text-blue-400',     icon: 'fa-wallet',          label: 'Wallet' },
+                }[pm] || { cls: 'bg-white/10 text-gray-400', icon: 'fa-circle-question', label: pm ? pm.toUpperCase() : '—' };
               %>
               <tr class="<%= rowBg %> transition cursor-pointer"
                 onclick="location.href='/admin/orders/<%= order._id %>'">
@@ -592,14 +600,15 @@
                   <% } %>
                 </td>
                 <td class="px-4 py-3 whitespace-nowrap">
-                  <div class="flex flex-col gap-1">
-                    <span class="text-[9px] font-bold uppercase px-1.5 py-0.5 rounded-md w-fit <%= payStatusBadge %>">
-                      <%= ps ? ps.toUpperCase() : '—' %>
-                    </span>
-                    <span class="text-[9px] text-gray-600 uppercase">
-                      <%= order.payment && order.payment.method ? order.payment.method.toUpperCase() : '—' %>
-                    </span>
-                  </div>
+                  <span class="inline-flex items-center gap-1 text-[9px] font-bold uppercase px-1.5 py-0.5 rounded-md w-fit <%= payMethodBadge.cls %>">
+                    <i class="fas <%= payMethodBadge.icon %> text-[8px]"></i>
+                    <%= payMethodBadge.label %>
+                  </span>
+                </td>
+                <td class="px-4 py-3 whitespace-nowrap">
+                  <span class="text-[9px] font-bold uppercase px-1.5 py-0.5 rounded-md w-fit <%= payStatusBadge %>">
+                    <%= ps ? ps.toUpperCase() : '—' %>
+                  </span>
                 </td>
                 <td class="px-4 py-3 whitespace-nowrap">
                   <span class="text-[9px] font-bold uppercase px-1.5 py-0.5 rounded-md w-fit <%= orderStatusBadge %>">
