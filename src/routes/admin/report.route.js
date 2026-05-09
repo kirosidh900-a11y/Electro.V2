@@ -3,6 +3,7 @@ import { isAuth } from "../../middlewares/admin/authAdmin.middleware.js";
 import {
   getReportPage,
   getChartData,
+  getTableData,
   downloadReportExcel,
   downloadReportCSV,
   downloadReportPDF,
@@ -12,6 +13,7 @@ const router = Router();
 
 router.get("/",            isAuth, getReportPage);
 router.get("/chart-data",  isAuth, getChartData);
+router.get("/table-data",  isAuth, getTableData);
 router.get("/excel",       isAuth, downloadReportExcel);
 router.get("/csv",         isAuth, downloadReportCSV);
 router.get("/pdf",         isAuth, downloadReportPDF);

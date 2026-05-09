@@ -185,9 +185,14 @@ export const getReportService = async ({ reportType = "orders", preset = "monthl
   let orders, totalCount;
 
   if (customer) {
+    // Strip "userId.name" from matchStage — it cannot be evaluated before the $lookup
+    // because userId is still a raw ObjectId at that stage. Name filtering is handled
+    // by the post-lookup $match on "userInfo.name" below.
+    const { "userId.name": _removed, ...matchWithoutUserName } = matchStage;
+
     // Lookup userId to filter by name
     const pipeline = [
-      { $match: { ...matchStage, "userId": { $exists: true } } },
+      { $match: { ...matchWithoutUserName, "userId": { $exists: true } } },
       { $lookup: { from: "users", localField: "userId", foreignField: "_id", as: "userInfo" } },
       { $unwind: { path: "$userInfo", preserveNullAndEmptyArrays: true } },
       { $match: { "userInfo.name": { $regex: customer, $options: "i" } } },

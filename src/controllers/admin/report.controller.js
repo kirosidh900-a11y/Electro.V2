@@ -1,4 +1,5 @@
 import { getReportService, getReportAllService, getChartDataService } from "../../services/admin/report.service.js";
+import { buildMatchStage } from "../../services/admin/report.service.js";
 
 const REPORT_TITLES = {
   orders: "Orders Report",
@@ -48,6 +49,23 @@ export const getChartData = async (req, res, next) => {
     const filters = extractFilters(req.query);
     const data = await getChartDataService(filters);
     return res.json({ success: true, ...data });
+  } catch (err) {
+    next(err);
+  }
+};
+
+// ── Table data API (AJAX — pagination) ───────────────────────────────────────
+export const getTableData = async (req, res, next) => {
+  try {
+    const filters = extractFilters(req.query);
+    const data    = await getReportService({ ...filters, limit: PAGE_LIMIT });
+    return res.json({
+      success:     true,
+      orders:      data.orders,
+      totalCount:  data.totalCount,
+      totalPages:  data.totalPages,
+      currentPage: data.currentPage,
+    });
   } catch (err) {
     next(err);
   }

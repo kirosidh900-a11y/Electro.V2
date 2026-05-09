@@ -491,7 +491,7 @@
       <div class="px-5 py-4 border-b border-white/5 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div class="flex items-center gap-3">
           <h2 class="text-xs font-bold text-gray-300 uppercase tracking-wider">
-            <span id="reportTitle"><%= title %></span> &nbsp;<span class="text-gray-600">(<%= totalCount %>)</span>
+            <span id="reportTitle"><%= title %></span> &nbsp;<span id="tableCountBadge" class="text-gray-600">(<%= totalCount %>)</span>
           </h2>
           <!-- Color legend -->
           <div class="hidden sm:flex items-center gap-3 text-[9px] text-gray-600">
@@ -533,7 +533,7 @@
               <th class="px-4 py-3 text-right text-gray-500 font-semibold uppercase tracking-wider whitespace-nowrap">Total</th>
             </tr>
           </thead>
-          <tbody class="divide-y divide-white/[0.04]">
+          <tbody id="ordersTbody" class="divide-y divide-white/[0.04]">
             <% if (!orders || orders.length === 0) { %>
               <tr>
                 <td colspan="10" class="text-center text-gray-600 py-16">
@@ -633,146 +633,15 @@
         </table>
       </div>
 
-      <!-- Pagination -->
-      <% if (totalPages > 1) { %>
-        <%
-          const paginationBase = [
-            `reportType=${activeType}`,
-            `preset=${preset}`,
-            `from=${from}`,
-            `to=${to}`,
-            `customer=${encodeURIComponent(customer)}`,
-            `payMethod=${payMethod}`,
-            `payStatus=${payStatus}`,
-            `orderStatus=${orderStatus}`,
-            `minAmount=${minAmount}`,
-            `maxAmount=${maxAmount}`,
-            excludeBad ? `excludeBad=1` : ``,
-          ].filter(Boolean).join('&');
-
-          const delta = 2;
-          const rangeStart = Math.max(1, currentPage - delta);
-          const rangeEnd   = Math.min(totalPages, currentPage + delta);
-          const pages = [];
-          for (let i = rangeStart; i <= rangeEnd; i++) pages.push(i);
-
-          const limit = 20;
-          const recordFrom = ((currentPage - 1) * limit) + 1;
-          const recordTo   = Math.min(currentPage * limit, totalCount);
-        %>
-        <div class="px-5 py-4 border-t border-white/5 flex flex-col sm:flex-row items-center justify-between gap-4">
-
-          <!-- Record count -->
-          <p class="text-[11px] text-gray-500 order-2 sm:order-1">
-            Showing <span class="text-gray-300 font-semibold"><%= recordFrom %>–<%= recordTo %></span>
-            of <span class="text-gray-300 font-semibold"><%= totalCount %></span> records
-          </p>
-
-          <!-- Page controls -->
-          <div class="flex items-center gap-1 order-1 sm:order-2">
-
-            <!-- First -->
-            <% if (currentPage > 1) { %>
-              <a href="?<%= paginationBase %>&page=1"
-                class="w-8 h-8 flex items-center justify-center rounded-lg bg-white/5 hover:bg-cyan-600/20 hover:text-cyan-400 text-gray-400 text-xs transition border border-white/5 hover:border-cyan-500/30">
-                <i class="fas fa-angles-left text-[10px]"></i>
-              </a>
-            <% } else { %>
-              <span class="w-8 h-8 flex items-center justify-center rounded-lg bg-white/[0.02] text-gray-700 text-xs border border-white/5 cursor-not-allowed">
-                <i class="fas fa-angles-left text-[10px]"></i>
-              </span>
-            <% } %>
-
-            <!-- Prev -->
-            <% if (currentPage > 1) { %>
-              <a href="?<%= paginationBase %>&page=<%= currentPage - 1 %>"
-                class="w-8 h-8 flex items-center justify-center rounded-lg bg-white/5 hover:bg-cyan-600/20 hover:text-cyan-400 text-gray-400 text-xs transition border border-white/5 hover:border-cyan-500/30">
-                <i class="fas fa-chevron-left text-[10px]"></i>
-              </a>
-            <% } else { %>
-              <span class="w-8 h-8 flex items-center justify-center rounded-lg bg-white/[0.02] text-gray-700 text-xs border border-white/5 cursor-not-allowed">
-                <i class="fas fa-chevron-left text-[10px]"></i>
-              </span>
-            <% } %>
-
-            <!-- Leading ellipsis -->
-            <% if (rangeStart > 1) { %>
-              <span class="w-8 h-8 flex items-center justify-center text-gray-600 text-xs select-none">…</span>
-            <% } %>
-
-            <!-- Page numbers -->
-            <% pages.forEach(p => { %>
-              <a href="?<%= paginationBase %>&page=<%= p %>"
-                class="w-8 h-8 flex items-center justify-center rounded-lg text-xs font-bold transition border
-                  <%= p === currentPage
-                    ? 'bg-cyan-600 text-white border-cyan-500 shadow-lg shadow-cyan-500/20 pointer-events-none'
-                    : 'bg-white/5 hover:bg-cyan-600/20 hover:text-cyan-400 text-gray-400 border-white/5 hover:border-cyan-500/30' %>">
-                <%= p %>
-              </a>
-            <% }) %>
-
-            <!-- Trailing ellipsis -->
-            <% if (rangeEnd < totalPages) { %>
-              <span class="w-8 h-8 flex items-center justify-center text-gray-600 text-xs select-none">…</span>
-            <% } %>
-
-            <!-- Next -->
-            <% if (currentPage < totalPages) { %>
-              <a href="?<%= paginationBase %>&page=<%= currentPage + 1 %>"
-                class="w-8 h-8 flex items-center justify-center rounded-lg bg-white/5 hover:bg-cyan-600/20 hover:text-cyan-400 text-gray-400 text-xs transition border border-white/5 hover:border-cyan-500/30">
-                <i class="fas fa-chevron-right text-[10px]"></i>
-              </a>
-            <% } else { %>
-              <span class="w-8 h-8 flex items-center justify-center rounded-lg bg-white/[0.02] text-gray-700 text-xs border border-white/5 cursor-not-allowed">
-                <i class="fas fa-chevron-right text-[10px]"></i>
-              </span>
-            <% } %>
-
-            <!-- Last -->
-            <% if (currentPage < totalPages) { %>
-              <a href="?<%= paginationBase %>&page=<%= totalPages %>"
-                class="w-8 h-8 flex items-center justify-center rounded-lg bg-white/5 hover:bg-cyan-600/20 hover:text-cyan-400 text-gray-400 text-xs transition border border-white/5 hover:border-cyan-500/30">
-                <i class="fas fa-angles-right text-[10px]"></i>
-              </a>
-            <% } else { %>
-              <span class="w-8 h-8 flex items-center justify-center rounded-lg bg-white/[0.02] text-gray-700 text-xs border border-white/5 cursor-not-allowed">
-                <i class="fas fa-angles-right text-[10px]"></i>
-              </span>
-            <% } %>
-
-          </div>
-
-          <!-- Jump to page -->
-          <form method="GET" action="/admin/reports" class="flex items-center gap-2 order-3">
-            <input type="hidden" name="reportType"  value="<%= activeType %>">
-            <input type="hidden" name="preset"      value="<%= preset %>">
-            <input type="hidden" name="from"        value="<%= from %>">
-            <input type="hidden" name="to"          value="<%= to %>">
-            <input type="hidden" name="customer"    value="<%= customer %>">
-            <input type="hidden" name="payMethod"   value="<%= payMethod %>">
-            <input type="hidden" name="payStatus"   value="<%= payStatus %>">
-            <input type="hidden" name="orderStatus" value="<%= orderStatus %>">
-            <input type="hidden" name="minAmount"   value="<%= minAmount %>">
-            <input type="hidden" name="maxAmount"   value="<%= maxAmount %>">
-            <% if (excludeBad) { %><input type="hidden" name="excludeBad" value="1"><% } %>
-            <label class="text-[10px] text-gray-600 whitespace-nowrap">Go to page</label>
-            <input type="number" name="page" min="1" max="<%= totalPages %>"
-              placeholder="<%= currentPage %>"
-              class="w-14 bg-[#0f172a] border border-white/10 text-gray-200 rounded-lg px-2 py-1.5 text-xs text-center focus:outline-none focus:border-cyan-500">
-            <button type="submit"
-              class="px-3 py-1.5 bg-cyan-600/20 hover:bg-cyan-600/40 text-cyan-400 border border-cyan-500/20 rounded-lg text-xs font-semibold transition">
-              Go
-            </button>
-          </form>
-
-        </div>
-      <% } else if (totalCount > 0) { %>
-        <div class="px-5 py-3 border-t border-white/5">
-          <p class="text-[11px] text-gray-500">
-            Showing all <span class="text-gray-300 font-semibold"><%= totalCount %></span> records
-          </p>
-        </div>
-      <% } %>
+      <!-- Pagination (AJAX-driven, no page reload) -->
+      <div id="paginationArea"
+        data-total-count="<%= totalCount %>"
+        data-total-pages="<%= totalPages %>"
+        data-current-page="<%= currentPage %>"
+        data-page-limit="<%= pageLimit %>"
+        class="">
+        <!-- rendered by JS -->
+      </div>
     </div>
 
   </main>
@@ -801,6 +670,227 @@
     document.getElementById('customRange').classList.toggle('hidden', p !== 'custom');
     if (p !== 'custom') document.getElementById('filterForm').submit();
   }
+
+  // ── AJAX Pagination Engine ───────────────────────────────────────────────────
+  (function () {
+    const PAGE_LIMIT = parseInt(document.getElementById('paginationArea').dataset.pageLimit) || 5;
+
+    // ── helpers ──
+    const fmt   = n => (n || 0).toLocaleString('en-IN');
+    const fmtRs = n => '₹' + fmt(n);
+
+    const PAY_METHOD_MAP = {
+      cod:      { cls: 'bg-yellow-500/15 text-yellow-400',  icon: 'fa-money-bill-wave', label: 'COD'      },
+      razorpay: { cls: 'bg-violet-500/15 text-violet-400',  icon: 'fa-bolt',            label: 'Razorpay' },
+      wallet:   { cls: 'bg-blue-500/15 text-blue-400',      icon: 'fa-wallet',          label: 'Wallet'   },
+    };
+    const PAY_STATUS_MAP = {
+      paid:     'bg-emerald-500/15 text-emerald-400',
+      pending:  'bg-yellow-500/15 text-yellow-400',
+      refunded: 'bg-pink-500/15 text-pink-400',
+      failed:   'bg-gray-500/15 text-gray-400',
+    };
+    const ORDER_STATUS_MAP = {
+      delivered:        'bg-emerald-500/15 text-emerald-400',
+      confirmed:        'bg-emerald-500/15 text-emerald-400',
+      shipped:          'bg-violet-500/15 text-violet-400',
+      out_for_delivery: 'bg-violet-500/15 text-violet-400',
+      placed:           'bg-cyan-500/15 text-cyan-400',
+      cancelled:        'bg-red-500/15 text-red-400',
+    };
+
+    function buildFiltersParams(page) {
+      const qs  = new URLSearchParams(window.location.search);
+      qs.set('page', page);
+      return qs;
+    }
+
+    function renderRow(order) {
+      const ps  = order.payment?.status  || '';
+      const os  = order.orderStatus      || '';
+      const pm  = (order.payment?.method || '').toLowerCase();
+
+      // Row background
+      let rowBg = 'hover:bg-white/5';
+      if      (ps === 'refunded')                      rowBg = 'bg-pink-500/5 hover:bg-pink-500/10';
+      else if (os === 'cancelled')                     rowBg = 'bg-red-500/5 hover:bg-red-500/10';
+      else if (ps === 'failed')                        rowBg = 'bg-gray-500/5 hover:bg-gray-500/10';
+      else if (os === 'delivered' || os==='confirmed') rowBg = 'bg-emerald-500/5 hover:bg-emerald-500/10';
+      else if (ps === 'paid')                          rowBg = 'bg-yellow-500/5 hover:bg-yellow-500/10';
+
+      // Total color
+      let totalColor = 'text-emerald-400';
+      if (ps === 'refunded' || os === 'cancelled') totalColor = 'text-red-400';
+      else if (ps === 'failed')                    totalColor = 'text-gray-500';
+
+      // Pay method badge
+      const pmBadge = PAY_METHOD_MAP[pm] || { cls: 'bg-white/10 text-gray-400', icon: 'fa-circle-question', label: pm ? pm.toUpperCase() : '—' };
+
+      // Pay status badge
+      const psBadge = PAY_STATUS_MAP[ps] || 'bg-white/10 text-gray-400';
+
+      // Order status badge
+      const osBadge = ORDER_STATUS_MAP[os] || 'bg-white/10 text-gray-400';
+
+      // Pricing
+      const subtotal  = fmt(order.pricing?.subtotal);
+      const disc      = fmt((order.pricing?.productDiscount || 0) + (order.pricing?.couponDiscount || 0));
+      const gst       = fmt(order.pricing?.gstTotal);
+      const total     = fmt(order.pricing?.finalAmount);
+
+      // Customer
+      const name  = order.userId?.name  || '—';
+      const email = order.userId?.email || '';
+      const emailHtml = email ? `<span class="block text-[10px] text-gray-600 truncate">${email}</span>` : '';
+
+      // Date
+      const date = new Date(order.createdAt).toLocaleDateString('en-IN');
+
+      return `
+        <tr class="${rowBg} transition cursor-pointer" onclick="location.href='/admin/orders/${order._id}'">
+          <td class="px-4 py-3 font-mono text-cyan-400 whitespace-nowrap">${order.orderNumber}</td>
+          <td class="px-4 py-3 text-gray-500 whitespace-nowrap">${date}</td>
+          <td class="px-4 py-3 text-gray-200 max-w-[140px] truncate">${name}${emailHtml}</td>
+          <td class="px-4 py-3 whitespace-nowrap">
+            <span class="inline-flex items-center gap-1 text-[9px] font-bold uppercase px-1.5 py-0.5 rounded-md w-fit ${pmBadge.cls}">
+              <i class="fas ${pmBadge.icon} text-[8px]"></i>${pmBadge.label}
+            </span>
+          </td>
+          <td class="px-4 py-3 whitespace-nowrap">
+            <span class="text-[9px] font-bold uppercase px-1.5 py-0.5 rounded-md w-fit ${psBadge}">${ps ? ps.toUpperCase() : '—'}</span>
+          </td>
+          <td class="px-4 py-3 whitespace-nowrap">
+            <span class="text-[9px] font-bold uppercase px-1.5 py-0.5 rounded-md w-fit ${osBadge}">${os ? os.replace(/_/g,' ') : '—'}</span>
+          </td>
+          <td class="px-4 py-3 text-right text-gray-400 whitespace-nowrap">₹${subtotal}</td>
+          <td class="px-4 py-3 text-right text-amber-500 whitespace-nowrap">-₹${disc}</td>
+          <td class="px-4 py-3 text-right text-blue-400 whitespace-nowrap">₹${gst}</td>
+          <td class="px-4 py-3 text-right font-bold ${totalColor} whitespace-nowrap">₹${total}</td>
+        </tr>`;
+    }
+
+    function renderPagination(currentPage, totalPages, totalCount) {
+      const area = document.getElementById('paginationArea');
+      if (!area) return;
+
+      if (totalPages <= 1 && totalCount === 0) { area.innerHTML = ''; return; }
+      if (totalPages <= 1) {
+        area.innerHTML = `
+          <div class="px-5 py-3 border-t border-white/5">
+            <p class="text-[11px] text-gray-500">Showing all <span class="text-gray-300 font-semibold">${totalCount}</span> records</p>
+          </div>`;
+        return;
+      }
+
+      const recordFrom = ((currentPage - 1) * PAGE_LIMIT) + 1;
+      const recordTo   = Math.min(currentPage * PAGE_LIMIT, totalCount);
+
+      const delta = 2;
+      const rangeStart = Math.max(1, currentPage - delta);
+      const rangeEnd   = Math.min(totalPages, currentPage + delta);
+      const pages = [];
+      for (let i = rangeStart; i <= rangeEnd; i++) pages.push(i);
+
+      const navBtn = (page, icon, disabled) => disabled
+        ? `<span class="w-8 h-8 flex items-center justify-center rounded-lg bg-white/[0.02] text-gray-700 text-xs border border-white/5 cursor-not-allowed"><i class="fas ${icon} text-[10px]"></i></span>`
+        : `<button onclick="_goPage(${page})" class="w-8 h-8 flex items-center justify-center rounded-lg bg-white/5 hover:bg-cyan-600/20 hover:text-cyan-400 text-gray-400 text-xs transition border border-white/5 hover:border-cyan-500/30"><i class="fas ${icon} text-[10px]"></i></button>`;
+
+      const pageBtn = (p) => p === currentPage
+        ? `<span class="w-8 h-8 flex items-center justify-center rounded-lg text-xs font-bold bg-cyan-600 text-white border border-cyan-500 shadow-lg shadow-cyan-500/20">${p}</span>`
+        : `<button onclick="_goPage(${p})" class="w-8 h-8 flex items-center justify-center rounded-lg text-xs font-bold transition border bg-white/5 hover:bg-cyan-600/20 hover:text-cyan-400 text-gray-400 border-white/5 hover:border-cyan-500/30">${p}</button>`;
+
+      area.innerHTML = `
+        <div class="px-5 py-4 border-t border-white/5 flex flex-col sm:flex-row items-center justify-between gap-4">
+          <p class="text-[11px] text-gray-500 order-2 sm:order-1">
+            Showing <span class="text-gray-300 font-semibold">${recordFrom}–${recordTo}</span>
+            of <span class="text-gray-300 font-semibold">${totalCount}</span> records
+          </p>
+          <div class="flex items-center gap-1 order-1 sm:order-2">
+            ${navBtn(1, 'fa-angles-left', currentPage === 1)}
+            ${navBtn(currentPage - 1, 'fa-chevron-left', currentPage === 1)}
+            ${rangeStart > 1 ? '<span class="w-8 h-8 flex items-center justify-center text-gray-600 text-xs select-none">…</span>' : ''}
+            ${pages.map(pageBtn).join('')}
+            ${rangeEnd < totalPages ? '<span class="w-8 h-8 flex items-center justify-center text-gray-600 text-xs select-none">…</span>' : ''}
+            ${navBtn(currentPage + 1, 'fa-chevron-right', currentPage === totalPages)}
+            ${navBtn(totalPages, 'fa-angles-right', currentPage === totalPages)}
+          </div>
+          <div class="flex items-center gap-2 order-3">
+            <label class="text-[10px] text-gray-600 whitespace-nowrap">Go to page</label>
+            <input id="jumpPageInput" type="number" min="1" max="${totalPages}" placeholder="${currentPage}"
+              class="w-14 bg-[#0f172a] border border-white/10 text-gray-200 rounded-lg px-2 py-1.5 text-xs text-center focus:outline-none focus:border-cyan-500"
+              onkeydown="if(event.key==='Enter'){_goPage(parseInt(this.value))}">
+            <button onclick="_goPage(parseInt(document.getElementById('jumpPageInput').value))"
+              class="px-3 py-1.5 bg-cyan-600/20 hover:bg-cyan-600/40 text-cyan-400 border border-cyan-500/20 rounded-lg text-xs font-semibold transition">Go</button>
+          </div>
+        </div>`;
+
+      // Update dataset for next render cycle
+      area.dataset.currentPage = currentPage;
+      area.dataset.totalPages  = totalPages;
+      area.dataset.totalCount  = totalCount;
+    }
+
+    // ── Main fetch-and-render function ──
+    window._goPage = async function (page) {
+      if (!page || isNaN(page)) return;
+      const area = document.getElementById('paginationArea');
+      const totalPages = parseInt(area.dataset.totalPages) || 1;
+      page = Math.max(1, Math.min(page, totalPages));
+
+      const tbody = document.getElementById('ordersTbody');
+      if (tbody) tbody.style.opacity = '0.4';
+
+      try {
+        const params = buildFiltersParams(page);
+        const res    = await fetch('/admin/reports/table-data?' + params.toString());
+        const data   = await res.json();
+        if (!data.success) return;
+
+        // Re-render rows
+        if (tbody) {
+          tbody.style.opacity = '1';
+          if (!data.orders || data.orders.length === 0) {
+            tbody.innerHTML = `<tr><td colspan="10" class="text-center text-gray-600 py-16"><i class="fas fa-inbox text-2xl mb-2 block"></i>No orders found for this period.</td></tr>`;
+          } else {
+            tbody.innerHTML = data.orders.map(renderRow).join('');
+          }
+        }
+
+        // Re-render pagination
+        renderPagination(data.currentPage, data.totalPages, data.totalCount);
+
+        // Update count badge
+        const badge = document.getElementById('tableCountBadge');
+        if (badge) badge.textContent = `(${data.totalCount})`;
+
+        // Update URL bar (no reload)
+        const url = new URL(window.location.href);
+        url.searchParams.set('page', page);
+        history.pushState({}, '', url.toString());
+
+      } catch (e) {
+        console.error('Pagination fetch failed:', e);
+        if (tbody) tbody.style.opacity = '1';
+      }
+    };
+
+    // ── Init: render pagination from server-provided data attributes ──
+    (function init() {
+      const area = document.getElementById('paginationArea');
+      if (!area) return;
+      renderPagination(
+        parseInt(area.dataset.currentPage) || 1,
+        parseInt(area.dataset.totalPages)  || 1,
+        parseInt(area.dataset.totalCount)  || 0
+      );
+    })();
+
+    // Handle browser back/forward
+    window.addEventListener('popstate', () => {
+      const page = parseInt(new URLSearchParams(location.search).get('page')) || 1;
+      window._goPage(page);
+    });
+  })();
 </script>
 
 </body>
