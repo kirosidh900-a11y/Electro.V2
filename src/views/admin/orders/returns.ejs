@@ -32,12 +32,13 @@
       <!-- Stats Cards -->
       <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
         <%
+          const completedCount = (counts.returned || 0) + (counts.refund_processed || 0);
           const statCards = [
-            { label: 'Total',            key: 'total',             icon: 'fas fa-layer-group',    color: 'text-gray-300',   bg: 'bg-white/5',           border: 'border-white/10',          href: '' },
-            { label: 'Pending Review',   key: 'return_requested',  icon: 'fas fa-clock',          color: 'text-amber-400',  bg: 'bg-amber-500/10',      border: 'border-amber-500/20',      href: '?status=return_requested' },
-            { label: 'Approved',         key: 'return_approved',   icon: 'fas fa-circle-check',   color: 'text-blue-400',   bg: 'bg-blue-500/10',       border: 'border-blue-500/20',       href: '?status=return_approved' },
-            { label: 'Pickup Scheduled', key: 'pickup_scheduled',  icon: 'fas fa-truck',          color: 'text-purple-400', bg: 'bg-purple-500/10',     border: 'border-purple-500/20',     href: '?status=pickup_scheduled' },
-            { label: 'Completed',        key: 'returned',          icon: 'fas fa-box-open',       color: 'text-emerald-400',bg: 'bg-emerald-500/10',    border: 'border-emerald-500/20',    href: '?status=returned' },
+            { label: 'Total',            key: 'total',             count: counts.total,      icon: 'fas fa-layer-group',  color: 'text-gray-300',    bg: 'bg-white/5',        border: 'border-white/10',       href: '' },
+            { label: 'Pending Review',   key: 'return_requested',  count: counts.return_requested,  icon: 'fas fa-clock',         color: 'text-amber-400',   bg: 'bg-amber-500/10',   border: 'border-amber-500/20',   href: '?status=return_requested' },
+            { label: 'Approved',         key: 'return_approved',   count: counts.return_approved,   icon: 'fas fa-circle-check',  color: 'text-blue-400',    bg: 'bg-blue-500/10',    border: 'border-blue-500/20',    href: '?status=return_approved' },
+            { label: 'Pickup Scheduled', key: 'pickup_scheduled',  count: counts.pickup_scheduled,  icon: 'fas fa-truck',         color: 'text-purple-400',  bg: 'bg-purple-500/10',  border: 'border-purple-500/20',  href: '?status=pickup_scheduled' },
+            { label: 'Completed',        key: 'returned',          count: completedCount,    icon: 'fas fa-box-open',     color: 'text-emerald-400', bg: 'bg-emerald-500/10', border: 'border-emerald-500/20', href: '?status=returned' },
           ];
         %>
         <% statCards.forEach(card => { %>
@@ -50,7 +51,7 @@
                 <span class="w-2 h-2 rounded-full bg-amber-400 animate-pulse"></span>
               <% } %>
             </div>
-            <p class="text-2xl font-black <%= card.color %>"><%= counts[card.key] || 0 %></p>
+            <p class="text-2xl font-black <%= card.color %>"><%= card.count || 0 %></p>
             <p class="text-[11px] text-gray-400 font-medium leading-tight"><%= card.label %></p>
           </a>
         <% }) %>
@@ -136,11 +137,12 @@
               <% items.forEach((item, idx) => { %>
                 <%
                   const statusMeta = {
-                    return_requested: { color: 'bg-amber-500/20 text-amber-400',   label: 'Pending Review'   },
-                    return_approved:  { color: 'bg-blue-500/20 text-blue-400',     label: 'Approved'         },
-                    pickup_scheduled: { color: 'bg-purple-500/20 text-purple-400', label: 'Pickup Scheduled' },
-                    returned:         { color: 'bg-emerald-500/20 text-emerald-400',label: 'Returned'        },
-                    return_rejected:  { color: 'bg-red-500/20 text-red-400',       label: 'Rejected'         },
+                    return_requested: { color: 'bg-amber-500/20 text-amber-400',    label: 'Pending Review'    },
+                    return_approved:  { color: 'bg-blue-500/20 text-blue-400',      label: 'Approved'          },
+                    pickup_scheduled: { color: 'bg-purple-500/20 text-purple-400',  label: 'Pickup Scheduled'  },
+                    returned:         { color: 'bg-emerald-500/20 text-emerald-400', label: 'Returned'         },
+                    refund_processed: { color: 'bg-emerald-500/20 text-emerald-400', label: 'Returned & Refunded' },
+                    return_rejected:  { color: 'bg-red-500/20 text-red-400',        label: 'Rejected'          },
                   };
                   const meta = statusMeta[item.itemStatus] || { color: 'bg-gray-500/20 text-gray-400', label: item.itemStatus };
 

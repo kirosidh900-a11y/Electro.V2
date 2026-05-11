@@ -466,11 +466,12 @@ export const completeReturnService = async (orderItemId) => {
   if (order && ["razorpay", "wallet", "cod"].includes(order.payment.method)) {
     const { processItemRefund } = await import("../product/refund.service.js");
     await processItemRefund({
-      orderItemId: item._id,
-      orderId:     item.orderId,
-      userId:      item.userId,
-      reason:      "return",
-      isCOD:       order.payment.method === "cod",
+      orderItemId:    item._id,
+      orderId:        item.orderId,
+      userId:         item.userId,
+      reason:         "return",
+      isCOD:          order.payment.method === "cod",
+      keepItemStatus: true,   // item stays as "returned" — don't overwrite to refund_processed
     });
   }
 
@@ -639,9 +640,12 @@ export const getReturnRequestsService = async ({ page = 1, limit = 10, status = 
     "pickup_scheduled",
     "return_rejected",
     "returned",
+    "refund_processed",   // items that completed return + refund
   ];
 
-  const query = { itemStatus: status ? status : { $in: returnStatuses } };
+  const query = status === "returned"
+    ? { itemStatus: { $in: ["returned", "refund_processed"] } }
+    : { itemStatus: status ? status : { $in: returnStatuses } };
 
   // Fetch items + total + per-status counts in parallel
   const [items, total, statusCounts] = await Promise.all([

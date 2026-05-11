@@ -61,6 +61,9 @@ export const calculateItemRefund = async (item, order) => {
 /**
  * Process refund for a single order item.
  * Eligible payment methods: razorpay, wallet (always), cod (only after return).
+ *
+ * @param {boolean} [keepItemStatus=false] - When true, do NOT overwrite itemStatus
+ *   (used when called from completeReturnService so the item stays as "returned").
  */
 export const processItemRefund = async ({
   orderItemId,
@@ -68,6 +71,7 @@ export const processItemRefund = async ({
   userId,
   reason,
   isCOD = false,
+  keepItemStatus = false,
 }) => {
   const [item, order] = await Promise.all([
     OrderItem.findById(orderItemId),
@@ -100,13 +104,17 @@ export const processItemRefund = async ({
     orderId:     order._id,
   });
 
-  // Update item refund status
+  // Update item refund tracking
   item.refund = {
     status:      "processed",
     amount:      refundAmount,
     processedAt: new Date(),
   };
-  item.itemStatus = "refund_processed";
+  // Only move to refund_processed when NOT called from a return flow.
+  // Return flow: item stays as "returned" so the Returns tab shows it correctly.
+  if (!keepItemStatus) {
+    item.itemStatus = "refund_processed";
+  }
   await item.save();
 
   // Update order payment status to refunded if all paid items are refunded
