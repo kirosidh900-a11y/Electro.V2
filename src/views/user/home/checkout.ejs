@@ -914,89 +914,15 @@
             rzp.open();
           }
 
-          /* ── Pre-fetched Razorpay order cache ────────────────────────────────
-             We eagerly fetch the Razorpay order as soon as the user selects
-             Razorpay as payment method (or on page load if it's pre-selected).
-             This means rzp.open() is called synchronously on button click —
-             no async gap, no broken user-gesture trust chain, no blank popup.  */
-          var _rzpCache = null;          // { addressId, data }
-          var _rzpFetching = false;      // prevent concurrent fetches
-          var _rzpFetchError = null;     // last fetch error message
+          /* ── Checkout proceed button ─────────────────────────────────────────
+             MUST be in a plain script (not ES module) because rzp.open() must
+             be triggered inside a user-gesture event handler.
 
-          function prefetchRazorpayOrder(addressId) {
-            // Already cached for this address — nothing to do
-            if (_rzpCache && _rzpCache.addressId === addressId) return;
-
-            _rzpCache = null;
-            _rzpFetchError = null;
-            _rzpFetching = true;
-
-            fetch('/api/user/payment/create-order', {
-              method:      'POST',
-              headers:     { 'Content-Type': 'application/json', 'Accept': 'application/json' },
-              credentials: 'include',
-              body: JSON.stringify({ addressId: addressId })
-            })
-            .then(function (r) {
-              return r.json().then(function (data) {
-                _rzpFetching = false;
-                if (r.status === 401) {
-                  // Distinguish: auth failure vs Razorpay credential failure.
-                  // requireAuth returns the exact message 'Unauthorized. Please log in.'
-                  // Any other 401 (e.g. Razorpay bad credentials) shows a toast instead.
-                  if (data && data.message === 'Unauthorized. Please log in.') {
-                    _rzpFetchError = '__SESSION_EXPIRED__';
-                  } else {
-                    _rzpFetchError = (data && data.message) || 'Payment service error. Please contact support.';
-                  }
-                  return;
-                }
-                if (data.success) {
-                  _rzpCache = { addressId: addressId, data: data };
-                } else {
-                  _rzpFetchError = data.message || 'Failed to prepare payment';
-                }
-              });
-            })
-            .catch(function (err) {
-              _rzpFetching = false;
-              _rzpFetchError = err.message || 'Failed to prepare payment';
-            });
-          }
-
-          /* ── Checkout proceed button — entire handler in plain script ──────────
-             MUST be here (not in the ES module) because rzp.open() must be called
-             synchronously within the user-gesture event handler.                 */
+             NEW FLOW: Order is created (stock reserved) ONLY when the user
+             explicitly clicks Place Order. No background prefetch.             */
           document.addEventListener('DOMContentLoaded', function () {
             var proceedBtn = document.getElementById('checkoutProceedBtn');
             if (!proceedBtn) return;
-
-            // Pre-fetch when Razorpay is already selected on load
-            var initialPayment = document.querySelector('input[name="paymentMethod"]:checked');
-            var initialAddress = document.querySelector('input[name="selectedAddress"]:checked');
-            if (initialPayment && initialPayment.value === 'razorpay' && initialAddress) {
-              prefetchRazorpayOrder(initialAddress.value);
-            }
-
-            // Re-fetch when address changes
-            document.querySelectorAll('input[name="selectedAddress"]').forEach(function (radio) {
-              radio.addEventListener('change', function () {
-                var paymentMethod = document.querySelector('input[name="paymentMethod"]:checked');
-                if (paymentMethod && paymentMethod.value === 'razorpay') {
-                  prefetchRazorpayOrder(this.value);
-                }
-              });
-            });
-
-            // Pre-fetch when user switches to Razorpay
-            document.querySelectorAll('input[name="paymentMethod"]').forEach(function (radio) {
-              radio.addEventListener('change', function () {
-                if (this.value === 'razorpay') {
-                  var addr = document.querySelector('input[name="selectedAddress"]:checked');
-                  if (addr) prefetchRazorpayOrder(addr.value);
-                }
-              });
-            });
 
             proceedBtn.addEventListener('click', function () {
               var selectedAddress = document.querySelector('input[name="selectedAddress"]:checked');
@@ -1088,50 +1014,39 @@
               }
 
               // ── RAZORPAY ──
-              // rzp.open() MUST be called synchronously here (user-gesture trust chain).
-              // We use the pre-fetched order data — no async gap.
+              // Create the order on click (stock reserved HERE, not on page load).
+              // Modern browsers propagate the user-gesture trust chain through
+              // Promise chains, so rzp.open() inside .then() works correctly.
               window._rzpResetBtn = function () {
                 btn.disabled = false;
                 btn.innerHTML = original;
               };
 
-              // If still fetching, wait briefly then open
-              function tryOpenRazorpay(attempts) {
-                if (_rzpFetchError) {
-                  // Session expired — only redirect to login for genuine auth failures
-                  if (_rzpFetchError === '__SESSION_EXPIRED__') {
-                    window.location.href = '/auth/login';
+              fetch('/api/user/payment/create-order', {
+                method:      'POST',
+                headers:     { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+                credentials: 'include',
+                body: JSON.stringify({ addressId: selectedAddress.value })
+              })
+              .then(function (r) {
+                return r.json().then(function (data) {
+                  if (r.status === 401) {
+                    if (data && data.message === 'Unauthorized. Please log in.') {
+                      window.location.href = '/auth/login';
+                    } else {
+                      throw new Error(data.message || 'Payment service error. Please contact support.');
+                    }
                     return;
                   }
-                  if (window._showToast) window._showToast(_rzpFetchError, 'error');
-                  btn.disabled = false; btn.innerHTML = original;
-                  // Re-trigger prefetch for next attempt
-                  _rzpFetchError = null;
-                  prefetchRazorpayOrder(selectedAddress.value);
-                  return;
-                }
-
-                if (_rzpCache && _rzpCache.addressId === selectedAddress.value) {
-                  // ✅ Open Razorpay synchronously — no async gap, trust chain intact.
-                  // Stock was already validated during prefetch (order creation).
-                  // If stock runs out between prefetch and payment, handlePaymentSuccessService
-                  // will catch it server-side and auto-refund.
-                  openRazorpay(_rzpCache.data);
-                  // Invalidate cache so next order gets a fresh Razorpay order
-                  _rzpCache = null;
-                  return;
-                }
-
-                // Cache miss — prefetch hasn't completed yet.
-                // Don't use setTimeout (breaks trust chain). Instead, tell the user to retry.
-                if (!_rzpFetching) {
-                  prefetchRazorpayOrder(selectedAddress.value);
-                }
-                if (window._showToast) window._showToast('Almost ready — please click again in a moment.', 'info');
+                  if (!data.success) throw new Error(data.message || 'Failed to create order');
+                  // Open Razorpay — trust chain is maintained through this .then()
+                  openRazorpay(data);
+                });
+              })
+              .catch(function (err) {
+                if (window._showToast) window._showToast(err.message || 'Could not create order. Try again.', 'error');
                 btn.disabled = false; btn.innerHTML = original;
-              }
-
-              tryOpenRazorpay();
+              });
             });
           });
         </script>
