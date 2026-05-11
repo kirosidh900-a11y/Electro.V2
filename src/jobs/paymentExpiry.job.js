@@ -20,23 +20,38 @@ const startPaymentExpiryJob = () => {
       const items = await orderItem.find({ orderId: order._id });
 
       for (const item of items) {
-        // Release reserved stock — safe check prevents going below 0
-        await Products.updateOne(
+        // ─── Release reserved stock ───────────────────────────────────────────
+        // We match ONLY on variant _id (not on reserved amount) so the update
+        // never silently skips a variant whose reserved count is already 0 or
+        // less than item.quantity due to a previous partial release.
+        const releaseResult = await Products.updateOne(
           {
             _id: item.productId,
-            variants: {
-              $elemMatch: {
-                _id:      item.variantId,
-                reserved: { $gte: item.quantity },
-              },
-            },
+            "variants._id": item.variantId,
           },
           {
             $inc: { "variants.$.reserved": -item.quantity },
           },
         );
 
-        // Emit real-time stock update
+        // Clamp reserved to 0 if the decrement pushed it negative
+        // (safety net for double-release edge cases)
+        if (releaseResult.modifiedCount > 0) {
+          await Products.updateOne(
+            {
+              _id: item.productId,
+              "variants._id": item.variantId,
+              "variants.reserved": { $lt: 0 },
+            },
+            { $set: { "variants.$.reserved": 0 } },
+          );
+        }
+
+        console.log(
+          `🔓 Reserved stock released — product: ${item.productId} | variant: ${item.variantId} | qty: ${item.quantity} | modified: ${releaseResult.modifiedCount}`,
+        );
+
+        // Emit real-time stock update so the UI reflects the freed stock
         const updatedProduct = await Products.findById(item.productId).select("variants").lean();
         const variant = updatedProduct?.variants?.find(v => String(v._id) === String(item.variantId));
         if (variant && global.io) {
@@ -48,7 +63,7 @@ const startPaymentExpiryJob = () => {
         }
       }
 
-      // Cancel the order — this is the only place reserved stock is released
+      // Cancel the order
       order.payment.status = "failed";
       order.orderStatus = "cancelled";
       await order.save();
@@ -59,3 +74,4 @@ const startPaymentExpiryJob = () => {
 };
 
 export default startPaymentExpiryJob;
+

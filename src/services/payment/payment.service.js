@@ -45,15 +45,30 @@ export const handlePaymentSuccessService = async ({
   const order = await Order.findById(orderId);
   if (!order) throw new Error("Order not found");
 
-  // 🔥 EXPIRE CHECK (VERY IMPORTANT)
+  // 🔥 EXPIRE CHECK — payment arrived after the 15-min window
   if (
     order.payment.method === "razorpay" &&
     order.payment.expiresAt &&
     new Date() > order.payment.expiresAt
   ) {
+    // Release reserved stock before cancelling (same logic as the expiry cron job)
+    const expiredItems = await orderItem.find({ orderId });
+    for (const item of expiredItems) {
+      const releaseResult = await Products.updateOne(
+        { _id: item.productId, "variants._id": item.variantId },
+        { $inc: { "variants.$.reserved": -item.quantity } },
+      );
+      // Clamp to 0 if we went negative
+      if (releaseResult.modifiedCount > 0) {
+        await Products.updateOne(
+          { _id: item.productId, "variants._id": item.variantId, "variants.reserved": { $lt: 0 } },
+          { $set: { "variants.$.reserved": 0 } },
+        );
+      }
+    }
+
     order.payment.status = "failed";
     order.orderStatus = "cancelled";
-
     await order.save();
 
     // 🔥 REFUND
