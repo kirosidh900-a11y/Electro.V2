@@ -8,6 +8,7 @@ import {
   completeReturnService,
   updateItemStatusService,
   processItemRefundAdminService,
+  getReturnRequestsService,
 } from "../../services/admin/order.service.js";
 import renderView from "../../utils/admin/renderView.util.js";
 import AppError from "../../utils/partials/AppError.utils.js";
@@ -217,6 +218,24 @@ export const processItemRefundController = async (req, res, next) => {
     const refundAmount = await processItemRefundAdminService({ itemId, orderId });
 
     res.json({ success: true, message: "Refund processed", refundAmount });
+  } catch (err) {
+    next(err);
+  }
+};
+
+export const getReturnRequestsPage = async (req, res, next) => {
+  try {
+    const page   = parseInt(req.query.page)  || 1;
+    const limit  = parseInt(req.query.limit) || 10;
+    const status = req.query.status || "";
+
+    const data = await getReturnRequestsService({ page, limit, status });
+
+    return res.render("admin/orders/returns", {
+      title: "Return Requests",
+      ...data,
+      filterStatus: status,
+    });
   } catch (err) {
     next(err);
   }

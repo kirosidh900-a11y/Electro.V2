@@ -112,8 +112,8 @@
                                                         class="mt-3 w-20 h-20 object-contain rounded-2xl bg-white hidden">
                                         </div>
 
-                                        <!-- Status -->
-                                        <div>
+                                        <!-- Status (Add only — use List/Unlist button to change status) -->
+                                        <div id="brand-status-field">
                                                 <label class="text-sm text-gray-400">Status</label>
 
                                                 <select name="status" id="brand-status"
@@ -231,6 +231,9 @@
                                 // Reset modal title
                                 document.querySelector("#brandModal h2").textContent = "Add Brand";
 
+                                // Show status field for new brands
+                                document.getElementById("brand-status-field").classList.remove("hidden");
+
                                 document.getElementById("brand-id").value = "";
                                 document.getElementById("brand-title").value = "";
                                 document.getElementById("brand-status").value = "unlisted";
@@ -274,6 +277,9 @@
 
                                 // Update modal title
                                 document.querySelector("#brandModal h2").textContent = "Edit Brand";
+
+                                // Hide status field — status is changed via List/Unlist button only
+                                document.getElementById("brand-status-field").classList.add("hidden");
 
                                 document.getElementById("brand-id").value = id;
                                 document.getElementById("brand-title").value = title;

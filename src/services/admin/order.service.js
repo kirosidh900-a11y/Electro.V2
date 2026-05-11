@@ -628,3 +628,46 @@ export const processItemRefundAdminService = async ({ itemId, orderId }) => {
     isCOD:   order.payment.method === "cod",
   });
 };
+
+// ── Admin: get all return requests ───────────────────────────────────────────
+export const getReturnRequestsService = async ({ page = 1, limit = 10, status = "" }) => {
+  const skip = (page - 1) * limit;
+
+  const returnStatuses = [
+    "return_requested",
+    "return_approved",
+    "pickup_scheduled",
+    "return_rejected",
+    "returned",
+  ];
+
+  const query = { itemStatus: status ? status : { $in: returnStatuses } };
+
+  const [items, total] = await Promise.all([
+    orderItem
+      .find(query)
+      .sort({ updatedAt: -1 })
+      .skip(skip)
+      .limit(limit)
+      .lean(),
+    orderItem.countDocuments(query),
+  ]);
+
+  // Populate order + user info
+  const populated = await Promise.all(
+    items.map(async (item) => {
+      const order = await Order.findById(item.orderId)
+        .populate("userId", "name email")
+        .select("orderNumber userId payment createdAt")
+        .lean();
+      return { ...item, order };
+    })
+  );
+
+  return {
+    items: populated,
+    total,
+    totalPages: Math.ceil(total / limit),
+    currentPage: page,
+  };
+};

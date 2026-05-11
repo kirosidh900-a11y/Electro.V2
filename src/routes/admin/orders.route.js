@@ -11,9 +11,13 @@ import {
   completeReturnController,
   updateItemStatus,
   processItemRefundController,
+  getReturnRequestsPage,
 } from "../../controllers/admin/order.controller.js";
 
 router.get("/", isAuth, getAdminOrdersPage);
+
+// ── Returns management page ──
+router.get("/returns", isAuth, getReturnRequestsPage);
 
 // ── Specific routes BEFORE /:orderId param ──
 router.patch("/returns/:itemId",          isAuth, handleReturnController);

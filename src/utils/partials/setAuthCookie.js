@@ -6,9 +6,6 @@ const setAuthCookie = (res, token, role, days = 1) => {
   res.cookie(cookieName, token, {
     httpOnly: true,
     secure: isProduction,
-    // In production (HTTPS + Cloudflare): "none" allows cookie to be sent with
-    // same-site fetch() calls that pass through the proxy correctly.
-    // In development (HTTP): "lax" is sufficient and "none" would require secure=true.
     sameSite: isProduction ? "none" : "lax",
     maxAge: days * 24 * 60 * 60 * 1000,
   });

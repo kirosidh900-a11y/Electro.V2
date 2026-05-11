@@ -27,6 +27,7 @@ router.use("/brand", brandsRouter);
 router.use("/products", productsRouter);
 router.use("/offers", offersRouter);
 router.use("/orders", ordersRouter);
+router.use("/returns", ordersRouter);   // returns page lives under orders router
 router.use("/coupons", couponRouter);
 router.use("/reports", reportRouter);
 router.use("/maintenance", maintenanceRouter);

@@ -1,0 +1,347 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+  <%- include('../../partials/head') %>
+</head>
+<body class="min-h-screen flex">
+
+  <%- include('../../partials/admin/sidebar') %>
+
+  <div id="mainContent" class="flex-1 flex flex-col min-w-0 transition-all duration-300">
+    <%- include('../../partials/admin/header') %>
+
+    <main class="flex-1 p-4 sm:p-6 lg:p-8 w-full space-y-6">
+
+      <%- include('./partials/header', { title }) %>
+
+      <!-- Filters -->
+      <div class="w-full bg-[#0b1220] border border-white/5 rounded-3xl shadow-xl p-5 flex flex-wrap gap-4 items-end">
+        <div class="min-w-[180px]">
+          <label class="text-xs text-gray-400 uppercase tracking-widest mb-1.5 block">Status</label>
+          <select id="statusFilter" onchange="applyFilter()"
+            class="w-full bg-[#0f172a] border border-white/10 text-gray-200 text-sm rounded-lg px-3 py-2 focus:outline-none focus:border-cyan-500">
+            <option value=""                  <%= filterStatus === ''                  ? 'selected' : '' %>>All Returns</option>
+            <option value="return_requested"  <%= filterStatus === 'return_requested'  ? 'selected' : '' %>>Requested</option>
+            <option value="return_approved"   <%= filterStatus === 'return_approved'   ? 'selected' : '' %>>Approved</option>
+            <option value="pickup_scheduled"  <%= filterStatus === 'pickup_scheduled'  ? 'selected' : '' %>>Pickup Scheduled</option>
+            <option value="returned"          <%= filterStatus === 'returned'          ? 'selected' : '' %>>Returned</option>
+            <option value="return_rejected"   <%= filterStatus === 'return_rejected'   ? 'selected' : '' %>>Rejected</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- Table -->
+      <div class="w-full bg-[#0b1220] border border-white/5 rounded-3xl shadow-xl overflow-x-auto">
+        <table class="w-full text-sm text-left text-gray-300">
+          <thead class="border-b border-white/10 text-gray-400 uppercase text-xs">
+            <tr>
+              <th class="px-5 py-4">#</th>
+              <th class="px-5 py-4">Order</th>
+              <th class="px-5 py-4">Customer</th>
+              <th class="px-5 py-4">Product</th>
+              <th class="px-5 py-4">Reason</th>
+              <th class="px-5 py-4">Status</th>
+              <th class="px-5 py-4">Requested</th>
+              <th class="px-5 py-4 text-right">Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            <% if (!items || items.length === 0) { %>
+              <tr>
+                <td colspan="8" class="text-center py-16 text-gray-500">
+                  <i class="fas fa-rotate-left text-3xl mb-3 block opacity-30"></i>
+                  <p>No return requests found.</p>
+                </td>
+              </tr>
+            <% } else { %>
+              <% items.forEach((item, idx) => { %>
+                <%
+                  const statusColors = {
+                    return_requested:  'bg-amber-500/20 text-amber-400',
+                    return_approved:   'bg-blue-500/20 text-blue-400',
+                    pickup_scheduled:  'bg-purple-500/20 text-purple-400',
+                    returned:          'bg-emerald-500/20 text-emerald-400',
+                    return_rejected:   'bg-red-500/20 text-red-400',
+                  };
+                  const statusColor = statusColors[item.itemStatus] || 'bg-gray-500/20 text-gray-400';
+                  const statusLabel = item.itemStatus.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+                %>
+                <tr class="border-b border-white/5 hover:bg-white/5 transition" id="return-row-<%= item._id %>">
+                  <td class="px-5 py-4 text-gray-500"><%= (currentPage - 1) * 10 + idx + 1 %></td>
+
+                  <td class="px-5 py-4">
+                    <a href="/admin/orders/<%= item.orderId %>"
+                      class="text-cyan-400 hover:text-cyan-300 font-mono text-xs font-semibold">
+                      #<%= item.order?.orderNumber || item.orderId %>
+                    </a>
+                  </td>
+
+                  <td class="px-5 py-4">
+                    <p class="font-medium text-white text-xs"><%= item.order?.userId?.name || '—' %></p>
+                    <p class="text-gray-500 text-[11px]"><%= item.order?.userId?.email || '' %></p>
+                  </td>
+
+                  <td class="px-5 py-4">
+                    <div class="flex items-center gap-3">
+                      <% if (item.images?.[0]) { %>
+                        <img src="<%= item.images[0] %>" class="w-10 h-10 object-contain rounded-lg bg-white/5 border border-white/10 p-1">
+                      <% } %>
+                      <div>
+                        <p class="text-white text-xs font-medium line-clamp-1"><%= item.name %></p>
+                        <% if (item.attributes) { %>
+                          <p class="text-gray-500 text-[11px]">
+                            <%= Object.values(item.attributes).join(' · ') %>
+                          </p>
+                        <% } %>
+                        <p class="text-gray-500 text-[11px]">Qty: <%= item.quantity %></p>
+                      </div>
+                    </div>
+                  </td>
+
+                  <td class="px-5 py-4">
+                    <p class="text-xs text-gray-300 capitalize"><%= (item.return?.reason || '—').replace(/_/g, ' ') %></p>
+                    <% if (item.return?.comments) { %>
+                      <p class="text-[11px] text-gray-500 mt-0.5 line-clamp-1"><%= item.return.comments %></p>
+                    <% } %>
+                  </td>
+
+                  <td class="px-5 py-4">
+                    <span class="px-2.5 py-1 rounded-full text-[11px] font-semibold uppercase tracking-wide <%= statusColor %>">
+                      <%= statusLabel %>
+                    </span>
+                    <% if (item.return?.rejectReason) { %>
+                      <p class="text-[11px] text-red-400 mt-1"><%= item.return.rejectReason %></p>
+                    <% } %>
+                  </td>
+
+                  <td class="px-5 py-4 text-xs text-gray-400">
+                    <%= item.return?.requestedAt
+                      ? new Date(item.return.requestedAt).toLocaleDateString('en-IN', { day:'numeric', month:'short', year:'numeric' })
+                      : new Date(item.updatedAt).toLocaleDateString('en-IN', { day:'numeric', month:'short', year:'numeric' }) %>
+                  </td>
+
+                  <td class="px-5 py-4 text-right">
+                    <div class="flex justify-end gap-2 flex-wrap">
+
+                      <% if (item.itemStatus === 'return_requested') { %>
+                        <button onclick="handleReturn('<%= item._id %>', 'approve')"
+                          class="px-3 py-1.5 text-xs font-semibold bg-emerald-500/20 text-emerald-400 hover:bg-emerald-500/30 rounded-lg transition">
+                          <i class="fas fa-check mr-1"></i>Approve
+                        </button>
+                        <button onclick="openRejectModal('<%= item._id %>')"
+                          class="px-3 py-1.5 text-xs font-semibold bg-red-500/20 text-red-400 hover:bg-red-500/30 rounded-lg transition">
+                          <i class="fas fa-xmark mr-1"></i>Reject
+                        </button>
+                      <% } %>
+
+                      <% if (item.itemStatus === 'return_approved') { %>
+                        <button onclick="openPickupModal('<%= item._id %>')"
+                          class="px-3 py-1.5 text-xs font-semibold bg-purple-500/20 text-purple-400 hover:bg-purple-500/30 rounded-lg transition">
+                          <i class="fas fa-truck mr-1"></i>Schedule Pickup
+                        </button>
+                      <% } %>
+
+                      <% if (item.itemStatus === 'pickup_scheduled') { %>
+                        <button onclick="completeReturn('<%= item._id %>')"
+                          class="px-3 py-1.5 text-xs font-semibold bg-cyan-500/20 text-cyan-400 hover:bg-cyan-500/30 rounded-lg transition">
+                          <i class="fas fa-box-open mr-1"></i>Mark Returned
+                        </button>
+                      <% } %>
+
+                      <a href="/admin/orders/<%= item.orderId %>"
+                        class="px-3 py-1.5 text-xs font-semibold bg-white/5 text-gray-400 hover:bg-white/10 rounded-lg transition">
+                        <i class="fas fa-eye mr-1"></i>View Order
+                      </a>
+
+                    </div>
+                  </td>
+                </tr>
+              <% }) %>
+            <% } %>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Pagination -->
+      <div class="flex flex-wrap justify-center items-center gap-2 mt-4">
+        <% if (currentPage > 1) { %>
+          <a href="?page=<%= currentPage - 1 %>&status=<%= filterStatus %>"
+            class="px-4 py-2 text-sm bg-[#0b1220] border border-white/10 text-gray-300 rounded-lg hover:bg-white/5">← Prev</a>
+        <% } %>
+        <% for (let p = 1; p <= totalPages; p++) { %>
+          <a href="?page=<%= p %>&status=<%= filterStatus %>"
+            class="px-4 py-2 text-sm rounded-lg border <%= p === currentPage ? 'bg-cyan-600 border-cyan-600 text-white' : 'bg-[#0b1220] border-white/10 text-gray-300 hover:bg-white/5' %>">
+            <%= p %>
+          </a>
+        <% } %>
+        <% if (currentPage < totalPages) { %>
+          <a href="?page=<%= currentPage + 1 %>&status=<%= filterStatus %>"
+            class="px-4 py-2 text-sm bg-[#0b1220] border border-white/10 text-gray-300 rounded-lg hover:bg-white/5">Next →</a>
+        <% } %>
+      </div>
+
+    </main>
+  </div>
+
+  <!-- Reject Modal -->
+  <div id="rejectModal" class="fixed inset-0 bg-black/60 hidden z-50 flex items-center justify-center">
+    <div class="bg-[#0b1220] w-[420px] rounded-xl border border-white/10 p-6">
+      <h3 class="text-base font-bold text-white mb-4">Reject Return Request</h3>
+      <input type="hidden" id="rejectItemId">
+      <div class="mb-4">
+        <label class="text-sm text-gray-400 mb-1.5 block">Rejection Reason <span class="text-red-400">*</span></label>
+        <textarea id="rejectReason" rows="3" placeholder="Explain why the return is rejected..."
+          class="w-full bg-[#0f172a] border border-white/10 text-gray-200 text-sm rounded-lg px-3 py-2 focus:outline-none focus:border-cyan-500 resize-none"></textarea>
+        <span id="rejectReasonError" class="text-red-400 text-xs mt-1 hidden block">Reason is required</span>
+      </div>
+      <div class="flex justify-end gap-3">
+        <button onclick="closeRejectModal()" class="px-4 py-2 text-sm bg-gray-700 hover:bg-gray-600 text-white rounded-lg">Cancel</button>
+        <button onclick="submitReject()" class="px-4 py-2 text-sm bg-red-600 hover:bg-red-700 text-white rounded-lg font-semibold">Reject</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Pickup Modal -->
+  <div id="pickupModal" class="fixed inset-0 bg-black/60 hidden z-50 flex items-center justify-center">
+    <div class="bg-[#0b1220] w-[380px] rounded-xl border border-white/10 p-6">
+      <h3 class="text-base font-bold text-white mb-4">Schedule Pickup</h3>
+      <input type="hidden" id="pickupItemId">
+      <div class="mb-4">
+        <label class="text-sm text-gray-400 mb-1.5 block">Pickup Date <span class="text-red-400">*</span></label>
+        <input type="date" id="pickupDate" min="<%= new Date().toISOString().split('T')[0] %>"
+          class="w-full bg-[#0f172a] border border-white/10 text-gray-200 text-sm rounded-lg px-3 py-2 focus:outline-none focus:border-cyan-500">
+        <span id="pickupDateError" class="text-red-400 text-xs mt-1 hidden block">Date is required</span>
+      </div>
+      <div class="flex justify-end gap-3">
+        <button onclick="closePickupModal()" class="px-4 py-2 text-sm bg-gray-700 hover:bg-gray-600 text-white rounded-lg">Cancel</button>
+        <button onclick="submitPickup()" class="px-4 py-2 text-sm bg-purple-600 hover:bg-purple-700 text-white rounded-lg font-semibold">Schedule</button>
+      </div>
+    </div>
+  </div>
+
+  <script type="module">
+    import { showToast } from "../../partials/errorMsg.utils.js";
+    import { confirmAction } from "../../partials/confirm.util.js";
+
+    function applyFilter() {
+      const status = document.getElementById('statusFilter').value;
+      window.location.href = `/admin/returns?status=${status}&page=1`;
+    }
+    window.applyFilter = applyFilter;
+
+    async function handleReturn(itemId, action) {
+      const label = action === 'approve' ? 'approve' : 'reject';
+      const confirmed = await confirmAction(`Are you sure you want to ${label} this return?`);
+      if (!confirmed) return;
+
+      try {
+        const res = await fetch(`/admin/orders/returns/${itemId}`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ action }),
+        });
+        const data = await res.json();
+        if (!data.success) throw new Error(data.message);
+        showToast(`Return ${label}d successfully`, 'success');
+        setTimeout(() => location.reload(), 800);
+      } catch (err) {
+        showToast(err.message || 'Something went wrong', 'error');
+      }
+    }
+    window.handleReturn = handleReturn;
+
+    function openRejectModal(itemId) {
+      document.getElementById('rejectItemId').value = itemId;
+      document.getElementById('rejectReason').value = '';
+      document.getElementById('rejectReasonError').classList.add('hidden');
+      document.getElementById('rejectModal').classList.remove('hidden');
+    }
+    window.openRejectModal = openRejectModal;
+
+    function closeRejectModal() {
+      document.getElementById('rejectModal').classList.add('hidden');
+    }
+    window.closeRejectModal = closeRejectModal;
+
+    async function submitReject() {
+      const itemId = document.getElementById('rejectItemId').value;
+      const reason = document.getElementById('rejectReason').value.trim();
+      if (!reason) {
+        document.getElementById('rejectReasonError').classList.remove('hidden');
+        return;
+      }
+      try {
+        const res = await fetch(`/admin/orders/returns/${itemId}`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ action: 'reject', rejectReason: reason }),
+        });
+        const data = await res.json();
+        if (!data.success) throw new Error(data.message);
+        showToast('Return rejected', 'success');
+        closeRejectModal();
+        setTimeout(() => location.reload(), 800);
+      } catch (err) {
+        showToast(err.message || 'Something went wrong', 'error');
+      }
+    }
+    window.submitReject = submitReject;
+
+    function openPickupModal(itemId) {
+      document.getElementById('pickupItemId').value = itemId;
+      document.getElementById('pickupDate').value = '';
+      document.getElementById('pickupDateError').classList.add('hidden');
+      document.getElementById('pickupModal').classList.remove('hidden');
+    }
+    window.openPickupModal = openPickupModal;
+
+    function closePickupModal() {
+      document.getElementById('pickupModal').classList.add('hidden');
+    }
+    window.closePickupModal = closePickupModal;
+
+    async function submitPickup() {
+      const itemId     = document.getElementById('pickupItemId').value;
+      const pickupDate = document.getElementById('pickupDate').value;
+      if (!pickupDate) {
+        document.getElementById('pickupDateError').classList.remove('hidden');
+        return;
+      }
+      try {
+        const res = await fetch(`/admin/orders/returns/pickup/${itemId}`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ pickupDate }),
+        });
+        const data = await res.json();
+        if (!data.success) throw new Error(data.message);
+        showToast('Pickup scheduled', 'success');
+        closePickupModal();
+        setTimeout(() => location.reload(), 800);
+      } catch (err) {
+        showToast(err.message || 'Something went wrong', 'error');
+      }
+    }
+    window.submitPickup = submitPickup;
+
+    async function completeReturn(itemId) {
+      const confirmed = await confirmAction('Mark this item as returned and process refund?');
+      if (!confirmed) return;
+      try {
+        const res = await fetch(`/admin/orders/returns/complete/${itemId}`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+        });
+        const data = await res.json();
+        if (!data.success) throw new Error(data.message);
+        showToast('Return completed and refund processed', 'success');
+        setTimeout(() => location.reload(), 800);
+      } catch (err) {
+        showToast(err.message || 'Something went wrong', 'error');
+      }
+    }
+    window.completeReturn = completeReturn;
+  </script>
+
+</body>
+</html>

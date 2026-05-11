@@ -97,19 +97,20 @@ app.use('/api/user', userRouter);
 app.use("/api/admin", adminRouter);
 app.use("/api/wishlist", wishlistRoutes);
 
-// 404 Handler (FIXED)
+// 404 Handler
 app.use((req, res) => {
-  const err = new AppError("Route not found", HTTP_STATUS.NOT_FOUND);
+  const isAdmin = req.originalUrl.startsWith("/admin");
+  const isApi   = req.originalUrl.startsWith("/api") ||
+                  req.headers.accept?.includes("application/json");
 
-  if (
-    req.originalUrl.startsWith("/admin") ||
-    req.originalUrl.startsWith("/auth")
-  ) {
-    errorResponse(res, err.message, HTTP_STATUS.NOT_FOUND);
+  if (isApi) {
+    return errorResponse(res, "Route not found", HTTP_STATUS.NOT_FOUND);
   }
 
-  if (req.headers.accept?.includes("application/json")) {
-    errorResponse(res, err.message, HTTP_STATUS.NOT_FOUND);
+  if (isAdmin) {
+    return res.status(HTTP_STATUS.NOT_FOUND).render("admin/404", {
+      title: "Page Not Found",
+    });
   }
 
   return res.status(HTTP_STATUS.NOT_FOUND).render("404", { user: req.user || null });
