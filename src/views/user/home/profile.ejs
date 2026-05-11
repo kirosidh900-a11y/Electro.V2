@@ -382,7 +382,7 @@
                         saveEmailBtn.classList.add("hidden");
                         showToast(data.message || "OTP sent successfully", 'success')
                         otpContext = 'email';
-                        openOtpModal();
+                        window.openOtpModal();
                     } catch (error) {
                         console.error(error);
                         showToast(error.message || "Internal Server Error", 'error')
@@ -561,7 +561,7 @@
                             showToast("Phone updated successfully", "success");
                         }
 
-                        closeOtpModalFunc();
+                        window.closeOtpModalFunc();
 
                     } catch (error) {
                         showToast(error.message, "error");
@@ -604,7 +604,7 @@
                         if (!res.ok) throw new Error(data.message);
 
                         showToast("OTP resent", "success");
-                        startOtpTimer();
+                        window.startOtpTimer();
 
                     } catch (error) {
                         showToast(error.message, "error");
@@ -668,7 +668,7 @@
 
                         showToast("OTP sent to your phone", "success");
                         otpContext = 'phone';
-                        openOtpModal(); // reuse same modal
+                        window.openOtpModal(); // reuse same modal
 
                     } catch (error) {
                         showToast(error.message, "error");
@@ -825,10 +825,8 @@
               window.closeCropModal = closeCropModal;
               window.saveCrop       = saveCrop;
             </script>
+            <script>
                 const otpModal = document.getElementById("otpModal");
-
-                const resendBtn = document.getElementById("resendOtpBtn");
-
 
                 function openOtpModal() {
                     otpModal.classList.remove("hidden");
@@ -850,13 +848,13 @@
 
                 document.getElementById("closeOtpModal").onclick = closeOtpModalFunc;
 
-
                 let timerInterval;
 
                 function startOtpTimer() {
                     let time = 50;
 
                     const timerEl = document.getElementById("otpTimer");
+                    const resendBtn = document.getElementById("resendOtpBtn");
 
                     resendBtn.disabled = true;
                     resendBtn.classList.add("opacity-50", "cursor-not-allowed");
@@ -882,6 +880,11 @@
 
                     }, 1000);
                 }
+
+                // Expose to global scope so ES module code can call them
+                window.openOtpModal    = openOtpModal;
+                window.closeOtpModalFunc = closeOtpModalFunc;
+                window.startOtpTimer   = startOtpTimer;
             </script>
 
 </body>
