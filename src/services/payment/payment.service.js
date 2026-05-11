@@ -2,6 +2,7 @@ import crypto from "crypto";
 import Order from "../../models/orderSchema.model.js";
 import orderItem from "../../models/orderItemSchema.model.js";
 import Products from "../../models/productSchema.model.js";
+import Cart from "../../models/cartSchema.models.js";
 import AppError from "../../utils/partials/AppError.utils.js";
 import HTTP_STATUS from "../../constant/statusCode.js";
 import razorpay from "../../config/razorpay.config.js";
@@ -145,6 +146,24 @@ export const handlePaymentSuccessService = async ({
     { orderId, itemStatus: "pending_payment" },
     { $set: { itemStatus: "placed" } }
   );
+
+  // 🧹 CLEAR CART — now that payment is confirmed, remove cart items.
+  // This was intentionally deferred from placeOrderService so the cart stays
+  // intact while the user is inside the Razorpay payment popup.
+  const cart = await Cart.findOne({ userId: order.userId });
+  if (cart && cart.items.length > 0) {
+    const cartCouponId = cart.appliedCoupon?.couponId || null;
+    cart.items = [];
+    cart.couponDiscountAmount = 0;
+    cart.appliedCoupon = { code: null, couponId: null, discountAmount: 0 };
+    await cart.save();
+
+    // Mark coupon as used now that payment is confirmed
+    if (cartCouponId) {
+      const { markCouponUsed } = await import("../product/coupon.service.js");
+      await markCouponUsed({ userId: order.userId, couponId: cartCouponId });
+    }
+  }
 
   return order;
 };

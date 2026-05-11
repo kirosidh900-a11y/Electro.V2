@@ -297,8 +297,10 @@ export const placeOrderService = async ({
       })),
     );
 
-    // 🧹 CLEAR CART — only for regular cart orders, not buy-now
-    if (!buyNow && cart) {
+    // 🧹 CLEAR CART — only for COD/Wallet (instant payment).
+    // For Razorpay, cart is cleared AFTER payment is verified in handlePaymentSuccessService.
+    // Clearing it here for Razorpay would empty the cart before the user even pays.
+    if (!buyNow && cart && paymentMethod !== "razorpay") {
       const appliedCouponId = cart.appliedCoupon?.couponId || null;
       cart.items = [];
       cart.couponDiscountAmount = 0;
@@ -310,6 +312,12 @@ export const placeOrderService = async ({
         const { markCouponUsed } = await import("../product/coupon.service.js");
         await markCouponUsed({ userId, couponId: appliedCouponId });
       }
+    }
+
+    // For Razorpay, snapshot the cart coupon so we can clear it after payment succeeds
+    if (!buyNow && cart && paymentMethod === "razorpay") {
+      order._cartId = cart._id;         // stored transiently — not persisted to DB
+      order._cartCouponId = cart.appliedCoupon?.couponId || null;
     }
 
     // 💳 WALLET PAYMENT — debit wallet and mark order paid
