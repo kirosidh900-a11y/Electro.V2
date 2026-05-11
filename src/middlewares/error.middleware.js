@@ -14,8 +14,9 @@ const errorMiddleware = (err, req, res, _next) => {
     );
   }
 
-  // API routes
+  // API routes — always return JSON, never render HTML
   if (
+    req.originalUrl.startsWith("/api") ||
     req.originalUrl.startsWith("/auth") ||
     req.originalUrl.startsWith("/admin") ||
     req.originalUrl.startsWith("/name") ||

@@ -38,7 +38,14 @@ export const validate = (schema) => (req, res, next) => {
 
 export const requireAuth = (req, res, next) => {
   if (!req.user) {
-    return res.redirect("/auth/login"); 
+    // API requests must get JSON 401 — a redirect to the login page breaks fetch() callers
+    if (req.originalUrl.startsWith("/api")) {
+      return res.status(HTTP_STATUS.UNAUTHORIZED).json({
+        success: false,
+        message: "Unauthorized. Please log in.",
+      });
+    }
+    return res.redirect("/auth/login");
   }
   next();
 };

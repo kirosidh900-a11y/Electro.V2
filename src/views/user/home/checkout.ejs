@@ -816,8 +816,9 @@
                 if (overlay) overlay.classList.remove('hidden');
 
                 fetch('/api/user/payment/verify', {
-                  method:  'POST',
-                  headers: { 'Content-Type': 'application/json' },
+                  method:      'POST',
+                  headers:     { 'Content-Type': 'application/json' },
+                  credentials: 'include',
                   body: JSON.stringify({
                     razorpay_order_id:   response.razorpay_order_id,
                     razorpay_payment_id: response.razorpay_payment_id,
@@ -852,8 +853,9 @@
 
             rzp.on('payment.failed', function (response) {
               fetch('/api/user/payment/failure', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                method:      'POST',
+                headers:     { 'Content-Type': 'application/json' },
+                credentials: 'include',
                 body: JSON.stringify({ orderId: data.orderId })
               }).finally(function () {
                 window.location.href = '/order/failure/' + data.orderId +
@@ -930,12 +932,22 @@
             _rzpFetching = true;
 
             fetch('/api/user/payment/create-order', {
-              method:  'POST',
-              headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+              method:      'POST',
+              headers:     { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+              credentials: 'include',
               body: JSON.stringify({ addressId: addressId })
             })
-            .then(function (r) { return r.json(); })
+            .then(function (r) {
+              // Session expired — backend now returns proper 401 JSON for API routes.
+              // Redirect to login so the user can re-authenticate before paying.
+              if (r.status === 401) {
+                window.location.href = '/auth/login';
+                return;
+              }
+              return r.json();
+            })
             .then(function (data) {
+              if (!data) return; // redirected above
               _rzpFetching = false;
               if (data.success) {
                 _rzpCache = { addressId: addressId, data: data };
@@ -1012,7 +1024,7 @@
 
               // ── COD ──
               if (method === 'cod') {
-                fetch('/api/user/cart/validate-stock-cart')
+                fetch('/api/user/cart/validate-stock-cart', { credentials: 'include' })
                 .then(function (r) { return r.json(); })
                 .then(function (stockData) {
                   if (!stockData.success) {
@@ -1022,8 +1034,9 @@
                     return;
                   }
                   return fetch('/api/user/order/place', {
-                    method:  'POST',
-                    headers: { 'Content-Type': 'application/json' },
+                    method:      'POST',
+                    headers:     { 'Content-Type': 'application/json' },
+                    credentials: 'include',
                     body: JSON.stringify({ addressId: selectedAddress.value, paymentMethod: 'cod' })
                   });
                 })
@@ -1042,7 +1055,7 @@
 
               // ── WALLET ──
               if (method === 'wallet') {
-                fetch('/api/user/cart/validate-stock-cart')
+                fetch('/api/user/cart/validate-stock-cart', { credentials: 'include' })
                 .then(function (r) { return r.json(); })
                 .then(function (stockData) {
                   if (!stockData.success) {
@@ -1052,8 +1065,9 @@
                     return;
                   }
                   return fetch('/api/user/order/place', {
-                    method:  'POST',
-                    headers: { 'Content-Type': 'application/json' },
+                    method:      'POST',
+                    headers:     { 'Content-Type': 'application/json' },
+                    credentials: 'include',
                     body: JSON.stringify({ addressId: selectedAddress.value, paymentMethod: 'wallet' })
                   });
                 })
