@@ -1,10 +1,13 @@
+// ⚠️  dotenv MUST be the very first import.
+// In ES modules all `import` statements are hoisted and execute before the
+// module body, so calling dotenv.config() here would be TOO LATE — env vars
+// would still be undefined when razorpay.config.js / db.js etc. are first
+// evaluated. We load dotenv through a side-effect import instead.
+import "./config/env.js";
 import app from "./app.js";
-import dotenv from "dotenv";
 import connectDB from "./config/db.js";
 import http from "http";
 import { Server } from "socket.io";
-
-dotenv.config();
 
 const PORT = process.env.PORT || 3000;
 
