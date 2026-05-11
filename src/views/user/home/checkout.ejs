@@ -938,22 +938,20 @@
               body: JSON.stringify({ addressId: addressId })
             })
             .then(function (r) {
-              // Session expired — backend now returns proper 401 JSON for API routes.
-              // Redirect to login so the user can re-authenticate before paying.
-              if (r.status === 401) {
-                window.location.href = '/auth/login';
-                return;
-              }
-              return r.json();
-            })
-            .then(function (data) {
-              if (!data) return; // redirected above
-              _rzpFetching = false;
-              if (data.success) {
-                _rzpCache = { addressId: addressId, data: data };
-              } else {
-                _rzpFetchError = data.message || 'Failed to prepare payment';
-              }
+              return r.json().then(function (data) {
+                _rzpFetching = false;
+                // 401 = session expired. Store the status so the Place Order
+                // button can redirect to login when the user explicitly clicks.
+                if (r.status === 401) {
+                  _rzpFetchError = '__401__';
+                  return;
+                }
+                if (data.success) {
+                  _rzpCache = { addressId: addressId, data: data };
+                } else {
+                  _rzpFetchError = data.message || 'Failed to prepare payment';
+                }
+              });
             })
             .catch(function (err) {
               _rzpFetching = false;
@@ -1095,6 +1093,11 @@
               // If still fetching, wait briefly then open
               function tryOpenRazorpay(attempts) {
                 if (_rzpFetchError) {
+                  // Session expired — only redirect on explicit user click, never silently
+                  if (_rzpFetchError === '__401__') {
+                    window.location.href = '/auth/login';
+                    return;
+                  }
                   if (window._showToast) window._showToast(_rzpFetchError, 'error');
                   btn.disabled = false; btn.innerHTML = original;
                   // Re-trigger prefetch for next attempt
