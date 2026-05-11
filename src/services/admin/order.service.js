@@ -643,7 +643,8 @@ export const getReturnRequestsService = async ({ page = 1, limit = 10, status = 
 
   const query = { itemStatus: status ? status : { $in: returnStatuses } };
 
-  const [items, total] = await Promise.all([
+  // Fetch items + total + per-status counts in parallel
+  const [items, total, statusCounts] = await Promise.all([
     orderItem
       .find(query)
       .sort({ updatedAt: -1 })
@@ -651,7 +652,16 @@ export const getReturnRequestsService = async ({ page = 1, limit = 10, status = 
       .limit(limit)
       .lean(),
     orderItem.countDocuments(query),
+    orderItem.aggregate([
+      { $match: { itemStatus: { $in: returnStatuses } } },
+      { $group: { _id: "$itemStatus", count: { $sum: 1 } } },
+    ]),
   ]);
+
+  // Build counts map  { return_requested: 3, return_approved: 1, ... }
+  const counts = returnStatuses.reduce((acc, s) => ({ ...acc, [s]: 0 }), {});
+  statusCounts.forEach(({ _id, count }) => { counts[_id] = count; });
+  counts.total = returnStatuses.reduce((sum, s) => sum + counts[s], 0);
 
   // Populate order + user info
   const populated = await Promise.all(
@@ -669,5 +679,6 @@ export const getReturnRequestsService = async ({ page = 1, limit = 10, status = 
     total,
     totalPages: Math.ceil(total / limit),
     currentPage: page,
+    counts,
   };
 };

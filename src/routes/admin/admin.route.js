@@ -9,6 +9,7 @@ import dashboardRouter from "./dashbord.route.js";
 import offersRouter from "../product/offer.route.js";
 import authRouter from "./auth.route.js";
 import ordersRouter from './orders.route.js';
+import returnsRouter from './returns.route.js';
 import couponRouter from './coupon.route.js';
 import maintenanceRouter from './maintenance.route.js';
 
@@ -27,7 +28,7 @@ router.use("/brand", brandsRouter);
 router.use("/products", productsRouter);
 router.use("/offers", offersRouter);
 router.use("/orders", ordersRouter);
-router.use("/returns", ordersRouter);   // returns page lives under orders router
+router.use("/returns", returnsRouter);
 router.use("/coupons", couponRouter);
 router.use("/reports", reportRouter);
 router.use("/maintenance", maintenanceRouter);
