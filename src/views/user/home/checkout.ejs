@@ -940,10 +940,15 @@
             .then(function (r) {
               return r.json().then(function (data) {
                 _rzpFetching = false;
-                // 401 = session expired. Store the status so the Place Order
-                // button can redirect to login when the user explicitly clicks.
                 if (r.status === 401) {
-                  _rzpFetchError = '__401__';
+                  // Distinguish: auth failure vs Razorpay credential failure.
+                  // requireAuth returns the exact message 'Unauthorized. Please log in.'
+                  // Any other 401 (e.g. Razorpay bad credentials) shows a toast instead.
+                  if (data && data.message === 'Unauthorized. Please log in.') {
+                    _rzpFetchError = '__SESSION_EXPIRED__';
+                  } else {
+                    _rzpFetchError = (data && data.message) || 'Payment service error. Please contact support.';
+                  }
                   return;
                 }
                 if (data.success) {
@@ -1093,8 +1098,8 @@
               // If still fetching, wait briefly then open
               function tryOpenRazorpay(attempts) {
                 if (_rzpFetchError) {
-                  // Session expired — only redirect on explicit user click, never silently
-                  if (_rzpFetchError === '__401__') {
+                  // Session expired — only redirect to login for genuine auth failures
+                  if (_rzpFetchError === '__SESSION_EXPIRED__') {
                     window.location.href = '/auth/login';
                     return;
                   }
