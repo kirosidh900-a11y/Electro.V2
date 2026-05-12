@@ -70,6 +70,66 @@ export const placeOrderService = async ({
       cartItems       = cart.items;
       couponDiscount  = cart.couponDiscountAmount || 0;
       appliedCouponId = cart.appliedCoupon?.couponId || null;
+
+      // ── Re-validate coupon at order time ─────────────────────────────────
+      if (appliedCouponId) {
+        const Coupon = (await import("../../models/couponSchema.model.js")).default;
+        const coupon = await Coupon.findById(appliedCouponId);
+        const now    = new Date();
+
+        let couponInvalid = false;
+        let couponMsg     = "";
+
+        if (!coupon || !coupon.isActive) {
+          couponInvalid = true;
+          couponMsg     = "Applied coupon is no longer active. Please remove it and try again.";
+        } else if (coupon.expiryDate < now) {
+          couponInvalid = true;
+          couponMsg     = "Applied coupon has expired. Please remove it and try again.";
+        } else if (coupon.usageLimit !== null && coupon.usedCount >= coupon.usageLimit) {
+          couponInvalid = true;
+          couponMsg     = "Applied coupon has reached its usage limit. Please remove it and try again.";
+        } else if (coupon.perUserLimit !== null) {
+          const userEntry = coupon.usedBy.find(u => String(u.userId) === String(userId));
+          if (userEntry && userEntry.usedCount >= coupon.perUserLimit) {
+            couponInvalid = true;
+            couponMsg     = "You have already used this coupon the maximum number of times.";
+          }
+        }
+
+        if (couponInvalid) {
+          // Auto-clear the invalid coupon from cart
+          cart.couponDiscountAmount = 0;
+          cart.appliedCoupon = { code: null, couponId: null, discountAmount: 0 };
+          await cart.save();
+          throw new AppError(couponMsg, HTTP_STATUS.BAD_REQUEST);
+        }
+      }
+
+      // ── Cart item existence check ─────────────────────────────────────────
+      // Verify every product in the cart still exists and is listed.
+      // Items whose product was deleted or unlisted are removed from the cart
+      // and the user is told to review before placing the order.
+      const invalidItems = cartItems.filter(item => {
+        const p = item.productId; // populated
+        return !p || p.isDeleted || p.status !== "listed";
+      });
+
+      if (invalidItems.length > 0) {
+        // Remove the stale items from the cart automatically
+        const invalidIds = new Set(invalidItems.map(i => String(i._id)));
+        cart.items = cart.items.filter(i => !invalidIds.has(String(i._id)));
+        await cart.save();
+
+        const names = invalidItems
+          .map(i => i.productId?.name || "Unknown product")
+          .join(", ");
+
+        throw new AppError(
+          `Some items are no longer available and have been removed from your cart: ${names}. Please review your cart before placing the order.`,
+          HTTP_STATUS.BAD_REQUEST
+        );
+      }
     }
 
     const address = await Address.findOne({ _id: addressId, userId });

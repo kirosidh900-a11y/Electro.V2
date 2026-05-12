@@ -83,8 +83,8 @@ export const handlePaymentSuccessService = async ({
   const items = await orderItem.find({ orderId });
 
   for (const item of items) {
-    // Use $elemMatch to correctly match the variant with both conditions
-    const updatedProduct = await Products.findOneAndUpdate(
+    // Try the normal path: stock >= qty AND reserved >= qty → decrement both atomically
+    let updatedProduct = await Products.findOneAndUpdate(
       {
         _id: item.productId,
         variants: {
@@ -104,7 +104,27 @@ export const handlePaymentSuccessService = async ({
       { returnDocument: "after" },
     );
 
-    // ❌ STOCK NOT AVAILABLE
+    // Fallback: reservation was already released (e.g. cron ran before payment arrived)
+    // but stock is still available — decrement stock directly
+    if (!updatedProduct) {
+      updatedProduct = await Products.findOneAndUpdate(
+        {
+          _id: item.productId,
+          variants: {
+            $elemMatch: {
+              _id:   item.variantId,
+              stock: { $gte: item.quantity },
+            },
+          },
+        },
+        {
+          $inc: { "variants.$.stock": -item.quantity },
+        },
+        { returnDocument: "after" },
+      );
+    }
+
+    // ❌ STOCK NOT AVAILABLE — neither path worked
     if (!updatedProduct) {
       order.payment.status = "failed";
       order.orderStatus = "cancelled";
@@ -115,13 +135,11 @@ export const handlePaymentSuccessService = async ({
         amount: order.pricing.finalAmount * 100,
       });
 
-      throw new AppError("Stock no longer available. Payment refunded.",HTTP_STATUS.BAD_REQUEST);
+      throw new AppError("Stock no longer available. Payment refunded.", HTTP_STATUS.BAD_REQUEST);
     }
 
     const updatedVariant = updatedProduct.variants.id(item.variantId);
-
-    const availableStock =
-      updatedVariant.stock - (updatedVariant.reserved || 0);
+    const availableStock = updatedVariant.stock - (updatedVariant.reserved || 0);
 
     if (global.io) {
       global.io.emit("stockUpdated", {
@@ -209,8 +227,115 @@ export const retryPaymentService = async ({ orderId, userId }) => {
     throw new AppError("Retry window expired. Please place a new order.", HTTP_STATUS.BAD_REQUEST);
   }
 
-  // ✅ Do NOT touch reserved stock — it was never released on failure.
-  // The reservation from placement is still intact and valid for this retry.
+  // ── Validate all order items: product / category / brand must still be listed ──
+  const items = await orderItem.find({ orderId });
+
+  const Category = (await import("../../models/CategorySchema.model.js")).default;
+  const Brand    = (await import("../../models/brandSchema.model.js")).default;
+
+  for (const item of items) {
+    const product = await Products.findById(item.productId).lean();
+
+    if (!product || product.isDeleted || product.status !== "listed") {
+      throw new AppError(
+        `"${item.name}" is no longer available. Please place a new order.`,
+        HTTP_STATUS.BAD_REQUEST
+      );
+    }
+
+    const [cat, brand] = await Promise.all([
+      Category.findById(product.category).select("status isDeleted").lean(),
+      Brand.findById(product.brand).select("status isDeleted").lean(),
+    ]);
+
+    if (!cat || cat.isDeleted || cat.status !== "listed") {
+      throw new AppError(
+        `"${item.name}" — its category is no longer available. Please place a new order.`,
+        HTTP_STATUS.BAD_REQUEST
+      );
+    }
+
+    if (!brand || brand.isDeleted || brand.status !== "listed") {
+      throw new AppError(
+        `"${item.name}" — its brand is no longer available. Please place a new order.`,
+        HTTP_STATUS.BAD_REQUEST
+      );
+    }
+
+    // ── Re-check stock: ensure reservation is still intact, or re-reserve ──
+    const variant = product.variants.find(v => String(v._id) === String(item.variantId));
+    if (!variant) {
+      throw new AppError(`"${item.name}" variant no longer exists.`, HTTP_STATUS.BAD_REQUEST);
+    }
+
+    const availableStock = variant.stock - (variant.reserved || 0);
+
+    // If reservation was already released (e.g. cron ran early), re-reserve now
+    if ((variant.reserved || 0) < item.quantity) {
+      // Check there's enough free stock to re-reserve
+      if (availableStock < item.quantity) {
+        throw new AppError(
+          `"${item.name}" is out of stock. Please place a new order.`,
+          HTTP_STATUS.CONFLICT
+        );
+      }
+      // Re-reserve
+      await Products.updateOne(
+        {
+          _id: item.productId,
+          variants: { $elemMatch: { _id: item.variantId } },
+        },
+        { $inc: { "variants.$.reserved": item.quantity } }
+      );
+      await emitStockUpdate(item.productId, item.variantId);
+    }
+  }
+
+  // ── Re-validate coupon if one was applied ────────────────────────────────
+  if (order.pricing.couponDiscount > 0 || order.pricing.originalCouponDiscount > 0) {
+    // Find the cart to get the coupon id (it may still be in cart for razorpay orders)
+    const Cart = (await import("../../models/cartSchema.models.js")).default;
+    const cart = await Cart.findOne({ userId });
+    const couponId = cart?.appliedCoupon?.couponId;
+
+    if (couponId) {
+      const Coupon = (await import("../../models/couponSchema.model.js")).default;
+      const coupon = await Coupon.findById(couponId);
+      const now    = new Date();
+
+      let couponInvalid = false;
+      let couponMsg     = "";
+
+      if (!coupon || !coupon.isActive) {
+        couponInvalid = true;
+        couponMsg     = "The coupon applied to this order is no longer active.";
+      } else if (coupon.expiryDate < now) {
+        couponInvalid = true;
+        couponMsg     = "The coupon applied to this order has expired.";
+      } else if (coupon.usageLimit !== null && coupon.usedCount >= coupon.usageLimit) {
+        couponInvalid = true;
+        couponMsg     = "The coupon applied to this order has reached its usage limit.";
+      }
+
+      if (couponInvalid) {
+        // Remove coupon discount from order pricing
+        const discount = order.pricing.couponDiscount || 0;
+        order.pricing.couponDiscount         = 0;
+        order.pricing.originalCouponDiscount = 0;
+        order.pricing.finalAmount            = Math.max(order.pricing.finalAmount + discount, 0);
+
+        // Clear coupon from cart too
+        if (cart) {
+          cart.couponDiscountAmount = 0;
+          cart.appliedCoupon = { code: null, couponId: null, discountAmount: 0 };
+          await cart.save();
+        }
+
+        await order.save();
+        throw new AppError(`${couponMsg} Order total has been updated — please retry.`, HTTP_STATUS.BAD_REQUEST);
+      }
+    }
+  }
 
   // Create a fresh Razorpay order (new payment attempt, same DB order)
   const razorpayOrder = await razorpay.orders.create({
