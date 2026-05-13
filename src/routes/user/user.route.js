@@ -54,7 +54,6 @@ import { applyCoupon, removeCoupon, getAvailableCoupons } from "../../controller
 
 import { getWalletPage, addMoneyToWallet } from "../../controllers/user/wallet.controller.js";
 import User from "../../models/userSchema.model.js";
-import cartSchemaModels from "../../models/cartSchema.models.js";
 
 const router = Router();
 
@@ -82,16 +81,6 @@ router.get("/demo/payment-modals", (req, res) => {
   res.render("demo/payment-modals");
 });
 
-//Product List page
-router.delete('/cart/clearall', async (req, res) => {
-  const userId = res.locals.user._id;
-
- const user=  await cartSchemaModels.findOneAndUpdate({ userId },{$set:{items:[]}},{new:true})
-  console.log(user)
-  if(user.items.length === 0){
-    return res.status(200).json({success:true});
-  }
-})
 router.get("/cart/status", getCartStatus);
 
 router.get("/productList", getProductsListingPage);

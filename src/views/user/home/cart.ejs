@@ -46,10 +46,6 @@
                     class="inline-flex items-center gap-2 text-sm font-medium text-gray-600 hover:text-black transition-colors bg-white px-5 py-2.5 rounded-full border shadow-sm hover:shadow">
                     <i class="fa-solid fa-arrow-left"></i> Continue Shopping
                 </a>
-                <a id="clearall"
-                    class="inline-flex items-center gap-2 text-sm font-medium text-gray-600 hover:text-black transition-colors bg-white px-5 py-2.5 rounded-full border shadow-sm hover:shadow">
-                    <i class="fa-solid fa-arrow-left"></i> Clear all
-                </a>
             </div>
 
             <div class="flex flex-col lg:flex-row gap-10">
@@ -395,14 +391,6 @@
             showToast(<% - JSON.stringify(error) %>, "error");
         </script>
         <% } %>
-            <script>
-                document.getElementById('clearall').addEventListener('click', () => {
-                    const res = fetch('/cart/clearall', { method: 'DELETE' })
-                    if(res.ok){
-                        window.location.reload();
-                    }
-                })
-            </script>
             <script type="module">
                 import { showToast } from "/partials/errorMsg.utils.js";
                 import { confirmAction } from "/partials/confirm.util.js";
