@@ -58,7 +58,7 @@
                         <% brands.forEach(b=> { %>
                                 <label class="brand-item flex items-center gap-3 cursor-pointer"
                                         data-brand="<%=b._id%>">
-                                        <input type="checkbox" class="brand-checkbox w-4 h-4">
+                                        <input type="checkbox" class="brand-checkbox w-4 h-4 cursor-pointer">
                                         <img src="<%= b.logo %>" class="w-5 h-5 object-contain">
                                         <span class="text-sm text-gray-600 hover:text-blue-600">
                                                 <%= b.title %>

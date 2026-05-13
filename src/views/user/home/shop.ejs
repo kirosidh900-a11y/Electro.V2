@@ -275,7 +275,6 @@
                 /* ================= CATEGORY + BRAND ================= */
                 document.querySelector("aside").addEventListener("click", (e) => {
                         const item = e.target.closest(".category-item");
-                        const brandItem = e.target.closest(".brand-item");
 
                         // CATEGORY
                         if (item) {
@@ -294,22 +293,26 @@
 
                                 loadProducts(1);
                         }
+                });
 
-                        // BRAND
-                        if (brandItem) {
-                                const clickedBrand = brandItem.dataset.brand;
-                                const checkbox = brandItem.querySelector(".brand-checkbox");
+                // BRAND — use change so the checkbox state is already correct when we read it
+                document.querySelector("aside").addEventListener("change", (e) => {
+                        const checkbox = e.target.closest(".brand-checkbox");
+                        if (!checkbox) return;
 
-                                checkbox.checked = !checkbox.checked;
+                        const brandItem = checkbox.closest(".brand-item");
+                        const clickedBrand = brandItem?.dataset.brand;
+                        if (!clickedBrand) return;
 
-                                if (checkbox.checked) {
+                        if (checkbox.checked) {
+                                if (!selectedBrands.includes(clickedBrand)) {
                                         selectedBrands.push(clickedBrand);
-                                } else {
-                                        selectedBrands = selectedBrands.filter(b => b !== clickedBrand);
                                 }
-
-                                loadProducts(1);
+                        } else {
+                                selectedBrands = selectedBrands.filter(b => b !== clickedBrand);
                         }
+
+                        loadProducts(1);
                 });
 
                 /* ================= SORT ================= */
