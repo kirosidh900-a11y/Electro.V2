@@ -150,7 +150,7 @@
                 let selectedBrands = [];
                 let currentSort = "newest";
                 let selectedMinPrice = 0;
-                let selectedMaxPrice = 100000;
+                let selectedMaxPrice = 10000000;
 
                 /* ================= SIDEBAR ================= */
                 function toggleSidebar() {
@@ -224,7 +224,7 @@
                                 selectedCategory !== "all" ||
                                 selectedBrands.length > 0 ||
                                 selectedMinPrice !== 0 ||
-                                selectedMaxPrice !== 100000 ||
+                                selectedMaxPrice !== 10000000 ||
                                 document.getElementById("searchInput").value.trim() !== "" ||
                                 currentSort !== "newest";
 
@@ -322,19 +322,63 @@
                 });
 
                 /* ================= PRICE ================= */
-                document.getElementById("minPriceSelect").addEventListener("change", () => {
-                        selectedMinPrice = document.getElementById("minPriceSelect").value;
-                        updateClearButtonState();
+                const MIN_PRICE_FLOOR   = 0;
+                const MAX_PRICE_CEILING = 10000000; // ₹1 crore hard cap
+
+                function parsePriceInput(id, fallback) {
+                        const raw = document.getElementById(id).value.trim();
+                        if (raw === "") return fallback;
+                        const n = Math.floor(Number(raw));          // strip decimals
+                        if (!isFinite(n) || n < 0) return fallback; // reject NaN / negative / Infinity
+                        return Math.min(n, MAX_PRICE_CEILING);       // clamp to ceiling
+                }
+
+                function validatePriceRange() {
+                        const min = parsePriceInput("minPriceSelect", MIN_PRICE_FLOOR);
+                        const max = parsePriceInput("maxPriceSelect", MAX_PRICE_CEILING);
+
+                        const minEl = document.getElementById("minPriceSelect");
+                        const maxEl = document.getElementById("maxPriceSelect");
+
+                        // Visual feedback
+                        minEl.classList.remove("border-red-400", "ring-red-300");
+                        maxEl.classList.remove("border-red-400", "ring-red-300");
+
+                        if (min > max && maxEl.value.trim() !== "") {
+                                maxEl.classList.add("border-red-400", "ring-red-300");
+                                return false;
+                        }
+                        return true;
+                }
+
+                document.getElementById("minPriceSelect").addEventListener("input", () => {
+                        selectedMinPrice = parsePriceInput("minPriceSelect", MIN_PRICE_FLOOR);
+                        clearTimeout(priceTimer);
+                        priceTimer = setTimeout(() => {
+                                if (!validatePriceRange()) return;
+                                updateClearButtonState();
+                                loadProducts(1);
+                        }, 600);
                 });
 
-                document.getElementById("maxPriceSelect").addEventListener("change", () => {
-                        selectedMaxPrice = document.getElementById("maxPriceSelect").value;
-                        updateClearButtonState();
+                document.getElementById("maxPriceSelect").addEventListener("input", () => {
+                        selectedMaxPrice = parsePriceInput("maxPriceSelect", MAX_PRICE_CEILING);
+                        clearTimeout(priceTimer);
+                        priceTimer = setTimeout(() => {
+                                if (!validatePriceRange()) return;
+                                updateClearButtonState();
+                                loadProducts(1);
+                        }, 600);
                 });
+
+                let priceTimer;
 
                 /* ================= APPLY FILTER ================= */
                 function applyFilters() {
-                        if (Number(selectedMinPrice) > Number(selectedMaxPrice)) {
+                        selectedMinPrice = parsePriceInput("minPriceSelect", MIN_PRICE_FLOOR);
+                        selectedMaxPrice = parsePriceInput("maxPriceSelect", MAX_PRICE_CEILING);
+
+                        if (!validatePriceRange()) {
                                 showToast("Min price cannot be greater than Max price", "warning");
                                 return;
                         }
@@ -354,7 +398,7 @@
                         selectedCategory = "all";
                         selectedBrands = [];
                         selectedMinPrice = 0;
-                        selectedMaxPrice = 100000;
+                        selectedMaxPrice = 10000000;
                         currentSort = "newest";
 
                         document.querySelectorAll(".category-item")
@@ -363,8 +407,8 @@
                         document.querySelectorAll(".brand-checkbox")
                                 .forEach(cb => cb.checked = false);
 
-                        document.getElementById("minPriceSelect").value = "0";
-                        document.getElementById("maxPriceSelect").value = "100000";
+                        document.getElementById("minPriceSelect").value = "";
+                        document.getElementById("maxPriceSelect").value = "";
 
                         document.getElementById("sortSelect").value = "newest";
                         document.getElementById("searchInput").value = "";
@@ -379,13 +423,13 @@
                         selectedCategory = "all";
                         selectedBrands = [];
                         selectedMinPrice = 0;
-                        selectedMaxPrice = 100000;
+                        selectedMaxPrice = 10000000;
                         currentSort = "newest";
 
                         document.getElementById("searchInput").value = "";
                         document.getElementById("sortSelect").value = "newest";
-                        document.getElementById("minPriceSelect").value = "0";
-                        document.getElementById("maxPriceSelect").value = "100000";
+                        document.getElementById("minPriceSelect").value = "";
+                        document.getElementById("maxPriceSelect").value = "";
 
                         document.querySelectorAll(".brand-checkbox")
                                 .forEach(cb => cb.checked = false);
@@ -453,8 +497,8 @@
                         // Price
                         const urlMin = urlParams.get("minPrice");
                         const urlMax = urlParams.get("maxPrice");
-                        if (urlMin) { selectedMinPrice = urlMin; document.getElementById("minPriceSelect").value = urlMin; }
-                        if (urlMax) { selectedMaxPrice = urlMax; document.getElementById("maxPriceSelect").value = urlMax; }
+                        if (urlMin) { selectedMinPrice = Number(urlMin); document.getElementById("minPriceSelect").value = urlMin; }
+                        if (urlMax) { selectedMaxPrice = Number(urlMax); document.getElementById("maxPriceSelect").value = urlMax; }
 
                         // Search
                         const urlSearch = urlParams.get("search");

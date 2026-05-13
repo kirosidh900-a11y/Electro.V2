@@ -34,8 +34,21 @@ export const getProductsListingPage = async (req, res) => {
     const search = req.query.search || "";
     const category = req.query.category || "";
     const brand = req.query.brand || "";
-    const minPrice = parseInt(req.query.minPrice) || 0;
-    const maxPrice = parseInt(req.query.maxPrice) || 100000;
+    const rawMin = parseInt(req.query.minPrice, 10);
+    const rawMax = parseInt(req.query.maxPrice, 10);
+    const MAX_PRICE_CEILING = 10_000_000; // ₹1 crore hard cap
+
+    // Reject non-numeric, negative, or absurdly large values
+    const minPrice = Number.isFinite(rawMin) && rawMin >= 0
+      ? Math.min(rawMin, MAX_PRICE_CEILING)
+      : 0;
+    const maxPrice = Number.isFinite(rawMax) && rawMax >= 0
+      ? Math.min(rawMax, MAX_PRICE_CEILING)
+      : MAX_PRICE_CEILING;
+
+    // Swap silently if inverted (extra safety net on top of frontend validation)
+    const safeMin = Math.min(minPrice, maxPrice);
+    const safeMax = Math.max(minPrice, maxPrice);
 
     const { categories, brands } = await getFilterDataService();
 
@@ -48,8 +61,8 @@ export const getProductsListingPage = async (req, res) => {
         search,
         category,
         brand,
-        minPrice,
-        maxPrice,
+        minPrice: safeMin,
+        maxPrice: safeMax,
       });
 
       // We render the partials to strings to send back to the frontend
@@ -71,8 +84,8 @@ export const getProductsListingPage = async (req, res) => {
         {
           categories,
           brands,
-          minPrice,
-          maxPrice,
+          minPrice: safeMin,
+          maxPrice: safeMax,
         },
       );
 
@@ -97,8 +110,8 @@ export const getProductsListingPage = async (req, res) => {
       searchQuery: search,
       selectedCategory: category,
       selectedBrand: brand,
-      minPrice,
-      maxPrice,
+      minPrice: safeMin,
+      maxPrice: safeMax,
       categories: categories,
       brands: brands,
     });

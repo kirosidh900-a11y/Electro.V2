@@ -75,29 +75,20 @@
                 <div class="flex gap-2 items-center">
 
                         <!-- MIN -->
-                        <select id="minPriceSelect"
-                                class="w-full border p-2 text-sm rounded focus:ring-2 focus:ring-blue-500">
-                                <option value="0">Min</option>
-                                <option value="500">₹500</option>
-                                <option value="1000">₹1000</option>
-                                <option value="2000">₹2000</option>
-                                <option value="5000">₹5000</option>
-                                <option value="10000">₹10000</option>
-                        </select>
+                        <div class="relative w-full">
+                                <span class="absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-400 text-sm">₹</span>
+                                <input type="number" id="minPriceSelect" min="0" placeholder="Min"
+                                        class="w-full border pl-6 pr-2 py-2 text-sm rounded focus:ring-2 focus:ring-blue-500 focus:outline-none">
+                        </div>
 
-                        <span class="text-gray-400 text-sm">to</span>
+                        <span class="text-gray-400 text-sm shrink-0">to</span>
 
                         <!-- MAX -->
-                        <select id="maxPriceSelect"
-                                class="w-full border p-2 text-sm rounded focus:ring-2 focus:ring-blue-500">
-                                <option value="100000">Max</option>
-                                <option value="1000">₹1000</option>
-                                <option value="2000">₹2000</option>
-                                <option value="5000">₹5000</option>
-                                <option value="10000">₹10000</option>
-                                <option value="20000">₹20000</option>
-                                <option value="50000">₹50000</option>
-                        </select>
+                        <div class="relative w-full">
+                                <span class="absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-400 text-sm">₹</span>
+                                <input type="number" id="maxPriceSelect" min="0" placeholder="Max"
+                                        class="w-full border pl-6 pr-2 py-2 text-sm rounded focus:ring-2 focus:ring-blue-500 focus:outline-none">
+                        </div>
 
                 </div>
         </div>

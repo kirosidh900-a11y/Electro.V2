@@ -713,8 +713,8 @@ export const getProductsListService = async ({
   const skip = (page - 1) * limit;
   const isSearch = search && search.trim() !== "";
 
-  const safeMin = Number(minPrice) || 0;
-  const safeMax = Number(maxPrice) || 100000;
+  const safeMin = Math.max(0, Math.min(Number(minPrice) || 0, 10_000_000));
+  const safeMax = Math.max(safeMin, Math.min(Number(maxPrice) || 10_000_000, 10_000_000));
 
   const normalizedBrand = brand ? brand.split(",").sort().join(",") : "all";
 
