@@ -14,7 +14,6 @@ import startPaymentExpiryJob from "./jobs/paymentExpiry.job.js";
 import { globalLimiter } from "./middlewares/rateLimiter.middleware.js";
 
 import errorMiddleware from "./middlewares/error.middleware.js";
-import AppError from "./utils/partials/AppError.utils.js";
 import { errorResponse } from "./utils/partials/response.util.js";
 import HTTP_STATUS from "./constant/statusCode.js";
 import passport from "passport";

@@ -2,8 +2,6 @@ import mongoose from "mongoose";
 import HTTP_STATUS from "../../constant/statusCode.js";
 import Cart from "../../models/cartSchema.models.js";
 import Products from "../../models/productSchema.model.js";
-import Category from "../../models/CategorySchema.model.js";
-import Brand from "../../models/brandSchema.model.js";
 import AppError from "../../utils/partials/AppError.utils.js";
 import Wishlist from "../../models/wishlistSchema.model.js";
 
