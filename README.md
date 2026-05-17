@@ -15,9 +15,6 @@ A production-ready e-commerce web application built for electronics retail. Elec
 ### 🏠 Homepage
 ![Electro Homepage](screenshots/homepage.png)
 
-### 🔐 Admin Login
-![Admin Login](screenshots/admin-login.png)
-
 ### 📊 Admin Dashboard
 ![Admin Dashboard](screenshots/admin-dashboard.png)
 
@@ -303,4 +300,5 @@ ISC
 
 ## 👤 Author
 
-> _Add your name and links here_
+**Sidharth T**
+🌐 [sidhartht.online](https://sidhartht.online)

@@ -69,7 +69,7 @@ export const processItemRefund = async ({
   orderItemId,
   orderId,
   userId,
-  reason,
+  reason: _reason,
   isCOD = false,
   keepItemStatus = false,
 }) => {

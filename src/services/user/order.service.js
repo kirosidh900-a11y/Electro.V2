@@ -3,7 +3,7 @@ import Cart from "../../models/cartSchema.models.js";
 import Products from "../../models/productSchema.model.js";
 import Order from "../../models/orderSchema.model.js";
 
-import { applyPricingToProduct, calculateBestPrice } from "../../utils/products/pricing.util.js";
+import { calculateBestPrice } from "../../utils/products/pricing.util.js";
 import { getActiveOffers } from "../../utils/products/offers.util.js";
 
 import AppError from "../../utils/partials/AppError.utils.js";
@@ -141,7 +141,6 @@ export const placeOrderService = async ({
     let orderItems = [];
     let subtotal = 0;
     let gstTotal = 0;
-    let mrpTotal = 0;
     let productDiscount = 0;
 
     const orderNumber = await generateOrderNumber();
@@ -210,7 +209,6 @@ export const placeOrderService = async ({
 
       subtotal        += itemSubtotal;
       gstTotal        += itemGST;
-      mrpTotal        += itemMRP;
       productDiscount += Math.max(0, itemDiscount);
 
       let updatedProduct;

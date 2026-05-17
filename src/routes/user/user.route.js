@@ -47,13 +47,11 @@ import {
   getBuyNowPage,
   validateCartStockCheck,
 } from "../../controllers/product/user/checkout.controller.js";
-import { getOrderListingPage } from "../../controllers/user/order.controller.js";
 import paymentRouter from "../product/payment.route.js";
 import { razorpayCallbackController } from "../../controllers/product/payment.controller.js";
 import { applyCoupon, removeCoupon, getAvailableCoupons } from "../../controllers/product/user/coupon.controller.js";
 
 import { getWalletPage, addMoneyToWallet } from "../../controllers/user/wallet.controller.js";
-import User from "../../models/userSchema.model.js";
 
 const router = Router();
 

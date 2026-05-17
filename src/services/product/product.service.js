@@ -10,7 +10,6 @@ import {
 } from "../partials/cloudinary.service.js";
 import { getCache, setCache } from "../../utils/Redis/cache.js";
 import { findByIdOrThrow } from "../../utils/products/product.util.js";
-import Offer from "../../models/offersSchema.model.js";
 import { applyPricingToProduct } from "../../utils/products/pricing.util.js";
 import { getActiveOffers } from "../../utils/products/offers.util.js";
 
@@ -717,8 +716,6 @@ export const getProductsListService = async ({
   const safeMax = Math.max(safeMin, Math.min(Number(maxPrice) || 10_000_000, 10_000_000));
 
   const normalizedBrand = brand ? brand.split(",").sort().join(",") : "all";
-
-  const now = new Date();
 
   const cacheKey = `shop:category=${category || "all"}:brand=${normalizedBrand}:page=${page}:limit=${limit}:sort=${sort}:price=${safeMin}-${safeMax}`;
 

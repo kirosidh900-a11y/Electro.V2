@@ -1,5 +1,4 @@
 import Products from "../../models/productSchema.model.js";
-import mongoose from "mongoose";
 
 const LOW_STOCK_THRESHOLD = 10; // variants with stock <= this are "low stock"
 
