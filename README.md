@@ -239,8 +239,8 @@ ADMIN_PASSWORD=your_admin_password
 
 ```bash
 # Clone the repository
-git clone https://github.com/your-username/electro.git
-cd electro
+git clone https://github.com/SidharthT-TechExpert/Electro.V2.git
+cd Electro.V2
 
 # Install dependencies
 npm install
