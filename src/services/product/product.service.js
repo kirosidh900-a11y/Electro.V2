@@ -797,6 +797,7 @@ export const getProductsListService = async ({
 
     {
       $match: {
+        "variants.isDeleted": { $ne: true },
         "variants.price": {
           $gte: safeMin,
           $lte: safeMax,

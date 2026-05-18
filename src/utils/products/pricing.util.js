@@ -88,6 +88,7 @@ export const applyPricingToProduct = (product, offers = []) => {
   if (!product?.variants?.length) return product;
 
   const variants = product.variants
+    .filter((variant) => !variant.isDeleted)   // exclude soft-deleted variants
     .map((variant) => {
       const pricing = calculateBestPrice(variant, offers);
       return {
