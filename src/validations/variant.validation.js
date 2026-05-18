@@ -26,6 +26,12 @@ export const addVariantSchema = Joi.object({
     "any.required": "Max discount amount is required",
   }),
 
+  gst_rate: Joi.number().min(0).max(100).optional().messages({
+    "number.base": "GST rate must be a number",
+    "number.min": "GST rate cannot be negative",
+    "number.max": "GST rate cannot exceed 100",
+  }),
+
   stock: Joi.number().integer().min(0).required().messages({
     "number.base": "Stock must be a number",
     "number.min": "Stock cannot be negative",
@@ -75,6 +81,12 @@ export const editVariantSchema = Joi.object({
     "number.base": "Max discount must be a number",
     "number.min": "Max discount cannot be negative",
     "any.required": "Max discount amount is required",
+  }),
+
+  gst_rate: Joi.number().min(0).max(100).optional().messages({
+    "number.base": "GST rate must be a number",
+    "number.min": "GST rate cannot be negative",
+    "number.max": "GST rate cannot exceed 100",
   }),
 
   stock: Joi.number().min(0).required().messages({
