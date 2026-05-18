@@ -358,18 +358,22 @@
 
                                                         allAttributes.forEach(attr => {
 
+                                                                const wrapper = document.createElement("div");
+                                                                wrapper.className = "flex flex-col gap-1";
+
+                                                                const label = document.createElement("label");
+                                                                label.textContent = attr.label;
+                                                                label.className = "text-xs text-gray-400 font-medium";
+                                                                wrapper.appendChild(label);
+
                                                                 const input = document.createElement("input");
-
-                                                                input.placeholder = attr.label;
+                                                                input.placeholder = `Enter ${attr.label}`;
                                                                 input.name = attr.key;
-
-                                                                // 🔥 IMPORTANT FIX
                                                                 input.value = existingAttributes?.[attr.key] || "";
+                                                                input.className = "bg-[#0f172a] border border-white/10 px-3 py-2 rounded-lg text-sm";
+                                                                wrapper.appendChild(input);
 
-                                                                input.className =
-                                                                        "bg-[#0f172a] border border-white/10 px-3 py-2 rounded-lg text-sm";
-
-                                                                container.appendChild(input);
+                                                                container.appendChild(wrapper);
 
                                                         });
 

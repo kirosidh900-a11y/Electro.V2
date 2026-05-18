@@ -874,16 +874,23 @@
           const result = await res.json();
 
           result.data.variantAttributes.forEach(attr => {
-            const input = document.createElement("input");
+            const wrapper = document.createElement("div");
+            wrapper.className = "flex flex-col gap-1";
 
-            input.placeholder = attr.label;
+            // Visible label so admin knows which field is which
+            const label = document.createElement("label");
+            label.textContent = attr.label;
+            label.className = "text-xs text-gray-400 font-medium";
+            wrapper.appendChild(label);
+
+            const input = document.createElement("input");
+            input.placeholder = `Enter ${attr.label}`;
             input.name = attr.key;
             input.value = existingAttributes[attr.key] || "";
+            input.className = "bg-[#0f172a] border border-white/10 px-3 py-2 rounded-lg text-sm";
+            wrapper.appendChild(input);
 
-            input.className =
-              "bg-[#0f172a] border border-white/10 px-3 py-2 rounded-lg text-sm";
-
-            container.appendChild(input);
+            container.appendChild(wrapper);
           });
 
         } catch {
@@ -1122,8 +1129,8 @@
             hasError = true;
           }
 
-          // ATTRIBUTES - Pattern allows letters, numbers, spaces, -, _, and /
-          const attributePattern = /^[A-Za-z0-9/]+(?:[ _-][A-Za-z0-9/]+)*$/;
+          // ATTRIBUTES — allow all printable characters except < > " ' ` to prevent XSS
+          const attributePattern = /^[^<>"'`]{1,200}$/;
           const attributes = {};
           const attrInputs = document.querySelectorAll("#variantAttributes input");
           
@@ -1136,7 +1143,7 @@
               break;
             }
             if (!attributePattern.test(value)) {
-              attributesError.textContent = `${input.placeholder} can only contain letters, numbers, spaces, -, _, and /`;
+              attributesError.textContent = `${input.placeholder} contains invalid characters (< > " ' are not allowed)`;
               attributesError.classList.remove("hidden");
               hasError = true;
               break;
