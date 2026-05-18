@@ -410,6 +410,7 @@ export const addVariantService = async ({
   description,
   regular_price,
   max_discount_amount,
+  gst_rate,
   attributes,
   files,
 }) => {
@@ -471,6 +472,7 @@ export const addVariantService = async ({
     price,
     regular_price: regular_price ?? price,
     max_discount_amount: max_discount_amount ?? 0,
+    gst_rate: gst_rate !== undefined ? Number(gst_rate) : 18,
     stock,
     description,
     attributes: new Map(Object.entries(attributes || {})),
@@ -530,6 +532,10 @@ export const editVariantService = async (productId, variantId, data) => {
 
   if (data.max_discount_amount !== undefined) {
     variant.max_discount_amount = Number(data.max_discount_amount);
+  }
+
+  if (data.gst_rate !== undefined) {
+    variant.gst_rate = Number(data.gst_rate);
   }
 
   // ================= CROSS-FIELD VALIDATION =================
@@ -791,6 +797,7 @@ export const getProductsListService = async ({
 
     {
       $match: {
+        "variants.isDeleted": { $ne: true },
         "variants.price": {
           $gte: safeMin,
           $lte: safeMax,

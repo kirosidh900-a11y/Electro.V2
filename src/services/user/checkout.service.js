@@ -62,14 +62,34 @@ export const getBuyNowCheckoutData = async (userId, { productId, variantId, quan
   ]);
 
   if (!product) throw new AppError("Product not found", HTTP_STATUS.NOT_FOUND);
+  if (product.isDeleted || product.status !== "listed") {
+    throw new AppError("This product is no longer available", HTTP_STATUS.BAD_REQUEST);
+  }
+
+  // Validate category and brand are still listed
+  const Category = (await import("../../models/CategorySchema.model.js")).default;
+  const Brand    = (await import("../../models/brandSchema.model.js")).default;
+
+  const [cat, brd] = await Promise.all([
+    Category.findById(product.category).select("status isDeleted").lean(),
+    Brand.findById(product.brand).select("status isDeleted").lean(),
+  ]);
+
+  if (!cat || cat.isDeleted || cat.status !== "listed") {
+    throw new AppError("This product's category is no longer available", HTTP_STATUS.BAD_REQUEST);
+  }
+  if (!brd || brd.isDeleted || brd.status !== "listed") {
+    throw new AppError("This product's brand is no longer available", HTTP_STATUS.BAD_REQUEST);
+  }
 
   const offers       = await getActiveOffers(product);
   const pricedProduct = applyPricingToProduct(product, offers);
 
+  // applyPricingToProduct already filters isDeleted variants
   const variant = pricedProduct.variants.find(
     (v) => v._id.toString() === variantId,
   );
-  if (!variant) throw new AppError("Variant not found", HTTP_STATUS.NOT_FOUND);
+  if (!variant) throw new AppError("This variant is no longer available", HTTP_STATUS.NOT_FOUND);
 
   const availableStock = Math.max((variant.stock || 0) - (variant.reserved || 0), 0);
   if (availableStock <= 0) {

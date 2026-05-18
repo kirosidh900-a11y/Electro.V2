@@ -32,6 +32,14 @@ const variantSchema = new mongoose.Schema(
       min: 0,
     },
 
+    // ✅ GST RATE (%) — default 18%, admin can override per variant
+    gst_rate: {
+      type: Number,
+      default: 18,
+      min: 0,
+      max: 100,
+    },
+
     stock: {
       type: Number,
       default: 0,

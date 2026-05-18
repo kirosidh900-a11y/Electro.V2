@@ -4,6 +4,13 @@ import { defineConfig } from "eslint/config";
 
 export default defineConfig([
   /* =========================
+     Ignore EJS templates — ESLint can't parse EJS <%= %> tags inside <script> blocks
+  ========================= */
+  {
+    ignores: ["src/views/**"],
+  },
+
+  /* =========================
      Node Backend
   ========================= */
 

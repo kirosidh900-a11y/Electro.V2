@@ -180,6 +180,11 @@ export const placeOrderService = async ({
 
       const variant = product.variants[index];
 
+      // ── Variant must not be soft-deleted ─────────────────────────────
+      if (variant.isDeleted) {
+        throw new AppError(`${product.name} — selected variant is no longer available`, HTTP_STATUS.BAD_REQUEST);
+      }
+
       // 🔥 AVAILABLE STOCK CHECK
       const availableStock = variant.stock - (variant.reserved || 0);
 

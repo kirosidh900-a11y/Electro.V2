@@ -81,7 +81,9 @@
                                     data-item-id="<%= item._id %>" data-stock="<%= item.variantId?.stock %>"
                                     data-mrp="<%= item.variantId?.regular_price || item.variantId?.price || 0 %>"
                                     data-product-id="<%= item.productId?._id %>"
-                                    data-variant-id="<%= item.variantId?._id %>">
+                                    data-variant-id="<%= item.variantId?._id %>"
+                                    data-gst-amount="<%= item.variantId?.gstAmount || 0 %>"
+                                    data-gst-rate="<%= item.variantId?.gstRate || 18 %>">
 
                                     <!-- Product Image -->
                                     <a href="/product/<%= item.productId?._id %>"
@@ -640,31 +642,33 @@
 
                 //  HELPERS
                 function calculateTotals() {
-                    let mrpTotal = 0;  // sum of regular_price * qty
-                    let finalTotal = 0;  // sum of finalPrice * qty (post-offer)
+                    let mrpTotal = 0;
+                    let finalTotal = 0;
                     let totalDiscount = 0;
+                    let totalGst = 0;
                     let count = 0;
 
                     document.querySelectorAll('.cart-item').forEach(el => {
-                        const finalPrice = +el.querySelector('.item-price').textContent.replace(/,/g, '');
-                        const mrpPrice = +(el.dataset.mrp || finalPrice);
-                        const qty = +el.querySelector('.item-qty').value;
+                        const finalPrice  = +el.querySelector('.item-price').textContent.replace(/,/g, '');
+                        const mrpPrice    = +(el.dataset.mrp || finalPrice);
+                        const qty         = +el.querySelector('.item-qty').value;
+                        // Use server-calculated GST per unit (consistent with pricing engine)
+                        const gstPerUnit  = +(el.dataset.gstAmount || 0);
 
-                        finalTotal += finalPrice * qty;
-                        mrpTotal += mrpPrice * qty;
+                        finalTotal    += finalPrice * qty;
+                        mrpTotal      += mrpPrice   * qty;
                         totalDiscount += Math.max(mrpPrice - finalPrice, 0) * qty;
-                        count += qty;
+                        totalGst      += gstPerUnit * qty;
+                        count         += qty;
                     });
 
-                    const GST_RATE = 18;
-                    const gstAmount = (finalTotal * GST_RATE) / (100 + GST_RATE);
-                    const delivery = count === 0 ? 0 : (finalTotal >= 500 ? 0 : 40);
+                    const delivery   = count === 0 ? 0 : (finalTotal >= 500 ? 0 : 40);
                     const grandTotal = finalTotal + delivery;
 
                     // ── UI UPDATE ──
                     document.getElementById('summaryItemCount').textContent = count;
                     document.getElementById('summarySubtotal').textContent = format(mrpTotal);
-                    document.getElementById('summaryTax').textContent = format(gstAmount);
+                    document.getElementById('summaryTax').textContent = format(totalGst);
                     document.getElementById('summaryTotal').textContent = format(grandTotal);
 
                     // Discount row
