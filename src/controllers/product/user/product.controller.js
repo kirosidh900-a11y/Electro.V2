@@ -125,11 +125,20 @@ export const getProductsListingPage = async (req, res) => {
 export const getWishlistPage = async (req, res, next) => {
   try {
     const userId = res.locals.user?._id;
+    const page   = parseInt(req.query.page) || 1;
 
-    const wishlist = await getWishlistService(userId);
+    const wishlistData = await getWishlistService(userId, { page, limit: 5 });
+
+    // AJAX — return JSON for pagination without reload
+    if (req.headers.accept?.includes("application/json")) {
+      return res.json({ success: true, ...wishlistData });
+    }
 
     return res.render("user/home/wishlist", {
-      wishlist,
+      wishlist:    wishlistData,
+      currentPage: wishlistData.currentPage,
+      totalPages:  wishlistData.totalPages,
+      total:       wishlistData.total,
     });
   } catch (err) {
     next(err);

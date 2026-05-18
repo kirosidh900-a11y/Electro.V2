@@ -67,141 +67,92 @@
 
                 <!-- ================= PRODUCT MODAL ================= -->
 
-                <div id="productModal" id="productsTableBody"
-                        class="fixed inset-0 bg-black/60 hidden z-50 flex items-center justify-center">
+                <div id="productModal"
+                        class="fixed inset-0 bg-black/60 hidden z-50 flex items-center justify-center p-4">
 
-                        <div class="bg-[#0b1220] w-[550px] rounded-xl border border-white/10 p-6">
+                        <div class="bg-[#0b1220] w-full max-w-lg rounded-xl border border-white/10 shadow-2xl flex flex-col max-h-[90vh]">
 
-                                <div class="flex justify-between items-center mb-4">
-
+                                <!-- Modal Header — fixed -->
+                                <div class="flex justify-between items-center px-6 py-4 border-b border-white/10 shrink-0">
                                         <h2 id="productModalTitle" class="text-lg font-semibold text-white">
-
                                                 Add Product
-
                                         </h2>
-
-                                        <button onclick="closeModal()" class="text-gray-400 hover:text-white">
-
+                                        <button onclick="closeModal()" class="text-gray-400 hover:text-white transition">
                                                 <i class="fas fa-times"></i>
-
                                         </button>
-
                                 </div>
 
-                                <form id="productForm" class="flex flex-col gap-4">
+                                <!-- Modal Body — scrollable -->
+                                <div class="overflow-y-auto flex-1 px-6 py-4">
+                                        <form id="productForm" class="flex flex-col gap-4">
 
-                                        <input type="hidden" id="product-id">
+                                                <input type="hidden" id="product-id">
 
-                                        <!-- Product Name -->
+                                                <!-- Product Name -->
+                                                <div>
+                                                        <label class="text-sm text-gray-400">Product Name</label>
+                                                        <input type="text" id="product-name"
+                                                                class="w-full mt-1 bg-[#0f172a] border border-white/10 px-3 py-2 rounded-lg text-sm text-gray-200 focus:outline-none focus:border-cyan-500">
+                                                        <span id="productNameError" class="text-red-400 text-xs mt-1 hidden block"></span>
+                                                </div>
 
-                                        <div>
-
-                                                <label class="text-sm text-gray-400">Product Name</label>
-
-                                                <input type="text" id="product-name"
-                                                        class="w-full mt-1 bg-[#0f172a] border border-white/10 px-3 py-2 rounded-lg text-sm">
-                                                <span id="productNameError" class="text-red-400 text-xs mt-1 hidden block"></span>
-
-                                        </div>
-
-                                        <!-- Category -->
-
-                                        <div>
-
-                                                <label class="text-sm text-gray-400">Category</label>
-
-                                                <select id="product-category"
-                                                        class="w-full mt-1 bg-[#0f172a] border border-white/10 px-3 py-2 rounded-lg text-sm">
-
-                                                        <option value="">Select category</option>
-
-                                                        <% categories.forEach(c=>{ %>
-
-                                                                <option value="<%= c._id %>">
-
-                                                                        <%= c.title %>
-
-                                                                </option>
-
+                                                <!-- Category -->
+                                                <div>
+                                                        <label class="text-sm text-gray-400">Category</label>
+                                                        <select id="product-category"
+                                                                class="w-full mt-1 bg-[#0f172a] border border-white/10 px-3 py-2 rounded-lg text-sm text-gray-200 focus:outline-none focus:border-cyan-500">
+                                                                <option value="">Select category</option>
+                                                                <% categories.forEach(c=>{ %>
+                                                                        <option value="<%= c._id %>"><%= c.title %></option>
                                                                 <% }) %>
+                                                        </select>
+                                                        <span id="productCategoryError" class="text-red-400 text-xs mt-1 hidden block"></span>
+                                                </div>
 
-                                                </select>
-                                                <span id="productCategoryError" class="text-red-400 text-xs mt-1 hidden block"></span>
-
-                                        </div>
-
-                                        <!-- Brand -->
-
-                                        <div>
-
-                                                <label class="text-sm text-gray-400">Brand</label>
-
-                                                <select id="product-brand" name="brand"
-                                                        class="w-full mt-1 bg-[#0f172a] border border-white/10 px-3 py-2 rounded-lg text-sm">
-
-                                                        <option value="">Select brand</option>
-
-                                                        <% brands.forEach(b=> { %>
-
-                                                                <option value="<%= b._id %>">
-                                                                        <%= b.title %>
-                                                                </option>
-
+                                                <!-- Brand -->
+                                                <div>
+                                                        <label class="text-sm text-gray-400">Brand</label>
+                                                        <select id="product-brand" name="brand"
+                                                                class="w-full mt-1 bg-[#0f172a] border border-white/10 px-3 py-2 rounded-lg text-sm text-gray-200 focus:outline-none focus:border-cyan-500">
+                                                                <option value="">Select brand</option>
+                                                                <% brands.forEach(b=> { %>
+                                                                        <option value="<%= b._id %>"><%= b.title %></option>
                                                                 <% }) %>
+                                                        </select>
+                                                        <span id="productBrandError" class="text-red-400 text-xs mt-1 hidden block"></span>
+                                                </div>
 
-                                                </select>
-                                                <span id="productBrandError" class="text-red-400 text-xs mt-1 hidden block"></span>
+                                                <!-- Attributes -->
+                                                <div>
+                                                        <label class="text-sm text-gray-400">Attributes</label>
+                                                        <div id="productAttributes" class="flex flex-col gap-3 mt-1"></div>
+                                                        <span id="productAttributesError" class="text-red-400 text-xs mt-1 hidden block"></span>
+                                                </div>
 
-                                        </div>
+                                                <!-- Status -->
+                                                <div>
+                                                        <label class="text-sm text-gray-400">Status</label>
+                                                        <select id="product-status"
+                                                                class="w-full mt-1 bg-[#0f172a] border border-white/10 px-3 py-2 rounded-lg text-sm text-gray-200 focus:outline-none focus:border-cyan-500">
+                                                                <option value="unlisted">Unlisted</option>
+                                                                <option value="listed">Listed</option>
+                                                        </select>
+                                                </div>
 
-                                        <!-- Attributes -->
+                                        </form>
+                                </div>
 
-                                        <div>
-
-                                                <label class="text-sm text-gray-400">Attributes</label>
-
-                                                <div id="productAttributes" class="flex flex-col gap-2"></div>
-                                                <span id="productAttributesError" class="text-red-400 text-xs mt-1 hidden block"></span>
-
-                                        </div>
-
-                                        <!-- Status -->
-
-                                        <div>
-
-                                                <label class="text-sm text-gray-400">Status</label>
-
-                                                <select id="product-status"
-                                                        class="w-full mt-1 bg-[#0f172a] border border-white/10 px-3 py-2 rounded-lg text-sm">
-
-                                                        <option value="unlisted">Unlisted</option>
-                                                        <option value="listed">Listed</option>
-
-                                                </select>
-
-                                        </div>
-
-                                        <!-- Buttons -->
-
-                                        <div class="flex justify-center gap-3 mt-4">
-
-                                                <button type="button" onclick="closeModal()"
-                                                        class="px-4 py-2 bg-gray-600 hover:bg-gray-700 text-white rounded-lg text-sm">
-
-                                                        Cancel
-
-                                                </button>
-
-                                                <button type="submit" id="product-submit-btn"
-                                                        class="px-4 py-2 bg-cyan-600 hover:bg-cyan-700 text-white rounded-lg text-sm">
-
-                                                        Create Product
-
-                                                </button>
-
-                                        </div>
-
-                                </form>
+                                <!-- Modal Footer — fixed -->
+                                <div class="flex justify-end gap-3 px-6 py-4 border-t border-white/10 shrink-0">
+                                        <button type="button" onclick="closeModal()"
+                                                class="px-4 py-2 bg-white/5 hover:bg-white/10 text-gray-300 border border-white/10 rounded-lg text-sm transition">
+                                                Cancel
+                                        </button>
+                                        <button type="submit" form="productForm" id="product-submit-btn"
+                                                class="px-5 py-2 bg-cyan-600 hover:bg-cyan-700 text-white rounded-lg text-sm font-semibold transition">
+                                                Create Product
+                                        </button>
+                                </div>
 
                         </div>
 
@@ -317,8 +268,8 @@
                                                 if (title) title.textContent = "Add Product";
 
                                                 document.getElementById("productModal").classList.remove("hidden");
+                                                document.body.style.overflow = "hidden";
                                         }
-
 
                                         // ================= CLOSE MODAL =================
 
@@ -332,9 +283,15 @@
                                                 document.getElementById("productBrandError").classList.add("hidden");
                                                 document.getElementById("productAttributesError").textContent = "";
                                                 document.getElementById("productAttributesError").classList.add("hidden");
-                                                
+
                                                 document.getElementById("productModal").classList.add("hidden");
+                                                document.body.style.overflow = "";
                                         }
+
+                                        // Close on backdrop click
+                                        document.getElementById("productModal")?.addEventListener("click", function(e) {
+                                                if (e.target === this) closeModal();
+                                        });
 
 
                                         // ================= LOAD CATEGORY ATTRIBUTES =================
@@ -632,6 +589,7 @@
                                                         if (title) title.textContent = "Edit Product";
 
                                                         document.getElementById("productModal").classList.remove("hidden");
+                                                        document.body.style.overflow = "hidden";
 
                                                 } catch (error) {
                                                         console.error(error);

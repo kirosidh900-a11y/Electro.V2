@@ -357,19 +357,24 @@ export const validateCartStockService = async (userId) => {
   return updates;
 };
 
-export const getWishlistService = async (userId) => {
+export const getWishlistService = async (userId, { page = 1, limit = 5 } = {}) => {
   const wishlist = await Wishlist.findOne({ userId }).lean();
 
   if (!wishlist || !wishlist.items.length) {
-    return { items: [] };
+    return { items: [], total: 0, totalPages: 0, currentPage: 1 };
   }
 
   const sortedItems = wishlist.items.sort(
     (a, b) => new Date(b.addedAt) - new Date(a.addedAt),
   );
 
+  const total      = sortedItems.length;
+  const totalPages = Math.ceil(total / limit);
+  const skip       = (page - 1) * limit;
+  const pageItems  = sortedItems.slice(skip, skip + limit);
+
   const populatedItems = await Promise.all(
-    sortedItems.map(async (item) => {
+    pageItems.map(async (item) => {
       const product = await Products.findById(item.productId)
         .populate("brand", "_id title")
         .populate("category", "_id title")
@@ -411,6 +416,9 @@ export const getWishlistService = async (userId) => {
 
   return {
     items: populatedItems.filter(Boolean),
+    total,
+    totalPages,
+    currentPage: page,
   };
 };
 
