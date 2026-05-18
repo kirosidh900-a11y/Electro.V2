@@ -8,6 +8,7 @@ const errorMiddleware = (err, req, res, _next) => {
   // JSON API requests — always return JSON
   if (
     req.headers.accept?.includes("application/json") ||
+    req.headers["content-type"]?.includes("application/json") ||
     req.originalUrl.startsWith("/api") ||
     req.originalUrl.startsWith("/auth") ||
     req.originalUrl.startsWith("/name") ||
