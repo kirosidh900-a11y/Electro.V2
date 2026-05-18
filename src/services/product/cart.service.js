@@ -29,27 +29,39 @@ export const updateCartService = async ({
   const productObjId = new mongoose.Types.ObjectId(productId);
   const variantObjId = new mongoose.Types.ObjectId(variantId);
 
-  // ================= FETCH PRODUCT =================
-  const product = await Products.findOne(
+  // ── Full availability check: product + category + brand + variant ─────────
+  const [productDoc] = await Products.aggregate([
     {
-      _id: productObjId,
-      isDeleted: false,
-      status: "listed",
-      "variants._id": variantObjId,
+      $match: {
+        _id: productObjId,
+        isDeleted: false,
+        status: "listed",
+      },
     },
     {
-      "variants.$": 1,
+      $lookup: { from: "categories", localField: "category", foreignField: "_id", as: "cat" },
     },
-  );
+    { $unwind: "$cat" },
+    { $match: { "cat.status": "listed", "cat.isDeleted": false } },
+    {
+      $lookup: { from: "brands", localField: "brand", foreignField: "_id", as: "brd" },
+    },
+    { $unwind: "$brd" },
+    { $match: { "brd.status": "listed", "brd.isDeleted": false } },
+    { $project: { variants: 1 } },
+  ]);
 
-  if (!product || !product.variants.length) {
-    throw new AppError(
-      "Product or variant not available",
-      HTTP_STATUS.NOT_FOUND,
-    );
+  if (!productDoc) {
+    throw new AppError("Product is not available", HTTP_STATUS.NOT_FOUND);
   }
 
-  const variant = product.variants[0];
+  const variant = productDoc.variants.find(
+    (v) => v._id.toString() === variantObjId.toString() && !v.isDeleted,
+  );
+
+  if (!variant) {
+    throw new AppError("Selected variant is not available", HTTP_STATUS.NOT_FOUND);
+  }
 
   // Available stock = stock minus reserved
   const availableStock = Math.max(variant.stock - (variant.reserved || 0), 0);
@@ -189,13 +201,17 @@ export const updateCartQuantityService = async (userId, itemId, quantity) => {
   if (!item) throw new AppError("Item not found", HTTP_STATUS.NOT_FOUND);
 
   const product = await Products.findById(item.productId);
-  if (!product) throw new AppError("Product not found", HTTP_STATUS.NOT_FOUND);
+  if (!product || product.isDeleted || product.status !== "listed") {
+    throw new AppError("Product is no longer available", HTTP_STATUS.BAD_REQUEST);
+  }
 
   const variant = product.variants.find(
     (v) => v._id.toString() === item.variantId.toString(),
   );
 
-  if (!variant) throw new AppError("Variant not found", HTTP_STATUS.NOT_FOUND);
+  if (!variant || variant.isDeleted) {
+    throw new AppError("Selected variant is no longer available", HTTP_STATUS.BAD_REQUEST);
+  }
 
   // Available stock = stock minus reserved
   const availableStock = Math.max(variant.stock - (variant.reserved || 0), 0);
