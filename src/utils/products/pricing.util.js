@@ -48,15 +48,23 @@ export const calculateBestPrice = (variant, offers = []) => {
     }
   }
 
-  // Step 3: apply max_discount_amount cap
-  // if offer discount exceeds the cap → use cap, else use offer discount
-  const finalDiscount =
-    maxCap > 0
-      ? Math.min(bestRawDiscount, maxCap)
-      : bestRawDiscount;
+  // Step 3: apply max_discount_amount cap.
+  // max_discount_amount is the maximum CUSTOMER-FACING discount (incl. GST).
+  // Since the discount is applied on the ex-GST base, we convert the cap to
+  // its ex-GST equivalent so the final customer-visible reduction equals maxCap.
+  //   maxCapBase = maxCap / (1 + gstRate/100)
+  const gstRate = variant.gst_rate ?? DEFAULT_GST_RATE;
 
-  // Step 4: compute final price — use variant's own GST rate, fall back to default
-  const gstRate        = variant.gst_rate ?? DEFAULT_GST_RATE;
+  let finalDiscount;
+  if (maxCap > 0) {
+    // Convert the GST-inclusive cap to an ex-GST base discount
+    const maxCapBase = maxCap / (1 + gstRate / 100);
+    finalDiscount = Math.min(bestRawDiscount, maxCapBase);
+  } else {
+    finalDiscount = bestRawDiscount;
+  }
+
+  // Step 4: compute final price
   const discountedBase = Math.max(0, sellingPrice - finalDiscount);
   const gstAmount      = Math.round((discountedBase * gstRate) / 100);
   const finalPrice     = Math.round(discountedBase + gstAmount);
