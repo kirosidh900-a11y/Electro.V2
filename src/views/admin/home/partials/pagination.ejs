@@ -1,10 +1,8 @@
+<% if (totalPages > 1) { %>
 <%
-  const WINDOW = 2; // pages shown either side of current
+  const WINDOW = 2;
   const pages  = [];
 
-  if (totalPages <= 1) return;
-
-  // Build page list with null = ellipsis
   pages.push(1);
   if (currentPage - WINDOW > 2)          pages.push(null);
   for (let i = Math.max(2, currentPage - WINDOW); i <= Math.min(totalPages - 1, currentPage + WINDOW); i++) {
@@ -16,10 +14,10 @@
 
 <div class="flex items-center justify-center gap-1.5 mt-8 flex-wrap">
 
-  <%# Prev %>
+  <%# Prev — no href, JS handles navigation to preserve search/filter state %>
   <a data-page="<%= currentPage > 1 ? currentPage - 1 : 1 %>"
-     class="pagination-link flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-medium transition
-            <%= currentPage === 1 ? 'opacity-30 pointer-events-none bg-white/5 text-gray-500' : 'bg-white/5 hover:bg-white/10 text-gray-300 cursor-pointer' %>">
+     class="pagination-link flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-medium transition cursor-pointer
+            <%= currentPage === 1 ? 'opacity-30 pointer-events-none bg-white/5 text-gray-500' : 'bg-white/5 hover:bg-white/10 text-gray-300' %>">
     <i class="fas fa-chevron-left text-[10px]"></i> Prev
   </a>
 
@@ -27,8 +25,8 @@
     <% if (p === null) { %>
       <span class="px-2 py-2 text-gray-600 text-xs select-none">•••</span>
     <% } else { %>
-      <a href="?page=<%= p %>" data-page="<%= p %>"
-         class="pagination-link pagination-number w-9 h-9 flex items-center justify-center rounded-lg text-sm font-semibold transition
+      <a data-page="<%= p %>"
+         class="pagination-link pagination-number w-9 h-9 flex items-center justify-center rounded-lg text-sm font-semibold transition cursor-pointer
                 <%= currentPage === p
                   ? 'bg-cyan-600 text-white shadow-lg shadow-cyan-900/30'
                   : 'bg-white/5 hover:bg-white/10 text-gray-300' %>">
@@ -37,12 +35,12 @@
     <% } %>
   <% }) %>
 
-  <%# Next %>
+  <%# Next — no href %>
   <a data-page="<%= currentPage < totalPages ? currentPage + 1 : totalPages %>"
-     href="?page=<%= currentPage < totalPages ? currentPage + 1 : totalPages %>"
-     class="pagination-link flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-medium transition
-            <%= currentPage === totalPages ? 'opacity-30 pointer-events-none bg-white/5 text-gray-500' : 'bg-white/5 hover:bg-white/10 text-gray-300 cursor-pointer' %>">
+     class="pagination-link flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-medium transition cursor-pointer
+            <%= currentPage === totalPages ? 'opacity-30 pointer-events-none bg-white/5 text-gray-500' : 'bg-white/5 hover:bg-white/10 text-gray-300' %>">
     Next <i class="fas fa-chevron-right text-[10px]"></i>
   </a>
 
 </div>
+<% } %>
