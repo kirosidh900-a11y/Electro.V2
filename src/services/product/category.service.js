@@ -41,7 +41,7 @@ export const createCategoryService = async (title, status) => {
   const existing = await Category.findOne({ title: normalizedTitle });
 
   if (existing) {
-    throw new AppError("Category already exists", HTTP_STATUS.CONFLICT);
+    throw new AppError(`A category named "${normalizedTitle}" already exists`, HTTP_STATUS.CONFLICT);
   }
 
   return await Category.create({
@@ -65,7 +65,7 @@ export const editCategoryService = async (id, title, status) => {
   });
 
   if (existing) {
-    throw new AppError("Category already exists", HTTP_STATUS.CONFLICT);
+    throw new AppError(`A category named "${normalizedTitle}" already exists`, HTTP_STATUS.CONFLICT);
   }
 
   // update

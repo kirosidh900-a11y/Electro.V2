@@ -189,6 +189,26 @@ export const updateOrderStatusService = async (orderId, status) => {
   // Get the order and count items
   const order = await Order.findById(orderId);
   if (!order) throw new AppError("Order not found");
+
+  // ── Prevent rollback of advanced statuses ────────────────────────────────
+  // Once an order is shipped or further along, it cannot be moved backwards.
+  const statusRank = {
+    placed: 1, confirmed: 2, shipped: 3, out_for_delivery: 4, delivered: 5, cancelled: 0,
+  };
+  const currentRank = statusRank[order.orderStatus] ?? 0;
+  const newRank     = statusRank[status] ?? 0;
+
+  const noRollbackFrom = ["shipped", "out_for_delivery", "delivered"];
+  if (
+    noRollbackFrom.includes(order.orderStatus) &&
+    status !== "cancelled" &&
+    newRank < currentRank
+  ) {
+    throw new AppError(
+      `Cannot move order back to "${status.replace(/_/g, " ")}" — order is already ${order.orderStatus.replace(/_/g, " ")}`,
+      HTTP_STATUS.BAD_REQUEST
+    );
+  }
   
   const itemCount = await orderItem.countDocuments({ orderId });
   const isSingleItem = itemCount === 1;

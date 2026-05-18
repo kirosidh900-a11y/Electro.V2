@@ -290,7 +290,15 @@
                           <!-- Multi-item order: Show item-level controls -->
                           <select id="item-status-<%= item._id %>"
                             class="bg-[#0f172a] border border-white/10 text-gray-200 text-xs rounded-lg px-2 py-1.5 focus:outline-none focus:border-cyan-500">
-                            <% ['placed','confirmed','shipped','out_for_delivery','delivered','cancelled'].forEach(s => { %>
+                            <%
+                              const itemStatusRank = { placed:1, confirmed:2, shipped:3, out_for_delivery:4, delivered:5, cancelled:0 };
+                              const itemCurrentRank = itemStatusRank[item.itemStatus] || 0;
+                              const itemAllowed = ['placed','confirmed','shipped','out_for_delivery','delivered','cancelled'].filter(s => {
+                                if (s === 'cancelled') return true; // always allow cancel
+                                return (itemStatusRank[s] || 0) >= itemCurrentRank;
+                              });
+                            %>
+                            <% itemAllowed.forEach(s => { %>
                               <option value="<%= s %>" <%= item.itemStatus === s ? 'selected' : '' %>>
                                 <%= s.replace(/_/g,' ').replace(/\b\w/g,c=>c.toUpperCase()) %>
                               </option>
@@ -579,7 +587,14 @@
       <% } %>
       
       <select id="statusSelect" class="w-full bg-[#0f172a] border border-white/10 text-gray-200 rounded-lg px-3 py-2.5 text-sm mb-5 focus:outline-none focus:border-cyan-500">
-        <% ['placed','confirmed','shipped','out_for_delivery','delivered'].forEach(s => { %>
+        <%
+          const allStatuses = ['placed','confirmed','shipped','out_for_delivery','delivered'];
+          const statusRank  = { placed:1, confirmed:2, shipped:3, out_for_delivery:4, delivered:5 };
+          const currentRank = statusRank[order.orderStatus] || 0;
+          // Only show current status + forward statuses (no rollback)
+          const allowedStatuses = allStatuses.filter(s => (statusRank[s] || 0) >= currentRank);
+        %>
+        <% allowedStatuses.forEach(s => { %>
           <option value="<%= s %>" <%= order.orderStatus === s ? 'selected' : '' %>><%= s.replace(/_/g,' ').replace(/\b\w/g, c => c.toUpperCase()) %></option>
         <% }) %>
       </select>
