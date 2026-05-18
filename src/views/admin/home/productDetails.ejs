@@ -311,23 +311,51 @@
 
                           <!-- PRICE -->
                           <td class="py-3 px-4">
-                            <div class="flex flex-col">
+                            <%
+                              const gstRate18   = v.gst_rate ?? 18;
+                              const gstAmt18    = Math.round((v.price * gstRate18) / 100);
+                              const custPrice   = v.price + gstAmt18;
 
-                              <span class="text-green-400 font-semibold">
-                                ₹<%= v.price %>
+                              let minPossible   = null;
+                              if (v.max_discount_amount > 0) {
+                                const capBase   = v.max_discount_amount / (1 + gstRate18 / 100);
+                                const discBase  = Math.max(0, v.price - capBase);
+                                const discGst   = Math.round((discBase * gstRate18) / 100);
+                                minPossible     = Math.round(discBase + discGst);
+                              }
+                            %>
+                            <div class="flex flex-col gap-0.5">
+
+                              <!-- Selling price (ex-GST) -->
+                              <span class="text-green-400 font-semibold text-sm">
+                                ₹<%= v.price.toLocaleString('en-IN') %>
+                                <span class="text-gray-600 text-[10px] font-normal ml-0.5">ex-GST</span>
                               </span>
 
-                              <% if (v.regular_price && v.regular_price> v.price) { %>
-                                <span class="text-xs text-gray-400 line-through">
-                                  ₹<%= v.regular_price %>
-                                </span>
-                                <% } %>
+                              <!-- Customer pays (incl. GST) -->
+                              <span class="text-cyan-400 text-xs font-medium">
+                                ₹<%= custPrice.toLocaleString('en-IN') %>
+                                <span class="text-gray-600 text-[10px] font-normal ml-0.5">incl. GST</span>
+                              </span>
 
-                                  <% if (v.max_discount_amount) { %>
-                                    <span class="text-[10px] text-yellow-400">
-                                      Max Disc: ₹<%= v.max_discount_amount %>
-                                    </span>
-                                    <% } %>
+                              <!-- MRP strikethrough -->
+                              <% if (v.regular_price && v.regular_price > v.price) { %>
+                                <span class="text-[11px] text-gray-500 line-through">
+                                  MRP ₹<%= v.regular_price.toLocaleString('en-IN') %>
+                                </span>
+                              <% } %>
+
+                              <!-- Max discount + min possible price -->
+                              <% if (v.max_discount_amount > 0) { %>
+                                <span class="text-[10px] text-yellow-400">
+                                  Cap: ₹<%= v.max_discount_amount.toLocaleString('en-IN') %>
+                                </span>
+                                <% if (minPossible !== null) { %>
+                                  <span class="text-[10px] text-amber-300">
+                                    Min price: ₹<%= minPossible.toLocaleString('en-IN') %>
+                                  </span>
+                                <% } %>
+                              <% } %>
 
                             </div>
                           </td>
