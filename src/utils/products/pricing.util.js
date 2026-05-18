@@ -1,4 +1,4 @@
-const GST_RATE = 18;
+const DEFAULT_GST_RATE = 18;
 
 // ─── Step 1: raw discount an offer gives on the selling price ────────────────
 // No caps here — just the pure offer calculation
@@ -55,9 +55,10 @@ export const calculateBestPrice = (variant, offers = []) => {
       ? Math.min(bestRawDiscount, maxCap)
       : bestRawDiscount;
 
-  // Step 4: compute final price
+  // Step 4: compute final price — use variant's own GST rate, fall back to default
+  const gstRate        = variant.gst_rate ?? DEFAULT_GST_RATE;
   const discountedBase = Math.max(0, sellingPrice - finalDiscount);
-  const gstAmount      = Math.round((discountedBase * GST_RATE) / 100);
+  const gstAmount      = Math.round((discountedBase * gstRate) / 100);
   const finalPrice     = Math.round(discountedBase + gstAmount);
 
   // Step 5: total saving vs MRP
@@ -67,7 +68,7 @@ export const calculateBestPrice = (variant, offers = []) => {
     basePrice:    Math.round(discountedBase), // post-discount, pre-GST
     gstAmount,
     finalPrice,                               // what user pays (incl. GST)
-    gstRate:      GST_RATE,
+    gstRate,
     appliedOffer,
     savings:      totalSavings,               // vs MRP
     offerSavings: Math.round(finalDiscount),  // actual offer portion applied
