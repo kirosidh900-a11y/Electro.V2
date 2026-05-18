@@ -493,9 +493,15 @@
 
           <!-- MAX DISCOUNT -->
           <div>
-            <label class="text-sm text-gray-400">Max Discount Amount</label>
+            <label class="text-sm text-gray-400">Max Discount Amount
+              <span class="text-gray-600 text-[11px] ml-1">(customer-facing cap incl. GST)</span>
+            </label>
             <input type="number" id="variant-max-discount"
               class="w-full mt-1 bg-[#0f172a] border border-white/10 px-3 py-2 rounded-lg text-sm">
+            <!-- Live preview: price after max discount applied -->
+            <p id="variantMaxDiscountPreview" class="text-[11px] text-gray-500 mt-1 hidden">
+              After max discount → Customer pays: ₹<span id="previewAfterDiscount">0</span>
+            </p>
             <span id="variantMaxDiscountError" class="text-red-400 text-xs mt-1 hidden block"></span>
           </div>
 
@@ -655,9 +661,26 @@
         } else {
           preview.classList.add("hidden");
         }
+
+        // ── Max discount preview ──────────────────────────────────────────────
+        const maxCap         = parseFloat(document.getElementById("variant-max-discount").value) || 0;
+        const discountPreview = document.getElementById("variantMaxDiscountPreview");
+
+        if (price > 0 && maxCap > 0) {
+          // Convert GST-inclusive cap to ex-GST base discount (same logic as pricing util)
+          const maxCapBase     = maxCap / (1 + gstRate / 100);
+          const discountedBase = Math.max(0, price - maxCapBase);
+          const gstOnBase      = Math.round((discountedBase * gstRate) / 100);
+          const afterDiscount  = Math.round(discountedBase + gstOnBase);
+          document.getElementById("previewAfterDiscount").textContent = afterDiscount.toLocaleString("en-IN");
+          discountPreview.classList.remove("hidden");
+        } else {
+          discountPreview.classList.add("hidden");
+        }
       }
 
       document.getElementById("variant-price")?.addEventListener("input", updateGstPreview);
+      document.getElementById("variant-max-discount")?.addEventListener("input", updateGstPreview);
 
       /* ================= ACTION MENU ================= */
 
