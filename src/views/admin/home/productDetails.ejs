@@ -642,7 +642,7 @@
       /* ================= LIVE GST PREVIEW ================= */
       function updateGstPreview() {
         const price    = parseFloat(document.getElementById("variant-price").value) || 0;
-        const gstRate  = parseInt(document.getElementById("variant-gst-rate").value) || 18;
+        const gstRate  = 18; // fixed at 18% — no dropdown
         const preview  = document.getElementById("variantPricePreview");
 
         if (price > 0) {
@@ -658,7 +658,6 @@
       }
 
       document.getElementById("variant-price")?.addEventListener("input", updateGstPreview);
-      document.getElementById("variant-gst-rate")?.addEventListener("change", updateGstPreview);
 
       /* ================= ACTION MENU ================= */
 
@@ -684,7 +683,6 @@
 
         document.getElementById("variant-regular-price").value = "";
         document.getElementById("variant-max-discount").value = "";
-        document.getElementById("variant-gst-rate").value = "18";
 
         variantImages = [];
         imagesToDelete = [];
@@ -819,10 +817,7 @@
             variant.max_discount_amount || "";
 
           // Set GST rate (fall back to 18 for existing variants without gst_rate)
-          document.getElementById("variant-gst-rate").value =
-            variant.gst_rate ?? 18;
-
-          // Trigger preview update
+          // No dropdown — gst_rate is always 18 by default
           updateGstPreview();
 
           // ================= ATTRIBUTES =================
@@ -1065,9 +1060,8 @@
           formData.append("description", description);
           formData.append("attributes", JSON.stringify(attributes));
 
-          // Include gst_rate
-          const gstRate = parseInt(document.getElementById("variant-gst-rate").value) || 18;
-          formData.append("gst_rate", gstRate);
+          // Include gst_rate — always 18 (no dropdown)
+          formData.append("gst_rate", 18);
 
           variantImages.forEach((img, i) => {
             if (img.file) {
