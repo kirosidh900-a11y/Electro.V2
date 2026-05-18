@@ -450,23 +450,25 @@
                                                 const attributes = {};
                                                 const inputs = document.querySelectorAll("#productAttributes input");
 
-                                                // Pattern for attributes - allows letters, numbers, spaces, -, _, and /
-                                                const attributePattern = /^[A-Za-z0-9/]+(?:[ _-][A-Za-z0-9/]+)*$/;
+                                                // Allow all printable characters except < > " ' ` to prevent XSS
+                                                const attributePattern = /^[^<>"'`]{1,200}$/;
 
                                                 for (const input of inputs) {
 
-                                                        const key = input.name;
+                                                        const key   = input.name;
                                                         const value = input.value.trim();
+                                                        // Get the label text from the sibling label element
+                                                        const fieldLabel = input.closest("div")?.querySelector("label")?.textContent?.trim() || key;
 
                                                         if (!value) {
-                                                                attributesError.textContent = `${input.placeholder} is required`;
+                                                                attributesError.textContent = `${fieldLabel} is required`;
                                                                 attributesError.classList.remove("hidden");
                                                                 hasError = true;
                                                                 break;
                                                         }
 
                                                         if (!attributePattern.test(value)) {
-                                                                attributesError.textContent = `${input.placeholder} can only contain letters, numbers, spaces, -, _, and /`;
+                                                                attributesError.textContent = `${fieldLabel} contains invalid characters (< > " ' are not allowed)`;
                                                                 attributesError.classList.remove("hidden");
                                                                 hasError = true;
                                                                 break;

@@ -1135,15 +1135,16 @@
           const attrInputs = document.querySelectorAll("#variantAttributes input");
           
           for (const input of attrInputs) {
-            const value = input.value.trim();
+            const value      = input.value.trim();
+            const fieldLabel = input.closest("div")?.querySelector("label")?.textContent?.trim() || input.name;
             if (!value) {
-              attributesError.textContent = `${input.placeholder} is required`;
+              attributesError.textContent = `${fieldLabel} is required`;
               attributesError.classList.remove("hidden");
               hasError = true;
               break;
             }
             if (!attributePattern.test(value)) {
-              attributesError.textContent = `${input.placeholder} contains invalid characters (< > " ' are not allowed)`;
+              attributesError.textContent = `${fieldLabel} contains invalid characters (< > " ' are not allowed)`;
               attributesError.classList.remove("hidden");
               hasError = true;
               break;
