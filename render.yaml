@@ -1,0 +1,13 @@
+services:
+  - type: web
+    name: electro-ecommerce
+    env: node
+    buildCommand: npm install && npm run build:css
+    startCommand: node src/index.js
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 3000
+      # Add your other env vars in Render dashboard
+    healthCheckPath: /
