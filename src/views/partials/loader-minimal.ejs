@@ -1,0 +1,66 @@
+<!-- Minimal Modern Loading Screen -->
+<div id="appLoader" class="fixed inset-0 bg-white z-[9999] flex items-center justify-center">
+  <div class="text-center">
+    <!-- Animated Logo -->
+    <div class="relative mb-8">
+      <div class="text-7xl font-black tracking-tighter uppercase italic">
+        <span class="inline-block animate-bounce" style="animation-delay: 0s">E</span>
+        <span class="inline-block animate-bounce text-blue-600" style="animation-delay: 0.1s">l</span>
+        <span class="inline-block animate-bounce text-purple-600" style="animation-delay: 0.2s">e</span>
+        <span class="inline-block animate-bounce text-red-600" style="animation-delay: 0.3s">c</span>
+        <span class="inline-block animate-bounce" style="animation-delay: 0.4s">t</span>
+        <span class="inline-block animate-bounce text-blue-600" style="animation-delay: 0.5s">r</span>
+        <span class="inline-block animate-bounce text-red-600" style="animation-delay: 0.6s">o</span>
+        <span class="inline-block text-red-600 animate-pulse">.</span>
+      </div>
+    </div>
+
+    <!-- Progress Bar -->
+    <div class="w-64 h-1.5 bg-gray-200 rounded-full overflow-hidden mx-auto">
+      <div class="h-full bg-gradient-to-r from-blue-600 via-purple-600 to-red-600 animate-progress"></div>
+    </div>
+  </div>
+</div>
+
+<style>
+  @keyframes progress {
+    0% {
+      width: 0%;
+      transform: translateX(0);
+    }
+    50% {
+      width: 100%;
+      transform: translateX(0);
+    }
+    100% {
+      width: 100%;
+      transform: translateX(100%);
+    }
+  }
+
+  .animate-progress {
+    animation: progress 1.5s ease-in-out infinite;
+  }
+
+  #appLoader {
+    transition: opacity 0.5s ease-in-out;
+  }
+</style>
+
+<script>
+  window.addEventListener('load', function() {
+    const loader = document.getElementById('appLoader');
+    if (loader) {
+      setTimeout(() => {
+        loader.style.opacity = '0';
+        setTimeout(() => loader.remove(), 500);
+      }, 500);
+    }
+  });
+
+  // Safety timeout
+  setTimeout(() => {
+    const loader = document.getElementById('appLoader');
+    if (loader) loader.remove();
+  }, 10000);
+</script>
